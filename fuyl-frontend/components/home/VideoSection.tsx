@@ -73,7 +73,7 @@ export function VideoSection() {
 
         <ScrollReveal delay={200}>
           <form
-            className="flex flex-col sm:flex-row gap-2 mt-10 w-full max-w-md"
+            className="flex flex-col sm:flex-row gap-2 mt-10 w-full max-w-md mx-auto"
             onSubmit={(e) => { e.preventDefault(); alert('Waitlist coming soon!') }}
           >
             <input
@@ -84,7 +84,7 @@ export function VideoSection() {
             />
             <button
               type="submit"
-              className="h-12! px-6! text-xs! font-semibold! uppercase tracking-widest bg-brand-rose! text-white rounded-sm transition-colors hover:bg-brand-rose-dark! shrink-0"
+              className="h-12 px-6 text-xs font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-sm transition-colors hover:bg-brand-rose-dark shrink-0"
             >
               Join Waitlist
             </button>

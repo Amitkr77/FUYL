@@ -171,17 +171,25 @@ export function ThirtyDayPath() {
         </div>
         <ScrollReveal delay={400}>
           <div className="mt-12 text-center">
-            <p className="text-display-sm font-display text-brand-teal">
+            <p className="text-display-sm font-display text-brand-teal max-w-2xl mx-auto">
               Most people feel the shift by week 3. By day 30, they do not think
               about it anymore. Because it has become their morning.
             </p>
 
-            <Link
-              href="/pages/why-fuyl"
-              className="mt-10 inline-flex h-11 items-center justify-center rounded-sm border bg-brand-forest px-8 text-xs font-semibold uppercase tracking-widest text-white! transition-colors hover:text-brand-forest! hover:bg-brand-sage hover:border-none"
-            >
-              START YOUR 30 DAYS - SHOP FUYL COMPLETE+ →
-            </Link>
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                href="/products/fuyl-complete"
+                className="inline-flex h-11 items-center justify-center rounded-sm border bg-brand-forest px-6 sm:px-8 text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:bg-brand-sage hover:text-brand-forest whitespace-nowrap"
+              >
+                Shop FUYL COMPLETE+ →
+              </Link>
+              <Link
+                href="/pages/why-fuyl"
+                className="inline-flex h-11 items-center justify-center rounded-sm border border-brand-forest px-6 text-xs font-semibold uppercase tracking-widest text-brand-forest transition-colors hover:bg-brand-forest hover:text-white whitespace-nowrap"
+              >
+                Why FUYL?
+              </Link>
+            </div>
           </div>
         </ScrollReveal>
       </div>

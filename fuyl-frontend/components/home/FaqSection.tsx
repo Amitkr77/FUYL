@@ -68,7 +68,9 @@ export function FaqSection() {
   rounded-3xl
   lg:sticky
   lg:top-24
-  min-h-[820px]
+  min-h-[360px]
+  sm:min-h-[440px]
+  lg:min-h-[820px]
   "
             >
               <Image
@@ -102,10 +104,11 @@ export function FaqSection() {
     relative
     z-10
     flex
-    min-h-205
     flex-col
-    p-8
+    p-6
+    sm:p-8
     lg:p-10
+    lg:min-h-205
     "
               >
                 {/* Top */}
@@ -140,16 +143,14 @@ export function FaqSection() {
                     </span>
                   </div>
                   <h2
-                    className=" mt-10
+                    className="mt-6 sm:mt-10
         font-display
         font-bold
         leading-[0.98]
         tracking-tight
         text-white
+        text-4xl sm:text-5xl lg:text-[clamp(48px,6vw,76px)]
         "
-                    style={{
-                      fontSize: "clamp(48px,6vw,76px)",
-                    }}
                   >
                     QUESTIONS?
                     <br />

@@ -70,25 +70,25 @@ export default function OurStoryPage() {
   return (
     <>
       {/* ── 1. Hero / Header ─────────────────────────── */}
-      <section className="relative overflow-hidden bg-brand-forest px-8 py-18 text-center">
+      <section className="relative overflow-hidden bg-brand-forest px-4 sm:px-8 py-16 sm:py-20 lg:py-24 text-center">
         {/* Watermark */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center select-none">
-          <span className="font-sans text-[320px] font-black leading-none tracking-[-8px] text-white/3 whitespace-nowrap">
+          <span className="font-sans text-[120px] sm:text-[220px] lg:text-[320px] font-black leading-none tracking-[-8px] text-white/3 whitespace-nowrap">
             FUYL
           </span>
         </div>
 
-        <p className="relative font-sans text-[10px] uppercase tracking-[4px] text-brand-rose mb-7">
+        <p className="relative font-sans text-[10px] uppercase tracking-[4px] text-brand-rose mb-6 sm:mb-7">
           The Story Behind FUYL
         </p>
 
-        <blockquote className="relative mx-auto mb-6 max-w-170 font-normal italic leading-normal text-white text-[28px]">
-          <span className="font-serif not-italic text-brand-rose text-[80px] leading-[0.5] align-[-28px] mr-1">
+        <blockquote className="relative mx-auto mb-6 max-w-3xl font-normal italic leading-relaxed text-white text-lg sm:text-2xl md:text-[28px]">
+          <span className="font-serif not-italic text-brand-rose text-4xl sm:text-[64px] lg:text-[80px] leading-[0.5] align-[-14px] sm:align-[-22px] lg:align-[-28px] mr-1">
             &ldquo;
           </span>
           We didn&apos;t set out to build a supplement brand. We set out to
           solve our own problem — and found that millions of Indians shared it.
-          <span className="font-serif not-italic text-brand-rose text-[80px] leading-[0.5] align-[-28px] ml-1  ">
+          <span className="font-serif not-italic text-brand-rose text-4xl sm:text-[64px] lg:text-[80px] leading-[0.5] align-[-14px] sm:align-[-22px] lg:align-[-28px] ml-1">
             &rdquo;
           </span>
         </blockquote>
@@ -205,13 +205,13 @@ export default function OurStoryPage() {
       </section>
 
       {/* ── 5. CTA ────────────────────────────────────── */}
-      <section className=" py-20 text-center">
+      <section className="py-16 sm:py-20 text-center bg-brand-forest">
         <ScrollReveal>
           <div className="container-brand mx-auto max-w-3xl">
-            <p className="text-display-lg font-display mb-4 text-brand-forest">
+            <p className="text-display-lg font-display mb-4 text-white">
               THIS IS WHAT WE BUILT.
             </p>
-            <p className="text-body-lg mb-10 text-brand-berry-light">
+            <p className="text-body-lg mb-10 text-white/60">
               A commitment to transparency, to science, and to your long-term
               health. We are honoured to be part of your journey.
             </p>
@@ -219,19 +219,19 @@ export default function OurStoryPage() {
             <div className="mb-6 flex flex-wrap justify-center gap-4">
               <Link
                 href="/products/fuyl-complete"
-                className="inline-flex h-12 items-center justify-center rounded-sm bg-[#8B1A4A] px-10 text-xs font-semibold uppercase tracking-widest text-white! transition-colors hover:bg-[#C4526A]"
+                className="inline-flex h-12 items-center justify-center rounded-sm bg-brand-rose px-6 sm:px-10 text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:bg-brand-rose-dark"
               >
                 Try FUYL Complete+ — ₹1,499 for 15 sachets →
               </Link>
               <Link
                 href="/pages/contact"
-                className="inline-flex h-12 items-center justify-center rounded-sm border border-brand-berry-light px-8 text-xs font-semibold uppercase tracking-widest text-white/75 transition-colors  hover:text-white"
+                className="inline-flex h-12 items-center justify-center rounded-sm border border-white/30 px-8 text-xs font-semibold uppercase tracking-widest text-white/75 transition-colors hover:border-white hover:text-white"
               >
                 Talk to Us
               </Link>
             </div>
 
-            <p className="text-body-xs text-brand-berry-light uppercase tracking-widest">
+            <p className="text-body-xs text-white/40 uppercase tracking-widest">
               Free shipping · Dispatched within 1 working day
             </p>
           </div>

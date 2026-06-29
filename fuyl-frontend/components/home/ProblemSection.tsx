@@ -43,12 +43,12 @@ export function ProblemSection() {
             <ScrollReveal key={text} delay={i * 60}>
               <div
                 className={`
-          flex flex-col items-center  p-6 text-center gap-5 h-64 
+          flex flex-col items-center p-6 sm:p-8 text-center gap-5 min-h-52
           lg:border-r lg:border-brand-border
           ${i === PROBLEMS.length - 1 ? "lg:border-r-0" : ""}
         `}
               >
-                <div className="flex h-26 w-26 items-center justify-center rounded-full bg-brand-teal/10">
+                <div className="flex h-20 w-20 sm:h-24 sm:w-24 lg:h-26 lg:w-26 items-center justify-center rounded-full bg-brand-teal/10">
                   <Image src={icon} alt="" width={50} height={50} />
                 </div>
 
@@ -68,7 +68,7 @@ export function ProblemSection() {
 
             <Link
               href="/pages/why-fuyl"
-              className="mt-10 inline-flex h-11 items-center justify-center rounded-sm border bg-brand-forest px-8 text-xs font-semibold uppercase tracking-widest text-white! transition-colors hover:text-brand-forest! hover:bg-brand-sage hover:border-none"
+              className="mt-10 inline-flex h-11 items-center justify-center rounded-sm bg-brand-forest px-8 text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:bg-brand-sage hover:text-brand-forest"
             >
               See what makes it different →
             </Link>

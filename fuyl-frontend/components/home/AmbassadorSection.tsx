@@ -29,16 +29,16 @@ export function AmbassadorSection() {
 
         {/* Header */}
         <ScrollReveal>
-          <div className="text-center max-w-xl mx-auto mb-16">
+          <div className="text-center max-w-xl mx-auto mb-12 sm:mb-16">
             <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brand-teal mb-4">
               FUYL Ambassador Programme
             </p>
-            <h2 className="font-display text-4xl sm:text-5xl font-bold leading-tight mb-5">
-              FOUND SOMETHING
-              THAT WORKS?<br />
+            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-5">
+              FOUND SOMETHING THAT WORKS?
+              <br />
               <span className="text-brand-teal">SHARE IT. EARN.</span>
             </h2>
-            <p className="text-base text-white/55 leading-relaxed">
+            <p className="text-sm sm:text-base text-white/55 leading-relaxed">
               Refer friends, family or your audience and earn up to 15% on every order — automatically.
             </p>
           </div>
@@ -48,7 +48,7 @@ export function AmbassadorSection() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-14">
           {STEPS.map(({ n, title, body }, i) => (
             <ScrollReveal key={n} delay={i * 100}>
-              <div className="relative flex flex-col gap-5 p-7 rounded-2xl border border-white/8 bg-white/5 h-full overflow-hidden group hover:bg-white/8 transition-colors duration-300">
+              <div className="relative flex flex-col gap-5 p-5 sm:p-7 rounded-2xl border border-white/8 bg-white/5 h-full overflow-hidden group hover:bg-white/8 transition-colors duration-300">
 
                 {/* Large watermark number */}
                 <span className="absolute -top-3 -right-1 font-display text-[96px] font-bold leading-none text-white/4 select-none pointer-events-none">

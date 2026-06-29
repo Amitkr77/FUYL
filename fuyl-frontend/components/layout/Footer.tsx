@@ -82,14 +82,7 @@ export function Footer() {
 
   return (
     <>
-      <div
-        className="
-  relative
-  h-[520px]
-  overflow-hidden
-  md:h-[720px]
-  "
-      >
+      <div className="relative h-60 sm:h-85 md:h-115 lg:h-140 xl:h-180 overflow-hidden">
         <Image
           src="/images/footer-image.webp"
           alt="FUYL"

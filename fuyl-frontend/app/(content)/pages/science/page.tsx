@@ -83,7 +83,11 @@ export default function SciencePage() {
           <ScrollReveal>
             <p className="text-label mb-3" style={{ color: 'var(--color-brand-berry)' }}>Evidence-Based Nutrition</p>
             <h1 className="text-display-2xl font-display mb-6">
-              THE SCIENCE<br />BEHIND<br />EVERY SACHET.
+              THE SCIENCE
+              <br className="hidden sm:block" />
+              {' '}BEHIND
+              <br className="hidden sm:block" />
+              {' '}EVERY SACHET.
             </h1>
             <p className="text-body-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.65)' }}>
               Every ingredient in FUYL COMPLETE+ is backed by peer-reviewed clinical research. Here is the evidence.
@@ -91,7 +95,7 @@ export default function SciencePage() {
           </ScrollReveal>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 mt-16">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 mt-12 sm:mt-16">
             {STATS.map(({ number, label }, i) => (
               <ScrollReveal key={label} delay={i * 80}>
                 <div
@@ -132,17 +136,17 @@ export default function SciencePage() {
       {/* CTA */}
       <section className="py-16 text-center" style={{ background: 'var(--color-brand-cream)' }}>
         <ScrollReveal>
-          <p className="text-display-lg font-display mb-4">SEE EVERY INGREDIENT IN DETAIL</p>
-          <div className="flex flex-wrap gap-3 justify-center">
+          <p className="text-display-lg font-display mb-4 px-4">SEE EVERY INGREDIENT IN DETAIL</p>
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center items-center px-4">
             <Link
               href="/pages/ingredients"
-              className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-[#8B1A4A] text-white rounded-sm transition-colors hover:bg-[#C4526A]"
+              className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-sm transition-colors hover:bg-brand-rose-dark w-full sm:w-auto"
             >
               View All Ingredients →
             </Link>
             <Link
               href="/products/fuyl-complete"
-              className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest border border-[#0A0A0A] text-[#0A0A0A] rounded-sm transition-colors hover:bg-[#0A0A0A] hover:text-white"
+              className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest border border-brand-forest text-brand-forest rounded-sm transition-colors hover:bg-brand-forest hover:text-white w-full sm:w-auto"
             >
               Shop Now
             </Link>

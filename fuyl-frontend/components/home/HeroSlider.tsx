@@ -47,8 +47,7 @@ export function HeroSlider() {
 
   return (
     <section
-      className="relative w-full overflow-hidden"
-      style={{ height: "calc(100dvh)" }}
+      className="relative w-full overflow-hidden h-dvh min-h-[560px]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       aria-label="Hero"
@@ -78,7 +77,7 @@ export function HeroSlider() {
 
       {/* Content — pinned to bottom-left on all screen sizes */}
       <div className="absolute inset-0 flex flex-col justify-end">
-        <div className="w-full px-5 pb-20 sm:px-10 sm:pb-24 md:px-16 lg:px-24 xl:px-32 max-w-5xl">
+        <div className="w-full px-5 pb-16 sm:px-10 sm:pb-24 md:px-16 lg:px-24 xl:px-32 max-w-5xl">
           {/* Eyebrow */}
           <p
             key={`eyebrow-${slide.id}`}
@@ -111,13 +110,13 @@ export function HeroSlider() {
           <div className="flex flex-wrap gap-3">
             <Link
               href={slide.cta.href}
-              className="inline-flex items-center justify-center h-11 sm:h-12 px-7 sm:px-8 text-[11px] font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-sm transition-colors hover:bg-brand-rose-dark "
+              className="inline-flex items-center justify-center h-11 sm:h-12 px-7 sm:px-8 text-[11px] font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-sm transition-colors hover:bg-brand-rose-dark"
             >
               {slide.cta.label}
             </Link>
             <Link
               href={slide.ctaAlt.href}
-              className="inline-flex items-center justify-center h-11 sm:h-12 px-7 sm:px-8 text-[11px] font-semibold uppercase tracking-widest border border-white/60 text-white rounded-sm transition-colors bg-amber-50 hover:bg-white hover:border-white"
+              className="inline-flex items-center justify-center h-11 sm:h-12 px-7 sm:px-8 text-[11px] font-semibold uppercase tracking-widest border border-white/60 text-white rounded-sm transition-colors hover:bg-white/15 hover:border-white"
             >
               {slide.ctaAlt.label}
             </Link>

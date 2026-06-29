@@ -69,7 +69,7 @@ export function NewsletterSection() {
               <button
                 type="submit"
                 disabled={status === "loading"}
-                className="h-12! px-7! text-xs! font-semibold! uppercase tracking-widest rounded-sm bg-brand-forest! text-white! transition-colors shrink-0! hover:bg-brand-sage! disabled:opacity-60 hover:border! hover:border-brand-berry!  hover:text-brand-berry!"
+                className="h-12 px-7 text-xs font-semibold uppercase tracking-widest rounded-sm bg-brand-forest text-white transition-colors shrink-0 hover:bg-brand-olive disabled:opacity-60"
               >
                 {status === "loading" ? "Subscribing…" : "Subscribe"}
               </button>

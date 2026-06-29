@@ -103,7 +103,7 @@ export function IngredientsGrid() {
               <div className="mt-8">
                 <Link
                   href="/products/fuyl-complete"
-                  className="inline-flex items-center justify-center w-full sm:w-auto h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white! rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest!"
+                  className="inline-flex items-center justify-center w-full sm:w-auto h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest"
                 >
                   Get Started
                 </Link>
@@ -113,10 +113,7 @@ export function IngredientsGrid() {
 
           {/* Right — tall image with rounded corners */}
           <ScrollReveal className="w-full">
-            <div
-              className="relative w-full rounded-2xl overflow-hidden"
-              style={{ aspectRatio: "9/16" }}
-            >
+            <div className="relative w-full rounded-2xl overflow-hidden aspect-3/4 sm:aspect-2/3 lg:aspect-9/16">
               <Image
                 src="/images/ingredients-hero.webp"
                 alt="Woman holding FUYL COMPLETE+"

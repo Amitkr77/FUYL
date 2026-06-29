@@ -26,15 +26,15 @@ export function ProductSpotlight() {
   return (
     <section className="section-py bg-brand-forest text-white overflow-hidden">
       {/* Full-bleed grid — no container so image can reach the left edge */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 container-brand">
+      <div className="grid grid-cols-1 gap-8 lg:gap-0 lg:grid-cols-2 container-brand">
 
         {/* Image column — fills the row height driven by the copy column */}
-        <ScrollReveal className="relative min-h-105 lg:min-h-0  ">
+        <ScrollReveal className="relative min-h-72 sm:min-h-96 lg:min-h-0">
           <Image
             src="/images/fuyl-complete+.webp"
             alt="FUYL COMPLETE+"
             fill
-            className="object-cover object-center  rounded-2xl"
+            className="object-cover object-center rounded-2xl"
             sizes="(max-width: 1024px) 100vw, 50vw"
           />
           <div className="absolute bottom-4 left-4 rounded-sm bg-brand-rose px-3 py-1.5">
@@ -45,7 +45,7 @@ export function ProductSpotlight() {
         </ScrollReveal>
 
         {/* Copy column — sets the section height */}
-        <div className="flex flex-col gap-6 px-8 ">
+        <div className="flex flex-col gap-6 px-0 lg:px-8">
           <ScrollReveal>
             <p className="text-label text-brand-teal">complete daily wellness</p>
             <h2 className="text-display-xl font-display mt-2">FUYL COMPLETE+</h2>
