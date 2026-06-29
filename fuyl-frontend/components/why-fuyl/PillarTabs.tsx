@@ -191,7 +191,7 @@ function FlipCard({
         <div
           style={{ backfaceVisibility: 'hidden' }}
           className={cn(
-            'absolute inset-0 rounded-xl bg-gradient-to-br p-2.5 flex flex-col justify-between',
+            'absolute inset-0 rounded-xl bg-linear-to-br p-2.5 flex flex-col justify-between',
             cat.gradient
           )}
         >
@@ -331,7 +331,7 @@ function ManufacturingCard() {
       <div className="overflow-hidden rounded-3xl border border-brand-border bg-white shadow-lg">
 
         {/* Header */}
-        <div className="bg-gradient-to-br from-slate-800 to-slate-950 px-8 py-12 text-center">
+        <div className="bg-linear-to-br from-slate-800 to-slate-950 px-8 py-12 text-center">
           <p className="text-label mb-3 tracking-widest text-blue-400">Manufacturing Standard</p>
           <h3 className="font-display text-display-lg text-white leading-tight">
             BUILT WITHOUT
@@ -420,7 +420,7 @@ export function PillarTabs() {
             />
 
             {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/20 to-transparent" />
 
             {/* Title */}
             <div className="absolute bottom-0 left-0 right-0 p-4">

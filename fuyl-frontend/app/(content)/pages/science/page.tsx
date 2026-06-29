@@ -109,7 +109,7 @@ export default function SciencePage() {
         </div>
       </section>
 
-      <MarqueeStrip variant="berry" />
+      <MarqueeStrip variant="olive" />
 
       {/* Science pillars */}
       <section className="section-py" style={{ background: 'var(--color-brand-white)' }}>
