@@ -1,138 +1,202 @@
-import Link from 'next/link'
-import Image from 'next/image'
-import { generateSEO } from '@/lib/utils/seo'
-import { ScrollReveal } from '@/components/ui/ScrollReveal'
-import { MarqueeStrip } from '@/components/home/MarqueeStrip'
+import { Fragment } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { generateSEO } from "@/lib/utils/seo";
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 export const metadata = generateSEO({
-  title:       'Our Story',
-  description: 'The story behind FUYL — why we built it, who built it, and what we are building toward.',
-  url:         'https://fuyl.in/pages/our-story',
-})
+  title: "Our Story",
+  description:
+    "The story behind FUYL — why we built it, who built it, and what we are building toward.",
+  url: "https://fuyl.in/pages/our-story",
+});
+
+const FEATURES = [
+  {
+    image: "/images/hero-slide-1.webp",
+    title: "The Problem We Lived",
+    body: "Two health-conscious friends, chronically fatigued despite eating well. Six micronutrient deficiencies discovered between them — and a broken supplement industry that offered no honest solution.",
+  },
+  {
+    image: "/images/fuyl-complete+.webp",
+    title: "The Product We Built",
+    body: "Fourteen months of research. 200+ clinical studies. Eight prototype iterations. FUYL COMPLETE+ — 60+ ingredients at transparent, research-backed doses designed specifically for the Indian body.",
+  },
+];
 
 const MILESTONES = [
-  { year: '2022', event: 'The Problem', body: 'Two friends, both chronically fatigued despite "eating well," discover they share a common issue — 6 micronutrient deficiencies diagnosed at the same time. A deep dive into the Indian supplement industry follows.' },
-  { year: '2023', event: 'The Research', body: '14 months of formulation research. 200+ clinical studies reviewed. Dozens of ingredient suppliers evaluated. The non-negotiables established: transparent doses, clinical ingredients, nothing artificial.' },
-  { year: '2024', event: 'The Formula', body: 'FUYL COMPLETE+ finalised after 8 prototype iterations and feedback from 50 beta testers — nutritionists, athletes, office workers and homemakers. FSSAI certification secured.' },
-  { year: '2025', event: 'The Launch', body: 'FUYL launches. The first batch sells out in 72 hours. The first 247 customers rate it 4.8/5. We are just getting started.' },
-]
+  {
+    title: "THE IDEA",
+    body: "Two founders. One shared frustration. The realisation that no single trustworthy daily nutrition product existed for the urban Indian who actually reads labels.",
+  },
+  {
+    title: "THE FORMULATION",
+    body: "Months of research. Multiple iterations. Dozens of ingredient decisions. Each one made against published clinical evidence, not marketing budgets.",
+  },
+  {
+    title: "THE TASTE PROBLEM",
+    body: "A formulation that works means nothing if people stop taking it. We tested, failed, retested. The deep berry crimson drink you hold today is the result of that process.",
+  },
+  {
+    title: "FIRST BATCH",
+    body: "Premium looking eco-friendly composite box. The 10g sachet. 15 sachets. ₹1,499. FUYL COMPLETE+ is ready.",
+  },
+  {
+    title: "THE LAUNCH",
+    body: "FUYL goes live. The beginning of building one trusted nutritional foundation for urban India.",
+  },
+];
 
 const VALUES = [
-  { title: 'Radical Transparency', body: 'You will always know exactly what is in your sachet, at exactly what dose, and why. We will never hide behind proprietary blends.' },
-  { title: 'Evidence Over Hype', body: 'If an ingredient does not have peer-reviewed clinical evidence at the dose we include, it does not make the formula. Full stop.' },
-  { title: 'India First', body: 'We are building for the Indian body, the Indian diet, the Indian lifestyle. Not adapting a Western product for India.' },
-  { title: 'Long-Term Thinking', body: 'We are not building a supplement brand. We are building a long-term partner for your health. Every decision we make reflects that.' },
-]
+  {
+    title: "Radical Transparency",
+    body: "You will always know exactly what is in your sachet, at exactly what dose, and why. We will never hide behind proprietary blends.",
+  },
+  {
+    title: "Evidence Over Hype",
+    body: "If an ingredient does not have peer-reviewed clinical evidence at the dose we include, it does not make the formula. Full stop.",
+  },
+  {
+    title: "India First",
+    body: "We are building for the Indian body, the Indian diet, the Indian lifestyle. Not adapting a Western product for India.",
+  },
+  {
+    title: "Long-Term Thinking",
+    body: "We are not building a supplement brand. We are building a long-term partner for your health. Every decision we make reflects that.",
+  },
+];
 
 export default function OurStoryPage() {
   return (
     <>
-      {/* Hero */}
-      <section className="section-py bg-[#0A0A0A] text-[#FAFAFA]">
-        <div className="container-brand max-w-4xl mx-auto">
-          <ScrollReveal>
-            <p className="text-label mb-3" style={{ color: 'var(--color-brand-berry)' }}>About FUYL</p>
-            <h1 className="text-display-2xl font-display mb-6">
-              BUILT OUT OF<br />FRUSTRATION.<br />FUELLED BY<br />SCIENCE.
-            </h1>
-            <p className="text-body-lg max-w-2xl" style={{ color: 'rgba(255,255,255,0.65)' }}>
-              FUYL began as a personal problem. It became a mission. Here is the unedited story of how and why we built it.
-            </p>
-          </ScrollReveal>
+      {/* ── 1. Hero / Header ─────────────────────────── */}
+      <section className="relative overflow-hidden bg-brand-forest px-8 py-18 text-center">
+        {/* Watermark */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center select-none">
+          <span className="font-sans text-[320px] font-black leading-none tracking-[-8px] text-white/3 whitespace-nowrap">
+            FUYL
+          </span>
         </div>
+
+        <p className="relative font-sans text-[10px] uppercase tracking-[4px] text-brand-rose mb-7">
+          The Story Behind FUYL
+        </p>
+
+        <blockquote className="relative mx-auto mb-6 max-w-170 font-normal italic leading-normal text-white text-[28px]">
+          <span className="font-serif not-italic text-brand-rose text-[80px] leading-[0.5] align-[-28px] mr-1">
+            &ldquo;
+          </span>
+          We didn&apos;t set out to build a supplement brand. We set out to
+          solve our own problem — and found that millions of Indians shared it.
+          <span className="font-serif not-italic text-brand-rose text-[80px] leading-[0.5] align-[-28px] ml-1  ">
+            &rdquo;
+          </span>
+        </blockquote>
+
+        <div className="mx-auto mb-5 h-px w-10 bg-brand-rose" />
+
+        <p className="font-sans text-[11px] uppercase tracking-[2px] text-white/40">
+          The Founders · FUYL
+        </p>
       </section>
 
-      {/* Origin story */}
-      <section className="section-py" style={{ background: 'var(--color-brand-cream)' }}>
-        <div className="container-brand grid grid-cols-1 gap-14 lg:grid-cols-2 lg:gap-20 items-center">
-          <ScrollReveal>
-            <div
-              className="relative aspect-square max-w-md mx-auto rounded-sm overflow-hidden"
-              style={{ background: '#E8D5C4' }}
-            >
-              <Image
-                src="https://fuyl.in/cdn/shop/files/FUYL_Complete_Product_Shot.jpg"
-                alt="FUYL founders"
-                fill
-                className="object-contain p-8"
-                sizes="(max-width: 1024px) 80vw, 40vw"
-              />
-            </div>
-          </ScrollReveal>
-
-          <ScrollReveal delay={100}>
-            <p className="text-label mb-3" style={{ color: 'var(--color-brand-berry)' }}>The Beginning</p>
-            <h2 className="text-display-lg font-display mb-5">WE WERE THE<br />PROBLEM WE SOLVED.</h2>
-            <div className="space-y-4 text-body-md leading-relaxed" style={{ color: 'var(--color-brand-muted)' }}>
-              <p>
-                In 2022, both of us were the "health-conscious" type. We ate our greens, avoided junk food, went to the gym. And yet we were perpetually tired, constantly catching every virus going around, and struggling with focus at work.
-              </p>
-              <p>
-                A routine blood test changed everything. Six micronutrient deficiencies between us — Vitamin D, B12, Iron, Magnesium, Omega-3, Zinc. All despite a seemingly good diet.
-              </p>
-              <p>
-                We started buying supplements. Then we started reading the labels. What we found horrified us — proprietary blends, underdosed ingredients, artificial colours, and formulas clearly designed for a Western demographic with completely different nutritional needs.
-              </p>
-              <p>
-                So we decided to build the supplement we wished existed. Two years later, FUYL COMPLETE+ is the result.
-              </p>
-            </div>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      <MarqueeStrip />
-
-      {/* Timeline */}
-      <section className="section-py" style={{ background: 'var(--color-brand-white)' }}>
+      {/* ── 2. Two-Column Feature ─────────────────────── */}
+      <section className="section-py bg-brand-cream">
         <div className="container-brand">
-          <ScrollReveal>
-            <h2 className="text-display-xl font-display mb-14 text-center">THE TIMELINE</h2>
-          </ScrollReveal>
+          <div className="flex flex-col items-stretch md:flex-row">
+            {FEATURES.map(({ image, title, body }, i) => (
+              <Fragment key={title}>
+                {/* Divider — horizontal on mobile, vertical on desktop */}
+                {i > 0 && (
+                  <div className="flex items-center justify-center py-10 md:py-0 md:px-8">
+                    <div className="h-px w-full bg-brand-border md:h-full md:w-px" />
+                  </div>
+                )}
 
-          <div className="relative max-w-3xl mx-auto">
-            {/* Vertical line */}
-            <div className="absolute left-16 top-0 bottom-0 w-px hidden sm:block" style={{ background: 'var(--color-brand-border)' }} />
-
-            <div className="space-y-10">
-              {MILESTONES.map(({ year, event, body }, i) => (
-                <ScrollReveal key={year} delay={i * 80}>
-                  <div className="flex gap-8 items-start">
-                    <div className="w-16 shrink-0 text-right hidden sm:block">
-                      <span className="text-label" style={{ color: 'var(--color-brand-berry)' }}>{year}</span>
+                <ScrollReveal delay={i * 120} className="flex-1 min-w-0">
+                  <div className="flex flex-col items-center gap-7 text-center px-4 py-2">
+                    <div className="relative h-52 w-52 shrink-0 overflow-hidden rounded-full border-[5px] border-brand-border shadow-lg">
+                      <Image
+                        src={image}
+                        alt={title}
+                        fill
+                        className="object-cover"
+                        sizes="208px"
+                      />
                     </div>
-                    <div
-                      className="w-3 h-3 rounded-full mt-1 shrink-0 hidden sm:block"
-                      style={{ background: 'var(--color-brand-berry)', outline: '3px solid var(--color-brand-white)', outlineOffset: '2px' }}
-                    />
-                    <div className="flex-1 pb-2">
-                      <span className="text-label sm:hidden block mb-1" style={{ color: 'var(--color-brand-berry)' }}>{year}</span>
-                      <p className="text-body-md font-semibold mb-2">{event}</p>
-                      <p className="text-body-md leading-relaxed" style={{ color: 'var(--color-brand-muted)' }}>{body}</p>
+                    <div>
+                      <h3 className="text-display-md font-display mb-4">
+                        {title.toUpperCase()}
+                      </h3>
+                      <p className="mx-auto max-w-sm text-body-md leading-relaxed text-brand-muted">
+                        {body}
+                      </p>
                     </div>
                   </div>
                 </ScrollReveal>
-              ))}
-            </div>
+              </Fragment>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Values */}
-      <section className="section-py" style={{ background: 'var(--color-brand-cream)' }}>
+      {/* ── 3. Horizontal Timeline ─────────────────────── */}
+      <section className="section-py bg-brand-white">
         <div className="container-brand">
           <ScrollReveal>
-            <h2 className="text-display-xl font-display text-center mb-14">OUR VALUES</h2>
+            <h2 className="text-display-xl font-display mb-14 text-center">
+              THE TIMELINE
+            </h2>
+          </ScrollReveal>
+
+          <ScrollReveal delay={80}>
+            {/* 5 items × ~200px ≈ 1000px — triggers scroll on narrower screens */}
+            <div className="overflow-x-auto pb-6">
+              <div className="relative flex min-w-250">
+                {/* Single track line behind all dots */}
+                <div className="absolute left-0 right-0 top-4 h-px bg-brand-border" />
+
+                {MILESTONES.map(({ title, body }) => (
+                  <div
+                    key={title}
+                    className="group relative flex flex-1 flex-col items-center"
+                  >
+                    {/* Dot */}
+                    <div className="relative z-10 h-8 w-8 shrink-0 rounded-full border-2 border-brand-border bg-brand-white transition-all duration-300 group-hover:border-brand-forest group-hover:bg-brand-forest" />
+
+                    {/* Content */}
+                    <div className="mt-6 w-full rounded-sm border border-transparent px-3 py-5 text-center transition-all duration-300 group-hover:border-brand-border group-hover:bg-brand-cream">
+                      <p className="text-label mb-2 text-brand-muted transition-colors group-hover:text-brand-forest">
+                        {title}
+                      </p>
+                      <p className="text-body-xs leading-relaxed text-brand-muted">
+                        {body}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {/* ── 4. Values ─────────────────────────────────── */}
+      <section className="section-py bg-brand-cream">
+        <div className="container-brand">
+          <ScrollReveal>
+            <h2 className="text-display-xl font-display mb-14 text-center">
+              OUR VALUES
+            </h2>
           </ScrollReveal>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {VALUES.map(({ title, body }, i) => (
               <ScrollReveal key={title} delay={i * 80}>
-                <div
-                  className="p-7 rounded-sm border h-full"
-                  style={{ borderColor: 'var(--color-brand-border)', background: 'var(--color-brand-white)' }}
-                >
+                <div className="h-full rounded-sm border border-brand-border bg-brand-white p-7 transition-shadow hover:shadow-md">
                   <p className="text-body-lg font-semibold mb-3">{title}</p>
-                  <p className="text-body-md leading-relaxed" style={{ color: 'var(--color-brand-muted)' }}>{body}</p>
+                  <p className="text-body-md leading-relaxed text-brand-muted">
+                    {body}
+                  </p>
                 </div>
               </ScrollReveal>
             ))}
@@ -140,27 +204,39 @@ export default function OurStoryPage() {
         </div>
       </section>
 
-      {/* Closing + CTA */}
-      <section className="py-20 bg-[#0A0A0A] text-[#FAFAFA] text-center">
+      {/* ── 5. CTA ────────────────────────────────────── */}
+      <section className=" py-20 text-center">
         <ScrollReveal>
-          <div className="container-brand max-w-3xl mx-auto">
-            <p className="text-display-lg font-display mb-4">
-              "FUYL IS NOT A SUPPLEMENT.<br/>IT'S A COMMITMENT."
+          <div className="container-brand mx-auto max-w-3xl">
+            <p className="text-display-lg font-display mb-4 text-brand-forest">
+              THIS IS WHAT WE BUILT.
             </p>
-            <p className="text-body-lg mb-10" style={{ color: 'rgba(255,255,255,0.6)' }}>
-              A commitment to transparency, to science, and to your long-term health. We are honoured to be part of your journey.
+            <p className="text-body-lg mb-10 text-brand-berry-light">
+              A commitment to transparency, to science, and to your long-term
+              health. We are honoured to be part of your journey.
             </p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <Link href="/products/fuyl-complete" className="inline-flex items-center justify-center h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-[#8B1A4A] text-white rounded-sm transition-colors hover:bg-[#C4526A]">
-                Try FUYL COMPLETE+ →
+
+            <div className="mb-6 flex flex-wrap justify-center gap-4">
+              <Link
+                href="/products/fuyl-complete"
+                className="inline-flex h-12 items-center justify-center rounded-sm bg-[#8B1A4A] px-10 text-xs font-semibold uppercase tracking-widest text-white! transition-colors hover:bg-[#C4526A]"
+              >
+                Try FUYL Complete+ — ₹1,499 for 15 sachets →
               </Link>
-              <Link href="/pages/contact" className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest rounded-sm transition-colors" style={{ border: '1px solid rgba(255,255,255,0.25)', color: 'rgba(255,255,255,0.75)' }}>
+              <Link
+                href="/pages/contact"
+                className="inline-flex h-12 items-center justify-center rounded-sm border border-brand-berry-light px-8 text-xs font-semibold uppercase tracking-widest text-white/75 transition-colors  hover:text-white"
+              >
                 Talk to Us
               </Link>
             </div>
+
+            <p className="text-body-xs text-brand-berry-light uppercase tracking-widest">
+              Free shipping · Dispatched within 1 working day
+            </p>
           </div>
         </ScrollReveal>
       </section>
     </>
-  )
+  );
 }
