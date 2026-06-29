@@ -115,23 +115,23 @@ const INGREDIENTS: Ingredient[] = [
 // ─── Tab 2: Clinical ingredient cards ───────────────────────────────────────
 
 const CLINICAL_CARDS = [
-  { emoji: '🌿', stat: '600mg', title: 'KSM-66® Ashwagandha',    body: '22+ human clinical studies. Reduces cortisol by 27%, improves sleep quality by 72%, and boosts strength and endurance.' },
-  { emoji: '⚗️', stat: '200mcg', title: 'Chromax® Chromium',      body: 'Patented chromium picolinate with superior absorption. Clinically proven to reduce sugar cravings and support blood glucose balance.' },
-  { emoji: '🌶️', stat: '5mg',   title: 'BioPerine® Piperine',    body: 'Patented black pepper extract that enhances curcumin bioavailability by 2000% and improves overall nutrient absorption.' },
-  { emoji: '⚡', stat: '50mg',  title: 'Coenzyme Q10',            body: 'Powers the mitochondrial energy cycle. Naturally declines after age 25. Supports heart muscle function and physical endurance.' },
-  { emoji: '🧠', stat: '1000mcg', title: 'Methylcobalamin B12',  body: "Active, bioavailable form of B12 — directly supports nerves and red blood cells. Critical for India's vegetarian majority." },
-  { emoji: '🦴', stat: '2000 IU + 100mcg', title: 'D3 + K2 Synergy', body: 'D3 increases calcium absorption; K2 (MK-7) directs it to bones, not arteries. Must be combined for safe, effective bone protection.' },
+  { emoji: '🌿', stat: '600mg',            title: 'KSM-66® Ashwagandha',  image: '/images/ingredients/first-tab.webp',   body: '22+ human clinical studies. Reduces cortisol by 27%, improves sleep quality by 72%, and boosts strength and endurance.' },
+  { emoji: '⚗️', stat: '200mcg',           title: 'Chromax® Chromium',    image: '/images/ingredients/second-tab.webp',  body: 'Patented chromium picolinate with superior absorption. Clinically proven to reduce sugar cravings and support blood glucose balance.' },
+  { emoji: '🌶️', stat: '5mg',             title: 'BioPerine® Piperine',  image: '/images/ingredients/third-tab.webp',   body: 'Patented black pepper extract that enhances curcumin bioavailability by 2000% and improves overall nutrient absorption.' },
+  { emoji: '⚡', stat: '50mg',             title: 'Coenzyme Q10',          image: '/images/ingredients/fourth-tab.webp',  body: 'Powers the mitochondrial energy cycle. Naturally declines after age 25. Supports heart muscle function and physical endurance.' },
+  { emoji: '🧠', stat: '1000mcg',          title: 'Methylcobalamin B12',   image: '/images/hero-slide-1.webp',            body: "Active, bioavailable form of B12 — directly supports nerves and red blood cells. Critical for India's vegetarian majority." },
+  { emoji: '🦴', stat: '2000 IU + 100mcg', title: 'D3 + K2 Synergy',     image: '/images/hero-slide-2.webp',            body: 'D3 increases calcium absorption; K2 (MK-7) directs it to bones, not arteries. Must be combined for safe, effective bone protection.' },
 ]
 
 // ─── Tab 3: Indian-body cards ────────────────────────────────────────────────
 
 const INDIAN_CARDS = [
-  { stat: '70%',   title: 'Vitamin D3 Deficiency',    source: 'ICMR Study',       body: '70%+ of Indians are Vitamin D deficient despite abundant sunshine. Our formula delivers 2000 IU daily — enough to actually correct it.' },
-  { stat: '47%',   title: 'B12 Crisis in India',       source: 'AIIMS Research',   body: '47% of Indians are B12 deficient. We use Methylcobalamin — the active, nervous-system-ready form — not cheap cyanocobalamin.' },
-  { stat: '#1',    title: 'Iron Deficiency Burden',    source: 'WHO Global Report', body: 'India has the world\'s highest anaemia burden. Our iron is paired with Vitamin C to maximise absorption — especially for women.' },
-  { stat: '10×',   title: 'Gut for Indian Diets',      source: 'FUYL Formulation', body: 'Indian diets are up to 10× higher in spice compounds than Western diets. Our probiotic and enzyme blend is calibrated for this.' },
-  { stat: '5000+', title: 'Heritage Superfoods',       source: 'Ayurvedic Literature', body: 'Moringa and Turmeric have powered Indian wellness for 5000+ years. We include them at clinically meaningful doses — not just traces.' },
-  { stat: '100%',  title: 'Vegetarian Formula',        source: 'FUYL Guarantee',   body: '100% vegetarian-friendly. Zero cow-derived gelatin, no animal-sourced ingredients — formulated to respect every Indian dietary preference.' },
+  { stat: '70%',   title: 'Vitamin D3 Deficiency',  source: 'ICMR Study',           image: '/images/journey/frist-week.webp',   body: '70%+ of Indians are Vitamin D deficient despite abundant sunshine. Our formula delivers 2000 IU daily — enough to actually correct it.' },
+  { stat: '47%',   title: 'B12 Crisis in India',    source: 'AIIMS Research',        image: '/images/journey/second-week.webp',  body: '47% of Indians are B12 deficient. We use Methylcobalamin — the active, nervous-system-ready form — not cheap cyanocobalamin.' },
+  { stat: '#1',    title: 'Iron Deficiency Burden', source: 'WHO Global Report',     image: '/images/journey/third-week.webp',   body: "India has the world's highest anaemia burden. Our iron is paired with Vitamin C to maximise absorption — especially for women." },
+  { stat: '10×',   title: 'Gut for Indian Diets',   source: 'FUYL Formulation',     image: '/images/journey/fourth-week.webp',  body: 'Indian diets are up to 10× higher in spice compounds than Western diets. Our probiotic and enzyme blend is calibrated for this.' },
+  { stat: '5000+', title: 'Heritage Superfoods',    source: 'Ayurvedic Literature', image: '/images/ingredients/second-tab.webp', body: 'Moringa and Turmeric have powered Indian wellness for 5000+ years. We include them at clinically meaningful doses — not just traces.' },
+  { stat: '100%',  title: 'Vegetarian Formula',     source: 'FUYL Guarantee',       image: '/images/ingredients/third-tab.webp',  body: '100% vegetarian-friendly. Zero cow-derived gelatin, no animal-sourced ingredients — formulated to respect every Indian dietary preference.' },
 ]
 
 // ─── Tab 4: Manufacturing points ─────────────────────────────────────────────
@@ -169,7 +169,7 @@ function FlipCard({
 
   return (
     <div
-      className="aspect-[4/5] cursor-pointer select-none"
+      className="aspect-4/5 cursor-pointer select-none"
       style={{ perspective: '800px' }}
       onClick={onFlip}
       role="button"
@@ -255,7 +255,7 @@ function IngredientGrid() {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+      <div className="grid grid-cols-3 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4">
         {INGREDIENTS.map(ing => (
           <FlipCard
             key={ing.id}
@@ -269,7 +269,7 @@ function IngredientGrid() {
   )
 }
 
-// ─── Tab 2: Clinical cards (2 × 3) ──────────────────────────────────────────
+// ─── Tab 2: Clinical cards (2 × 3) — image LEFT, content RIGHT ──────────────
 
 function ClinicalGrid() {
   return (
@@ -277,17 +277,32 @@ function ClinicalGrid() {
       {CLINICAL_CARDS.map((card, i) => (
         <div
           key={i}
-          className="group flex flex-col gap-4 rounded-2xl border border-brand-border bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+          className="flex flex-col overflow-hidden rounded-2xl border border-brand-border bg-white shadow-sm transition-shadow hover:shadow-md sm:flex-row"
         >
-          <div className="flex items-start justify-between">
-            <span className="text-3xl">{card.emoji}</span>
-            <span className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
-              {card.stat} / day
+          {/* Image — left on desktop, top on mobile */}
+          <div className="relative h-54 shrink-0 sm:h-auto sm:w-2/5">
+            <Image
+              src={card.image}
+              alt={card.title}
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 100vw, 20vw"
+            />
+            {/* Subtle dark tint so image doesn't compete */}
+            <div className="absolute inset-0 bg-black/15" />
+            {/* Stat badge pinned over the image */}
+            <span className="absolute bottom-3 left-3 rounded-full border border-green-300 bg-green-600 px-2.5 py-0.5 text-xs font-bold text-white shadow">
+              {card.stat}
             </span>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <p className="text-body-md font-bold text-brand-forest">{card.title}</p>
-            <p className="text-body-sm leading-relaxed text-brand-muted">{card.body}</p>
+
+          {/* Content — right */}
+          <div className="flex flex-1 flex-col justify-center gap-3 p-5">
+            <span className="text-2xl">{card.emoji}</span>
+            <div className="flex flex-col gap-1.5">
+              <p className="text-body-md font-bold text-brand-forest">{card.title}</p>
+              <p className="text-body-sm leading-relaxed text-brand-muted">{card.body}</p>
+            </div>
           </div>
         </div>
       ))}
@@ -295,7 +310,9 @@ function ClinicalGrid() {
   )
 }
 
-// ─── Tab 3: Indian-body cards (2 × 3) ───────────────────────────────────────
+// ─── Tab 3: Indian-body cards (2 × 3) — content LEFT, image RIGHT ───────────
+// Uses flex-row-reverse on desktop so image stays right while DOM order keeps
+// image first (so mobile shows image on top naturally).
 
 function IndianGrid() {
   return (
@@ -303,19 +320,33 @@ function IndianGrid() {
       {INDIAN_CARDS.map((card, i) => (
         <div
           key={i}
-          className="flex flex-col gap-3 rounded-2xl border border-brand-border bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+          className="flex flex-col overflow-hidden rounded-2xl border border-brand-border bg-white shadow-sm transition-shadow hover:shadow-md sm:flex-row-reverse"
         >
-          <div className="flex items-end gap-3">
-            <span className="text-display-lg font-display leading-none text-amber-700">
-              {card.stat}
-            </span>
-            <span className="mb-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+          {/* Image — right on desktop, top on mobile */}
+          <div className="relative h-44 shrink-0 sm:h-auto sm:w-2/5">
+            <Image
+              src={card.image}
+              alt={card.title}
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 100vw, 20vw"
+            />
+            <div className="absolute inset-0 bg-black/15" />
+            {/* Source badge */}
+            <span className="absolute bottom-3 right-3 rounded-full border border-amber-300 bg-amber-600 px-2.5 py-0.5 text-[10px] font-bold text-white shadow">
               {card.source}
             </span>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <p className="text-body-md font-bold text-brand-forest">{card.title}</p>
-            <p className="text-body-sm leading-relaxed text-brand-muted">{card.body}</p>
+
+          {/* Content — left */}
+          <div className="flex flex-1 flex-col justify-center gap-3 p-5">
+            <span className="font-display text-display-md leading-none text-amber-700">
+              {card.stat}
+            </span>
+            <div className="flex flex-col gap-1.5">
+              <p className="text-body-md font-bold text-brand-forest">{card.title}</p>
+              <p className="text-body-sm leading-relaxed text-brand-muted">{card.body}</p>
+            </div>
           </div>
         </div>
       ))}
@@ -323,48 +354,54 @@ function IndianGrid() {
   )
 }
 
-// ─── Tab 4: Single manufacturing card ───────────────────────────────────────
+// ─── Tab 4: Single manufacturing card — image LEFT, content RIGHT ────────────
 
 function ManufacturingCard() {
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="overflow-hidden rounded-3xl border border-brand-border bg-white shadow-lg">
+    <div className="overflow-hidden rounded-3xl border border-brand-border bg-white shadow-lg lg:flex">
 
-        {/* Header */}
-        <div className="bg-linear-to-br from-slate-800 to-slate-950 px-8 py-12 text-center">
-          <p className="text-label mb-3 tracking-widest text-blue-400">Manufacturing Standard</p>
-          <h3 className="font-display text-display-lg text-white leading-tight">
+      {/* Image panel — left on desktop, top on mobile */}
+      <div className="relative h-64 shrink-0 lg:h-auto lg:w-5/12">
+        <Image
+          src="/images/ingredients-hero.webp"
+          alt="FUYL Manufacturing"
+          fill
+          className="object-cover"
+          sizes="(max-width: 1024px) 100vw, 42vw"
+        />
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-black/55" />
+
+        {/* Heading over the image */}
+        <div className="absolute inset-0 flex flex-col items-start justify-end p-8">
+          <p className="text-label mb-2 tracking-widest text-blue-300">Manufacturing Standard</p>
+          <h3 className="font-display text-display-lg leading-tight text-white">
             BUILT WITHOUT
             <br />
             COMPROMISE.
           </h3>
-          <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-white/55">
-            Every sachet of FUYL COMPLETE+ is the result of uncompromising
-            standards at every step of the production chain.
+          <p className="mt-3 text-sm leading-relaxed text-white/55">
+            Uncompromising standards at every step of the production chain.
           </p>
         </div>
-
-        {/* 3 × 2 grid of points */}
-        <div className="grid grid-cols-1 divide-y divide-brand-border sm:grid-cols-2 sm:divide-y-0">
-          {MFG_POINTS.map((point, i) => (
-            <div
-              key={i}
-              className={cn(
-                'flex gap-4 p-6 transition-colors hover:bg-brand-cream/60',
-                i % 2 === 0 && 'sm:border-r sm:border-brand-border',
-                i < 4       && 'sm:border-b sm:border-brand-border'
-              )}
-            >
-              <span className="mt-0.5 shrink-0 text-2xl">{point.emoji}</span>
-              <div className="flex flex-col gap-1">
-                <p className="text-body-sm font-bold text-brand-forest">{point.title}</p>
-                <p className="text-body-sm leading-relaxed text-brand-muted">{point.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
       </div>
+
+      {/* Content panel — right on desktop, below on mobile */}
+      <div className="flex flex-col divide-y divide-brand-border lg:w-7/12">
+        {MFG_POINTS.map((point, i) => (
+          <div
+            key={i}
+            className="flex gap-4 px-6 py-5 transition-colors hover:bg-brand-cream/50"
+          >
+            <span className="mt-0.5 shrink-0 text-xl">{point.emoji}</span>
+            <div className="flex flex-col gap-0.5">
+              <p className="text-body-sm font-bold text-brand-forest">{point.title}</p>
+              <p className="text-body-sm leading-relaxed text-brand-muted">{point.body}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
     </div>
   )
 }
