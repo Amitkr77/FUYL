@@ -68,7 +68,7 @@ export function ProblemSection() {
 
             <Link
               href="/pages/why-fuyl"
-              className="mt-10 inline-flex h-11 items-center justify-center rounded-sm bg-brand-forest px-8 text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:bg-brand-sage hover:text-brand-forest"
+              className="mt-10 inline-flex h-11 items-center justify-center rounded-sm bg-brand-forest px-8 text-xs font-semibold uppercase tracking-widest text-white! transition-colors hover:bg-brand-sage hover:text-brand-forest!"
             >
               See what makes it different →
             </Link>

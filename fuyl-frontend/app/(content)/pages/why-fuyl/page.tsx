@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import { generateSEO } from '@/lib/utils/seo'
 import { ScrollReveal } from '@/components/ui/ScrollReveal'
 import { PillarTabs } from '@/components/why-fuyl/PillarTabs'
@@ -88,6 +89,33 @@ export default function WhyFuylPage() {
 
           <PillarTabs />
 
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-14 bg-white">
+        <div className="container-brand">
+          <ScrollReveal>
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <Link
+                  href="/products/fuyl-complete"
+                  className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-sm transition-colors hover:bg-brand-rose-dark"
+                >
+                  Shop FUYL COMPLETE+
+                </Link>
+                <Link
+                  href="/pages/ingredients"
+                  className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest border  text-brand-forest border-brand-forest rounded-sm transition-colors hover:border-brand-teal hover:text-white hover:bg-brand-forest"
+                >
+                  Explore Ingredients
+                </Link>
+              </div>
+              <p className="text-brand-olive-light text-xs tracking-wide">
+                30-day money-back guarantee · FSSAI certified · 100% vegetarian
+              </p>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 

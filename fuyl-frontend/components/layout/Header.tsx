@@ -3,11 +3,73 @@
 import { useState, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ShoppingBag, User, Search, Menu, X } from 'lucide-react'
-import { NAV_ITEMS } from '@/lib/constants/nav'
+import { ShoppingBag, User, Search, Menu, X, ChevronDown } from 'lucide-react'
+import { NAV_ITEMS, type NavItem } from '@/lib/constants/nav'
 import { MegaMenu } from './MegaMenu'
 import { cn } from '@/lib/utils/cn'
 import { useCart } from '@/lib/hooks/useCart'
+
+function MobileNavItem({ item, onClose }: { item: NavItem; onClose: () => void }) {
+  const [open, setOpen] = useState(false)
+  const hasChildren = !!item.children?.length
+
+  return (
+    <div className="border-b border-brand-border/60 last:border-0">
+      {hasChildren ? (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center justify-between py-3.5 text-left text-label text-brand-forest transition-colors hover:text-brand-teal"
+        >
+          {item.label}
+          <ChevronDown
+            size={15}
+            className={cn(
+              'shrink-0 text-brand-muted transition-transform duration-200',
+              open && 'rotate-180 text-brand-teal'
+            )}
+          />
+        </button>
+      ) : (
+        <Link
+          href={item.href}
+          target={item.external ? '_blank' : undefined}
+          rel={item.external ? 'noopener noreferrer' : undefined}
+          onClick={onClose}
+          className="flex w-full items-center justify-between py-3.5 text-label text-brand-forest transition-colors hover:text-brand-teal"
+        >
+          {item.label}
+        </Link>
+      )}
+
+      {/* Animated submenu */}
+      {hasChildren && (
+        <div
+          className={cn(
+            'grid transition-all duration-250 ease-in-out',
+            open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+          )}
+        >
+          <div className="overflow-hidden">
+            <div className="pb-3 pt-0.5">
+              {item.children!.map((child) => (
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  onClick={onClose}
+                  className="flex items-center gap-3 py-2.5 pl-4 text-body-sm text-brand-muted transition-colors hover:text-brand-teal"
+                >
+                  <span className="h-1 w-1 rounded-full bg-brand-teal/50 shrink-0" />
+                  {child.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function Header() {
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
@@ -113,40 +175,16 @@ export function Header() {
       {/* Mobile nav */}
       {mobileOpen && (
         <div className="lg:hidden bg-white border-t border-brand-border animate-fade-in">
-          <nav className="container-brand py-4 flex flex-col gap-1" aria-label="Mobile navigation">
+          <nav className="container-brand py-2 flex flex-col" aria-label="Mobile navigation">
             {NAV_ITEMS.map((item) => (
-              <div key={item.label}>
-                <Link
-                  href={item.href}
-                  target={item.external ? '_blank' : undefined}
-                  rel={item.external ? 'noopener noreferrer' : undefined}
-                  onClick={() => setMobileOpen(false)}
-                  className="block py-3 text-label text-brand-forest border-b border-brand-border transition-colors hover:text-brand-teal"
-                >
-                  {item.label}
-                </Link>
-                {item.children && (
-                  <div className="pl-4">
-                    {item.children.map((child) => (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        onClick={() => setMobileOpen(false)}
-                        className="block py-2.5 text-body-sm text-brand-muted transition-colors hover:text-brand-teal"
-                      >
-                        {child.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <MobileNavItem key={item.label} item={item} onClose={() => setMobileOpen(false)} />
             ))}
             <Link
               href="/account"
               onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 py-3 text-label text-brand-forest transition-colors hover:text-brand-teal mt-2"
+              className="flex items-center gap-2 py-3.5 text-label text-brand-forest transition-colors hover:text-brand-teal mt-1"
             >
-              <User size={16} /> Account
+              <User size={15} /> Account
             </Link>
           </nav>
         </div>

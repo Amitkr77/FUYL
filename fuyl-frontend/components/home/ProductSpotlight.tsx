@@ -76,16 +76,16 @@ export function ProductSpotlight() {
           </ScrollReveal>
 
           <ScrollReveal delay={200}>
-            <div className="flex flex-wrap gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 items-center lg:items-start">
               <Link
                 href="/products/fuyl-complete"
-                className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-sm transition-colors hover:bg-brand-rose-dark"
+                className="inline-flex items-center justify-center w-full sm:w-auto h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-sm transition-colors hover:bg-brand-rose-dark"
               >
                 Shop Now — {formatPrice(1499)}
               </Link>
               <Link
                 href="/pages/ingredients"
-                className="inline-flex items-center justify-center h-12 px-6 text-xs font-semibold uppercase tracking-widest rounded-sm border border-white/25 text-white/75 transition-colors hover:border-brand-teal hover:text-brand-teal"
+                className="inline-flex items-center justify-center w-full sm:w-auto h-12 px-6 text-xs font-semibold uppercase tracking-widest rounded-sm border border-white/25 text-white/75 transition-colors hover:border-brand-teal hover:text-brand-teal"
               >
                 See All Ingredients
               </Link>

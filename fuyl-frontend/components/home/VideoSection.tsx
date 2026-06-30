@@ -23,7 +23,7 @@ export function VideoSection() {
   }
 
   return (
-    <section className="relative w-full overflow-hidden" style={{ minHeight: '100dvh' }}>
+    <section className="relative w-full max-w-full overflow-hidden min-h-dvh">
 
       {/* Background video */}
       <video
@@ -46,41 +46,42 @@ export function VideoSection() {
       <button
         onClick={toggleMute}
         aria-label={muted ? 'Unmute video' : 'Mute video'}
-        className="absolute top-6 right-6 z-20 w-10 h-10 rounded-full flex items-center justify-center border border-white/30 bg-black/30 text-white backdrop-blur-sm hover:bg-black/50 transition-colors"
+        className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border border-white/30 bg-black/30 text-white backdrop-blur-sm hover:bg-black/50 transition-colors"
       >
         {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
       </button>
 
       {/* Centered content */}
-      <div className="relative z-10 flex flex-col items-center justify-center text-center text-white px-5 py-24"
-        style={{ minHeight: '100dvh' }}>
+      <div className="relative z-10 flex flex-col items-center justify-center text-center text-white px-5 py-20 sm:py-16 lg:py-24 min-h-dvh max-w-full">
 
         <ScrollReveal>
-          <p className="text-label text-brand-teal mb-4 tracking-widest uppercase text-sm">
+          <p className="text-label text-brand-teal mb-3 sm:mb-4 tracking-widest uppercase text-xs sm:text-sm">
             Launching Soon
           </p>
-          <h2 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6 max-w-3xl">
+          <h2 className="font-display text-[clamp(1.5rem,8vw,4.5rem)] font-bold leading-[1.15] sm:leading-tight mb-3 sm:mb-6 max-w-3xl break-words">
             FUYL COMPLETE+<br />IS ALMOST HERE.
           </h2>
-          <p className="text-base sm:text-lg text-white/70 max-w-md mx-auto mb-10 leading-relaxed">
+          <p className="text-sm sm:text-lg text-white/70 max-w-[90%] sm:max-w-md mx-auto mb-6 sm:mb-10 leading-relaxed">
             Join the waitlist for early access, launch-day pricing, and a free nutrition consultation.
           </p>
         </ScrollReveal>
 
         <ScrollReveal delay={100}>
-          <Countdown targetDate={LAUNCH_DATE} />
+          <div className="w-full max-w-full overflow-x-auto sm:overflow-visible">
+            <Countdown targetDate={LAUNCH_DATE} />
+          </div>
         </ScrollReveal>
 
         <ScrollReveal delay={200}>
           <form
-            className="flex flex-col sm:flex-row gap-2 mt-10 w-full max-w-md mx-auto"
+            className="flex flex-col sm:flex-row gap-2 mt-8 sm:mt-10 w-full max-w-md mx-auto px-1 sm:px-0"
             onSubmit={(e) => { e.preventDefault(); alert('Waitlist coming soon!') }}
           >
             <input
               type="email"
               placeholder="your@email.com"
               required
-              className="flex-1 h-12 px-4 text-sm bg-white/10 rounded-sm outline-none border border-white/20 text-white placeholder:text-white/40 focus:border-brand-teal transition-colors backdrop-blur-sm"
+              className="flex-1 min-w-0 h-12 px-4 text-sm bg-white/10 rounded-sm outline-none border border-white/20 text-white placeholder:text-white/40 focus:border-brand-teal transition-colors backdrop-blur-sm"
             />
             <button
               type="submit"

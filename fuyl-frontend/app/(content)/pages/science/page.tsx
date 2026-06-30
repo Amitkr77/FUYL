@@ -78,18 +78,24 @@ export default function SciencePage() {
   return (
     <>
       {/* Hero */}
-      <section className="section-py bg-[#0A0A0A] text-[#FAFAFA]">
-        <div className="container-brand max-w-4xl mx-auto text-center">
+      <section className="section-py bg-brand-cream overflow-hidden relative">
+
+        {/* Decorative watermark */}
+        <p className="pointer-events-none select-none absolute inset-0 flex items-center justify-center font-display font-black leading-none text-brand-forest/4 text-[clamp(6rem,20vw,16rem)] overflow-hidden" aria-hidden="true">
+          SCIENCE
+        </p>
+
+        <div className="container-brand max-w-4xl mx-auto text-center relative">
           <ScrollReveal>
-            <p className="text-label mb-3" style={{ color: 'var(--color-brand-berry)' }}>Evidence-Based Nutrition</p>
-            <h1 className="text-display-2xl font-display mb-6">
+            <p className="text-label mb-3 text-brand-teal">Evidence-Based Nutrition</p>
+            <h1 className="text-display-2xl font-display mb-6 text-brand-forest">
               THE SCIENCE
               <br className="hidden sm:block" />
               {' '}BEHIND
               <br className="hidden sm:block" />
               {' '}EVERY SACHET.
             </h1>
-            <p className="text-body-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.65)' }}>
+            <p className="text-body-lg max-w-2xl mx-auto text-brand-muted">
               Every ingredient in FUYL COMPLETE+ is backed by peer-reviewed clinical research. Here is the evidence.
             </p>
           </ScrollReveal>
@@ -98,14 +104,11 @@ export default function SciencePage() {
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 mt-12 sm:mt-16">
             {STATS.map(({ number, label }, i) => (
               <ScrollReveal key={label} delay={i * 80}>
-                <div
-                  className="p-6 rounded-sm"
-                  style={{ border: '1px solid rgba(255,255,255,0.1)', background: '#161616' }}
-                >
-                  <p className="text-display-lg font-display" style={{ color: 'var(--color-brand-berry)' }}>
+                <div className="p-6 rounded-sm bg-white border border-brand-border">
+                  <p className="text-display-lg font-display text-brand-teal">
                     {number}
                   </p>
-                  <p className="text-body-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>{label}</p>
+                  <p className="text-body-xs mt-1 text-brand-muted">{label}</p>
                 </div>
               </ScrollReveal>
             ))}

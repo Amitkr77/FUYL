@@ -59,18 +59,16 @@ export function FaqSection() {
       <div className="container-brand">
         <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:gap-14 items-stretch">
           {/* ── LEFT — sticky feature card ── */}
-          <ScrollReveal>
+          <ScrollReveal className="lg:sticky lg:top-24">
             <div
               className="
   group
   relative
   overflow-hidden
   rounded-3xl
-  lg:sticky
-  lg:top-24
-  min-h-[360px]
-  sm:min-h-[440px]
-  lg:min-h-[820px]
+  min-h-90
+  sm:min-h-110
+  lg:min-h-205
   "
             >
               <Image
@@ -344,7 +342,7 @@ export function FaqSection() {
               </div>
 
               {/* Bottom CTA */}
-              <div className="mt-auto pt-10 rounded-2xl bg-brand-forest p-7 flex flex-col sm:flex-row items-center justify-between gap-5">
+              <div className="mt-auto rounded-2xl bg-brand-forest p-5 sm:p-7 flex flex-col sm:flex-row items-center sm:justify-between gap-4 sm:gap-5 text-center sm:text-left">
                 <div>
                   <p className="font-display text-lg font-bold text-white leading-tight">
                     Ready to start your
@@ -357,13 +355,13 @@ export function FaqSection() {
                 <div className="flex gap-3 shrink-0">
                   <Link
                     href="/products/fuyl-complete"
-                    className="inline-flex items-center justify-center h-10 px-6 text-[11px] font-semibold uppercase tracking-widest bg-brand-rose text-white! rounded-lg transition-colors hover:bg-brand-rose-dark whitespace-nowrap"
+                    className="inline-flex items-center justify-center h-10 px-6 text-[11px] font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-lg transition-colors hover:bg-brand-rose-dark whitespace-nowrap"
                   >
                     Shop Now
                   </Link>
                   <Link
                     href="/pages/why-fuyl"
-                    className="inline-flex items-center justify-center h-10 px-6 text-[11px] font-semibold uppercase tracking-widest border border-white/15 text-white/60! rounded-lg transition-colors hover:border-brand-teal hover:text-brand-teal! whitespace-nowrap"
+                    className="inline-flex items-center justify-center h-10 px-6 text-[11px] font-semibold uppercase tracking-widest border border-white/15 text-white/60 rounded-lg transition-colors hover:border-brand-teal hover:text-brand-teal whitespace-nowrap"
                   >
                     Learn More
                   </Link>

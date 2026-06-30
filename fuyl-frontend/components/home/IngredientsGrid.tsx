@@ -103,7 +103,7 @@ export function IngredientsGrid() {
               <div className="mt-8">
                 <Link
                   href="/products/fuyl-complete"
-                  className="inline-flex items-center justify-center w-full sm:w-auto h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest"
+                  className="inline-flex items-center justify-center w-full sm:w-auto h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white! rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest!"
                 >
                   Get Started
                 </Link>

@@ -82,19 +82,15 @@ export function Footer() {
 
   return (
     <>
-      <div className="relative h-60 sm:h-85 md:h-115 lg:h-140 xl:h-180 overflow-hidden">
+      <div className="relative w-full overflow-hidden h-52 sm:h-72 md:h-96 lg:h-120 xl:h-160">
         <Image
           src="/images/footer-image.webp"
           alt="FUYL"
           fill
-          className="
-    object-cover
-    object-center
-    "
+          className="object-cover object-center"
           sizes="100vw"
         />
-
-        <div className=" absolute inset-0 bg-linear-to-b from-transparent via-brand-forest/10 to-brand-forest/50" />
+        <div className="absolute inset-0 bg-linear-to-b from-transparent via-brand-forest/10 to-brand-forest/50" />
       </div>
       <footer className=" bg-brand-forest text-white  border-white/10">
         <div className="container-brand py-16 grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
