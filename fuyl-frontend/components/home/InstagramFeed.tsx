@@ -34,9 +34,11 @@ export function InstagramFeed() {
           </div>
         </ScrollReveal>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {/* Mobile: horizontal scroll with larger cards; sm+: grid */}
+        <div className="overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden -mx-4 sm:mx-0 sm:overflow-visible">
+          <div className="flex gap-3 px-4 sm:px-0 pb-2 sm:pb-0 sm:grid sm:grid-cols-3 sm:gap-2 lg:grid-cols-3">
           {PLACEHOLDERS.map(({ id, src, alt }, i) => (
-            <ScrollReveal key={id} delay={i * 40}>
+            <ScrollReveal key={id} delay={i * 40} className="shrink-0 w-52 sm:w-auto">
               <Link
                 href={SITE.instagram}
                 target="_blank"
@@ -54,6 +56,7 @@ export function InstagramFeed() {
               </Link>
             </ScrollReveal>
           ))}
+          </div>
         </div>
       </div>
     </section>

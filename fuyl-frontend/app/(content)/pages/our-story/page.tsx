@@ -205,13 +205,13 @@ export default function OurStoryPage() {
       </section>
 
       {/* ── 5. CTA ────────────────────────────────────── */}
-      <section className="py-16 sm:py-20 text-center bg-brand-forest">
+      <section className="py-16 sm:py-20 text-center bg-white">
         <ScrollReveal>
           <div className="container-brand mx-auto max-w-3xl">
-            <p className="text-display-lg font-display mb-4 text-white">
+            <p className="text-display-lg font-display mb-4 text-brand-forest">
               THIS IS WHAT WE BUILT.
             </p>
-            <p className="text-body-lg mb-10 text-white/60">
+            <p className="text-body-lg mb-10 text-brand-muted">
               A commitment to transparency, to science, and to your long-term
               health. We are honoured to be part of your journey.
             </p>
@@ -225,13 +225,13 @@ export default function OurStoryPage() {
               </Link>
               <Link
                 href="/pages/contact"
-                className="inline-flex h-12 items-center justify-center rounded-sm border border-white/30 px-8 text-xs font-semibold uppercase tracking-widest text-white/75 transition-colors hover:border-white hover:text-white"
+                className="inline-flex h-12 items-center justify-center rounded-sm border border-brand-border px-8 text-xs font-semibold uppercase tracking-widest text-brand-forest transition-colors hover:border-brand-teal hover:text-brand-teal"
               >
                 Talk to Us
               </Link>
             </div>
 
-            <p className="text-body-xs text-white/40 uppercase tracking-widest">
+            <p className="text-body-xs text-brand-muted/60 uppercase tracking-widest">
               Free shipping · Dispatched within 1 working day
             </p>
           </div>

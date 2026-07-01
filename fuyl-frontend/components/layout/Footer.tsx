@@ -82,12 +82,12 @@ export function Footer() {
 
   return (
     <>
-      <div className="relative w-full overflow-hidden h-52 sm:h-72 md:h-96 lg:h-120 xl:h-160">
+      <div className="relative  w-full  overflow-hidden h-52 sm:h-72 md:h-96 lg:h-120 xl:h-174">
         <Image
           src="/images/footer-image.webp"
           alt="FUYL"
           fill
-          className="object-cover object-center"
+          className="object-contain md:object-cover object-center"
           sizes="100vw"
         />
         <div className="absolute inset-0 bg-linear-to-b from-transparent via-brand-forest/10 to-brand-forest/50" />
@@ -102,7 +102,7 @@ export function Footer() {
                 alt="FUYL"
                 width={90}
                 height={32}
-                className="h-8 w-auto object-contain brightness-0 invert"
+                className="h-14 w-auto object-contain brightness-0 invert"
               />
             </Link>
             <p className="mt-4 text-body-sm leading-relaxed max-w-xs text-white/60">

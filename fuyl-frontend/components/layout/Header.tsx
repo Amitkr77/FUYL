@@ -74,6 +74,7 @@ function MobileNavItem({ item, onClose }: { item: NavItem; onClose: () => void }
 export function Header() {
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const { itemCount, openCart } = useCart()
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -87,6 +88,7 @@ export function Header() {
   }
 
   return (
+    <>
     <header
       className="sticky top-0 z-40 bg-white border-b border-brand-border"
       style={{ boxShadow: '0 1px 8px rgba(18,41,31,0.06)' }}
@@ -101,7 +103,7 @@ export function Header() {
             width={100}
             height={36}
             priority
-            className="h-8 w-auto object-contain"
+            className="h-14 w-auto object-contain"
           />
         </Link>
 
@@ -137,6 +139,7 @@ export function Header() {
         {/* Actions */}
         <div className="flex items-center gap-1 ml-auto lg:ml-0">
           <button
+            onClick={() => setSearchOpen(true)}
             aria-label="Search"
             className="hidden lg:flex p-2.5 text-brand-olive transition-colors hover:text-brand-teal"
           >
@@ -179,6 +182,13 @@ export function Header() {
             {NAV_ITEMS.map((item) => (
               <MobileNavItem key={item.label} item={item} onClose={() => setMobileOpen(false)} />
             ))}
+            <button
+              type="button"
+              onClick={() => { setSearchOpen(true); setMobileOpen(false) }}
+              className="flex items-center gap-2 py-3.5 text-label text-brand-forest transition-colors hover:text-brand-teal border-b border-brand-border/60"
+            >
+              <Search size={15} /> Search
+            </button>
             <Link
               href="/account"
               onClick={() => setMobileOpen(false)}
@@ -190,5 +200,65 @@ export function Header() {
         </div>
       )}
     </header>
+
+    {/* Search modal */}
+    {searchOpen && (
+      <div
+        className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/40 backdrop-blur-sm"
+        onClick={() => setSearchOpen(false)}
+      >
+        <div
+          className="w-full max-w-xl mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              const q = (e.currentTarget.elements.namedItem('q') as HTMLInputElement)?.value
+              if (q) window.location.href = `/collections/all?q=${encodeURIComponent(q)}`
+              setSearchOpen(false)
+            }}
+          >
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-brand-border">
+              <Search size={18} className="text-brand-muted shrink-0" />
+              <input
+                name="q"
+                type="search"
+                placeholder="Search products, ingredients..."
+                autoFocus
+                onKeyDown={(e) => e.key === 'Escape' && setSearchOpen(false)}
+                className="flex-1 text-brand-forest placeholder:text-brand-muted text-base outline-none bg-transparent"
+              />
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                className="text-brand-muted hover:text-brand-forest transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </form>
+          <div className="px-5 py-4">
+            <p className="text-label text-brand-muted mb-3">Quick links</p>
+            <div className="flex flex-wrap gap-2">
+              {['FUYL COMPLETE+', 'Ashwagandha', 'Probiotics', 'Vitamin D3'].map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => {
+                    window.location.href = `/collections/all?q=${encodeURIComponent(q)}`
+                    setSearchOpen(false)
+                  }}
+                  className="px-3 py-1.5 text-xs font-medium rounded-full border border-brand-border text-brand-muted hover:border-brand-teal hover:text-brand-teal transition-colors"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }

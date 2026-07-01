@@ -103,7 +103,7 @@ export function TestimonialsSection() {
           `,
                     tab === item
                       ? `
-              bg-brand-forest!
+              bg-brand-forest
               text-white
               shadow-sm
             `
@@ -121,15 +121,17 @@ export function TestimonialsSection() {
           </div>
         </ScrollReveal>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        {/* Mobile: horizontal scroll; md+: 3-col grid */}
+        <div className="mt-12 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden -mx-4 sm:-mx-6 md:mx-0 md:overflow-visible">
+          <div className="flex gap-4 px-4 sm:px-6 md:px-0 pb-2 md:pb-0 md:grid md:grid-cols-3 md:gap-6">
           {items.map((item, index) => (
-            <ScrollReveal key={item.id} delay={index * 100}>
+            <ScrollReveal key={item.id} delay={index * 100} className="shrink-0 w-72 sm:w-80 md:w-auto flex flex-col">
               <article
                 className="
                 relative
                 flex
-                h-full
                 flex-col
+                h-full
                 rounded-xl
                 border
                 border-brand-border
@@ -204,6 +206,7 @@ export function TestimonialsSection() {
               </article>
             </ScrollReveal>
           ))}
+          </div>
         </div>
       </div>
     </section>
