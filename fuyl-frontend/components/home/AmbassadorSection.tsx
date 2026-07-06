@@ -20,26 +20,32 @@ const STEPS = [
   },
 ];
 
-const PERKS = ["Up to 15% per order", "No minimum sales", "Cancel anytime", "Instant payouts"];
+const PERKS = [
+  "Up to 15% per order",
+  "No minimum sales",
+  "Cancel anytime",
+  "Instant payouts",
+];
 
 export function AmbassadorSection() {
   return (
-    <section className="section-py bg-brand-forest text-white overflow-hidden">
+    <section className="section-py bg-neutral-100 overflow-hidden">
       <div className="container-brand">
-
         {/* Header */}
         <ScrollReveal>
-          <div className="text-center max-w-xl mx-auto mb-12 sm:mb-16">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brand-teal mb-4">
-              FUYL Ambassador Programme
-            </p>
-            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-5">
-              FOUND SOMETHING THAT WORKS?
+          <div className="text-center max-w-4xl mx-auto mb-12 sm:mb-16">
+            <div className="flex justify-center mb-4">
+              <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label">
+                FUYL Ambassador Programme
+              </span>
+            </div>
+            <h2 className="text-display-xl font-display mb-5 text-brand-forest">
+              BECOME A FUYL AMBASSADOR
               <br />
-              <span className="text-brand-teal">SHARE IT. EARN.</span>
             </h2>
-            <p className="text-sm sm:text-base text-white/55 leading-relaxed">
-              Refer friends, family or your audience and earn up to 15% on every order — automatically.
+            <p className="text-sm sm:text-base text-brand-muted leading-relaxed">
+              Found something that works?
+              <span className="text-brand-teal">SHARE IT. EARN.</span>
             </p>
           </div>
         </ScrollReveal>
@@ -48,10 +54,9 @@ export function AmbassadorSection() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-14">
           {STEPS.map(({ n, title, body }, i) => (
             <ScrollReveal key={n} delay={i * 100}>
-              <div className="relative flex flex-col gap-5 p-5 sm:p-7 rounded-2xl border border-white/8 bg-white/5 h-full overflow-hidden group hover:bg-white/8 transition-colors duration-300">
-
+              <div className="relative flex flex-col gap-5 p-5 sm:p-7 rounded-2xl border border-brand-border bg-white h-full overflow-hidden group hover:bg-brand-cream transition-colors duration-300">
                 {/* Large watermark number */}
-                <span className="absolute -top-3 -right-1 font-display text-[96px] font-bold leading-none text-white/4 select-none pointer-events-none">
+                <span className="absolute -top-3 -right-1 font-display text-[96px] font-bold leading-none text-brand-forest/5 select-none pointer-events-none">
                   {n}
                 </span>
 
@@ -60,14 +65,14 @@ export function AmbassadorSection() {
                   <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-brand-rose/15 border border-brand-rose/30 text-brand-rose text-sm font-bold shrink-0">
                     {n.replace("0", "")}
                   </span>
-                  <div className="h-px flex-1 bg-white/10" />
+                  <div className="h-px flex-1 bg-brand-border" />
                 </div>
 
                 <div className="relative z-10 flex flex-col gap-3">
-                  <p className="text-base font-semibold leading-snug text-white">
+                  <p className="text-base font-semibold leading-snug text-brand-forest">
                     {title}
                   </p>
-                  <p className="text-sm text-white/50 leading-relaxed">
+                  <p className="text-sm text-brand-muted leading-relaxed">
                     {body}
                   </p>
                 </div>
@@ -80,10 +85,8 @@ export function AmbassadorSection() {
         <ScrollReveal delay={350}>
           <div className="flex flex-col items-center gap-6 text-center">
             <Link
-              href={SITE.referral}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-lg transition-colors hover:bg-brand-rose-dark"
+              href="/pages/refer-and-earn"
+              className="inline-flex items-center justify-center h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-lg transition-colors hover:bg-brand-sage hover:text-brand-forest"
             >
               Join the Programme →
             </Link>
@@ -91,15 +94,19 @@ export function AmbassadorSection() {
             {/* Perks row */}
             <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
               {PERKS.map((perk, i) => (
-                <span key={perk} className="flex items-center gap-2 text-[12px] text-white/45">
-                  {i > 0 && <span className="w-1 h-1 rounded-full bg-white/20" />}
+                <span
+                  key={perk}
+                  className="flex items-center gap-2 text-[12px] text-brand-muted"
+                >
+                  {i > 0 && (
+                    <span className="w-1 h-1 rounded-full bg-brand-border" />
+                  )}
                   {perk}
                 </span>
               ))}
             </div>
           </div>
         </ScrollReveal>
-
       </div>
     </section>
   );

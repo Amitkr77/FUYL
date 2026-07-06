@@ -70,9 +70,11 @@ export function TestimonialsSection() {
     <section className="section-py bg-brand-cream">
       <div className="container-brand">
         <ScrollReveal>
-          <p className="text-label text-center text-brand-teal mb-3">
-            Testimonials
-          </p>
+          <div className="flex justify-center mb-4">
+            <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label">
+              Testimonials
+            </span>
+          </div>
 
           <h2 className="text-display-xl font-display text-center text-brand-forest">
             WHAT THEY'RE

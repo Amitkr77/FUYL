@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { generateSEO } from "@/lib/utils/seo";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 export const metadata = generateSEO({
   title: "Our Story",
@@ -73,29 +74,35 @@ export default function OurStoryPage() {
       <section className="relative overflow-hidden bg-brand-forest px-4 sm:px-8 py-16 sm:py-20 lg:py-24 text-center">
         {/* Watermark */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center select-none">
-          <span className="font-sans text-[120px] sm:text-[220px] lg:text-[320px] font-black leading-none tracking-[-8px] text-white/3 whitespace-nowrap">
+          <span className="text-[120px] sm:text-[220px] lg:text-[320px] font-black leading-none tracking-[-8px] text-white/3 whitespace-nowrap">
             FUYL
           </span>
         </div>
 
-        <p className="relative font-sans text-[10px] uppercase tracking-[4px] text-brand-rose mb-6 sm:mb-7">
+        <Breadcrumbs
+          variant="dark"
+          className="relative mb-8 flex justify-center"
+          items={[{ label: "Our Story" }]}
+        />
+
+        <p className="relative text-[10px] uppercase tracking-[4px] text-brand-rose mb-6 sm:mb-7">
           The Story Behind FUYL
         </p>
 
         <blockquote className="relative mx-auto mb-6 max-w-3xl font-normal italic leading-relaxed text-white text-lg sm:text-2xl md:text-[28px]">
-          <span className="font-serif not-italic text-brand-rose text-4xl sm:text-[64px] lg:text-[80px] leading-[0.5] align-[-14px] sm:align-[-22px] lg:align-[-28px] mr-1">
+          <span className="not-italic text-brand-rose text-4xl sm:text-[64px] lg:text-[80px] leading-[0.5] align-[-14px] sm:align-[-22px] lg:align-[-28px] mr-1">
             &ldquo;
           </span>
           We didn&apos;t set out to build a supplement brand. We set out to
           solve our own problem — and found that millions of Indians shared it.
-          <span className="font-serif not-italic text-brand-rose text-4xl sm:text-[64px] lg:text-[80px] leading-[0.5] align-[-14px] sm:align-[-22px] lg:align-[-28px] ml-1">
+          <span className="not-italic text-brand-rose text-4xl sm:text-[64px] lg:text-[80px] leading-[0.5] align-[-14px] sm:align-[-22px] lg:align-[-28px] ml-1">
             &rdquo;
           </span>
         </blockquote>
 
         <div className="mx-auto mb-5 h-px w-10 bg-brand-rose" />
 
-        <p className="font-sans text-[11px] uppercase tracking-[2px] text-white/40">
+        <p className="text-[11px] uppercase tracking-[2px] text-white/40">
           The Founders · FUYL
         </p>
       </section>
@@ -162,14 +169,16 @@ export default function OurStoryPage() {
                     className="group relative flex flex-1 flex-col items-center"
                   >
                     {/* Dot */}
-                    <div className="relative z-10 h-8 w-8 shrink-0 rounded-full border-2 border-brand-border bg-brand-white transition-all duration-300 group-hover:border-brand-forest group-hover:bg-brand-forest" />
+                    <div className="relative z-10 h-8 w-8 shrink-0 rounded-full border-2 border-brand-border bg-brand-white transition-all duration-300 group-hover:border-brand-forest group-hover:bg-brand-forest">
+                      <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-border transition-all duration-300 group-hover:bg-brand-white" />
+                    </div>
 
                     {/* Content */}
                     <div className="mt-6 w-full rounded-sm border border-transparent px-3 py-5 text-center transition-all duration-300 group-hover:border-brand-border group-hover:bg-brand-cream">
                       <p className="text-label mb-2 text-brand-muted transition-colors group-hover:text-brand-forest">
                         {title}
                       </p>
-                      <p className="text-body-xs leading-relaxed text-brand-muted">
+                      <p className="text-body-xs leading-relaxed text-brand-muted text-justify">
                         {body}
                       </p>
                     </div>
@@ -182,7 +191,7 @@ export default function OurStoryPage() {
       </section>
 
       {/* ── 4. Values ─────────────────────────────────── */}
-      <section className="section-py bg-brand-cream">
+      {/* <section className="section-py bg-brand-cream">
         <div className="container-brand">
           <ScrollReveal>
             <h2 className="text-display-xl font-display mb-14 text-center">
@@ -202,7 +211,7 @@ export default function OurStoryPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* ── 5. CTA ────────────────────────────────────── */}
       <section className="py-16 sm:py-20 text-center bg-white">
@@ -219,7 +228,7 @@ export default function OurStoryPage() {
             <div className="mb-6 flex flex-wrap justify-center gap-4">
               <Link
                 href="/products/fuyl-complete"
-                className="inline-flex h-12 items-center justify-center rounded-sm bg-brand-rose px-6 sm:px-10 text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:bg-brand-rose-dark"
+                className="inline-flex h-12 items-center justify-center rounded-sm bg-brand-forest px-6 sm:px-10 text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:bg-brand-sage hover:text-brand-forest"
               >
                 Try FUYL Complete+ — ₹1,499 for 15 sachets →
               </Link>

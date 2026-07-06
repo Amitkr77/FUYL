@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { generateSEO } from '@/lib/utils/seo'
 import { ScrollReveal } from '@/components/ui/ScrollReveal'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 
 interface Props { params: Promise<{ slug: string }> }
 
@@ -14,6 +15,13 @@ export default async function BlogPostPage({ params }: Props) {
   return (
     <div className="container-brand section-py max-w-3xl mx-auto">
       <ScrollReveal>
+        <Breadcrumbs
+          className="mb-6"
+          items={[
+            { label: 'Learn', href: '/pages/learn' },
+            { label: slug.replace(/-/g, ' ') },
+          ]}
+        />
         <Link href="/pages/learn" className="text-body-xs font-semibold uppercase tracking-wider hover:text-[#8B1A4A] transition-colors" style={{ color: 'var(--color-brand-muted)' }}>
           ← Back to Learn
         </Link>

@@ -1,30 +1,29 @@
-'use client'
+"use client";
 
-import { useRef, useState, useEffect } from 'react'
-import { Volume2, VolumeX } from 'lucide-react'
-import { Countdown } from '@/components/ui/Countdown'
-import { ScrollReveal } from '@/components/ui/ScrollReveal'
+import { useRef, useState, useEffect } from "react";
+import { Volume2, VolumeX } from "lucide-react";
+import { Countdown } from "@/components/ui/Countdown";
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
-const LAUNCH_DATE = '2026-07-01T00:00:00+05:30'
+const LAUNCH_DATE = "2026-07-06T00:00:00+05:30";
 
 export function VideoSection() {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [muted, setMuted] = useState(true)
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(true);
 
   useEffect(() => {
-    videoRef.current?.play().catch(() => {})
-  }, [])
+    videoRef.current?.play().catch(() => {});
+  }, []);
 
   const toggleMute = () => {
-    const v = videoRef.current
-    if (!v) return
-    v.muted = !v.muted
-    setMuted(v.muted)
-  }
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setMuted(v.muted);
+  };
 
   return (
     <section className="relative w-full max-w-full overflow-hidden min-h-dvh">
-
       {/* Background video */}
       <video
         ref={videoRef}
@@ -40,12 +39,12 @@ export function VideoSection() {
       </video>
 
       {/* Dark overlay — heavier at top and bottom, lighter in the middle so video shows */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
+      <div className="absolute inset-0 bg-linear-to-b from-black/60 via-black/40 to-black/70" />
 
       {/* Mute toggle — top right */}
       <button
         onClick={toggleMute}
-        aria-label={muted ? 'Unmute video' : 'Mute video'}
+        aria-label={muted ? "Unmute video" : "Mute video"}
         className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border border-white/30 bg-black/30 text-white backdrop-blur-sm hover:bg-black/50 transition-colors"
       >
         {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
@@ -53,16 +52,20 @@ export function VideoSection() {
 
       {/* Centered content */}
       <div className="relative z-10 flex flex-col items-center justify-center text-center text-white px-5 py-20 sm:py-16 lg:py-24 min-h-dvh max-w-full">
-
         <ScrollReveal>
-          <p className="text-label text-brand-teal mb-3 sm:mb-4 tracking-widest uppercase text-xs sm:text-sm">
-            Launching Soon
-          </p>
-          <h2 className="font-display text-[clamp(1.5rem,8vw,4.5rem)] font-bold leading-[1.15] sm:leading-tight mb-3 sm:mb-6 max-w-3xl break-words">
-            FUYL COMPLETE+<br />IS ALMOST HERE.
+          <div className="flex justify-center mb-4">
+            <span className="inline-block rounded-full px-3 py-1 bg-white/10 text-white text-label">
+              Launching Soon
+            </span>
+          </div>
+          <h2 className="text-display-xl font-display mb-3 sm:mb-6 max-w-3xl">
+            FUYL COMPLETE+
+            <br />
+            IS ALMOST HERE.
           </h2>
           <p className="text-sm sm:text-lg text-white/70 max-w-[90%] sm:max-w-md mx-auto mb-6 sm:mb-10 leading-relaxed">
-            Join the waitlist for early access, launch-day pricing, and a free nutrition consultation.
+            Join the waitlist for early access, launch-day pricing, and a free
+            nutrition consultation.
           </p>
         </ScrollReveal>
 
@@ -72,7 +75,7 @@ export function VideoSection() {
           </div>
         </ScrollReveal>
 
-        <ScrollReveal delay={200}>
+        {/* <ScrollReveal delay={200}>
           <form
             className="flex flex-col sm:flex-row gap-2 mt-8 sm:mt-10 w-full max-w-md mx-auto px-1 sm:px-0"
             onSubmit={(e) => { e.preventDefault(); alert('Waitlist coming soon!') }}
@@ -90,9 +93,8 @@ export function VideoSection() {
               Join Waitlist
             </button>
           </form>
-        </ScrollReveal>
-
+        </ScrollReveal> */}
       </div>
     </section>
-  )
+  );
 }

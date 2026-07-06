@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { generateSEO } from "@/lib/utils/seo";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { IngredientsClient } from "@/components/content/IngredientsClient";
 import type { IngredientData } from "@/components/content/IngredientCard";
 
@@ -236,50 +237,35 @@ export default function IngredientsPage() {
   return (
     <>
       {/* ── Hero ─────────────────────────────────────────── */}
-      <section
-        className="relative overflow-hidden flex items-center"
-        style={{ minHeight: "65vh" }}
-      >
-        {/* Background image */}
-        <Image
-          src="/images/ingredients-hero.webp"
-          alt=""
-          fill
-          priority
-          className="object-cover object-center"
-          sizes="100vw"
-        />
+      <section className="grid grid-cols-1 lg:grid-cols-2 min-h-[80vh]">
+        {/* Right — Image */}
+        <div className="relative min-h-[50vh] lg:min-h-0">
+          <Image
+            src="/images/fuyl-complete+.webp"
+            alt="FUYL COMPLETE+ product"
+            fill
+            priority
+            className="object-cover object-center"
+            sizes="(max-width: 1024px) 100vw, 50vw"
+          />
+        </div>
 
-        {/* Gradient overlay — left-heavy so text stays readable */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(105deg, rgba(18,41,31,0.88) 0%, rgba(18,41,31,0.55) 55%, rgba(18,41,31,0.18) 100%)",
-          }}
-        />
-
-        {/* Content — left-aligned, on top of overlay */}
-        <div className="relative z-10 container-brand w-full section-py text-white">
+        {/* Left — Content */}
+        <div className="bg-brand-cream flex items-center px-6 py-20 sm:px-10 lg:px-16 xl:px-24 lg:py-28">
           <ScrollReveal>
-            <p
-              className="text-label mb-4"
-              style={{ color: "var(--color-brand-teal)" }}
-            >
+            <Breadcrumbs className="mb-5" items={[{ label: 'Ingredients' }]} />
+            <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label mb-5">
               Full Transparency
-            </p>
-            <h1 className="text-display-2xl font-display mb-6">
+            </span>
+            <h1 className="text-display-xl font-display text-brand-forest mb-6">
               60+ INGREDIENTS.
               <br />
               EVERY ONE EXPLAINED.
             </h1>
-            <p
-              className="text-body-lg max-w-xl"
-              style={{ color: "rgba(255,255,255,0.75)" }}
-            >
+            <p className="text-body-lg text-brand-muted leading-relaxed max-w-lg">
               No proprietary blends. No hidden doses. Click any ingredient to
-              understand exactly what it does, at what dose, and why it's in
-              FUYL COMPLETE+.
+              understand exactly what it does, at what dose, and why it&apos;s
+              in FUYL COMPLETE+.
             </p>
           </ScrollReveal>
         </div>

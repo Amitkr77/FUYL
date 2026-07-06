@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { generateSEO } from '@/lib/utils/seo'
 import { ScrollReveal } from '@/components/ui/ScrollReveal'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SITE } from '@/lib/constants/site'
 import { Mail, Phone, Clock, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -71,6 +72,7 @@ export default function ContactPage() {
       {/* Hero */}
       <section className="section-py" style={{ background: 'var(--color-brand-cream)' }}>
         <div className="container-brand">
+          <Breadcrumbs className="mb-5" items={[{ label: 'Contact' }]} />
           <ScrollReveal>
             <p className="text-label mb-3" style={{ color: 'var(--color-brand-berry)' }}>Get in Touch</p>
             <h1 className="text-display-2xl font-display mb-4">LET'S TALK.</h1>

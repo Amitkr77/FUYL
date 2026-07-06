@@ -58,226 +58,67 @@ export function FaqSection() {
     <section className="bg-brand-cream py-24 lg:py-32 overflow-hidden">
       <div className="container-brand">
         <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:gap-14 items-stretch">
-          {/* ── LEFT — sticky feature card ── */}
+          {/* ── LEFT — label, heading, image, CTA ── */}
           <ScrollReveal className="lg:sticky lg:top-24">
-            <div
-              className="
-  group
-  relative
-  overflow-hidden
-  rounded-3xl
-  min-h-90
-  sm:min-h-110
-  lg:min-h-205
-  "
-            >
-              <Image
-                src="/images/ingredients-hero.webp"
-                alt="FUYL ingredients"
-                fill
-                className="
-    object-cover
-    transition-transform
-    duration-700
-    ease-out
-    group-hover:scale-[1.03]
-    "
-                sizes="(max-width: 1024px) 100vw, 45vw"
-              />
-
-              {/* Overlay */}
-              <div
-                className="
-    absolute
-    inset-0
-    bg-linear-to-b
-    from-black/20
-    via-black/50
-    to-black/90
-    "
-              />
-
-              <div
-                className="
-    relative
-    z-10
-    flex
-    flex-col
-    p-6
-    sm:p-8
-    lg:p-10
-    lg:min-h-205
-    "
-              >
-                {/* Top */}
-                <div>
-                  <div
-                    className="
-        inline-flex
-        w-fit
-        items-center
-        gap-2
-        rounded-full
-        border
-        border-white/20
-        bg-white/10
-        px-4
-        py-1.5
-        backdrop-blur-md
-        "
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-brand-teal" />
-
-                    <span
-                      className="
-          text-[10px]
-          font-semibold
-          uppercase
-          tracking-[0.25em]
-          text-white/80
-          "
-                    >
-                      FAQ
-                    </span>
-                  </div>
-                  <h2
-                    className="mt-6 sm:mt-10
-        font-display
-        font-bold
-        leading-[0.98]
-        tracking-tight
-        text-white
-        text-4xl sm:text-5xl lg:text-[clamp(48px,6vw,76px)]
-        "
-                  >
-                    QUESTIONS?
-                    <br />
-                    <span className="text-brand-teal">WE HAVE</span>
-                    <br />
-                    ANSWERS.
-                  </h2>
-
-                  <p
-                    className="
-        mt-5
-        max-w-xs
-        text-[15px]
-        leading-relaxed
-        text-white/60
-        "
-                  >
-                    Everything you need to know about ingredients, results,
-                    safety and starting your FUYL journey.
-                  </p>
-                </div>
-
-                {/* Bottom content */}
-                <div className="mt-auto">
-                  {/* <h2
-                    className="
-        font-display
-        font-bold
-        leading-[0.9]
-        tracking-tight
-        text-white
-        "
-                    style={{
-                      fontSize: "clamp(48px,6vw,76px)",
-                    }}
-                  >
-                    QUESTIONS?
-                    <br />
-                    <span className="text-brand-teal">WE HAVE</span>
-                    <br />
-                    ANSWERS.
-                  </h2> */}
-
-                  {/* <p
-                    className="
-        mt-5
-        max-w-xs
-        text-[15px]
-        leading-relaxed
-        text-white/60
-        "
-                  >
-                    Everything you need to know about ingredients, results,
-                    safety and starting your FUYL journey.
-                  </p> */}
-
-                  {/* Trust */}
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    {TRUST.map(({ label }) => (
-                      <span
-                        key={label}
-                        className="
-            rounded-full
-            border
-            border-white/15
-            bg-white/10
-            px-3
-            py-1
-            text-[10px]
-            font-semibold
-            uppercase
-            tracking-wider
-            text-white/70
-            backdrop-blur-sm
-            "
-                      >
-                        {label}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div
-                    className="
-        my-6
-        h-px
-        bg-white/10
-        "
-                  />
-
-                  <Link
-                    href="/pages/contact"
-                    className="
-        group/link
-        flex
-        items-center
-        justify-between
-        rounded-2xl
-        border
-        border-white/10
-        bg-white/5
-        px-5
-        py-3.5
-        backdrop-blur-md
-        transition-all
-        hover:border-white/20
-        hover:bg-white/10
-        "
-                  >
-                    <span className="text-sm font-medium text-white/80">
-                      Still have questions?
-                    </span>
-
-                    <span
-                      className="
-          flex
-          items-center
-          gap-1.5
-          text-sm
-          font-semibold
-          text-brand-teal
-          transition-all
-          group-hover/link:gap-2.5
-          "
-                    >
-                      Contact us →
-                    </span>
-                  </Link>
-                </div>
+            <div className="flex flex-col">
+              {/* Label */}
+              <div className="inline-flex w-fit items-center gap-2 rounded-full   bg-brand-sage px-4 py-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-brand-teal" />
+                <span className="text-[10px] text-label  text-brand-muted">
+                  FAQ
+                </span>
               </div>
+
+              {/* Heading */}
+              <h2 className="text-display-xl font-display text-brand-forest mt-6 sm:mt-8">
+                QUESTIONS?
+                <br />
+                <span className="text-brand-teal">WE HAVE</span>
+                <br />
+                ANSWERS.
+              </h2>
+
+              <p className="mt-5 max-w-md text-[15px] leading-relaxed text-brand-muted">
+                Everything you need to know about ingredients, results, safety
+                and starting your FUYL journey.
+              </p>
+
+              {/* Trust */}
+              {/* <div className="mt-6 flex flex-wrap gap-2">
+                {TRUST.map(({ label }) => (
+                  <span
+                    key={label}
+                    className="rounded-full border border-brand-border bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand-muted"
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div> */}
+
+              {/* Image */}
+              <div className="group relative mt-8 h-64 sm:h-80 lg:h-96 overflow-hidden rounded-3xl">
+                <Image
+                  src="/images/ingredients-hero.webp"
+                  alt="FUYL ingredients"
+                  fill
+                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                  sizes="(max-width: 1024px) 100vw, 45vw"
+                />
+              </div>
+
+              {/* CTA */}
+              <Link
+                href="/pages/contact"
+                className="group/link mt-6 flex items-center justify-between rounded-2xl border border-brand-border bg-brand-forest text-brand-sage px-5 py-3.5 transition-all hover:border-brand-teal hover:bg-brand-sage hover:text-brand-forest sm:px-6 sm:py-4"
+              >
+                <span className="text-sm font-medium ">
+                  Still have questions?
+                </span>
+
+                <span className="flex items-center gap-1.5 text-sm font-semibold transition-all group-hover/link:gap-2.5">
+                  Contact us →
+                </span>
+              </Link>
             </div>
           </ScrollReveal>
 
@@ -355,13 +196,13 @@ export function FaqSection() {
                 <div className="flex gap-3 shrink-0">
                   <Link
                     href="/products/fuyl-complete"
-                    className="inline-flex items-center justify-center h-10 px-6 text-[11px] font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-lg transition-colors hover:bg-brand-rose-dark whitespace-nowrap"
+                    className="inline-flex items-center justify-center h-10 px-6 text-[11px] font-semibold uppercase tracking-widest border border-brand-sage bg-brand-forest text-white hover:text-brand-forest rounded-lg transition-colors hover:bg-brand-sage whitespace-nowrap"
                   >
                     Shop Now
                   </Link>
                   <Link
                     href="/pages/why-fuyl"
-                    className="inline-flex items-center justify-center h-10 px-6 text-[11px] font-semibold uppercase tracking-widest border border-white/15 text-white/60 rounded-lg transition-colors hover:border-brand-teal hover:text-brand-teal whitespace-nowrap"
+                    className="inline-flex items-center justify-center h-10 px-6 text-[11px] font-semibold uppercase tracking-widest border border-white/15 text-white/60 rounded-lg transition-colors hover:border-brand-teal hover:text-white whitespace-nowrap"
                   >
                     Learn More
                   </Link>

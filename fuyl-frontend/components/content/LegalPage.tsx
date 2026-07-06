@@ -1,4 +1,5 @@
 import { ScrollReveal } from '@/components/ui/ScrollReveal'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 
 interface Section {
   heading: string
@@ -18,6 +19,7 @@ export function LegalPage({ title, subtitle, lastUpdated, sections }: LegalPageP
       {/* Hero */}
       <section className="py-14" style={{ background: 'var(--color-brand-cream)' }}>
         <div className="container-brand max-w-3xl">
+          <Breadcrumbs className="mb-5" items={[{ label: title }]} />
           <ScrollReveal>
             <p className="text-label mb-3" style={{ color: 'var(--color-brand-muted)' }}>
               Last updated: {lastUpdated}

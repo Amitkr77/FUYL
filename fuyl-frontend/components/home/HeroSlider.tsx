@@ -10,18 +10,18 @@ const SLIDES = [
     id: 1,
     eyebrow: "Introducing FUYL COMPLETE+",
     headline: ["Nourish Daily.", "Feel Stronger.", "Live longer."],
-    sub: "60+ premium ingredients. One sachet. Every morning.",
-    cta: { label: "Shop Now", href: "/products/fuyl-complete" },
-    ctaAlt: { label: "Learn More", href: "/pages/why-fuyl" },
+    sub: "A Daily Nutrition Powder.",
+    cta: { label: "SHOP FUYK COMPLETE +", href: "/products/fuyl-complete" },
+    // ctaAlt: { label: "Learn More", href: "/pages/why-fuyl" },
     image: "/images/hero-slide-1.webp",
   },
   {
     id: 2,
     eyebrow: "30-Day Transformation",
     headline: ["One Sachet", "Every Morning", "Everything covered."],
-    sub: "Research-backed nutrition for gut, energy, immunity, liver and stress.",
-    cta: { label: "Start Now", href: "/products/fuyl-complete" },
-    ctaAlt: { label: "See the Science", href: "/pages/science" },
+    sub: "Built For Daily Life And Long Term Health.",
+    cta: { label: "START TODAY", href: "/products/fuyl-complete" },
+    // ctaAlt: { label: "See the Science", href: "/pages/science" },
     image: "/images/hero-slide-2.webp",
   },
 ];
@@ -47,122 +47,122 @@ export function HeroSlider() {
 
   return (
     <section
-  className="relative w-full max-w-full overflow-hidden h-dvh min-h-[500px] sm:min-h-140"
-  onMouseEnter={() => setPaused(true)}
-  onMouseLeave={() => setPaused(false)}
-  aria-label="Hero"
->
-  {/* Full-screen background images — one per slide, crossfade via opacity */}
-  <div className="absolute inset-0">
-    {SLIDES.map((s, i) => (
-      <Image
-        key={s.id}
-        src={s.image}
-        alt=""
-        fill
-        priority={i === 0}
-        sizes="100vw"
-        className={cn(
-          "object-cover object-center transition-opacity duration-700 select-none pointer-events-none",
-          i === current ? "opacity-100" : "opacity-0",
-        )}
-        aria-hidden="true"
-      />
-    ))}
-  </div>
-
-  {/* Dark gradient overlay — bottom-heavy so text pops */}
-  <div
-    className="absolute inset-0 bg-linear-to-b from-black/10 via-black/30 to-black/60"
-    aria-hidden="true"
-  />
-
-  {/* Content — pinned to bottom-left on all screen sizes */}
-  <div className="absolute inset-0 flex flex-col justify-end overflow-hidden">
-    <div className="w-full max-w-full px-4 pb-28 sm:px-10 sm:pb-32 md:px-16 md:pb-28 lg:px-24 xl:px-32">
-      <div className="max-w-5xl">
-        {/* Eyebrow */}
-        <p
-          key={`eyebrow-${slide.id}`}
-          className="mb-3 text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-white/75 animate-fadeIn"
-        >
-          {slide.eyebrow}
-        </p>
-
-        {/* Headline */}
-        <h1
-          key={`headline-${slide.id}`}
-          className="font-display text-[clamp(1.75rem,8vw,4.5rem)] font-bold text-white leading-[1.1] mb-3 sm:mb-4 animate-fadeIn break-words"
-        >
-          {slide.headline.map((line, index) => (
-            <span key={index} className="block">
-              {line}
-            </span>
-          ))}
-        </h1>
-
-        {/* Sub */}
-        <p
-          key={`sub-${slide.id}`}
-          className="mb-5 sm:mb-7 text-sm sm:text-base text-white/80 max-w-full sm:max-w-md leading-relaxed animate-fadeIn"
-        >
-          {slide.sub}
-        </p>
-
-        {/* CTAs */}
-        <div className="flex flex-wrap gap-3 max-w-full">
-          <Link
-            href={slide.cta.href}
-            className="inline-flex items-center justify-center h-11 sm:h-12 px-6 sm:px-8 text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-sm transition-colors hover:bg-brand-rose-dark whitespace-nowrap"
-          >
-            {slide.cta.label}
-          </Link>
-          <Link
-            href={slide.ctaAlt.href}
-            className="inline-flex items-center justify-center h-11 sm:h-12 px-6 sm:px-8 text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest border border-white/60 text-white! rounded-sm transition-colors hover:bg-brand-forest hover:border-none whitespace-nowrap"
-          >
-            {slide.ctaAlt.label}
-          </Link>
-        </div>
-      </div>
-    </div>
-
-    {/* Slider Navigation */}
-    <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-20">
-      <div className="flex items-center gap-2 sm:gap-3 rounded-full bg-black/20 backdrop-blur-md px-3 py-2 sm:px-4">
-        {SLIDES.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrent(i)}
-            aria-label={`Go to slide ${i + 1}`}
-            className="group relative flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40"
-          >
-            <span
-              className={cn(
-                "rounded-full transition-all duration-300",
-                i === current
-                  ? "h-1.5 w-6 bg-brand-rose"
-                  : "h-1.5 w-1.5 bg-white/40 group-hover:bg-white/70",
-              )}
-            />
-          </button>
+      className="relative w-full max-w-full overflow-hidden h-dvh min-h-[500px] sm:min-h-140"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      aria-label="Hero"
+    >
+      {/* Full-screen background images — one per slide, crossfade via opacity */}
+      <div className="absolute inset-0">
+        {SLIDES.map((s, i) => (
+          <Image
+            key={s.id}
+            src={s.image}
+            alt=""
+            fill
+            priority={i === 0}
+            sizes="100vw"
+            className={cn(
+              "object-cover object-center transition-opacity duration-700 select-none pointer-events-none",
+              i === current ? "opacity-100" : "opacity-0",
+            )}
+            aria-hidden="true"
+          />
         ))}
       </div>
-    </div>
-  </div>
 
-  {/* Progress bar */}
-  {!paused && (
-    <div
-      key={`progress-${current}`}
-      className="absolute bottom-0 left-0 h-0.5 max-w-full bg-brand-rose z-10"
-      style={{
-        animation: `progressBar ${DURATION}ms linear forwards`,
-      }}
-    />
-  )}
+      {/* Dark gradient overlay — bottom-heavy so text pops */}
+      <div
+        className="absolute inset-0 bg-linear-to-b from-black/10 via-black/30 to-black/60"
+        aria-hidden="true"
+      />
 
-  <style>{`
+      {/* Content — pinned to bottom-left on all screen sizes */}
+      <div className="absolute inset-0 flex flex-col justify-end overflow-hidden">
+        <div className="w-full max-w-full px-4 pb-28 sm:px-10 sm:pb-32 md:px-16 md:pb-28 lg:px-24 xl:px-32">
+          <div className="max-w-5xl">
+            {/* Eyebrow */}
+            <p
+              key={`eyebrow-${slide.id}`}
+              className="mb-3 text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-white/75 animate-fadeIn"
+            >
+              {slide.eyebrow}
+            </p>
+
+            {/* Headline */}
+            <h1
+              key={`headline-${slide.id}`}
+              className="font-display text-[clamp(1.75rem,8vw,4.5rem)] font-bold text-white leading-[1.1] mb-3 sm:mb-4 animate-fadeIn break-words"
+            >
+              {slide.headline.map((line, index) => (
+                <span key={index} className="block">
+                  {line}
+                </span>
+              ))}
+            </h1>
+
+            {/* Sub */}
+            <p
+              key={`sub-${slide.id}`}
+              className="mb-5 sm:mb-7 text-sm sm:text-base text-white/80 max-w-full sm:max-w-md leading-relaxed animate-fadeIn"
+            >
+              {slide.sub}
+            </p>
+
+            {/* CTAs */}
+            <div className="flex flex-wrap gap-3 max-w-full">
+              <Link
+                href={slide.cta.href}
+                className="inline-flex items-center justify-center h-11 sm:h-12 px-6 sm:px-8 text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest bg-white text-black rounded-sm transition-colors hover:bg-brand-forest hover:text-white whitespace-nowrap"
+              >
+                {slide.cta.label}
+              </Link>
+              {/* <Link
+                href={slide.ctaAlt.href}
+                className="inline-flex items-center justify-center h-11 sm:h-12 px-6 sm:px-8 text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest border border-white/60 text-white! rounded-sm transition-colors hover:bg-brand-forest hover:border-none whitespace-nowrap"
+              >
+                {slide.ctaAlt.label}
+              </Link> */}
+            </div>
+          </div>
+        </div>
+
+        {/* Slider Navigation */}
+        <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-20">
+          <div className="flex items-center gap-2 sm:gap-3 rounded-full bg-black/20 backdrop-blur-md px-3 py-2 sm:px-4">
+            {SLIDES.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrent(i)}
+                aria-label={`Go to slide ${i + 1}`}
+                className="group relative flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40"
+              >
+                <span
+                  className={cn(
+                    "rounded-full transition-all duration-300",
+                    i === current
+                      ? "h-1.5 w-6 bg-brand-forest"
+                      : "h-1.5 w-1.5 bg-white/40 group-hover:bg-white/70",
+                  )}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      {/* {!paused && (
+        <div
+          key={`progress-${current}`}
+          className="absolute bottom-0 left-0 h-0.5 max-w-full bg-brand-rose z-10"
+          style={{
+            animation: `progressBar ${DURATION}ms linear forwards`,
+          }}
+        />
+      )} */}
+
+      <style>{`
     @keyframes progressBar {
       from { width: 0% }
       to   { width: 100% }
@@ -175,6 +175,6 @@ export function HeroSlider() {
       animation: fadeIn 0.5s ease forwards;
     }
   `}</style>
-</section>
+    </section>
   );
 }

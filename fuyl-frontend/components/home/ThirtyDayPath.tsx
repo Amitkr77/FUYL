@@ -1,38 +1,37 @@
 "use client";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import Link from "next/link";
-import { useState } from "react";
 import Image from "next/image";
 
 const WEEKS = [
   {
     period: "Week 1",
-    title: "Your Gut Wakes Up",
-    body: "The probiotics and digestive enzymes start rebalancing your microbiome. Less bloating. Better digestion. You may notice a subtle lift in energy.",
+    title: "The Adjustment",
+    body: "Your digestive system begins adapting to the prebiotic fiber. You may notice mild changes. Your gut microbiome is shifting its composition.",
     colour: "#EEF4E4" /* light sage-cream */,
     accent: "#558476" /* Muted Teal */,
     image: "/images/journey/frist-week.webp",
   },
   {
     period: "Week 2",
-    title: "Stress Starts to Ease",
-    body: "Ashwagandha builds up in your system. Cortisol levels begin to drop. You sleep a little deeper. Your mood stabilises. Focus sharpens.",
+    title: "The Shift",
+    body: "Energy patterns begin to stabilise. Gut comfort improves for most people. KSM-66 begins building measurable cortisol modulation after approximately 10-14 days of consistent use.",
     colour: "#E8EDD8" /* soft sage */,
     accent: "#3A4A2E" /* Olive Moss */,
     image: "/images/journey/second-week.webp",
   },
   {
-    period: "Weeks 3–4",
-    title: "Energy & Immunity Surge",
-    body: "Spirulina and Vitamin D3 are now working at full capacity. You feel noticeably more energetic. Your immune response gets stronger. Skin starts to glow.",
+    period: "Week 3-4",
+    title: "The Foundation",
+    body: "The adaptogen stack reaches meaningful systemic effect. Stress response, mental clarity, and sustained energy become more consistent. The foundation is set.",
     colour: "#DDE8C8" /* Soft Sage Green */,
     accent: "#3D6459" /* Teal Dark */,
     image: "/images/journey/third-week.webp",
   },
   {
     period: "Day 30+",
-    title: "The New You",
-    body: "A full month of consistent nourishment. Liver is cleaner, joints feel better, mental clarity is at a new baseline. This is your new normal.",
+    title: "The New Normal",
+    body: "Most users stop noticing FUYL COMPLETE+ because feeling good becomes their baseline. This is what compliance looks like when the formulation is built for it.",
     colour: "#DCE8E4" /* sage-teal */,
     accent: "#12291F" /* Deep Forest Green */,
     image: "/images/journey/fourth-week.webp",
@@ -40,14 +39,15 @@ const WEEKS = [
 ];
 
 export function ThirtyDayPath() {
-  const [active, setActive] = useState(0);
   return (
     <section className="section-py bg-brand-cream">
       <div className="container-brand">
         <ScrollReveal>
-          <p className="text-label text-center mb-3 text-brand-teal">
-            THE 30-DAY PATH
-          </p>
+          <div className="flex justify-center mb-4">
+            <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label">
+              THE 30-DAY PATH
+            </span>
+          </div>
           <h2 className="text-display-xl font-display text-center mb-4 text-brand-forest max-w-4xl mx-auto">
             WHAT 30 DAYS OF COMPLETE+ ACTUALLY LOOKS LIKE
           </h2>
@@ -57,70 +57,48 @@ export function ThirtyDayPath() {
           </p>
         </ScrollReveal>
 
-        {/* Desktop — horizontal expanding cards */}
-        <div className="hidden lg:flex gap-3 h-[520px]">
+        {/* Desktop — equal-width cards */}
+        <div className="hidden lg:flex gap-5 items-stretch">
           {WEEKS.map((week, i) => (
             <div
               key={week.period}
-              onMouseEnter={() => setActive(i)}
-              className="relative rounded-xl overflow-hidden cursor-pointer transition-all duration-500 ease-in-out flex-shrink-0"
-              style={{
-                flexBasis: active === i ? "50%" : "16.66%",
-                background: week.colour,
-              }}
+              className="flex flex-col flex-1 bg-white rounded-2xl border border-brand-border/50 shadow-sm overflow-hidden"
             >
-              {/* Background image — visible when active */}
-              <div
-                className="absolute inset-0 transition-opacity duration-500"
-                style={{ opacity: active === i ? 1 : 0 }}
-              >
+              {/* Number */}
+              <div className="px-6 pt-6 pb-2">
+                <span className="text-sm font-medium text-brand-muted/60">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+              </div>
+
+              {/* Image */}
+              <div className="relative w-full h-56">
                 <Image
                   src={week.image}
                   alt={week.title}
                   fill
                   className="object-cover object-center"
-                  sizes="50vw"
+                  sizes="25vw"
                 />
-                {/* Gradient over image */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
               </div>
 
-              {/* Collapsed state — vertical label */}
-              <div
-                className="absolute inset-0 flex flex-col items-center justify-center gap-3 transition-opacity duration-300 px-3"
-                style={{ opacity: active === i ? 0 : 1 }}
-              >
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                  style={{ background: week.accent }}
-                >
-                  {i + 1}
-                </div>
-                <p
-                  className="text-[11px] font-semibold uppercase tracking-widest writing-mode-vertical text-center"
-                  style={{
-                    writingMode: "vertical-rl",
-                    textOrientation: "mixed",
-                    transform: "rotate(180deg)",
-                    color: week.accent,
-                  }}
-                >
-                  {week.period}
-                </p>
+              {/* Dot indicator */}
+              <div className="flex justify-center py-3 border-b border-brand-border/40">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-forest/70" />
               </div>
 
-              {/* Expanded state — full content */}
-              <div
-                className="absolute inset-0 flex flex-col justify-end p-8 transition-opacity duration-300"
-                style={{ opacity: active === i ? 1 : 0 }}
-              >
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-white/70 mb-2">
+              {/* Text */}
+              <div className="flex-1 px-6 pt-4 pb-6">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-muted/70 mb-1">
                   {week.period}
                 </p>
-                <h3 className="font-display text-2xl font-bold text-white mb-3 leading-tight">
+                <h3 className="font-display text-lg font-bold text-brand-forest mb-2">
                   {week.title}
                 </h3>
-                <p className="text-sm text-white/80 leading-relaxed max-w-xs">
+                <p
+                  className="text-sm text-brand-muted leading-relaxed"
+                  style={{ textAlign: "justify" }}
+                >
                   {week.body}
                 </p>
               </div>
@@ -128,14 +106,18 @@ export function ThirtyDayPath() {
           ))}
         </div>
 
-        {/* Mobile — vertical stacked cards with image on top */}
-        <div className="flex flex-col gap-4 lg:hidden">
+        {/* Mobile — vertical stacked cards, same visual style */}
+        <div className="flex flex-col gap-5 lg:hidden">
           {WEEKS.map((week, i) => (
             <ScrollReveal key={week.period} delay={i * 80}>
-              <div
-                className="rounded-xl overflow-hidden border border-brand-border"
-                style={{ background: week.colour }}
-              >
+              <div className="flex flex-col bg-white rounded-2xl border border-brand-border/50 shadow-sm overflow-hidden">
+                {/* Number */}
+                <div className="px-6 pt-6 pb-2">
+                  <span className="text-sm font-medium text-brand-muted/60">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                </div>
+
                 {/* Image */}
                 <div className="relative w-full h-52">
                   <Image
@@ -145,23 +127,25 @@ export function ThirtyDayPath() {
                     className="object-cover object-center"
                     sizes="100vw"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                  <div
-                    className="absolute top-4 left-4 w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                    style={{ background: week.accent }}
-                  >
-                    {i + 1}
-                  </div>
                 </div>
+
+                {/* Dot indicator */}
+                <div className="flex justify-center py-3 border-b border-brand-border/40">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-forest/70" />
+                </div>
+
                 {/* Text */}
-                <div className="p-5">
-                  <p className="text-label mb-1" style={{ color: week.accent }}>
+                <div className="px-6 pt-4 pb-6">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-muted/70 mb-1">
                     {week.period}
                   </p>
-                  <p className="text-body-md font-semibold mb-2 text-brand-forest">
+                  <h3 className="font-display text-lg font-bold text-brand-forest mb-2">
                     {week.title}
-                  </p>
-                  <p className="text-body-sm leading-relaxed text-brand-muted">
+                  </h3>
+                  <p
+                    className="text-sm text-brand-muted leading-relaxed"
+                    style={{ textAlign: "justify" }}
+                  >
                     {week.body}
                   </p>
                 </div>

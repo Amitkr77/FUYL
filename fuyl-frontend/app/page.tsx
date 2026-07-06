@@ -48,7 +48,7 @@ export default function HomePage() {
       {/* 9 — FAQ */}
       <FaqSection />
 
-      {/* 10 — Ambassador / referral (dark) */}
+      {/* 10 — Ambassador / referral */}
       <AmbassadorSection />
 
       {/* 11 — Instagram feed */}

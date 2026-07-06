@@ -4,6 +4,7 @@ import { ProductGallery } from '@/components/product/ProductGallery'
 import { ProductInfo } from '@/components/product/ProductInfo'
 import { ProductTabs } from '@/components/product/ProductTabs'
 import { ReviewsWidget } from '@/components/product/ReviewsWidget'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import type { Product } from '@/types/product'
 
 interface Props { params: Promise<{ slug: string }> }
@@ -64,6 +65,14 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <div className="container-brand section-py">
+      <Breadcrumbs
+        className="mb-6"
+        items={[
+          { label: 'Shop', href: '/collections/all' },
+          { label: product.name },
+        ]}
+      />
+
       {/* PDP grid */}
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16">
         <ProductGallery images={product.images} productName={product.name} />

@@ -3,72 +3,118 @@
 /* ─── Tailwind v4 Theme ─────────────────────────────────────────────── */
 @theme {
   /* ── Core palette ── */
-  --color-brand-forest:       #12291F;   /* Deep Forest Green — headings, nav, high-contrast */
-  --color-brand-olive:        #3A4A2E;   /* Olive Moss — secondary text, surfaces, dividers */
-  --color-brand-olive-light:  #4A5C3A;   /* Lighter olive for hover states */
-  --color-brand-teal:         #558476;   /* Muted Teal — interactive, links, icons */
-  --color-brand-teal-dark:    #3D6459;   /* Darker teal for hover */
-  --color-brand-rose:         #B76E79;   /* Rose Gold — premium CTA, badges (use sparingly) */
-  --color-brand-rose-dark:    #9A5862;   /* Darker rose for hover */
-  --color-brand-sage:         #DDE8C8;   /* Soft Sage Green — primary background */
-  --color-brand-sage-mid:     #C8D8AF;   /* Mid sage — hover bg, subtle dividers */
-  --color-brand-cream:        #EEF4E4;   /* Light sage-cream — section tints */
-  --color-brand-white:        #FFFFFF;   /* Pure white — cards, content areas */
-  --color-brand-border:       #C8D8B0;   /* Subtle earthy border */
-  --color-brand-muted:        #4A5A3A;   /* Muted olive — secondary / caption text */
+  --color-brand-forest: #12291F;
+  /* Deep Forest Green — headings, nav, high-contrast */
+  --color-brand-olive: #3A4A2E;
+  /* Olive Moss — secondary text, surfaces, dividers */
+  --color-brand-olive-light: #4A5C3A;
+  /* Lighter olive for hover states */
+  --color-brand-teal: #558476;
+  /* Muted Teal — interactive, links, icons */
+  --color-brand-teal-dark: #3D6459;
+  /* Darker teal for hover */
+  --color-brand-rose: #B76E79;
+  /* Rose Gold — premium CTA, badges (use sparingly) */
+  --color-brand-rose-dark: #9A5862;
+  /* Darker rose for hover */
+  --color-brand-sage: #DDE8C8;
+  /* Soft Sage Green — primary background */
+  --color-brand-sage-mid: #C8D8AF;
+  /* Mid sage — hover bg, subtle dividers */
+  --color-brand-cream: #EEF4E4;
+  /* Light sage-cream — section tints */
+  --color-brand-white: #FFFFFF;
+  /* Pure white — cards, content areas */
+  --color-brand-border: #C8D8B0;
+  /* Subtle earthy border */
+  --color-brand-muted: #4A5A3A;
+  /* Muted olive — secondary / caption text */
 
   /* ── Backwards-compat aliases (used in class names throughout components) ── */
-  --color-brand-black:        #12291F;   /* alias → forest */
-  --color-brand-berry:        #3A4A2E;   /* alias → olive */
-  --color-brand-berry-light:  #4A5C3A;   /* alias → olive-light */
-  --color-brand-berry-pale:   #DDE8C8;   /* alias → sage */
-  --color-brand-plum:         #0D1F17;   /* deep shadow */
+  --color-brand-black: #12291F;
+  /* alias → forest */
+  --color-brand-berry: #3A4A2E;
+  /* alias → olive */
+  --color-brand-berry-light: #4A5C3A;
+  /* alias → olive-light */
+  --color-brand-berry-pale: #DDE8C8;
+  /* alias → sage */
+  --color-brand-plum: #0D1F17;
+  /* deep shadow */
 
-  /* ── Fonts ── */
-  --font-display: 'Barlow Condensed', system-ui, sans-serif;
-  --font-body:    'Inter', system-ui, sans-serif;
+  /* ── Fonts — Inter for everything ── */
+  --font-display: var(--font-inter, 'Inter', system-ui, sans-serif);
+  --font-body: var(--font-inter, 'Inter', system-ui, sans-serif);
+  --font-sans: var(--font-inter, 'Inter', system-ui, sans-serif);
 
   /* ── Radius ── */
   --radius-brand: 2px;
 
   /* ── Animations ── */
-  --animate-marquee:      marquee 35s linear infinite;
-  --animate-fade-up:      fadeUp 0.6s ease forwards;
-  --animate-fade-in:      fadeIn 0.4s ease forwards;
-  --animate-slide-in-r:   slideInRight 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  --animate-slide-in-l:   slideInLeft  0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  --animate-marquee: marquee 35s linear infinite;
+  --animate-fade-up: fadeUp 0.6s ease forwards;
+  --animate-fade-in: fadeIn 0.4s ease forwards;
+  --animate-slide-in-r: slideInRight 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  --animate-slide-in-l: slideInLeft 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 
   /* ── Keyframes ── */
   @keyframes marquee {
-    0%   { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
+    0% {
+      transform: translateX(0);
+    }
+
+    100% {
+      transform: translateX(-50%);
+    }
   }
 
   @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(28px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(28px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
   }
 
   @keyframes slideInRight {
-    from { transform: translateX(100%); }
-    to   { transform: translateX(0); }
+    from {
+      transform: translateX(100%);
+    }
+
+    to {
+      transform: translateX(0);
+    }
   }
 
   @keyframes slideInLeft {
-    from { transform: translateX(-100%); }
-    to   { transform: translateX(0); }
+    from {
+      transform: translateX(-100%);
+    }
+
+    to {
+      transform: translateX(0);
+    }
   }
 }
 
 /* ─── CSS Custom Properties ─────────────────────────────────────────── */
 :root {
   --header-height: 64px;
-  --ease-brand:    cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-brand: cubic-bezier(0.4, 0, 0.2, 1);
   --duration-fast: 150ms;
   --duration-base: 250ms;
   --duration-slow: 400ms;
@@ -76,6 +122,7 @@
 
 /* ─── Base Resets ───────────────────────────────────────────────────── */
 @layer base {
+
   *,
   *::before,
   *::after {
@@ -90,8 +137,10 @@
   }
 
   body {
-    background-color: var(--color-brand-sage);   /* Soft Sage Green — primary bg */
-    color: #000000;                               /* Black — primary body text */
+    background-color: #F5F5F5;
+    /* Soft Sage Green — primary bg */
+    color: #000000;
+    /* Black — primary body text */
     font-family: var(--font-body);
     min-height: 100dvh;
     overflow-x: hidden;
@@ -131,6 +180,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -179,10 +229,10 @@
 /* ─── Typography Utilities ──────────────────────────────────────────── */
 .text-display {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: -0.02em;
-  line-height: 0.92;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
   color: var(--color-brand-forest);
 }
 
@@ -196,26 +246,27 @@
 /* Fluid display scale */
 .text-display-2xl {
   font-size: clamp(3rem, 8vw, 7rem);
-  line-height: 0.9;
-  letter-spacing: -0.02em;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
 }
 
 .text-display-xl {
   font-size: clamp(2.25rem, 5vw, 4.5rem);
-  line-height: 0.92;
-  letter-spacing: -0.02em;
+  font-weight: 800;
+  line-height: 0.94;
+  letter-spacing: -0.035em;
 }
 
 .text-display-lg {
   font-size: clamp(1.75rem, 3.5vw, 3rem);
-  line-height: 0.95;
-  letter-spacing: -0.01em;
+  line-height: 0.97;
+  letter-spacing: -0.03em;
 }
 
 .text-display-md {
   font-size: clamp(1.25rem, 2.5vw, 2rem);
   line-height: 1;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .text-body-lg {
@@ -258,7 +309,8 @@
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(18, 41, 31, 0.6);   /* Forest Green tinted overlay */
+  background: rgba(18, 41, 31, 0.6);
+  /* Forest Green tinted overlay */
   backdrop-filter: blur(2px);
   z-index: 49;
   animation: fadeIn 0.25s ease forwards;

@@ -30,10 +30,14 @@ export function NewsletterSection() {
   };
 
   return (
-    <section className="py-20  text-brand-forest">
+    <section className="py-20  text-brand-forest bg-neutral-100">
       <div className="container-brand max-w-2xl mx-auto text-center">
         <ScrollReveal>
-          {/* <p className="text-label mb-3 text-white/70">Stay in the loop</p> */}
+          <div className="flex justify-center mb-4">
+            <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label">
+              Stay in the loop
+            </span>
+          </div>
           <h2 className="text-display-xl font-display mb-4">
             STAY INFORMED ON YOUR HEALTH
           </h2>

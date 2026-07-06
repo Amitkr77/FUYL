@@ -4,70 +4,97 @@ import { FOOTER_LINKS, SITE } from "@/lib/constants";
 
 function InstagramIcon() {
   return (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <defs>
+        <linearGradient id="ig-gradient" x1="0" y1="32" x2="32" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFDD55" />
+          <stop offset="30%" stopColor="#FF543E" />
+          <stop offset="60%" stopColor="#C837AB" />
+          <stop offset="100%" stopColor="#5B51D8" />
+        </linearGradient>
+      </defs>
+      <rect width="32" height="32" rx="9" fill="url(#ig-gradient)" />
+      <rect x="9" y="9" width="14" height="14" rx="4" stroke="white" strokeWidth="1.8" fill="none" />
+      <circle cx="16" cy="16" r="4" stroke="white" strokeWidth="1.8" fill="none" />
+      <circle cx="20.6" cy="11.4" r="1" fill="white" />
     </svg>
   );
 }
 function YoutubeIcon() {
   return (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" />
-      <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="9" fill="#FF0000" />
+      <path d="M13 11.5v9l8-4.5-8-4.5z" fill="white" />
     </svg>
   );
 }
 function FacebookIcon() {
   return (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="9" fill="#1877F2" />
+      <path
+        d="M20 11h-2.2c-.9 0-1.3.4-1.3 1.3V14h3.3l-.4 3.3h-2.9V25h-3.4v-7.7H11V14h2.1v-1.9c0-2.4 1.3-3.9 3.8-3.9H20v2.8z"
+        fill="white"
+      />
     </svg>
   );
 }
 function LinkedinIcon() {
   return (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-      <rect x="2" y="9" width="4" height="12" />
-      <circle cx="4" cy="4" r="2" />
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="9" fill="#0A66C2" />
+      <path
+        d="M11.7 13.4h3v9.6h-3v-9.6zM13.2 12a1.7 1.7 0 1 1 0-3.4 1.7 1.7 0 0 1 0 3.4zM16.6 13.4h2.9v1.3h.04c.4-.75 1.4-1.5 2.9-1.5 3.1 0 3.7 2 3.7 4.7v5.1h-3v-4.5c0-1.1 0-2.5-1.5-2.5s-1.8 1.2-1.8 2.4v4.6h-3v-9.6z"
+        fill="white"
+      />
+    </svg>
+  );
+}
+
+function VisaIcon() {
+  return (
+    <svg width="38" height="24" viewBox="0 0 48 32" fill="none">
+      <rect x="0.5" y="0.5" width="47" height="31" rx="4" fill="white" stroke="#E5E5E5" />
+      <text x="24" y="21" textAnchor="middle" fontFamily="Arial, sans-serif" fontStyle="italic" fontWeight="700" fontSize="13" fill="#1A1F71">
+        VISA
+      </text>
+    </svg>
+  );
+}
+function MastercardIcon() {
+  return (
+    <svg width="38" height="24" viewBox="0 0 48 32" fill="none">
+      <rect x="0.5" y="0.5" width="47" height="31" rx="4" fill="white" stroke="#E5E5E5" />
+      <circle cx="20" cy="16" r="9" fill="#EB001B" />
+      <circle cx="28" cy="16" r="9" fill="#F79E1B" />
+      <path d="M24 9.5a9 9 0 0 1 0 13 9 9 0 0 1 0-13z" fill="#FF5F00" />
+    </svg>
+  );
+}
+function UpiIcon() {
+  return (
+    <svg width="38" height="24" viewBox="0 0 48 32" fill="none">
+      <rect x="0.5" y="0.5" width="47" height="31" rx="4" fill="white" stroke="#E5E5E5" />
+      <text x="24" y="20" textAnchor="middle" fontFamily="Arial, sans-serif" fontWeight="800" fontSize="12">
+        <tspan fill="#097939">UP</tspan>
+        <tspan fill="#ED752E">I</tspan>
+      </text>
+    </svg>
+  );
+}
+function RupayIcon() {
+  return (
+    <svg width="38" height="24" viewBox="0 0 48 32" fill="none">
+      <defs>
+        <linearGradient id="rupay-gradient" x1="0" y1="0" x2="48" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#F37021" />
+          <stop offset="100%" stopColor="#0F9D58" />
+        </linearGradient>
+      </defs>
+      <rect width="48" height="32" rx="4" fill="url(#rupay-gradient)" />
+      <text x="24" y="20" textAnchor="middle" fontFamily="Arial, sans-serif" fontWeight="700" fontSize="10" fill="white">
+        RuPay
+      </text>
     </svg>
   );
 }
@@ -80,9 +107,16 @@ export function Footer() {
     { href: SITE.linkedin, icon: LinkedinIcon, label: "LinkedIn" },
   ];
 
+  const paymentMethods = [
+    { label: "Visa", icon: VisaIcon },
+    { label: "Mastercard", icon: MastercardIcon },
+    { label: "UPI", icon: UpiIcon },
+    { label: "RuPay", icon: RupayIcon },
+  ];
+
   return (
     <>
-      <div className="relative  w-full  overflow-hidden h-52 sm:h-72 md:h-96 lg:h-120 xl:h-174">
+      <div className="relative  w-full  overflow-hidden h-52 sm:h-72 md:h-96 lg:h-120 xl:h-174 bg-neutral-100">
         <Image
           src="/images/footer-image.webp"
           alt="FUYL"
@@ -90,9 +124,8 @@ export function Footer() {
           className="object-contain md:object-cover object-center"
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-linear-to-b from-transparent via-brand-forest/10 to-brand-forest/50" />
       </div>
-      <footer className=" bg-brand-forest text-white  border-white/10">
+      <footer className="bg-neutral-100">
         <div className="container-brand py-16 grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
           {/* Brand */}
           <div className="lg:col-span-2">
@@ -102,23 +135,23 @@ export function Footer() {
                 alt="FUYL"
                 width={90}
                 height={32}
-                className="h-14 w-auto object-contain brightness-0 invert"
+                className="h-14 w-auto object-contain brightness-0"
               />
             </Link>
-            <p className="mt-4 text-body-sm leading-relaxed max-w-xs text-white/60">
+            <p className="mt-4 text-body-sm leading-relaxed max-w-xs text-brand-muted">
               Complete daily nutrition. 60+ premium ingredients. One sachet
               every morning.
             </p>
             <div className="mt-6 space-y-1.5">
               <a
                 href={`mailto:${SITE.email}`}
-                className="block text-body-xs text-white/50 hover:text-brand-teal transition-colors"
+                className="block text-body-xs text-brand-muted hover:text-brand-teal transition-colors"
               >
                 {SITE.email}
               </a>
               <a
                 href={`tel:${SITE.phone}`}
-                className="block text-body-xs text-white/50 hover:text-brand-teal transition-colors"
+                className="block text-body-xs text-brand-muted hover:text-brand-teal transition-colors"
               >
                 {SITE.phone}
               </a>
@@ -131,7 +164,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="p-2 rounded-sm border border-white/20 text-white/60 hover:text-brand-teal hover:border-brand-teal transition-colors duration-200"
+                  className="rounded-lg overflow-hidden transition-transform duration-200 hover:scale-110 hover:shadow-md"
                 >
                   <Icon />
                 </a>
@@ -141,13 +174,13 @@ export function Footer() {
 
           {/* Explore */}
           <div>
-            <p className="text-label mb-4 text-white/40">Explore</p>
+            <p className="text-label mb-4 text-brand-forest">Explore</p>
             <ul className="space-y-3">
               {FOOTER_LINKS.explore.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-body-sm text-white/70 hover:text-brand-teal transition-colors"
+                    className="text-body-sm text-brand-muted hover:text-brand-teal transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -158,7 +191,7 @@ export function Footer() {
 
           {/* Discover */}
           <div>
-            <p className="text-label mb-4 text-white/40">Discover</p>
+            <p className="text-label mb-4 text-brand-forest">Discover</p>
             <ul className="space-y-3">
               {FOOTER_LINKS.discover.map((link) => (
                 <li key={link.href}>
@@ -174,7 +207,7 @@ export function Footer() {
                         ? "noopener noreferrer"
                         : undefined
                     }
-                    className="text-body-sm text-white/70 hover:text-brand-teal transition-colors"
+                    className="text-body-sm text-brand-muted hover:text-brand-teal transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -185,13 +218,13 @@ export function Footer() {
 
           {/* Support */}
           <div>
-            <p className="text-label mb-4 text-white/40">Support</p>
+            <p className="text-label mb-4 text-brand-forest">Support</p>
             <ul className="space-y-3">
               {FOOTER_LINKS.support.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-body-sm text-white/70 hover:text-brand-teal transition-colors"
+                    className="text-body-sm text-brand-muted hover:text-brand-teal transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -202,18 +235,19 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-white/10">
+        <div className="border-t border-brand-border">
           <div className="container-brand py-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-body-xs text-white/40">
+            <p className="text-body-xs text-brand-muted/70">
               © {new Date().getFullYear()} FUYL — {SITE.company}
             </p>
             <div className="flex items-center gap-2">
-              {["Visa", "Mastercard", "UPI", "RuPay"].map((method) => (
+              {paymentMethods.map(({ label, icon: Icon }) => (
                 <span
-                  key={method}
-                  className="px-2 py-1 rounded text-[10px] font-medium border border-white/15 text-white/40"
+                  key={label}
+                  aria-label={label}
+                  className="rounded-md overflow-hidden shadow-sm"
                 >
-                  {method}
+                  <Icon />
                 </span>
               ))}
             </div>

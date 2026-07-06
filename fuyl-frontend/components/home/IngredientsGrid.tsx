@@ -54,17 +54,15 @@ export function IngredientsGrid() {
   return (
     <section className="section-py bg-white overflow-hidden">
       <div className="container-brand">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-stretch">
           {/* Left — label, heading, list, CTA */}
           <div className="flex flex-col">
             <ScrollReveal>
-              <span className="text-label font-semibold uppercase tracking-widest text-brand-teal ">
+              <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label mb-1">
                 Ingredients
               </span>
-              <h2 className="font-display text-3xl sm:text-4xl font-bold text-brand-forest leading-tight mb-4">
-                WHAT IS INSIDE & 
-                <br />
-                WHY EVERY CHOICE MATTERS
+              <h2 className="text-display-xl font-display text-brand-forest mb-4">
+                WHAT IS INSIDE & WHY EVERY CHOICE MATTERS
               </h2>
               <p className="text-body-sm text-brand-muted mb-8 max-w-md leading-relaxed">
                 Rooted in{" "}
@@ -80,7 +78,7 @@ export function IngredientsGrid() {
             </ScrollReveal>
 
             {/* Ingredient list */}
-            <div className="flex flex-col divide-y gap-2 divide-brand-border">
+            <div className="flex flex-col divide-y  divide-brand-border">
               {INGREDIENTS.map(({ name, sub, emoji }, i) => (
                 <ScrollReveal key={name} delay={i * 40}>
                   <div className="flex items-center gap-6 py-3.5">
@@ -103,7 +101,7 @@ export function IngredientsGrid() {
               <div className="mt-8">
                 <Link
                   href="/products/fuyl-complete"
-                  className="inline-flex items-center justify-center w-full sm:w-auto h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white! rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest!"
+                  className="inline-flex items-center justify-center w-full h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white! rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest!"
                 >
                   Get Started
                 </Link>
@@ -111,9 +109,9 @@ export function IngredientsGrid() {
             </ScrollReveal>
           </div>
 
-          {/* Right — tall image with rounded corners */}
-          <ScrollReveal className="w-full">
-            <div className="relative w-full rounded-2xl overflow-hidden aspect-3/4 sm:aspect-2/3 lg:aspect-9/16">
+          {/* Right — image matches content column height */}
+          <ScrollReveal className="w-full h-full">
+            <div className="relative w-full h-full min-h-105 rounded-2xl overflow-hidden aspect-3/4 sm:aspect-2/3 lg:aspect-auto">
               <Image
                 src="/images/ingredients-hero.webp"
                 alt="Woman holding FUYL COMPLETE+"

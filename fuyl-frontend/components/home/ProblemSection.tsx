@@ -23,19 +23,22 @@ const PROBLEMS = [
 
 export function ProblemSection() {
   return (
-    <section className="section-py bg-brand-cream">
+    <section className="section-py bg-neutral-100">
       <div className="container-brand">
         <ScrollReveal>
-          <p className="text-label text-center mb-4 text-brand-teal">
+          <div className="flex justify-center mb-4">
+            <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label">
+              Sound Familiar?
+            </span>
+          </div>
+          <h2 className="text-display-xl font-display text-center mb-14 text-brand-forest max-w-4xl mx-auto">
+            {/* YOUR BODY IS TRYING TO TELL YOU SOMETHING. */}
             Sound Familiar?
-          </p>
-          <h2 className="text-display-xl font-display text-center mb-4 text-brand-forest max-w-4xl mx-auto">
-            YOUR BODY IS TRYING TO TELL YOU SOMETHING.
           </h2>
-          <p className="text-body-sm text-center max-w-xl mx-auto mb-14 text-brand-muted">
+          {/* <p className="text-body-sm text-center max-w-xl mx-auto mb-14 text-brand-muted">
             Most Indians are deficient in 5+ critical micronutrients. Your
             symptoms aren't bad luck — they're data.
-          </p>
+          </p> */}
         </ScrollReveal>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">

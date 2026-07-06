@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { generateSEO } from '@/lib/utils/seo'
 import { ScrollReveal } from '@/components/ui/ScrollReveal'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SciencePillar } from '@/components/content/SciencePillar'
 import { MarqueeStrip } from '@/components/home/MarqueeStrip'
 
@@ -86,6 +87,7 @@ export default function SciencePage() {
         </p>
 
         <div className="container-brand max-w-4xl mx-auto text-center relative">
+          <Breadcrumbs className="mb-6 flex justify-center" items={[{ label: 'Science' }]} />
           <ScrollReveal>
             <p className="text-label mb-3 text-brand-teal">Evidence-Based Nutrition</p>
             <h1 className="text-display-2xl font-display mb-6 text-brand-forest">
