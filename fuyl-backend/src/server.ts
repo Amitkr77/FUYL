@@ -16,7 +16,7 @@ import {
   notificationService,
 } from './modules/notification';
 import { registerCartSchedulers } from './modules/cart';
-import { registerInventorySchedulers } from './modules/inventory';
+import { registerInventorySchedulers, registerInventoryEventSubscribers } from './modules/inventory';
 import {
   registerAnalyticsEventSubscribers,
   registerAnalyticsSchedulers,
@@ -33,7 +33,15 @@ async function bootstrap() {
 
   // 2. Connect Redis / cache
   //    (connection is established lazily on first use; warm it up here)
-  await cacheService.getClient().ping().catch((err) => {
+  //    redisConfig sets maxRetriesPerRequest: null (required for BullMQ's
+  //    blocking commands) — that also means a plain .ping() never rejects
+  //    when Redis is down, it just retries forever, so boot would hang here
+  //    indefinitely without a bounded timeout. Race it instead of changing
+  //    the shared config, which BullMQ elsewhere depends on staying as-is.
+  await Promise.race([
+    cacheService.getClient().ping(),
+    new Promise((_resolve, reject) => setTimeout(() => reject(new Error('Redis ping timed out after 3s')), 3000)),
+  ]).catch((err) => {
     logger.warn('[boot] Redis not reachable — queue/event features may degrade', err);
   });
 
@@ -49,6 +57,7 @@ async function bootstrap() {
   registerWalletEventSubscribers();
   registerNotificationEventSubscribers();
   registerAnalyticsEventSubscribers();
+  registerInventoryEventSubscribers();
 
   // 5. Seed notification templates (idempotent)
   await notificationService.seedBuiltinTemplates().catch((err) => {
@@ -76,7 +85,7 @@ async function bootstrap() {
     logger.info(`[boot] HTTP server listening on http://localhost:${env.port}`);
     logger.info(`[boot] API base:        /${env.apiPrefix}`);
     logger.info(`[boot] Swagger docs:    /docs`);
-    logger.info(`[boot] Razorpay webhook: /${env.apiPrefix}/webhooks/razorpay/subscription`);
+    logger.info(`[boot] Razorpay webhooks: /${env.apiPrefix}/webhooks/razorpay/subscription, /webhooks/razorpay/payment`);
   });
 
   // 9. Graceful shutdown

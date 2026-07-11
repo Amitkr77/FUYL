@@ -7,6 +7,7 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SITE } from '@/lib/constants/site'
 import { Mail, Phone, Clock, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { submitContactForm } from '@/lib/api/content'
 
 // Note: metadata export can't live in a 'use client' file
 // Move to a separate layout or server wrapper if needed — kept simple here
@@ -50,11 +51,7 @@ export default function ContactPage() {
     e.preventDefault()
     setStatus('loading')
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ''}/contact`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(form),
-      })
+      await submitContactForm(form)
       setStatus('success')
       setForm({ name: '', email: '', phone: '', topic: '', message: '' })
     } catch {

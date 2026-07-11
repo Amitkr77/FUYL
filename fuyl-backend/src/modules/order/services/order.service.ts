@@ -1,6 +1,7 @@
 import { OrderRepository } from '../repositories/order.repository';
 import { ReturnRepository, RefundRepository, InvoiceRepository } from '../repositories/return.repository';
 import { CatalogService } from '../../catalog/services/catalog.service';
+import { pricingService } from '../../pricing/services/pricing.service';
 import {
   NotFoundError,
   BadRequestError,
@@ -42,6 +43,7 @@ export class OrderService {
     let subtotal = 0;
     const sellerIds = new Set<string>();
 
+    let tax = 0;
     for (const item of dto.items) {
       const product = await catalogService.getProduct(item.productId);
       if (!product.isPublished) throw new BadRequestError(`Product "${product.name}" is not available`);
@@ -54,6 +56,18 @@ export class OrderService {
       subtotal += totalPrice;
       if (product.sellerId) sellerIds.add(product.sellerId.toString());
 
+      let itemTax = 0;
+      if (product.isTaxable) {
+        const taxResult = await pricingService.computeTax(unitPrice, item.quantity, {
+          categoryIds: product.categoryIds?.map((c: any) => c.toString()),
+          sellerId: product.sellerId?.toString(),
+          state: dto.shippingAddress.state,
+          country: dto.shippingAddress.country,
+        });
+        itemTax = taxResult.totalTax;
+      }
+      tax += itemTax;
+
       items.push({
         productId: new mongoose.Types.ObjectId(item.productId),
         variantId: item.variantId ? new mongoose.Types.ObjectId(item.variantId) : undefined,
@@ -63,15 +77,14 @@ export class OrderService {
         unitPrice,
         totalPrice,
         discount: 0,
-        tax: 0,
+        tax: itemTax,
         currency: priceInfo.currency,
         image: product.media?.find((m: any) => m.isPrimary)?.url ?? product.media?.[0]?.url,
       });
     }
 
     const orderNumber = await nextNumber('FUL');
-    const shipping = 0; // TODO: wire to shipping module
-    const tax = 0;      // TODO: wire to pricing module
+    const shipping = 0; // TODO: wire to shipping module once it exists
     const grandTotal = subtotal + shipping + tax;
 
     const order = await orderRepo.create({
@@ -96,7 +109,24 @@ export class OrderService {
       notes: dto.notes,
     });
 
-    eventBus.publish(Events.ORDER_PLACED, { orderId: order.id, userId: customerId, amount: grandTotal });
+    // BUG FIXED (found live end-to-end testing with Redis actually running
+    // — this handler never fired to completion in earlier passes since the
+    // notification worker needs a real queue): the notification subscriber
+    // for this event had no orderNumber/itemCount/paymentMethod to work
+    // with, so it hardcoded a fake "order number" (sliced from the raw
+    // Mongo _id — customers would see e.g. "98BBD73A" instead of the real
+    // "FUL-2026-00008"), always showed "1 item" regardless of cart size,
+    // and always claimed "razorpay" regardless of how the order was
+    // actually paid. Passing the real values through here is cheaper than
+    // having the notification handler re-fetch the order.
+    eventBus.publish(Events.ORDER_PLACED, {
+      orderId: order.id,
+      userId: customerId,
+      amount: grandTotal,
+      orderNumber,
+      itemCount: items.length,
+      paymentMethod: dto.paymentMethod,
+    });
     return order;
   }
 
@@ -108,9 +138,7 @@ export class OrderService {
     const unitPrice = input.unitPrice;
     const discountedPrice = Math.round(unitPrice * (1 - input.discountPercent / 100) * 100) / 100;
     const totalPrice = Math.round(discountedPrice * input.quantity * 100) / 100;
-    const shipping = 0;
-    const tax = 0;
-    const grandTotal = totalPrice + shipping + tax;
+    const shipping = 0; // TODO: wire to shipping module once it exists
 
     const orderNumber = await nextNumber('FUL');
     const shippingAddr = input.shippingAddress;
@@ -119,6 +147,18 @@ export class OrderService {
     // Fetch product for name/sku
     const product = await catalogService.getProduct(input.productId);
     const variant = input.variantId ? await catalogService.getVariant(input.variantId) : null;
+
+    let tax = 0;
+    if (product.isTaxable) {
+      const taxResult = await pricingService.computeTax(discountedPrice, input.quantity, {
+        categoryIds: product.categoryIds?.map((c: any) => c.toString()),
+        sellerId: product.sellerId?.toString(),
+        state: shippingAddr?.state,
+        country: shippingAddr?.country,
+      });
+      tax = taxResult.totalTax;
+    }
+    const grandTotal = totalPrice + shipping + tax;
 
     const order = await orderRepo.create({
       orderNumber,
@@ -170,6 +210,9 @@ export class OrderService {
       userId: input.customerId,
       amount: grandTotal,
       isSubscriptionOrder: true,
+      orderNumber,
+      itemCount: 1,
+      paymentMethod: input.paymentMethod,
     });
     logger.info(`[order] created from subscription ${input.subscriptionId} cycle ${input.cycleNumber} → ${order.orderNumber}`);
     return order;
@@ -200,6 +243,20 @@ export class OrderService {
     return orderRepo.findBySubscription(subscriptionId);
   }
 
+  /**
+   * BUG FIXED (found live end-to-end testing the checkout flow): nothing in
+   * the payment module ever transitioned order.paymentStatus away from its
+   * creation-time default of 'pending' — not on a successful wallet debit,
+   * not on Razorpay signature verification, not on the Razorpay webhook,
+   * not on refund. A wallet payment could fully succeed (payment record
+   * status:'success', wallet correctly debited) while the order it paid for
+   * stayed paymentStatus:'pending' forever. Called from payment.service.ts
+   * at every point a payment's status actually changes.
+   */
+  async updatePaymentStatus(orderId: string, paymentStatus: typeof PaymentStatus[keyof typeof PaymentStatus]) {
+    return orderRepo.update(orderId, { paymentStatus });
+  }
+
   async updateStatus(orderId: string, dto: UpdateStatusDTO, actorId?: string) {
     const order = await this.getById(orderId);
     if (order.status === OrderStatus.CANCELLED || order.status === OrderStatus.COMPLETED) {
@@ -228,16 +285,24 @@ export class OrderService {
       status: dto.status,
       note: dto.note,
       actor: actorId ? new Types.ObjectId(actorId) : undefined,
-    });
+    }, patch);
 
     // Emit events on key transitions
+    // BUG FIXED (found live, same class as ORDER_PLACED above): the
+    // ORDER_SHIPPED/ORDER_DELIVERED notification handlers fabricate a fake
+    // "order number" by slicing the raw Mongo _id whenever the real one
+    // isn't in the event payload — neither publish call here ever included
+    // it. Passing orderNumber/carrier through directly.
     if (dto.status === OrderStatus.SHIPPED) {
-      eventBus.publish(Events.ORDER_SHIPPED, { orderId, userId: order.customerId.toString(), trackingNumber: dto.trackingNumber });
+      eventBus.publish(Events.ORDER_SHIPPED, {
+        orderId, userId: order.customerId.toString(), trackingNumber: dto.trackingNumber,
+        orderNumber: order.orderNumber, carrier: dto.carrier,
+      });
     } else if (dto.status === OrderStatus.DELIVERED) {
-      eventBus.publish(Events.ORDER_DELIVERED, { orderId, userId: order.customerId.toString() });
+      eventBus.publish(Events.ORDER_DELIVERED, { orderId, userId: order.customerId.toString(), orderNumber: order.orderNumber });
     } else if (dto.status === OrderStatus.COMPLETED) {
       eventBus.publish(Events.ORDER_COMPLETED, {
-        orderId, userId: order.customerId.toString(), amount: order.grandTotal,
+        orderId, userId: order.customerId.toString(), amount: order.grandTotal, orderNumber: order.orderNumber,
       });
     }
 
@@ -251,12 +316,44 @@ export class OrderService {
     }
     if (order.status === OrderStatus.CANCELLED) throw new ConflictError('Order already cancelled');
 
+    // BUG FIXED (found live end-to-end testing, right after fixing the
+    // paymentStatus sync bug above — that fix is what exposed this one:
+    // paymentStatus used to be permanently stuck at 'pending', so the
+    // `paymentStatus === SUCCESS` branch below was never actually
+    // reachable). This previously just relabeled paymentStatus to
+    // 'refunded' on cancellation — no wallet credit, no Razorpay refund
+    // call, nothing. The customer's money was never returned even though
+    // every record claimed it was. Now it drives a real refund through
+    // payment.service.ts (which itself updates order.paymentStatus).
+    if (order.paymentStatus === PaymentStatus.SUCCESS || order.paymentStatus === PaymentStatus.PARTIALLY_REFUNDED) {
+      try {
+        const { paymentService } = await import('../../payment/services/payment.service');
+        const { PaymentRepository } = await import('../../payment/repositories/payment.repository');
+        const paymentRepo2 = new PaymentRepository();
+        const payments = await paymentRepo2.findByOrder(orderId);
+        const refundablePayment = payments.find(
+          (p) => p.status === PaymentStatus.SUCCESS || p.status === PaymentStatus.PARTIALLY_REFUNDED
+        );
+        if (refundablePayment) {
+          await paymentService.refund(actorId, {
+            paymentId: refundablePayment.id,
+            reason: `Order cancelled: ${reason}`,
+          });
+        }
+      } catch (err) {
+        logger.error(`[order] failed to refund payment for cancelled order ${orderId}`, err);
+        // Cancellation still proceeds below — paymentStatus is left exactly
+        // as payment.service.ts's refund() call last set it (untouched if
+        // the refund never ran), so this failure isn't silently masked as
+        // a false "refunded".
+      }
+    }
+
     const updated = await orderRepo.update(orderId, {
       status: OrderStatus.CANCELLED,
       cancelledAt: new Date(),
       cancelledReason: reason,
       cancelledBy: new Types.ObjectId(actorId),
-      paymentStatus: order.paymentStatus === PaymentStatus.SUCCESS ? PaymentStatus.REFUNDED : PaymentStatus.PENDING,
     });
     await orderRepo.appendTimeline(orderId, {
       status: OrderStatus.CANCELLED,
@@ -392,9 +489,40 @@ export class OrderService {
         logger.error(`[order] failed to credit wallet for refund ${refund.id}`, err);
         await refundRepo.update(refund.id, { status: 'failed' });
       }
+    } else if (input.method === 'original') {
+      // BUG FIXED (found in the fixing/testing pass): this branch previously
+      // only had a comment claiming the payment module "would" issue the
+      // Razorpay refund — nothing ever called it, so the refund record was
+      // created and left status:'pending' forever with no money ever
+      // actually returned to the customer's original payment method.
+      // Dynamic import avoids a circular import: payment.service.ts imports
+      // OrderService directly, so a static import here would cycle.
+      try {
+        const { PaymentService } = await import('../../payment/services/payment.service');
+        const { PaymentRepository } = await import('../../payment/repositories/payment.repository');
+        const { PaymentStatus } = await import('../../../shared/enums');
+        const paymentRepo2 = new PaymentRepository();
+        const paymentService = new PaymentService();
+        const payments = await paymentRepo2.findByOrder(input.orderId);
+        const successfulPayment = payments.find((p) => p.status === PaymentStatus.SUCCESS || p.status === PaymentStatus.PARTIALLY_REFUNDED);
+        if (!successfulPayment) {
+          throw new Error('No successful payment found for this order to refund');
+        }
+        const updatedPayment = await paymentService.refund(input.actorId, {
+          paymentId: successfulPayment.id,
+          amount: input.amount,
+          reason: input.reason,
+        });
+        await refundRepo.update(refund.id, {
+          status: 'processed',
+          processedAt: new Date(),
+          razorpayRefundId: (updatedPayment as any)?.razorpayRefundId,
+        });
+      } catch (err) {
+        logger.error(`[order] failed to issue original-method refund for refund ${refund.id}`, err);
+        await refundRepo.update(refund.id, { status: 'failed' });
+      }
     }
-    // For 'original' refunds, would call payment module to issue Razorpay refund
-    // (handled in payment module)
 
     return refund;
   }

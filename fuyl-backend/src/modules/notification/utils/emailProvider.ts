@@ -6,9 +6,16 @@ let transporter: Transporter | null = null;
 
 function getTransporter(): Transporter {
   if (transporter) return transporter;
-  if (!env.smtp.host) {
-    // Use a stub transport when SMTP not configured (logs to console)
-    logger.warn('[notification] SMTP not configured — using stub transport');
+  // BUG FIXED (found live end-to-end testing): this only checked
+  // `env.smtp.host`, unlike the SMS/push providers which check their whole
+  // credential set before deciding to stub. A host set without matching
+  // user/pass (e.g. a partially-filled .env) made nodemailer attempt a real
+  // SMTP connection with empty auth, which fails hard with "Missing
+  // credentials for PLAIN" instead of degrading gracefully — every order
+  // confirmation email failed outright rather than just being logged.
+  if (!env.smtp.host || !env.smtp.user || !env.smtp.pass) {
+    // Use a stub transport when SMTP not fully configured (logs to console)
+    logger.warn('[notification] SMTP not fully configured — using stub transport');
     transporter = nodemailer.createTransport({ jsonTransport: true });
     return transporter;
   }

@@ -18,6 +18,26 @@ export class VariantRepository {
     return VariantModel.find({ productId, isActive: true }).sort({ createdAt: 1 });
   }
 
+  // Finds an active variant of this product with the exact same attribute
+  // combination (e.g. {size:'500g', flavor:'spicy'}) — used to reject
+  // duplicate variants before they're created/renamed into a collision.
+  // excludeId lets an update check against every *other* variant.
+  async findByProductAndAttributes(
+    productId: string | Types.ObjectId,
+    attributes: Record<string, string | number | boolean>,
+    excludeId?: string | Types.ObjectId
+  ): Promise<IVariant | null> {
+    const attrFilter = Object.fromEntries(
+      Object.entries(attributes).map(([k, v]) => [`attributes.${k}`, v])
+    );
+    return VariantModel.findOne({
+      productId,
+      isActive: true,
+      ...attrFilter,
+      ...(excludeId ? { _id: { $ne: excludeId } } : {}),
+    });
+  }
+
   async update(id: string | Types.ObjectId, patch: Partial<IVariant>): Promise<IVariant | null> {
     return VariantModel.findByIdAndUpdate(id, { $set: patch }, { new: true, runValidators: true });
   }

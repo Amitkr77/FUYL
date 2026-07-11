@@ -9,6 +9,7 @@ import {
   updateTemplateSchema,
   preferenceSchema,
   categoryOverrideSchema,
+  pushTokenSchema,
 } from '../validators';
 
 const logRepo = new NotificationLogRepository();
@@ -50,6 +51,26 @@ export class NotificationController {
           req.body.preference
         );
         return success(res, updated);
+      } catch (err) { next(err); }
+    },
+  ];
+
+  registerPushToken = [
+    validate(pushTokenSchema),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        const updated = await notificationAdminService.registerPushToken(req.user!.userId, req.body.token);
+        return success(res, updated);
+      } catch (err) { next(err); }
+    },
+  ];
+
+  unregisterPushToken = [
+    validate(pushTokenSchema),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        await notificationAdminService.unregisterPushToken(req.user!.userId, req.body.token);
+        return success(res, { removed: true });
       } catch (err) { next(err); }
     },
   ];

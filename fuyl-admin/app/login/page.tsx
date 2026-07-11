@@ -1,13 +1,15 @@
-'use client'
+"use client";
 
-import { useActionState } from 'react'
-import { login } from './actions'
-import { Leaf, Eye, EyeOff, ShieldCheck } from 'lucide-react'
-import { useState } from 'react'
+import { useActionState } from "react";
+import { login } from "./actions";
+import { Leaf, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
 
 export default function LoginPage() {
-  const [state, formAction, isPending] = useActionState(login, null)
-  const [showPassword, setShowPassword] = useState(false)
+  const [state, formAction, isPending] = useActionState(login, null);
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="min-h-screen flex">
@@ -22,7 +24,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 text-center max-w-md">
           {/* Logo */}
-          <div className="flex items-center justify-center gap-3 mb-12">
+          {/* <div className="flex items-center justify-center gap-3 mb-12">
             <div className="w-12 h-12 bg-[#558476] rounded-xl flex items-center justify-center">
               <Leaf className="w-7 h-7 text-white" />
             </div>
@@ -30,23 +32,35 @@ export default function LoginPage() {
               <div className="text-3xl font-bold text-white tracking-widest">FUYL</div>
               <div className="text-xs font-medium text-[#558476] tracking-[0.3em] uppercase">Admin</div>
             </div>
-          </div>
+          </div> */}
+          <Link href="/" className="shrink-0 mr-auto lg:mr-0">
+            <Image
+              src="/images/logo.webp"
+              alt="FUYL"
+              width={100}
+              height={36}
+              priority
+              className="h-14 w-auto object-contain"
+            />
+          </Link>
 
           <h1 className="text-4xl font-bold text-white mb-4 leading-tight">
-            Fuel Your<br />
+            Fuel Your
+            <br />
             <span className="text-[#558476]">Growth</span>
           </h1>
           <p className="text-white/60 text-lg leading-relaxed mb-12">
-            Manage your FUYL business — products, orders, customers, and content — all from one place.
+            Manage your FUYL business — products, orders, customers, and content
+            — all from one place.
           </p>
 
           {/* Feature highlights */}
           <div className="space-y-4 text-left">
             {[
-              'Real-time order & revenue tracking',
-              'Product inventory management',
-              'Customer insights & analytics',
-              'Content & blog management',
+              "Real-time order & revenue tracking",
+              "Product inventory management",
+              "Customer insights & analytics",
+              "Content & blog management",
             ].map((feature) => (
               <div key={feature} className="flex items-center gap-3">
                 <div className="w-5 h-5 rounded-full bg-[#558476]/20 flex items-center justify-center flex-shrink-0">
@@ -74,20 +88,29 @@ export default function LoginPage() {
               <Leaf className="w-6 h-6 text-white" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-[#12291F] tracking-widest">FUYL</div>
-              <div className="text-xs text-[#558476] tracking-[0.3em] uppercase font-medium">Admin</div>
+              <div className="text-2xl font-bold text-[#12291F] tracking-widest">
+                FUYL
+              </div>
+              <div className="text-xs text-[#558476] tracking-[0.3em] uppercase font-medium">
+                Admin
+              </div>
             </div>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 mb-1">Welcome back</h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-1">
+              Welcome back
+            </h2>
             <p className="text-slate-500">Sign in to your admin account</p>
           </div>
 
           <form action={formAction} className="space-y-5">
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-slate-700 mb-1.5"
+              >
                 Email address
               </label>
               <input
@@ -104,14 +127,17 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-slate-700 mb-1.5"
+              >
                 Password
               </label>
               <div className="relative">
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   required
                   className="w-full px-4 py-3 pr-12 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent transition-all text-sm"
@@ -122,7 +148,11 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -143,7 +173,7 @@ export default function LoginPage() {
               disabled={isPending}
               className="w-full py-3 px-4 bg-[#558476] hover:bg-[#457366] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:ring-offset-2"
             >
-              {isPending ? 'Signing in...' : 'Sign in'}
+              {isPending ? "Signing in..." : "Sign in"}
             </button>
           </form>
 
@@ -153,5 +183,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -35,12 +35,28 @@ export class OrderRepository {
     return OrderModel.findByIdAndUpdate(id, { $set: patch }, { new: true, runValidators: true });
   }
 
-  async appendTimeline(id: string | Types.ObjectId, event: { status: string; note?: string; actor?: Types.ObjectId }) {
+  /**
+   * BUG FIXED (found live-testing the shipping module): `patch` here used
+   * to be silently discarded — order.service.ts's updateStatus() builds a
+   * patch with confirmedAt/packedAt/shippedAt/deliveredAt/completedAt and,
+   * for SHIPPED, trackingNumber/trackingUrl/carrier, but this method's
+   * signature never accepted it, so only `status` (via the hardcoded $set
+   * below) and the timeline entry were ever persisted. Every one of those
+   * timestamp/tracking fields has been silently no-op on every order
+   * status change. Confirmed live: booking a shipment correctly moved the
+   * order to "shipped" but left trackingNumber/carrier empty on the order
+   * document even though they were passed in.
+   */
+  async appendTimeline(
+    id: string | Types.ObjectId,
+    event: { status: string; note?: string; actor?: Types.ObjectId },
+    patch: Partial<IOrder> = {}
+  ) {
     return OrderModel.findByIdAndUpdate(
       id,
       {
         $push: { timeline: { ...event, at: new Date() } },
-        $set: { status: event.status },
+        $set: { ...patch, status: event.status },
       },
       { new: true }
     );

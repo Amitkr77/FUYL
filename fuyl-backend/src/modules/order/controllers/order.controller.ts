@@ -4,7 +4,7 @@ import { orderService } from '../services';
 import { success, created, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
 import { createOrderSchema, updateStatusSchema, cancelOrderSchema, createReturnSchema, updateReturnSchema } from '../validators';
-import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
+import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
 import { ForbiddenError } from '../../../shared/errors';
 
 export class OrderController {
@@ -113,7 +113,7 @@ export class OrderController {
   };
 
   listAllReturns = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.RETURNS_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
@@ -125,7 +125,7 @@ export class OrderController {
   ];
 
   updateReturn = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.RETURNS_MANAGE),
     validate(updateReturnSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try { return success(res, await orderService.updateReturn(req.params.id, req.body, req.user!.userId)); }

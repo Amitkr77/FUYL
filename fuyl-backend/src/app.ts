@@ -35,7 +35,7 @@ export function createApp() {
   // Security
   app.use(helmet());
   app.use(cors({
-    origin: env.clientUrl,
+    origin: env.corsOrigins,
     credentials: true,
   }));
 
@@ -43,20 +43,18 @@ export function createApp() {
   app.use(compression());
 
   // ─────────────────────────────────────────────────────────────
-  // RAW BODY capture for Razorpay webhook route
+  // RAW BODY capture for Razorpay webhook routes
   // ─────────────────────────────────────────────────────────────
-  app.use(
-    `/${env.apiPrefix}/webhooks/razorpay/subscription`,
-    express.raw({ type: 'application/json' }),
-    (req: Request, _res: Response, next: NextFunction) => {
-      if (Buffer.isBuffer(req.body)) {
-        // Re-inject as string for the webhook handler
-        (req as any).rawBody = req.body.toString('utf8');
-        req.body = (req as any).rawBody;
-      }
-      next();
+  const captureRawBody = (req: Request, _res: Response, next: NextFunction) => {
+    if (Buffer.isBuffer(req.body)) {
+      // Re-inject as string for the webhook handler
+      (req as any).rawBody = req.body.toString('utf8');
+      req.body = (req as any).rawBody;
     }
-  );
+    next();
+  };
+  app.use(`/${env.apiPrefix}/webhooks/razorpay/subscription`, express.raw({ type: 'application/json' }), captureRawBody);
+  app.use(`/${env.apiPrefix}/webhooks/razorpay/payment`, express.raw({ type: 'application/json' }), captureRawBody);
 
   // Body parsers
   app.use(express.json({ limit: '10mb' }));

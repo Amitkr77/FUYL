@@ -8,6 +8,7 @@ const router = Router();
 // Guests pass an `x-guest-id` header (UUID generated client-side).
 router.get('/cart', authOptional, cartController.getMine);
 router.post('/cart/items', authOptional, cartController.addItem);
+router.patch('/cart/items/:productId/:variantId', authOptional, cartController.updateItem);
 router.patch('/cart/items/:productId', authOptional, cartController.updateItem);
 router.delete('/cart/items/:productId/:variantId', authOptional, cartController.removeItem);
 router.delete('/cart/items/:productId', authOptional, cartController.removeItem);

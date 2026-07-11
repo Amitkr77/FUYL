@@ -13,7 +13,8 @@
     "declaration": false,
     "sourceMap": true,
     "removeComments": false,
-    "moduleResolution": "node",
+    "moduleResolution": "node10",
+    "ignoreDeprecations": "5.0",
     "baseUrl": "./src",
     "paths": {
       "@shared/*": ["shared/*"],

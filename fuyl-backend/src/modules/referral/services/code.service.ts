@@ -18,14 +18,19 @@ export class CodeService {
     if (existing) return existing;
 
     const campaign = await campaignRepo.findActive();
-    const code = generateReferralCode(handle || 'user');
 
-    // Ensure uniqueness — retry up to 3 times
+    // Ensure uniqueness — regenerate on collision, up to 5 attempts.
+    // Previously re-checked the same unchanged candidate code up to 3
+    // times without ever generating a new one, so a collision could never
+    // actually be resolved (found in the integration audit).
+    let code = generateReferralCode(handle || 'user');
     let attempts = 0;
-    while (attempts < 3) {
-      const conflict = await codeRepo.findByCode(code);
-      if (!conflict) break;
+    while (await codeRepo.findByCode(code)) {
       attempts++;
+      if (attempts >= 5) {
+        throw new ConflictError('Could not generate a unique referral code — please try again');
+      }
+      code = generateReferralCode(handle || 'user');
     }
 
     return codeRepo.create({

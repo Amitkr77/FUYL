@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Save, Eye, EyeOff, Copy, CheckCircle2, Zap } from 'lucide-react'
+import { useState, useTransition } from 'react'
+import { Save, Eye, EyeOff, Copy, CheckCircle2, Zap, AlertCircle } from 'lucide-react'
+import { changePasswordAction } from './actions'
 
 type SettingsTab = 'general' | 'security' | 'notifications' | 'integrations'
 
@@ -13,13 +14,6 @@ const TABS: { label: string; value: SettingsTab }[] = [
 ]
 
 function GeneralTab() {
-  const [saved, setSaved] = useState(false)
-
-  const handleSave = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
-  }
-
   return (
     <div className="space-y-6">
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
@@ -62,13 +56,16 @@ function GeneralTab() {
           </div>
         </div>
       </div>
+      {/* No site-settings model exists on the backend yet — these fields
+          aren't wired to anything, unlike Security above. */}
       <div className="flex justify-end">
         <button
-          onClick={handleSave}
-          className="flex items-center gap-2 px-6 py-2.5 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors"
+          disabled
+          title="Not available yet — no backend model for site settings"
+          className="flex items-center gap-2 px-6 py-2.5 bg-slate-200 text-slate-500 text-sm font-medium rounded-lg cursor-not-allowed"
         >
-          {saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-          {saved ? 'Saved!' : 'Save Changes'}
+          <Save className="w-4 h-4" />
+          Save Changes
         </button>
       </div>
     </div>
@@ -80,6 +77,27 @@ function SecurityTab() {
   const [showNew, setShowNew] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [twoFAEnabled, setTwoFAEnabled] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState('')
+  const [form, setForm] = useState({ current: '', next: '', confirm: '' })
+
+  const handleUpdatePassword = () => {
+    setError('')
+    if (form.next !== form.confirm) {
+      setError('New password and confirmation do not match.')
+      return
+    }
+    if (form.next.length < 8) {
+      setError('New password must be at least 8 characters.')
+      return
+    }
+    startTransition(async () => {
+      // On success this redirects to /login — changing a password revokes
+      // every session for this account, including the one making this call.
+      const result = await changePasswordAction(form.current, form.next)
+      if (result?.error) setError(result.error)
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -87,15 +105,17 @@ function SecurityTab() {
         <h3 className="text-sm font-semibold text-slate-900 mb-5">Change Password</h3>
         <div className="space-y-4 max-w-xl">
           {[
-            { label: 'Current Password', show: showCurrent, setShow: setShowCurrent },
-            { label: 'New Password', show: showNew, setShow: setShowNew },
-            { label: 'Confirm New Password', show: showConfirm, setShow: setShowConfirm },
-          ].map(({ label, show, setShow }) => (
+            { label: 'Current Password', key: 'current' as const, show: showCurrent, setShow: setShowCurrent },
+            { label: 'New Password', key: 'next' as const, show: showNew, setShow: setShowNew },
+            { label: 'Confirm New Password', key: 'confirm' as const, show: showConfirm, setShow: setShowConfirm },
+          ].map(({ label, key, show, setShow }) => (
             <div key={label}>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">{label}</label>
               <div className="relative">
                 <input
                   type={show ? 'text' : 'password'}
+                  value={form[key]}
+                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                   placeholder="••••••••"
                   className="w-full px-4 py-2.5 pr-10 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent"
                 />
@@ -109,8 +129,18 @@ function SecurityTab() {
               </div>
             </div>
           ))}
-          <button className="px-6 py-2.5 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors">
-            Update Password
+          {error && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+          <button
+            onClick={handleUpdatePassword}
+            disabled={isPending || !form.current || !form.next}
+            className="px-6 py-2.5 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+          >
+            {isPending ? 'Updating…' : 'Update Password'}
           </button>
         </div>
       </div>
@@ -186,8 +216,15 @@ function NotificationsTab() {
           </div>
         ))}
       </div>
+      {/* No admin-notification-preferences model exists on the backend yet
+          (the notification module's preferences are per-customer, a
+          different concept) — not wired. */}
       <div className="mt-4 flex justify-end">
-        <button className="px-6 py-2.5 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors">
+        <button
+          disabled
+          title="Not available yet — no backend model for admin notification preferences"
+          className="px-6 py-2.5 bg-slate-200 text-slate-500 text-sm font-medium rounded-lg cursor-not-allowed"
+        >
           Save Preferences
         </button>
       </div>
@@ -196,71 +233,22 @@ function NotificationsTab() {
 }
 
 function IntegrationsTab() {
-  const [copied, setCopied] = useState(false)
-  const apiKey = 'fya_live_sk_7j2k4m9p1r3s6v8x...'
-
-  const handleCopy = () => {
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
   return (
     <div className="space-y-4">
+      {/* This tab was previously showing a fabricated API key and a
+          hardcoded "Connected" status for Razorpay — neither reflected
+          anything real (there's no per-admin API-key system, and actual
+          gateway-configuration status isn't exposed by any endpoint).
+          Replaced with an honest placeholder rather than invented data. */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-        <h3 className="text-sm font-semibold text-slate-900 mb-1">API Key</h3>
-        <p className="text-sm text-slate-500 mb-4">Use this key to integrate FUYL Admin with external services</p>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono text-sm text-slate-700 truncate">
-            {apiKey}
-          </div>
-          <button
-            onClick={handleCopy}
-            className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors flex-shrink-0"
-          >
-            {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-            {copied ? 'Copied!' : 'Copy'}
-          </button>
+        <div className="flex items-center gap-3 mb-1">
+          <Zap className="w-5 h-5 text-slate-400" />
+          <h3 className="text-sm font-semibold text-slate-900">Integrations</h3>
         </div>
-        <p className="text-xs text-slate-400 mt-2">Keep this key secret. Regenerate if compromised.</p>
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#96BF48]/10 rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-[#96BF48]" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">Shopify</h3>
-              <p className="text-xs text-slate-400">E-commerce platform integration</p>
-            </div>
-          </div>
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-            Not connected
-          </span>
-        </div>
-        <button className="mt-4 px-4 py-2 bg-[#96BF48] hover:bg-[#7aa33a] text-white text-sm font-medium rounded-lg transition-colors">
-          Connect Shopify
-        </button>
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-              <span className="text-blue-600 font-bold text-sm">R</span>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">Razorpay</h3>
-              <p className="text-xs text-slate-400">Payment gateway</p>
-            </div>
-          </div>
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            Connected
-          </span>
-        </div>
+        <p className="text-sm text-slate-500">
+          Not available yet. Payment gateway credentials are configured via backend environment
+          variables, not through this dashboard, and there's no external API-key system to manage here.
+        </p>
       </div>
     </div>
   )

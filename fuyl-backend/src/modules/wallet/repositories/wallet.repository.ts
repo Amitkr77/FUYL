@@ -25,33 +25,61 @@ export class WalletRepository {
   /**
    * Atomically apply a credit/debit to the wallet.
    * Returns the updated wallet or null if insufficient balance.
+   *
+   * BUG FIXED (found via live testing): the previous version built the
+   * update object as `{ $inc: { [field]: delta }, ...(cond ? { $inc: {...} } : {}) }`.
+   * When `field === 'balance'`, that object literal specifies the `$inc`
+   * key TWICE — JS object-literal/spread semantics silently keep only the
+   * LAST occurrence, so `{ [field]: delta }` was discarded entirely and
+   * only `totalLifetimeCredit`/`totalLifetimeDebit` were ever incremented.
+   * The wallet's actual spendable `balance` never changed on any
+   * credit/debit/hold/release — confirmed live: admin-credited ₹500,
+   * balance stayed 0. Fixed by building one merged $inc object.
    */
   async applyDelta(
     walletId: string | Types.ObjectId,
     delta: number,
     field: 'balance' | 'pendingBalance' | 'heldBalance' = 'balance'
   ): Promise<IWallet | null> {
-    if (delta >= 0) {
-      return WalletModel.findByIdAndUpdate(
-        walletId,
-        {
-          $inc: { [field]: delta },
-          ...(field === 'balance' ? { $inc: { totalLifetimeCredit: delta } } : {}),
-        },
-        { new: true }
-      );
+    const inc: Record<string, number> = { [field]: delta };
+    if (field === 'balance') {
+      if (delta >= 0) inc.totalLifetimeCredit = delta;
+      else inc.totalLifetimeDebit = Math.abs(delta);
     }
-    // Negative delta — must have sufficient balance
+
+    if (delta >= 0) {
+      return WalletModel.findByIdAndUpdate(walletId, { $inc: inc }, { new: true });
+    }
+    // Negative delta — must have sufficient balance in that field
     const absDelta = Math.abs(delta);
-    const updated = await WalletModel.findOneAndUpdate(
+    return WalletModel.findOneAndUpdate(
       { _id: walletId, [field]: { $gte: absDelta } },
-      {
-        $inc: { [field]: -absDelta },
-        ...(field === 'balance' ? { $inc: { totalLifetimeDebit: absDelta } } : {}),
-      },
+      { $inc: inc },
       { new: true }
     );
-    return updated;
+  }
+
+  /**
+   * Move an amount from balance into heldBalance (or back) in a single
+   * atomic write. wallet.service.ts's hold()/releaseHold() previously did
+   * this as two separate applyDelta() calls — a crash between them could
+   * desync balance vs heldBalance. One $inc on both fields together is
+   * atomic at the MongoDB document level.
+   */
+  async moveToHeld(walletId: string | Types.ObjectId, amount: number): Promise<IWallet | null> {
+    return WalletModel.findOneAndUpdate(
+      { _id: walletId, balance: { $gte: amount } },
+      { $inc: { balance: -amount, heldBalance: amount } },
+      { new: true }
+    );
+  }
+
+  async releaseFromHeld(walletId: string | Types.ObjectId, amount: number): Promise<IWallet | null> {
+    return WalletModel.findOneAndUpdate(
+      { _id: walletId, heldBalance: { $gte: amount } },
+      { $inc: { balance: amount, heldBalance: -amount } },
+      { new: true }
+    );
   }
 }
 

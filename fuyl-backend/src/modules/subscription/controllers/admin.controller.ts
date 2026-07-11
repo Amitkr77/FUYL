@@ -28,7 +28,16 @@ export class AdminSubscriptionController {
         if (req.query.status) filter.status = req.query.status;
         if (req.query.customerId) filter.customerId = req.query.customerId;
         const result = await subRepo.paginate(filter, page, limit);
-        return paginate(res, result.items, result.total, result.page, result.limit);
+        // Attach product name so the admin UI doesn't need an N+1 lookup per row.
+        const { ProductModel } = await import('../../catalog/models/product.model');
+        const productIds = [...new Set(result.items.map((s) => s.productId.toString()))];
+        const products = await ProductModel.find({ _id: { $in: productIds } }, { name: 1 });
+        const nameById = new Map(products.map((p) => [p._id.toString(), p.name]));
+        const items = result.items.map((s) => ({
+          ...s.toObject(),
+          productName: nameById.get(s.productId.toString()) ?? 'Unknown product',
+        }));
+        return paginate(res, items, result.total, result.page, result.limit);
       } catch (err) { next(err); }
     },
   ];

@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { jwtVerify } from 'jose'
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'fuyl-admin-secret-2024'
-)
+import { verifySession, SESSION_COOKIE } from '@/lib/session'
 
 const PUBLIC_PATHS = ['/login']
 const STATIC_PATHS = ['/_next', '/favicon.ico']
@@ -19,20 +15,37 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const token = request.cookies.get('fuyl-admin-session')?.value
+  // Server Actions (e.g. the sidebar's logout form, or any admin page's
+  // save/update action) POST to the current page URL, not a separate
+  // route — so they also match this middleware. A hard redirect response
+  // here breaks the Server Action protocol: the client sent the request
+  // expecting an action result and gets a raw redirect instead, which
+  // Next.js surfaces as "An unexpected response was received from the
+  // server" instead of a normal in-app error. BUG FIXED (found live): this
+  // happened on every Server Action call once the session cookie was
+  // missing/expired, including logout itself. Actions already handle a
+  // missing/invalid session correctly on their own (getSession() returns
+  // null, adminApiFetch throws a catchable AdminApiError, logout() clears
+  // the cookie and redirect()s using the real action protocol) — so for
+  // action requests we let them through instead of redirecting here.
+  if (request.headers.get('next-action')) {
+    return NextResponse.next()
+  }
+
+  const token = request.cookies.get(SESSION_COOKIE)?.value
 
   if (!token) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  try {
-    await jwtVerify(token, JWT_SECRET)
-    return NextResponse.next()
-  } catch {
+  const session = await verifySession(token)
+  if (!session || !['admin', 'super_admin'].includes(session.role)) {
     const response = NextResponse.redirect(new URL('/login', request.url))
-    response.cookies.delete('fuyl-admin-session')
+    response.cookies.delete(SESSION_COOKIE)
     return response
   }
+
+  return NextResponse.next()
 }
 
 export const config = {

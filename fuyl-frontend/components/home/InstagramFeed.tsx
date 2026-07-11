@@ -1,14 +1,29 @@
 import Link from "next/link";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { SITE } from "@/lib/constants/site";
+import { getInstagramPosts } from "@/lib/api/content";
 
 const PLACEHOLDERS = Array.from({ length: 3 }, (_, i) => ({
   id: `ig-${i}`,
   src: `https://fuyl.in/cdn/shop/files/FUYL_Complete_Product_Shot.jpg`,
   alt: `FUYL Instagram post ${i + 1}`,
+  href: SITE.instagram,
 }));
 
-export function InstagramFeed() {
+export async function InstagramFeed() {
+  const posts = await getInstagramPosts(6);
+  // Falls back to static placeholders whenever the feed isn't configured
+  // (no INSTAGRAM_ACCESS_TOKEN) or the API call fails for any reason —
+  // getInstagramPosts() already swallows errors down to [] for this.
+  const tiles = posts.length > 0
+    ? posts.map((p) => ({
+        id: p.id,
+        src: p.mediaUrl,
+        alt: p.caption ? p.caption.slice(0, 140) : "FUYL on Instagram",
+        href: p.permalink,
+      }))
+    : PLACEHOLDERS;
+
   return (
     <section className="section-py bg-white">
       <div className="container-brand">
@@ -38,14 +53,14 @@ export function InstagramFeed() {
         {/* Mobile: horizontal scroll with larger cards; sm+: grid */}
         <div className="overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden -mx-4 sm:mx-0 sm:overflow-visible">
           <div className="flex gap-3 px-4 sm:px-0 pb-2 sm:pb-0 sm:grid sm:grid-cols-3 sm:gap-2 lg:grid-cols-3">
-            {PLACEHOLDERS.map(({ id, src, alt }, i) => (
+            {tiles.map(({ id, src, alt, href }, i) => (
               <ScrollReveal
                 key={id}
                 delay={i * 40}
                 className="shrink-0 w-52 sm:w-auto"
               >
                 <Link
-                  href={SITE.instagram}
+                  href={href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="relative block aspect-square overflow-hidden rounded-xl group bg-brand-sage"

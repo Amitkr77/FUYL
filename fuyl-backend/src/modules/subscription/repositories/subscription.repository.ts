@@ -20,21 +20,37 @@ export class SubscriptionRepository {
     return SubscriptionModel.find({ customerId, ...filter }).sort({ createdAt: -1 });
   }
 
-  async findDueForBilling(now: Date, limit = 500): Promise<ISubscription[]> {
+  /**
+   * ACTIVE subscriptions whose nextDeliveryDate passed more than
+   * graceHours ago with no webhook having moved them since (still ACTIVE,
+   * not PAST_DUE/CANCELLED) — a likely missed/failed webhook delivery from
+   * Razorpay. Used by billing.service.ts's monitor, not as a billing
+   * trigger (see that file for why).
+   */
+  async findOverdueActive(graceHours: number, limit = 200): Promise<ISubscription[]> {
+    const cutoff = new Date(Date.now() - graceHours * 60 * 60 * 1000);
     return SubscriptionModel
       .find({
         status: SubscriptionStatus.ACTIVE,
-        nextDeliveryDate: { $lte: now },
+        nextDeliveryDate: { $lte: cutoff },
       })
       .sort({ nextDeliveryDate: 1 })
       .limit(limit);
   }
 
-  async findFailedForDunning(limit = 200): Promise<ISubscription[]> {
+  /**
+   * Subscriptions stuck PAST_DUE with no recent update — i.e. no
+   * subscription.charged/payment_failed webhook has moved them in a while.
+   * Used by dunning as a timeout safety net, not an active retry (Razorpay's
+   * own mandate retries are the real retry mechanism; we only react to its
+   * webhooks — see razorpayWebhook.service.ts).
+   */
+  async findStalePastDue(olderThanHours: number, limit = 200): Promise<ISubscription[]> {
+    const cutoff = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
     return SubscriptionModel
       .find({
         status: SubscriptionStatus.PAST_DUE,
-        consecutiveFailures: { $lt: 3 },
+        updatedAt: { $lt: cutoff },
       })
       .limit(limit);
   }

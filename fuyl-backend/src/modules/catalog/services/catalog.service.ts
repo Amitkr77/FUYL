@@ -14,6 +14,7 @@ import {
   CreateCategoryDTO, UpdateCategoryDTO,
   CreateAttributeDTO, CreateTagDTO, CreateCollectionDTO,
 } from '../validators';
+import { revalidateStorefront } from '../../../shared/services/revalidate.service';
 
 const productRepo = new ProductRepository();
 const variantRepo = new VariantRepository();
@@ -32,7 +33,7 @@ export class CatalogService {
         if (!c) throw new NotFoundError(`Category ${cid}`);
       }
     }
-    return productRepo.create({
+    const product = await productRepo.create({
       ...dto,
       sellerId: new mongoose.Types.ObjectId(dto.sellerId),
       categoryIds: (dto.categoryIds ?? []).map((id) => new mongoose.Types.ObjectId(id)),
@@ -40,6 +41,8 @@ export class CatalogService {
       tagIds: (dto.tagIds ?? []).map((id) => new mongoose.Types.ObjectId(id)),
       bundleProductIds: (dto.bundleProductIds ?? []).map((id) => new mongoose.Types.ObjectId(id)),
     } as any);
+    void revalidateStorefront(['/', '/collections/all', `/products/${dto.seo?.slug}`]);
+    return product;
   }
 
   async getProduct(id: string) {
@@ -57,15 +60,26 @@ export class CatalogService {
   async updateProduct(id: string, dto: UpdateProductDTO) {
     const updated = await productRepo.update(id, dto as any);
     if (!updated) throw new NotFoundError('Product');
+    void revalidateStorefront(['/', '/collections/all', `/products/${updated.seo?.slug}`]);
     return updated;
   }
 
   async deleteProduct(id: string) {
+    const existing = await productRepo.findById(id);
     await productRepo.softDelete(id);
+    void revalidateStorefront(['/', '/collections/all', ...(existing ? [`/products/${existing.seo?.slug}`] : [])]);
   }
 
-  async publish(id: string) { return productRepo.publish(id); }
-  async unpublish(id: string) { return productRepo.unpublish(id); }
+  async publish(id: string) {
+    const updated = await productRepo.publish(id);
+    if (updated) void revalidateStorefront(['/', '/collections/all', `/products/${updated.seo?.slug}`]);
+    return updated;
+  }
+  async unpublish(id: string) {
+    const updated = await productRepo.unpublish(id);
+    if (updated) void revalidateStorefront(['/', '/collections/all', `/products/${updated.seo?.slug}`]);
+    return updated;
+  }
 
   async listProducts(page = 1, limit = 20, filter: Record<string, unknown> = {}) {
     return productRepo.paginate({ isDeleted: false, ...filter }, page, limit);
@@ -86,6 +100,9 @@ export class CatalogService {
 
     const existingSku = await variantRepo.findBySku(dto.sku);
     if (existingSku) throw new ConflictError(`SKU ${dto.sku} already exists`);
+
+    const attrClash = await variantRepo.findByProductAndAttributes(dto.productId, dto.attributes ?? {});
+    if (attrClash) throw new ConflictError('A variant with this exact attribute combination already exists');
 
     return variantRepo.create({
       ...dto,
@@ -110,6 +127,13 @@ export class CatalogService {
   }
 
   async updateVariant(id: string, dto: UpdateVariantDTO) {
+    if (dto.attributes) {
+      const existing = await variantRepo.findById(id);
+      if (!existing) throw new NotFoundError('Variant');
+      const attrClash = await variantRepo.findByProductAndAttributes(existing.productId, dto.attributes, id);
+      if (attrClash) throw new ConflictError('A variant with this exact attribute combination already exists');
+    }
+
     const updated = await variantRepo.update(id, dto as any);
     if (!updated) throw new NotFoundError('Variant');
     return updated;

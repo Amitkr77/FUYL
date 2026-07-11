@@ -17,8 +17,26 @@ export const env = {
   isDev: process.env.NODE_ENV !== 'production',
   port: parseInt(process.env.PORT ?? '4000', 10),
   appName: process.env.APP_NAME ?? 'Fuyl Backend',
-  apiPrefix: process.env.API_PREFIX ?? '/api/v1',
+  // Every consumer of this value templates it as `/${env.apiPrefix}` (app.ts,
+  // server.ts) — normalizing away any leading slash here, regardless of how
+  // API_PREFIX is set, guarantees exactly one slash instead of the double
+  // slash that resulted when API_PREFIX (default and .env) already included
+  // one. This was a live bug: the real API was only reachable at
+  // "//api/v1/..." — confirmed by booting the server and testing directly.
+  apiPrefix: (process.env.API_PREFIX ?? '/api/v1').replace(/^\/+/, ''),
   clientUrl: process.env.CLIENT_URL ?? 'http://localhost:3000',
+  // Matches fuyl-frontend's REVALIDATE_SECRET — used to call its
+  // POST /api/revalidate route on-demand after catalog/content mutations,
+  // instead of waiting out that page's ISR `revalidate` window (up to
+  // 3600s for some product routes). That route handler already existed
+  // ("Called by the Node backend whenever products/content are updated")
+  // but nothing in this backend ever actually called it.
+  revalidateSecret: process.env.REVALIDATE_SECRET ?? '',
+  // CORS allow-list: storefront + admin dashboard origins. Explicit CORS_ORIGINS
+  // (comma-separated) wins in prod; local dev defaults cover both frontend apps.
+  corsOrigins: process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
+    : [process.env.CLIENT_URL ?? 'http://localhost:3000', 'http://localhost:3001'],
 
   mongo: {
     uri: required('MONGODB_URI', 'mongodb://localhost:27017/fuyl'),
@@ -65,11 +83,27 @@ export const env = {
     from: process.env.TWILIO_FROM ?? '',
   },
 
+  firebase: {
+    projectId: process.env.FIREBASE_PROJECT_ID ?? '',
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL ?? '',
+    // .env files can't hold real newlines — service-account keys are
+    // exported with literal "\n" sequences that need converting back.
+    privateKey: (process.env.FIREBASE_PRIVATE_KEY ?? '').replace(/\\n/g, '\n'),
+  },
+
   referral: {
     defaultReferrerReward: parseInt(process.env.DEFAULT_REFERRER_REWARD ?? '100', 10),
     defaultRefereeReward: parseInt(process.env.DEFAULT_REFEREE_REWARD ?? '50', 10),
     codeExpiryDays: parseInt(process.env.DEFAULT_REFERRAL_CODE_EXPIRY_DAYS ?? '90', 10),
     walletExpiryDays: parseInt(process.env.DEFAULT_WALLET_EXPIRY_DAYS ?? '90', 10),
+  },
+
+  instagram: {
+    // Long-lived Instagram User Access Token from "Instagram API with
+    // Instagram Login" (business/creator account required). Get one via
+    // https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login
+    // — no token means the homepage feed just falls back to placeholders.
+    accessToken: process.env.INSTAGRAM_ACCESS_TOKEN ?? '',
   },
 
   subscription: {

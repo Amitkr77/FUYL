@@ -88,7 +88,7 @@ export function VideoSection() {
             />
             <button
               type="submit"
-              className="h-12 px-6 text-xs font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-sm transition-colors hover:bg-brand-rose-dark shrink-0"
+              className="h-12 px-6 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest shrink-0"
             >
               Join Waitlist
             </button>

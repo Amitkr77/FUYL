@@ -5,6 +5,13 @@ import { reviewController } from '../controllers';
 
 const router = Router();
 
+// Health — must be registered before '/reviews/:id' below, otherwise
+// Express matches "health" as the :id param first and getById() 400s on
+// the invalid ObjectId, permanently shadowing this route (found live).
+router.get('/reviews/health', (_req, res) => {
+  res.json({ success: true, module: 'review', status: 'active' });
+});
+
 // Public (browse reviews on a product)
 router.get('/reviews/product/:productId', authOptional, reviewController.listByProduct);
 router.get('/reviews/product/:productId/summary', authOptional, reviewController.getRatingSummary);
@@ -49,10 +56,5 @@ router.patch(
   authorize(Roles.ADMIN, Roles.SUPER_ADMIN),
   reviewController.moderate
 );
-
-// Health
-router.get('/reviews/health', (_req, res) => {
-  res.json({ success: true, module: 'review', status: 'active' });
-});
 
 export default router;

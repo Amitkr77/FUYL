@@ -12,8 +12,10 @@ import {
   verifyEmailSchema,
   changePasswordSchema,
   resendVerificationSchema,
+  setPermissionsSchema,
 } from '../validators';
 import { env } from '../../../config/env';
+import { BadRequestError } from '../../../shared/errors';
 
 export class IdentityController {
   register = [
@@ -60,7 +62,7 @@ export class IdentityController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const refreshToken = req.body.refreshToken ?? req.cookies?.[env.jwt.cookieName];
-        if (!refreshToken) return next(new Error('Refresh token required'));
+        if (!refreshToken) return next(new BadRequestError('Refresh token required'));
         const meta = IdentityService.extractMeta(req);
         const tokens = await identityService.refresh(refreshToken, meta);
         res.cookie(env.jwt.cookieName, tokens.refreshToken, {
@@ -148,6 +150,15 @@ export class IdentityController {
       return success(res, await identityService.updateMe(req.user!.userId, req.body));
     } catch (err) { next(err); }
   };
+
+  setPermissions = [
+    validate(setPermissionsSchema),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        return success(res, await identityService.setPermissions(req.params.id, req.body.permissions));
+      } catch (err) { next(err); }
+    },
+  ];
 
   listSessions = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {

@@ -13,7 +13,7 @@ export interface ISubscriptionEvent extends Document {
 const SubscriptionEventSchema = new Schema<ISubscriptionEvent>(
   {
     subscriptionId: { type: Schema.Types.ObjectId, ref: 'Subscription', required: true, index: true },
-    customerId: { type: Schema.Types.ObjectId, ref: 'Customer', required: true },
+    customerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     type: { type: String, required: true, index: true },
     message: { type: String, required: true },
     actor: { type: Schema.Types.ObjectId, ref: 'User' },

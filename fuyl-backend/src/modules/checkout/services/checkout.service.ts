@@ -4,6 +4,7 @@ import { inventoryService } from '../../inventory/services/inventory.service';
 import { promotionService } from '../../promotion/services/promotion.service';
 import { pricingService } from '../../pricing/services/pricing.service';
 import { walletService } from '../../wallet/services/wallet.service';
+import { catalogService } from '../../catalog/services/catalog.service';
 import {
   BadRequestError,
   NotFoundError,
@@ -31,28 +32,20 @@ class CheckoutService {
         ? await this.resolveAddress(userId, dto.billingAddressId)
         : shippingAddress;
 
-    // 1. Reserve stock for all items
-    const reserveItems = cart.items.map((i) => ({
-      productId: i.productId.toString(),
-      variantId: i.variantId?.toString(),
-      sellerId: i.productId.toString(), // placeholder — should come from catalog
-      quantity: i.quantity,
-    }));
-    // Note: in production, fetch sellerId from catalog. For now, skip stock reservation in preview.
-
-    // 2. Compute pricing quote (tax + price books)
+    // 1. Compute pricing quote (tax + price books)
     const quoteItems = cart.items.map((i) => ({
       productId: i.productId.toString(),
       variantId: i.variantId?.toString(),
       quantity: i.quantity,
       basePrice: i.unitPrice,
+      isTaxable: i.isTaxable,
     }));
     const quote = await pricingService.quote(quoteItems, {
       state: shippingAddress.state,
       country: shippingAddress.country,
     });
 
-    // 3. Validate coupon (if provided)
+    // 2. Validate coupon (if provided)
     let couponDiscount = 0;
     let couponValidation: { valid: boolean; reason?: string; discountAmount?: number; couponCode: string } | null = null;
     if (dto.couponCode || cart.couponCode) {
@@ -72,7 +65,7 @@ class CheckoutService {
       }
     }
 
-    // 4. Compute wallet redemption (for split payment)
+    // 3. Compute wallet redemption (for split payment)
     let walletRedemption = 0;
     if (dto.walletRedemptionAmount && dto.walletRedemptionAmount > 0) {
       const balance = await walletService.getBalance(userId);
@@ -105,19 +98,20 @@ class CheckoutService {
   async placeOrder(userId: string, dto: CheckoutDTO) {
     const preview = await this.preview(userId, dto);
 
-    if (preview.remainingToPay > 0 && dto.paymentMethod === 'cod') {
-      throw new BadRequestError('COD not allowed for orders above wallet balance');
-    }
-
     // 1. Reserve inventory against the cart
-    // (Seller IDs would come from catalog; here we use a default)
+    const itemsWithSeller = await Promise.all(
+      preview.cart.items.map(async (i) => {
+        const product = await catalogService.getProduct(i.productId.toString());
+        return {
+          productId: i.productId.toString(),
+          variantId: i.variantId?.toString(),
+          sellerId: product.sellerId.toString(),
+          quantity: i.quantity,
+        };
+      })
+    );
     const reservationResult = await inventoryService.reserveStock({
-      items: preview.cart.items.map((i) => ({
-        productId: i.productId.toString(),
-        variantId: i.variantId?.toString(),
-        sellerId: i.productId.toString(), // placeholder — should be the product's sellerId
-        quantity: i.quantity,
-      })),
+      items: itemsWithSeller,
       cartId: preview.cart._id.toString(),
       userId,
       ttlMinutes: 30,

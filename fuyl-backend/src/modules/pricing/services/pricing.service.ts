@@ -23,6 +23,7 @@ export interface QuoteItemInput {
   sellerId?: string;
   categoryIds?: string[];
   isSubscription?: boolean;
+  isTaxable?: boolean;
   customerRole?: string;
   state?: string;
   country?: string;
@@ -244,10 +245,10 @@ class PricingService {
       const volumeDiscount = lineSubtotal * (volumeDiscountPercent / 100);
       const discountedSubtotal = lineSubtotal - volumeDiscount;
 
-      // 3. Apply tax rules
+      // 3. Apply tax rules (skipped entirely for non-taxable items)
       const taxBreakdown: Array<{ code: string; rate: number; type: string; amount: number }> = [];
       let lineTax = 0;
-      for (const rule of taxRules) {
+      for (const rule of item.isTaxable === false ? [] : taxRules) {
         // Filter by category
         if (rule.categoryIds && rule.categoryIds.length > 0) {
           const cats = item.categoryIds ?? [];

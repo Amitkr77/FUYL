@@ -11,6 +11,8 @@ export interface ICoupon {
   scope: CouponScope;
   // Scope target IDs (depending on scope)
   targetIds?: Types.ObjectId[];
+  // Model that targetIds points into; derived from `scope`, see pre-validate hook below
+  couponTargetRef?: 'Category' | 'Product' | 'Variant' | 'User';
   currency?: string;                  // for flat discounts
   // Limits
   maxRedemptionsGlobal?: number;
@@ -63,6 +65,7 @@ const CouponSchema = new Schema<ICoupon>(
     discountValue: { type: Number, required: true, min: 0 },
     scope: { type: String, enum: ['cart', 'category', 'product', 'variant', 'seller'], default: 'cart' },
     targetIds: [{ type: Schema.Types.ObjectId, refPath: 'couponTargetRef' }],
+    couponTargetRef: { type: String, enum: ['Category', 'Product', 'Variant', 'User'] },
     currency: { type: String, default: 'INR' },
     maxRedemptionsGlobal: { type: Number, min: 0 },
     maxRedemptionsPerUser: { type: Number, min: 0, default: 1 },
@@ -78,6 +81,18 @@ const CouponSchema = new Schema<ICoupon>(
   },
   { _id: true, timestamps: true }
 );
+
+const COUPON_TARGET_REF_BY_SCOPE: Partial<Record<CouponScope, ICoupon['couponTargetRef']>> = {
+  category: 'Category',
+  product: 'Product',
+  variant: 'Variant',
+  seller: 'User',
+};
+
+CouponSchema.pre('validate', function (next) {
+  this.couponTargetRef = COUPON_TARGET_REF_BY_SCOPE[this.scope];
+  next();
+});
 
 const CampaignSchema = new Schema<ICampaign>(
   {

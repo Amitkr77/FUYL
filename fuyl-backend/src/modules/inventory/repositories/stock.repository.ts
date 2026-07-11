@@ -49,6 +49,15 @@ export class InventoryStockRepository {
     return { items, total, page, limit };
   }
 
+  async findAll(page = 1, limit = 50) {
+    const skip = (page - 1) * limit;
+    const [items, total] = await Promise.all([
+      InventoryStockModel.find({}).sort({ updatedAt: -1 }).skip(skip).limit(limit),
+      InventoryStockModel.countDocuments({}),
+    ]);
+    return { items, total, page, limit };
+  }
+
   async findLowStock(limit = 100) {
     return InventoryStockModel.find({
       $expr: { $lte: ['$available', '$reorderThreshold'] },
@@ -66,31 +75,47 @@ export class InventoryStockRepository {
   /**
    * Atomically apply a delta to onHand and recompute available.
    * Returns the updated stock or null if it would go negative.
+   *
+   * BUG FIXED (found in the fixing/testing pass, same class of issue as the
+   * wallet applyDelta bug): previously this did findById() -> mutate in JS ->
+   * save(). Two concurrent adjustStock() calls (e.g. two admins, or a return
+   * + a sale racing) could both read the same onHand, compute conflicting
+   * new values, and the second save() would silently clobber the first's
+   * update — a classic lost-update race. Replaced with a single atomic
+   * findOneAndUpdate() using $expr in the filter to both enforce the
+   * non-negative invariant and compute the new value server-side, so
+   * concurrent calls serialize correctly at the MongoDB document level.
    */
   async applyOnHandDelta(
     stockId: string | Types.ObjectId,
     delta: number
   ): Promise<IInventoryStock | null> {
-    const stock = await InventoryStockModel.findById(stockId);
-    if (!stock) return null;
-    const newOnHand = stock.onHand + delta;
-    if (newOnHand < 0) return null;
-    stock.onHand = newOnHand;
-    stock.available = newOnHand - stock.reserved;
-    return stock.save();
+    return InventoryStockModel.findOneAndUpdate(
+      {
+        _id: stockId,
+        $expr: { $gte: [{ $add: ['$onHand', delta] }, 0] },
+      },
+      { $inc: { onHand: delta, available: delta } },
+      { new: true }
+    );
   }
 
   async applyReserveDelta(
     stockId: string | Types.ObjectId,
     delta: number
   ): Promise<IInventoryStock | null> {
-    const stock = await InventoryStockModel.findById(stockId);
-    if (!stock) return null;
-    const newReserved = stock.reserved + delta;
-    if (newReserved < 0) return null;
-    if (newReserved > stock.onHand) return null; // can't reserve more than onHand
-    stock.reserved = newReserved;
-    stock.available = stock.onHand - newReserved;
-    return stock.save();
+    return InventoryStockModel.findOneAndUpdate(
+      {
+        _id: stockId,
+        $expr: {
+          $and: [
+            { $gte: [{ $add: ['$reserved', delta] }, 0] },
+            { $lte: [{ $add: ['$reserved', delta] }, '$onHand'] },
+          ],
+        },
+      },
+      { $inc: { reserved: delta, available: -delta } },
+      { new: true }
+    );
   }
 }

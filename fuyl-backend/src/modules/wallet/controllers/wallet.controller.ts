@@ -4,7 +4,7 @@ import { walletService } from '../services';
 import { success, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
 import { adjustBalanceSchema, freezeWalletSchema } from '../validators';
-import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
+import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
 import { WalletTransactionRepository } from '../repositories/wallet.repository';
 
 const txRepo = new WalletTransactionRepository();
@@ -46,7 +46,7 @@ export class WalletController {
   ];
 
   adjustBalance = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.WALLET_MANAGE),
     validate(adjustBalanceSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
@@ -63,7 +63,7 @@ export class WalletController {
   ];
 
   freeze = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.WALLET_MANAGE),
     validate(freezeWalletSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
@@ -73,7 +73,7 @@ export class WalletController {
   ];
 
   unfreeze = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.WALLET_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         return success(res, await walletService.unfreeze(req.params.userId));

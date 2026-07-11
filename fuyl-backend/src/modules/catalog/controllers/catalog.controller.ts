@@ -11,24 +11,45 @@ import {
 } from '../validators';
 import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
 
+// getProduct/getProductBySlug are the SAME route both the storefront and the
+// admin panel call (there's no separate admin single-product GET) — so
+// costPerItem/profit/margin have to be gated by the requester's role at
+// serialization time, not by which route was hit. authOptional on these
+// routes means req.user is only populated for a real, verified token.
+const PRIVILEGED_ROLES: string[] = [Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER];
+
+function serializeProduct(product: any, req: AuthedRequest) {
+  const obj = typeof product?.toObject === 'function' ? product.toObject() : product;
+  if (!req.user || !PRIVILEGED_ROLES.includes(req.user.role)) {
+    delete obj.costPerItem;
+    return obj;
+  }
+  if (obj.costPerItem != null && obj.basePrice != null) {
+    const profit = obj.basePrice - obj.costPerItem;
+    obj.profit = Math.round(profit * 100) / 100;
+    obj.margin = obj.basePrice > 0 ? Math.round((profit / obj.basePrice) * 10000) / 10000 : null;
+  }
+  return obj;
+}
+
 export class CatalogController {
   // ─── Products (admin) ─────────────────────────────────────────
   createProduct = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER),
     validate(createProductSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
-      try { return created(res, await catalogService.createProduct(req.body)); }
+      try { return created(res, serializeProduct(await catalogService.createProduct(req.body), req)); }
       catch (err) { next(err); }
     },
   ];
 
   getProduct = async (req: AuthedRequest, res: Response, next: NextFunction) => {
-    try { return success(res, await catalogService.getProduct(req.params.id)); }
+    try { return success(res, serializeProduct(await catalogService.getProduct(req.params.id), req)); }
     catch (err) { next(err); }
   };
 
   getProductBySlug = async (req: AuthedRequest, res: Response, next: NextFunction) => {
-    try { return success(res, await catalogService.getProductBySlug(req.params.slug)); }
+    try { return success(res, serializeProduct(await catalogService.getProductBySlug(req.params.slug), req)); }
     catch (err) { next(err); }
   };
 
@@ -36,7 +57,7 @@ export class CatalogController {
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER),
     validate(updateProductSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
-      try { return success(res, await catalogService.updateProduct(req.params.id, req.body)); }
+      try { return success(res, serializeProduct(await catalogService.updateProduct(req.params.id, req.body), req)); }
       catch (err) { next(err); }
     },
   ];
@@ -65,14 +86,17 @@ export class CatalogController {
     },
   ];
 
-  listProducts = async (req: AuthedRequest, res: Response, next: NextFunction) => {
-    try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
-      const result = await catalogService.listProducts(page, limit);
-      return paginate(res, result.items, result.total, result.page, result.limit);
-    } catch (err) { next(err); }
-  };
+  listProducts = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 20;
+        const result = await catalogService.listProducts(page, limit);
+        return paginate(res, result.items.map((p) => serializeProduct(p, req)), result.total, result.page, result.limit);
+      } catch (err) { next(err); }
+    },
+  ];
 
   listPublished = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
@@ -83,7 +107,7 @@ export class CatalogController {
       if (req.query.tagId) filter.tagIds = req.query.tagId;
       if (req.query.brand) filter.brand = req.query.brand;
       const result = await catalogService.listPublished(page, limit, filter);
-      return paginate(res, result.items, result.total, result.page, result.limit);
+      return paginate(res, result.items.map((p) => serializeProduct(p, req)), result.total, result.page, result.limit);
     } catch (err) { next(err); }
   };
 
@@ -93,7 +117,7 @@ export class CatalogController {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const result = await catalogService.search(q, page, limit);
-      return paginate(res, result.items, result.total, result.page, result.limit);
+      return paginate(res, result.items.map((p) => serializeProduct(p, req)), result.total, result.page, result.limit);
     } catch (err) { next(err); }
   };
 

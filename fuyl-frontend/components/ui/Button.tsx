@@ -12,8 +12,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  /* Rose Gold — premium conversion action (use sparingly) */
-  primary:   'bg-brand-rose text-white hover:bg-brand-rose-dark active:scale-[0.98] border border-brand-rose hover:border-brand-rose-dark',
+  /* Forest Green — primary conversion action */
+  primary:   'bg-brand-forest text-white hover:bg-brand-sage hover:text-brand-forest active:scale-[0.98] border border-brand-forest hover:border-brand-sage',
   /* Deep Forest Green — strong secondary action */
   secondary: 'bg-brand-forest text-white hover:bg-brand-olive active:scale-[0.98] border border-brand-forest',
   /* Forest Green outline */

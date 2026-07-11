@@ -1,14 +1,18 @@
-'use client'
-
-import { useState } from 'react'
 import Link from 'next/link'
-import { Plus, Edit2, Trash2, Eye } from 'lucide-react'
+import { Plus, Edit2, Trash2, Eye, AlertCircle } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
-import { MOCK_BLOG_POSTS, BlogPost } from '@/lib/mock-data'
+import { listAdminPosts, AdminApiError } from '@/lib/blog'
+import { deletePostAction } from './actions'
 import { formatDate } from '@/lib/utils'
 
-export default function BlogPage() {
-  const [posts] = useState<BlogPost[]>(MOCK_BLOG_POSTS)
+export default async function BlogPage() {
+  let posts: Awaited<ReturnType<typeof listAdminPosts>> = []
+  let error = ''
+  try {
+    posts = await listAdminPosts()
+  } catch (err) {
+    error = err instanceof AdminApiError ? err.message : 'Could not load posts.'
+  }
 
   return (
     <div className="space-y-5">
@@ -27,19 +31,26 @@ export default function BlogPage() {
         </Link>
       </div>
 
+      {error && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-          <p className="text-2xl font-bold text-slate-900">{posts.filter((p: BlogPost) => p.status === 'published').length}</p>
+          <p className="text-2xl font-bold text-slate-900">{posts.filter((p) => p.status === 'published').length}</p>
           <p className="text-sm text-slate-500 mt-0.5">Published</p>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-          <p className="text-2xl font-bold text-amber-600">{posts.filter((p: BlogPost) => p.status === 'draft').length}</p>
+          <p className="text-2xl font-bold text-amber-600">{posts.filter((p) => p.status === 'draft').length}</p>
           <p className="text-sm text-slate-500 mt-0.5">Drafts</p>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
           <p className="text-2xl font-bold text-[#558476]">
-            {posts.reduce((acc: number, p: BlogPost) => acc + p.views, 0).toLocaleString('en-IN')}
+            {posts.reduce((acc, p) => acc + p.views, 0).toLocaleString('en-IN')}
           </p>
           <p className="text-sm text-slate-500 mt-0.5">Total Views</p>
         </div>
@@ -61,7 +72,9 @@ export default function BlogPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {posts.map((post: BlogPost) => (
+              {posts.length === 0 ? (
+                <tr><td colSpan={7} className="px-5 py-10 text-center text-slate-400 text-sm">No posts yet.</td></tr>
+              ) : posts.map((post) => (
                 <tr key={post.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-5 py-4">
                     <p className="text-sm font-medium text-slate-900 max-w-xs leading-snug">{post.title}</p>
@@ -97,9 +110,11 @@ export default function BlogPage() {
                       >
                         <Edit2 className="w-4 h-4" />
                       </Link>
-                      <button className="p-1.5 text-slate-400 hover:text-[#B76E79] hover:bg-[#B76E79]/10 rounded-lg transition-colors" title="Delete">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <form action={deletePostAction.bind(null, post.id)}>
+                        <button type="submit" className="p-1.5 text-slate-400 hover:text-[#B76E79] hover:bg-[#B76E79]/10 rounded-lg transition-colors" title="Delete">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </form>
                     </div>
                   </td>
                 </tr>

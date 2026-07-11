@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { ProductStatus } from '../../../shared/enums';
 
 export interface IProductMedia {
   url: string;
@@ -43,13 +44,32 @@ export interface IProduct extends Document {
   seo: IProductSEO;
   basePrice: number;
   salePrice?: number;
+  compareAtPrice?: number;
+  additionalPrices?: { label: string; price: number }[];
+  unitPrice?: { value: number; unit: string };
+  isTaxable: boolean;
+  costPerItem?: number;          // admin-only — never serialize on public routes
   currency: string;
   isSubscribable: boolean;
   isBundle: boolean;
   bundleProductIds?: mongoose.Types.ObjectId[];
   ingredients?: string[];
+  benefits?: string[];
+  faqs?: { question: string; answer: string }[];
+  supplementInfo?: {
+    ageGroup?: string;
+    dietaryUse?: string;
+    flavor?: string;
+    ingredientCategory?: string;
+    routeOfAdministration?: string;
+    healthFocus?: string[];
+  };
   nutritionalFacts?: INutritionalFact;
-  certifications?: string[];     // e.g. ['organic', 'fssai']
+  certifications?: { label: string; logoUrl: string }[];
+  // Admin-facing lifecycle state. isPublished/isDeleted below remain the
+  // fields actually queried/indexed (unchanged); the repository keeps them
+  // in sync with `status` on every write so existing queries keep working.
+  status: typeof ProductStatus[keyof typeof ProductStatus];
   isPublished: boolean;
   publishedAt?: Date;
   isFeatured: boolean;
@@ -89,11 +109,35 @@ const ProductSchema = new Schema<IProduct>(
     },
     basePrice: { type: Number, required: true, min: 0 },
     salePrice: { type: Number, min: 0 },
+    compareAtPrice: { type: Number, min: 0 },
+    additionalPrices: [{
+      label: { type: String, required: true, trim: true, maxlength: 60 },
+      price: { type: Number, required: true, min: 0 },
+    }],
+    unitPrice: {
+      value: { type: Number, min: 0 },
+      unit: { type: String, trim: true, maxlength: 40 },
+    },
+    isTaxable: { type: Boolean, default: true },
+    costPerItem: { type: Number, min: 0 },
     currency: { type: String, default: 'INR' },
     isSubscribable: { type: Boolean, default: false, index: true },
     isBundle: { type: Boolean, default: false },
     bundleProductIds: [{ type: Schema.Types.ObjectId, ref: 'Product' }],
     ingredients: [{ type: String }],
+    benefits: [{ type: String }],
+    faqs: [{
+      question: { type: String, required: true, trim: true, maxlength: 300 },
+      answer: { type: String, required: true, maxlength: 2000 },
+    }],
+    supplementInfo: {
+      ageGroup: { type: String, trim: true },
+      dietaryUse: { type: String, trim: true },
+      flavor: { type: String, trim: true },
+      ingredientCategory: { type: String, trim: true },
+      routeOfAdministration: { type: String, trim: true },
+      healthFocus: [{ type: String }],
+    },
     nutritionalFacts: {
       servingSize: { type: String },
       calories: { type: Number },
@@ -109,7 +153,16 @@ const ProductSchema = new Schema<IProduct>(
         unit: { type: String },
       }],
     },
-    certifications: [{ type: String, index: true }],
+    certifications: [{
+      label: { type: String, required: true, trim: true, maxlength: 100 },
+      logoUrl: { type: String, required: true },
+    }],
+    status: {
+      type: String,
+      enum: Object.values(ProductStatus),
+      default: ProductStatus.DRAFT,
+      index: true,
+    },
     isPublished: { type: Boolean, default: false, index: true },
     publishedAt: { type: Date },
     isFeatured: { type: Boolean, default: false, index: true },

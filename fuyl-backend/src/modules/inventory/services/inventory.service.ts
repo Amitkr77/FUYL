@@ -32,6 +32,27 @@ class InventoryService {
     return stockRepo.findBySeller(sellerId, page, limit);
   }
 
+  /**
+   * Admin-only: stock across every seller, with product name/sku attached
+   * so the admin UI doesn't need an N+1 lookup per row. No endpoint existed
+   * before this — /inventory/mine required a specific sellerId, so an admin
+   * had no way to see stock across the whole catalog in one call.
+   */
+  async listAllForAdmin(page = 1, limit = 50) {
+    const result = await stockRepo.findAll(page, limit);
+    const { ProductModel } = await import('../../catalog/models/product.model');
+    const productIds = [...new Set(result.items.map((s) => s.productId.toString()))];
+    const products = await ProductModel.find({ _id: { $in: productIds } }, { name: 1 });
+    const nameById = new Map(products.map((p) => [p._id.toString(), p.name]));
+    return {
+      ...result,
+      items: result.items.map((s) => ({
+        ...s.toObject(),
+        productName: nameById.get(s.productId.toString()) ?? 'Unknown product',
+      })),
+    };
+  }
+
   async listLowStock(limit = 100) {
     return stockRepo.findLowStock(limit);
   }
@@ -181,12 +202,12 @@ class InventoryService {
     if (dto.cartId) {
       reservations = await reservationRepo.releaseByCart(dto.cartId);
     } else {
-      // For order, mark as released (only those that haven't been fulfilled)
-      reservations = await reservationRepo.findByOrder(dto.orderId!);
+      // Only reservations still 'active' need releasing — ones already fulfilled,
+      // released, or expired must not have their stock restored a second time.
+      const all = await reservationRepo.findByOrder(dto.orderId!);
+      reservations = all.filter((r) => r.status === 'active');
       for (const r of reservations) {
-        if (r.status === 'active') {
-          await reservationRepo.markReleased(r._id);
-        }
+        await reservationRepo.markReleased(r._id);
       }
     }
 

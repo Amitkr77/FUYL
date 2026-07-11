@@ -45,7 +45,7 @@ const UserSchema = new Schema<IUser>(
     isPhoneVerified: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
     isDeleted: { type: Boolean, default: false },
-    sellerId: { type: Schema.Types.ObjectId, ref: 'Seller' },
+    sellerId: { type: Schema.Types.ObjectId, ref: 'User' },
     permissions: [{ type: String }],
     lastLoginAt: { type: Date },
     lastLoginIp: { type: String },

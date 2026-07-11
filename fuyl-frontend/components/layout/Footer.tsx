@@ -142,16 +142,16 @@ export function Footer() {
               Complete daily nutrition. 60+ premium ingredients. One sachet
               every morning.
             </p>
-            <div className="mt-6 space-y-1.5">
+            <div className="mt-6 flex flex-col items-start">
               <a
                 href={`mailto:${SITE.email}`}
-                className="block text-body-xs text-brand-muted hover:text-brand-teal transition-colors"
+                className="flex min-h-6 items-center py-2 text-body-xs text-brand-muted hover:text-brand-teal transition-colors"
               >
                 {SITE.email}
               </a>
               <a
                 href={`tel:${SITE.phone}`}
-                className="block text-body-xs text-brand-muted hover:text-brand-teal transition-colors"
+                className="flex min-h-6 items-center py-2 text-body-xs text-brand-muted hover:text-brand-teal transition-colors"
               >
                 {SITE.phone}
               </a>
@@ -237,13 +237,14 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-brand-border">
           <div className="container-brand py-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-body-xs text-brand-muted/70">
+            <p className="text-body-xs text-brand-muted">
               © {new Date().getFullYear()} FUYL — {SITE.company}
             </p>
             <div className="flex items-center gap-2">
               {paymentMethods.map(({ label, icon: Icon }) => (
                 <span
                   key={label}
+                  role="img"
                   aria-label={label}
                   className="rounded-md overflow-hidden shadow-sm"
                 >

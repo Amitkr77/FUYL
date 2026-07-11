@@ -85,6 +85,17 @@ class NotificationAdminService {
     if (!category) throw new BadRequestError('Category required');
     return prefRepo.setCategoryOverride(new Types.ObjectId(userId), category, preference);
   }
+
+  // ─── Push device tokens ────────────────────────────────────────
+  async registerPushToken(userId: string, token: string) {
+    if (!token) throw new BadRequestError('Push token required');
+    return prefRepo.addPushToken(new Types.ObjectId(userId), token);
+  }
+
+  async unregisterPushToken(userId: string, token: string) {
+    if (!token) throw new BadRequestError('Push token required');
+    await prefRepo.removePushToken(new Types.ObjectId(userId), token);
+  }
 }
 
 export const notificationAdminService = new NotificationAdminService();

@@ -1,6 +1,8 @@
 /**
- * Format a price in paise (or rupees if already float) to INR display string.
- * Backend returns prices in rupees as numbers (e.g. 1499).
+ * Format a price to an INR display string. `amount` is always a decimal rupee
+ * value (e.g. 1499, 1499.5) — the backend never returns paise. Paise only ever
+ * exists transiently inside the backend's Razorpay gateway calls and should
+ * never reach this function.
  */
 export function formatPrice(amount: number): string {
   return new Intl.NumberFormat('en-IN', {

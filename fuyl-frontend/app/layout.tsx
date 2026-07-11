@@ -17,6 +17,11 @@ const inter = Inter({
 export const metadata: Metadata = {
   ...generateSEO(),
   metadataBase: new URL('https://fuyl.in'),
+  icons: {
+    icon: [{ url: '/FAVICON_WHITE_430x.webp', type: 'image/webp' }],
+    shortcut: [{ url: '/FAVICON_WHITE_430x.webp', type: 'image/webp' }],
+    apple: [{ url: '/FAVICON_WHITE_430x.webp', type: 'image/webp' }],
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Minus, Plus, Trash2 } from 'lucide-react'
@@ -9,7 +11,16 @@ import { useCart } from '@/lib/hooks/useCart'
 import { formatPrice } from '@/lib/utils/formatPrice'
 
 export function CartDrawer() {
-  const { items, isOpen, isLoading, closeCart, updateQty, removeItem, subtotal, checkout } = useCart()
+  const router = useRouter()
+  const { items, isOpen, closeCart, updateQty, removeItem, subtotal, syncCart } = useCart()
+
+  // Reconcile local cart state with the backend once on mount, rather than
+  // trusting persisted localStorage indefinitely (this component is always
+  // mounted, per app/layout.tsx).
+  useEffect(() => {
+    syncCart()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <Drawer open={isOpen} onClose={closeCart} side="right" title="Your Bag">
@@ -49,7 +60,7 @@ export function CartDrawer() {
                   </p>
                   <div className="flex items-center gap-2 mt-2">
                     <button
-                      onClick={() => updateQty(item.id, item.quantity - 1)}
+                      onClick={() => updateQty(item.productId, item.variantId || undefined, item.quantity - 1)}
                       aria-label="Decrease quantity"
                       className="p-1 rounded-sm border border-brand-border text-brand-olive hover:text-brand-teal hover:border-brand-teal transition-colors"
                     >
@@ -57,14 +68,14 @@ export function CartDrawer() {
                     </button>
                     <span className="text-body-sm w-6 text-center tabular-nums">{item.quantity}</span>
                     <button
-                      onClick={() => updateQty(item.id, item.quantity + 1)}
+                      onClick={() => updateQty(item.productId, item.variantId || undefined, item.quantity + 1)}
                       aria-label="Increase quantity"
                       className="p-1 rounded-sm border border-brand-border text-brand-olive hover:text-brand-teal hover:border-brand-teal transition-colors"
                     >
                       <Plus size={12} />
                     </button>
                     <button
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => removeItem(item.productId, item.variantId || undefined)}
                       aria-label="Remove item"
                       className="ml-auto p-1 text-brand-muted hover:text-brand-rose transition-colors"
                     >
@@ -86,7 +97,7 @@ export function CartDrawer() {
               Shipping &amp; taxes calculated at checkout
             </p>
             {/* Primary CTA — Rose Gold (premium conversion action) */}
-            <Button variant="primary" size="lg" fullWidth loading={isLoading} onClick={checkout}>
+            <Button variant="primary" size="lg" fullWidth onClick={() => { closeCart(); router.push('/checkout') }}>
               Proceed to Checkout
             </Button>
             <Link

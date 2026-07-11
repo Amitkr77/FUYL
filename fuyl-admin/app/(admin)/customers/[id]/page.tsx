@@ -1,32 +1,36 @@
-'use client'
-
-import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ShoppingBag, IndianRupee, TrendingUp, Mail } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
-import { MOCK_CUSTOMERS, MOCK_ORDERS, type OrderStatus } from '@/lib/mock-data'
+import { getCustomer } from '@/lib/customers'
+import type { OrderStatus } from '@/lib/orders'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 const statusVariant = (s: OrderStatus): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
   const map: Record<OrderStatus, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
-    delivered: 'success', shipped: 'info', processing: 'warning', pending: 'default', cancelled: 'danger',
+    completed: 'success', delivered: 'success', shipped: 'info', confirmed: 'info',
+    packed: 'warning', pending: 'default', cancelled: 'danger', returned: 'danger',
   }
   return map[s]
 }
 
-export default function CustomerDetailPage() {
-  const { id } = useParams<{ id: string }>()
+const AVATAR_COLORS = ['bg-violet-100 text-violet-700', 'bg-blue-100 text-blue-700', 'bg-emerald-100 text-emerald-700', 'bg-amber-100 text-amber-700', 'bg-rose-100 text-rose-700']
 
-  // Find customer by matching a slug-like id derived from their index
-  const customer = MOCK_CUSTOMERS.find((c, i) => `c${i + 1}` === id) ?? MOCK_CUSTOMERS.find((_, i) => i === 0)!
-  const customerOrders = MOCK_ORDERS.filter((o) => o.email === customer.email)
-  const avgOrder = customerOrders.length > 0
-    ? Math.round(customer.totalSpent / customer.orders)
-    : 0
+export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const customer = await getCustomer(id)
 
-  const avatarColors = ['bg-violet-100 text-violet-700', 'bg-blue-100 text-blue-700', 'bg-emerald-100 text-emerald-700', 'bg-amber-100 text-amber-700', 'bg-rose-100 text-rose-700']
-  const avatarColor = avatarColors[parseInt(id.replace('c', '') || '1') % avatarColors.length]
-  const initials = customer.name.split(' ').map(n => n[0]).join('').toUpperCase()
+  if (!customer) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <p className="text-2xl font-bold text-slate-900 mb-2">Customer not found</p>
+        <p className="text-slate-500 text-sm">No customer with ID &quot;{id}&quot; exists.</p>
+      </div>
+    )
+  }
+
+  const avgOrder = customer.orders > 0 ? Math.round(customer.totalSpent / customer.orders) : 0
+  const initials = customer.name.split(' ').map((n) => n[0]).join('').toUpperCase()
+  const avatarColor = AVATAR_COLORS[customer.id.charCodeAt(0) % AVATAR_COLORS.length]
 
   return (
     <div className="space-y-5">
@@ -53,6 +57,7 @@ export default function CustomerDetailPage() {
               <Mail className="w-4 h-4" />
               {customer.email}
             </div>
+            {customer.phone && <p className="text-sm text-slate-500 mt-0.5">{customer.phone}</p>}
           </div>
           <a
             href={`mailto:${customer.email}`}
@@ -98,9 +103,9 @@ export default function CustomerDetailPage() {
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
         <div className="p-5 border-b border-slate-100">
           <h3 className="text-sm font-semibold text-slate-900">Order History</h3>
-          <p className="text-xs text-slate-400 mt-0.5">{customerOrders.length} orders found for this customer</p>
+          <p className="text-xs text-slate-400 mt-0.5">{customer.orderHistory.length} orders found for this customer</p>
         </div>
-        {customerOrders.length === 0 ? (
+        {customer.orderHistory.length === 0 ? (
           <div className="py-12 text-center text-slate-400 text-sm">No orders found for this customer</div>
         ) : (
           <div className="overflow-x-auto">
@@ -113,11 +118,11 @@ export default function CustomerDetailPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {customerOrders.map((order) => (
+                {customer.orderHistory.map((order) => (
                   <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-5 py-4 text-sm font-semibold text-slate-900">{order.id}</td>
+                    <td className="px-5 py-4 text-sm font-semibold text-slate-900">{order.orderNumber}</td>
                     <td className="px-5 py-4 text-sm text-slate-500">{formatDate(order.date)}</td>
-                    <td className="px-5 py-4 text-sm text-slate-500">{order.items}</td>
+                    <td className="px-5 py-4 text-sm text-slate-500">{order.itemCount}</td>
                     <td className="px-5 py-4 text-sm font-semibold text-slate-900">{formatCurrency(order.total)}</td>
                     <td className="px-5 py-4">
                       <Badge variant={statusVariant(order.status)}>

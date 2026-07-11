@@ -27,6 +27,30 @@ export class NotificationPreferenceRepository {
     );
   }
 
+  async addPushToken(userId: string | Types.ObjectId, token: string): Promise<INotificationPreference | null> {
+    await this.findOrCreate(userId);
+    return NotificationPreferenceModel.findOneAndUpdate(
+      { userId },
+      { $addToSet: { pushTokens: token } },
+      { new: true }
+    );
+  }
+
+  async removePushToken(userId: string | Types.ObjectId, token: string): Promise<void> {
+    await NotificationPreferenceModel.updateOne(
+      { userId },
+      { $pull: { pushTokens: token } }
+    );
+  }
+
+  /** Remove a token from whichever user has it registered — used when the push provider reports it invalid/expired. */
+  async removePushTokenGlobally(token: string): Promise<void> {
+    await NotificationPreferenceModel.updateMany(
+      { pushTokens: token },
+      { $pull: { pushTokens: token } }
+    );
+  }
+
   async setCategoryOverride(
     userId: string | Types.ObjectId,
     category: string,
@@ -48,8 +72,18 @@ export class NotificationPreferenceRepository {
     if (!pref) return true; // default: enabled
 
     if (category) {
-      const overrides = pref.categoryOverrides as unknown as Map<string, string> | undefined;
-      const override = overrides?.get(category);
+      // BUG FIXED (found in the fixing/testing pass): .lean() serializes a
+      // Mongoose Map-type field to a plain object, not a real Map instance
+      // — `.get()` doesn't exist on it. This threw for every user who had
+      // a preference document at all (created the moment they touch
+      // preferences or register a push token), crashing processOne()
+      // before it ever reached the actual send. Never caught before
+      // because nothing had exercised processOne() directly — every prior
+      // test in this session only got as far as dispatch()'s pre-flight
+      // log write, since the BullMQ worker that calls processOne() never
+      // ran without Redis.
+      const overrides = pref.categoryOverrides as unknown as Record<string, string> | undefined;
+      const override = overrides?.[category];
       if (override === 'enabled') return true;
       if (override === 'disabled') return false;
     }

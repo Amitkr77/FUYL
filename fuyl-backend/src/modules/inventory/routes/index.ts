@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authRequired } from '../../../shared/middleware/auth.middleware';
-import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
+import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
 import { inventoryController } from '../controllers';
 
 const router = Router();
@@ -9,6 +9,7 @@ const router = Router();
 router.get('/inventory/stock/:productId', authRequired, inventoryController.getStock);
 router.get('/inventory/mine', authRequired, authorize(Roles.SELLER, Roles.ADMIN, Roles.SUPER_ADMIN), inventoryController.listMine);
 router.get('/inventory/low-stock', authRequired, authorize(Roles.ADMIN, Roles.SUPER_ADMIN), inventoryController.listLowStock);
+router.get('/admin/inventory', authRequired, requirePermission(Permissions.INVENTORY_MANAGE), inventoryController.listAllForAdmin);
 
 // Adjustments
 router.post('/inventory/adjust', authRequired, authorize(Roles.SELLER, Roles.ADMIN, Roles.SUPER_ADMIN), inventoryController.adjust);

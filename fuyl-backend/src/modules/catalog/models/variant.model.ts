@@ -8,6 +8,7 @@ export interface IVariant extends Document {
   attributes: Map<string, string | number | boolean>;  // e.g. { size: '500g', flavor: 'spicy' }
   price: number;
   salePrice?: number;
+  compareAtPrice?: number;
   currency: string;
   media?: IProductMedia[];
   weight?: number;                   // grams
@@ -27,6 +28,7 @@ const VariantSchema = new Schema<IVariant>(
     attributes: { type: Map, of: Schema.Types.Mixed, default: {} },
     price: { type: Number, required: true, min: 0 },
     salePrice: { type: Number, min: 0 },
+    compareAtPrice: { type: Number, min: 0 },
     currency: { type: String, default: 'INR' },
     media: [{
       url: { type: String, required: true },

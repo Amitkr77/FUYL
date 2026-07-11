@@ -99,13 +99,38 @@ export class ReferralService {
   /**
    * Called when a referee signs up — promote applied → pending.
    */
-  async onUserRegistered(event: { userId: string; appliedReferralCode?: string }) {
+  async onUserRegistered(event: {
+    userId: string; appliedReferralCode?: string; deviceFingerprint?: string; ipHash?: string;
+  }) {
     if (!event.appliedReferralCode) return;
-    const referral = await referralRepo.findByReferee(event.userId);
-    if (!referral) return;
-    await referralRepo.markStatus(referral._id, ReferralStatus.PENDING, {
-      signupAt: new Date(),
-    });
+
+    // BUG FIXED (found live testing the storefront's referral page): this
+    // only ever looked for an ALREADY-EXISTING referral record for this
+    // referee and no-op'd if none was found — but nothing creates that
+    // record ahead of registration in the normal flow (a code entered
+    // directly on the signup form, via /auth/register's own
+    // `referralCode` field). Every registration-time referral silently
+    // went nowhere: the user account recorded `referralCodeApplied`, but
+    // no Referral document — and therefore no reward — was ever created.
+    // Now falls through to applyCode() (the same logic /referrals/apply
+    // uses) when no referral exists yet, instead of assuming one does.
+    const existing = await referralRepo.findByReferee(event.userId);
+    if (existing) {
+      await referralRepo.markStatus(existing._id, ReferralStatus.PENDING, { signupAt: new Date() });
+      return;
+    }
+
+    try {
+      const referral = await this.applyCode({
+        code: event.appliedReferralCode,
+        refereeId: event.userId,
+        deviceFingerprint: event.deviceFingerprint,
+        ipHash: event.ipHash,
+      });
+      await referralRepo.markStatus(referral._id, ReferralStatus.PENDING, { signupAt: new Date() });
+    } catch (err) {
+      logger.warn(`[referral] could not apply code "${event.appliedReferralCode}" at registration for user ${event.userId}`, err);
+    }
   }
 
   /**

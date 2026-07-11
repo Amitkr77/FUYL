@@ -14,6 +14,13 @@ import {
   Leaf,
   LogOut,
   X,
+  Boxes,
+  Wallet,
+  Gift,
+  Tag,
+  Repeat,
+  Undo2,
+  Truck,
 } from 'lucide-react'
 import { logout } from '@/app/(admin)/actions'
 
@@ -41,6 +48,18 @@ const navSections: NavSection[] = [
       { label: 'Products', href: '/products', icon: Package },
       { label: 'Orders', href: '/orders', icon: ShoppingCart },
       { label: 'Customers', href: '/customers', icon: Users },
+      { label: 'Inventory', href: '/inventory', icon: Boxes },
+      { label: 'Shipping', href: '/shipping', icon: Truck },
+      { label: 'Returns', href: '/returns', icon: Undo2 },
+    ],
+  },
+  {
+    title: 'Growth',
+    items: [
+      { label: 'Subscriptions', href: '/subscriptions', icon: Repeat },
+      { label: 'Promotions', href: '/promotions', icon: Tag },
+      { label: 'Referrals', href: '/referrals', icon: Gift },
+      { label: 'Wallet', href: '/wallet', icon: Wallet },
     ],
   },
   {

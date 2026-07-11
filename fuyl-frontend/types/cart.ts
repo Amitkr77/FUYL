@@ -9,6 +9,8 @@ export interface CartItem {
   quantity: number
   image: string
   imageAlt: string
+  subscriptionInterval?: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly'
+  subscriptionDiscountPercent?: number
 }
 
 export interface Cart {

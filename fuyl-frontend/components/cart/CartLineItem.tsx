@@ -31,7 +31,7 @@ export function CartLineItem({ item }: CartLineItemProps) {
             )}
           </div>
           <button
-            onClick={() => removeItem(item.id)}
+            onClick={() => removeItem(item.productId, item.variantId || undefined)}
             aria-label="Remove"
             className="shrink-0 p-1 transition-colors hover:text-red-500"
             style={{ color: 'var(--color-brand-muted)' }}
@@ -43,11 +43,11 @@ export function CartLineItem({ item }: CartLineItemProps) {
         <div className="flex items-center justify-between">
           {/* Qty controls */}
           <div className="inline-flex items-center border rounded-sm" style={{ borderColor: 'var(--color-brand-border)' }}>
-            <button onClick={() => updateQty(item.id, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center hover:bg-[#F5EDE8] transition-colors" aria-label="Decrease">
+            <button onClick={() => updateQty(item.productId, item.variantId || undefined, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center hover:bg-[#F5EDE8] transition-colors" aria-label="Decrease">
               <Minus size={12} />
             </button>
             <span className="w-8 text-center text-body-sm font-semibold tabular-nums">{item.quantity}</span>
-            <button onClick={() => updateQty(item.id, item.quantity + 1)} className="w-8 h-8 flex items-center justify-center hover:bg-[#F5EDE8] transition-colors" aria-label="Increase">
+            <button onClick={() => updateQty(item.productId, item.variantId || undefined, item.quantity + 1)} className="w-8 h-8 flex items-center justify-center hover:bg-[#F5EDE8] transition-colors" aria-label="Increase">
               <Plus size={12} />
             </button>
           </div>

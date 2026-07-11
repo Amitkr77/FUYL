@@ -1,9 +1,23 @@
 import { FilterQuery, Types } from 'mongoose';
 import { IProduct, ProductModel } from '../models/product.model';
+import { ProductStatus } from '../../../shared/enums';
+
+/**
+ * isPublished/isDeleted remain the fields every existing query filters on;
+ * `status` is the admin-facing source of truth. Keep them in sync on every
+ * write that touches `status` so both stay correct without rewriting queries.
+ */
+function deriveFlags(status: typeof ProductStatus[keyof typeof ProductStatus]) {
+  return {
+    isPublished: status === ProductStatus.ACTIVE,
+    isDeleted: status === ProductStatus.ARCHIVED,
+  };
+}
 
 export class ProductRepository {
   async create(data: Partial<IProduct>): Promise<IProduct> {
-    return ProductModel.create(data);
+    const status = data.status ?? ProductStatus.DRAFT;
+    return ProductModel.create({ ...data, status, ...deriveFlags(status) });
   }
 
   async findById(id: string | Types.ObjectId): Promise<IProduct | null> {
@@ -23,23 +37,30 @@ export class ProductRepository {
   }
 
   async update(id: string | Types.ObjectId, patch: Partial<IProduct>): Promise<IProduct | null> {
-    return ProductModel.findByIdAndUpdate(id, { $set: patch }, { new: true, runValidators: true });
+    const set = patch.status ? { ...patch, ...deriveFlags(patch.status) } : patch;
+    return ProductModel.findByIdAndUpdate(id, { $set: set }, { new: true, runValidators: true });
   }
 
   async softDelete(id: string | Types.ObjectId): Promise<void> {
-    await ProductModel.findByIdAndUpdate(id, { $set: { isDeleted: true, isPublished: false } });
+    await ProductModel.findByIdAndUpdate(id, {
+      $set: { status: ProductStatus.ARCHIVED, ...deriveFlags(ProductStatus.ARCHIVED) },
+    });
   }
 
   async publish(id: string | Types.ObjectId): Promise<IProduct | null> {
     return ProductModel.findByIdAndUpdate(
       id,
-      { $set: { isPublished: true, publishedAt: new Date() } },
+      { $set: { status: ProductStatus.ACTIVE, ...deriveFlags(ProductStatus.ACTIVE), publishedAt: new Date() } },
       { new: true }
     );
   }
 
   async unpublish(id: string | Types.ObjectId): Promise<IProduct | null> {
-    return ProductModel.findByIdAndUpdate(id, { $set: { isPublished: false } }, { new: true });
+    return ProductModel.findByIdAndUpdate(
+      id,
+      { $set: { status: ProductStatus.DRAFT, ...deriveFlags(ProductStatus.DRAFT) } },
+      { new: true }
+    );
   }
 
   async paginate(filter: FilterQuery<IProduct> = {}, page = 1, limit = 20) {

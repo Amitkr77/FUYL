@@ -14,6 +14,8 @@ router.put(
   authRequired,
   notificationController.setCategoryOverride
 );
+router.post('/notifications/device-token', authRequired, notificationController.registerPushToken);
+router.delete('/notifications/device-token', authRequired, notificationController.unregisterPushToken);
 
 // Admin: Templates
 router.get(

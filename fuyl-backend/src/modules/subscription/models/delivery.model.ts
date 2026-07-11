@@ -23,7 +23,7 @@ export interface ISubscriptionDelivery extends Document {
 const SubscriptionDeliverySchema = new Schema<ISubscriptionDelivery>(
   {
     subscriptionId: { type: Schema.Types.ObjectId, ref: 'Subscription', required: true, index: true },
-    customerId: { type: Schema.Types.ObjectId, ref: 'Customer', required: true, index: true },
+    customerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     cycleNumber: { type: Number, required: true },
     scheduledFor: { type: Date, required: true, index: true },
     executedAt: { type: Date },

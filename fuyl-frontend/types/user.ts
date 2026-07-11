@@ -27,11 +27,23 @@ export interface OrderLineItem {
   image: string
 }
 
+// Mirrors the backend's canonical OrderStatus enum (src/shared/enums/index.ts)
+// exactly — do not diverge without updating both sides.
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'packed'
+  | 'shipped'
+  | 'delivered'
+  | 'completed'
+  | 'cancelled'
+  | 'returned'
+
 export interface Order {
   id: string
   orderNumber: string
   createdAt: string
-  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'
+  status: OrderStatus
   items: OrderLineItem[]
   subtotal: number
   shipping: number

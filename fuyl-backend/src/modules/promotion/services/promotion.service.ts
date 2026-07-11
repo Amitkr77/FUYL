@@ -115,13 +115,25 @@ class PromotionService {
       return { valid: false, reason: 'Coupon code not found', couponCode: code };
     }
 
+    // Campaign-level gate — previously only the coupon subdocument's own
+    // isActive/dates were checked here, so a coupon on a draft/paused
+    // campaign (or one outside the campaign's own date window) could still
+    // validate successfully. Found in the integration audit, fixed here.
+    const now = new Date();
+    if (campaign.status !== 'active' || !campaign.isActive) {
+      return { valid: false, reason: 'This promotion is not currently active', couponCode: code };
+    }
+    if (campaign.startsAt > now) {
+      return { valid: false, reason: 'This promotion has not started yet', couponCode: code };
+    }
+    if (campaign.endsAt && campaign.endsAt < now) {
+      return { valid: false, reason: 'This promotion has ended', couponCode: code };
+    }
+
     const coupon = campaign.coupons.find((c) => c.code === code);
     if (!coupon || !coupon.isActive) {
       return { valid: false, reason: 'Coupon is inactive', couponCode: code };
     }
-
-    // Time window
-    const now = new Date();
     if (coupon.startsAt > now) {
       return { valid: false, reason: 'Coupon not yet active', couponCode: code };
     }

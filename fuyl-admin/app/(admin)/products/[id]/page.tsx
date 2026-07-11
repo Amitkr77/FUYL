@@ -1,12 +1,13 @@
-'use client'
-
-import { useParams } from 'next/navigation'
-import { getProductById } from '@/lib/mock-data'
+import { getAdminProduct, getCategories, getAttributes } from '@/lib/products'
 import { ProductForm } from '@/components/products/ProductForm'
 
-export default function EditProductPage() {
-  const { id } = useParams<{ id: string }>()
-  const product = getProductById(id)
+export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const [product, categories, attributes] = await Promise.all([
+    getAdminProduct(id),
+    getCategories(),
+    getAttributes(),
+  ])
 
   if (!product) {
     return (
@@ -17,5 +18,5 @@ export default function EditProductPage() {
     )
   }
 
-  return <ProductForm product={product} />
+  return <ProductForm product={product} categories={categories} attributes={attributes} />
 }

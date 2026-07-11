@@ -132,7 +132,7 @@ export class IdentityService {
     if (!user || !user.isActive) throw new UnauthorizedError('User not found or inactive');
 
     // Rotate: revoke old, issue new
-    const newRefresh = signRefreshToken({ userId: user.id, role: user.role, email: user.email });
+    const newRefresh = signRefreshToken({ userId: user.id, role: user.role, email: user.email, permissions: user.permissions });
     await refreshRepo.revoke(tokenHash, hashToken(newRefresh));
     await refreshRepo.create({
       tokenHash: hashToken(newRefresh),
@@ -143,7 +143,7 @@ export class IdentityService {
       isRevoked: false,
     });
 
-    const newAccess = signAccessToken({ userId: user.id, role: user.role, email: user.email });
+    const newAccess = signAccessToken({ userId: user.id, role: user.role, email: user.email, permissions: user.permissions });
     return { accessToken: newAccess, refreshToken: newRefresh };
   }
 
@@ -240,16 +240,28 @@ export class IdentityService {
     return updated;
   }
 
+  /**
+   * Admin-only: grant/revoke granular permissions for a non-admin account
+   * (see shared/middleware/rbac.middleware.ts's Permissions/requirePermission).
+   * Takes effect on the user's next login/refresh — permissions are baked
+   * into the access token at issuance, same as `role` already is.
+   */
+  async setPermissions(userId: string, permissions: string[]) {
+    const updated = await userRepo.update(userId, { permissions });
+    if (!updated) throw new NotFoundError('User');
+    return updated;
+  }
+
   async listSessions(userId: string) {
     return refreshRepo.listActiveForUser(userId);
   }
 
   private async issueTokens(
-    user: { _id: string | mongoose.Types.ObjectId; role: string; email: string },
+    user: { _id: string | mongoose.Types.ObjectId; role: string; email: string; permissions?: string[] },
     meta: { ip?: string; userAgent?: string }
   ) {
     const userIdStr = user._id.toString();
-    const payload: JwtPayload = { userId: userIdStr, role: user.role, email: user.email };
+    const payload: JwtPayload = { userId: userIdStr, role: user.role, email: user.email, permissions: user.permissions };
     const accessToken = signAccessToken(payload);
     const refreshToken = signRefreshToken(payload);
 

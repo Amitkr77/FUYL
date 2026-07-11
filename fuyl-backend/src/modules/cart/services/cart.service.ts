@@ -94,6 +94,7 @@ class CartService {
       quantity: input.quantity,
       currency: priceInfo.currency,
       isSubscribable: product.isSubscribable,
+      isTaxable: product.isTaxable,
       addedAt: new Date(),
       subscriptionInterval: input.subscriptionInterval,
       subscriptionDiscountPercent: input.subscriptionDiscountPercent,

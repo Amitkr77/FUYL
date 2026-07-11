@@ -97,6 +97,7 @@ export class PaymentService {
           gatewayTransactionId: result.transaction._id.toString(),
           description: `Wallet payment for order ${order.orderNumber}`,
         });
+        await orderService.updatePaymentStatus(orderId, PaymentStatus.SUCCESS);
         return { payment, wallet: true };
       } catch (err) {
         throw new BadRequestError(err instanceof Error ? err.message : 'Wallet payment failed');
@@ -187,6 +188,8 @@ export class PaymentService {
       description: `Razorpay payment captured`,
     });
 
+    await orderService.updatePaymentStatus(payment.orderId.toString(), PaymentStatus.SUCCESS);
+
     eventBus.publish(Events.PAYMENT_SUCCESS, {
       orderId: payment.orderId.toString(),
       paymentId: payment.id,
@@ -219,6 +222,24 @@ export class PaymentService {
         logger.error('[payment] razorpay refund failed', err);
         throw new BadRequestError('Razorpay refund failed');
       }
+    } else if (payment.gateway === 'wallet') {
+      // BUG FIXED (found in the fixing/testing pass): a payment originally
+      // made by debiting the customer's wallet has no gateway to call back —
+      // this branch previously fell through to the bottom of the function,
+      // which still marked the payment REFUNDED/PARTIALLY_REFUNDED and wrote
+      // a success 'refund' transaction, even though the customer's wallet
+      // was never actually credited back. The money was simply lost from
+      // the system's perspective while the records claimed success.
+      const { WalletService } = await import('../../wallet/services/wallet.service');
+      const walletService = new WalletService();
+      await walletService.credit({
+        userId: payment.customerId.toString(),
+        amount: refundAmount,
+        source: 'order_refund',
+        description: opts.reason,
+        referenceType: 'payment',
+        referenceId: payment.id,
+      });
     }
 
     const newRefundedAmount = payment.refundedAmount + refundAmount;
@@ -245,6 +266,8 @@ export class PaymentService {
       gatewayTransactionId: razorpayRefundId,
       description: opts.reason,
     });
+
+    await orderService.updatePaymentStatus(payment.orderId.toString(), newStatus);
 
     eventBus.publish(Events.PAYMENT_REFUNDED, {
       orderId: payment.orderId.toString(),
@@ -275,6 +298,7 @@ export class PaymentService {
         capturedAt: new Date(),
         gatewayResponse: paymentEntity,
       });
+      await orderService.updatePaymentStatus(payment.orderId.toString(), PaymentStatus.SUCCESS);
       eventBus.publish(Events.PAYMENT_SUCCESS, {
         orderId: payment.orderId.toString(),
         paymentId: payment.id,
@@ -293,6 +317,7 @@ export class PaymentService {
         status: PaymentStatus.FAILED,
         failureReason: paymentEntity.error_description ?? 'Payment failed',
       });
+      await orderService.updatePaymentStatus(payment.orderId.toString(), PaymentStatus.FAILED);
       eventBus.publish(Events.PAYMENT_FAILED, {
         orderId: payment.orderId.toString(),
         paymentId: payment.id,

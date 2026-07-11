@@ -38,7 +38,7 @@ export interface ISubscription extends Document {
 
 const SubscriptionSchema = new Schema<ISubscription>(
   {
-    customerId: { type: Schema.Types.ObjectId, ref: 'Customer', required: true, index: true },
+    customerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
     variantId: { type: Schema.Types.ObjectId, ref: 'Variant' },
     planId: { type: Schema.Types.ObjectId, ref: 'SubscriptionPlan', required: true },

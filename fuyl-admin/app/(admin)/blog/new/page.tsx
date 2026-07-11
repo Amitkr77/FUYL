@@ -1,22 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, Save, CheckCircle2, Eye } from 'lucide-react'
+import { ArrowLeft, Save, CheckCircle2, Eye, AlertCircle, ImagePlus, X, Code, Plus } from 'lucide-react'
+import { createPostAction, getBlogImageUploadSignature } from '../actions'
+import { uploadImage } from '@/lib/upload'
 
 const CATEGORIES = ['Nutrition Science', 'Ingredients', 'Industry Insights', 'Lifestyle', 'Research']
 const AUTHORS = ['FUYL Team', 'Dr. Rima Khanna', 'Anjali Mehta', 'Vikram Rao']
 
+const inputCls = 'w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent'
+
 export default function NewBlogPostPage() {
-  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+  const [isUploading, setIsUploading] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [tagInput, setTagInput] = useState('')
   const [form, setForm] = useState({
     title: '',
+    excerpt: '',
     category: 'Nutrition Science',
+    tags: [] as string[],
     author: 'FUYL Team',
     status: 'draft' as 'draft' | 'published',
     content: '',
+    image: '',
   })
 
   const slug = form.title
@@ -27,13 +38,38 @@ export default function NewBlogPostPage() {
 
   const set = (k: Partial<typeof form>) => setForm((f) => ({ ...f, ...k }))
 
-  const handleSave = (publish = false) => {
-    if (publish) set({ status: 'published' })
-    setSaved(true)
-    setTimeout(() => { setSaved(false); router.push('/blog') }, 2000)
+  const addTag = () => {
+    const value = tagInput.trim()
+    if (!value || form.tags.includes(value)) { setTagInput(''); return }
+    set({ tags: [...form.tags, value] })
+    setTagInput('')
+  }
+  const removeTag = (tag: string) => set({ tags: form.tags.filter((t) => t !== tag) })
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setError('')
+    setIsUploading(true)
+    const result = await uploadImage(file, getBlogImageUploadSignature)
+    setIsUploading(false)
+    if ('error' in result) { setError(result.error); return }
+    set({ image: result.url })
   }
 
-  const inputCls = 'w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent'
+  const handleSave = (publish = false) => {
+    setError('')
+    const input = { ...form, status: publish ? ('published' as const) : form.status }
+    startTransition(async () => {
+      const result = await createPostAction(input)
+      if (result?.error) {
+        setError(result.error)
+        return
+      }
+      setSaved(true)
+    })
+  }
 
   return (
     <div className="space-y-5">
@@ -45,23 +81,31 @@ export default function NewBlogPostPage() {
           </Link>
           <div>
             <h2 className="text-xl font-bold text-slate-900">New Blog Post</h2>
-            <p className="text-sm text-slate-500">Draft saved automatically</p>
+            <p className="text-sm text-slate-500">Fill in the details and save or publish</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => handleSave(false)} className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors">
+          <button onClick={() => handleSave(false)} disabled={isPending} className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50">
             <Save className="w-4 h-4" />
             Save Draft
           </button>
           <button
             onClick={() => handleSave(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors"
+            disabled={isPending}
+            className="flex items-center gap-2 px-4 py-2 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
           >
             {saved ? <CheckCircle2 className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             {saved ? 'Published!' : 'Publish'}
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Main editor */}
@@ -78,19 +122,41 @@ export default function NewBlogPostPage() {
               />
               {slug && (
                 <p className="text-xs text-slate-400 mt-1.5">
-                  Slug: <span className="font-mono text-slate-600">/blog/{slug}</span>
+                  Slug: <span className="font-mono text-slate-600">/blog/{slug}</span> (assigned by the server on save)
                 </p>
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Content</label>
-              <textarea
-                value={form.content}
-                onChange={(e) => set({ content: e.target.value })}
-                rows={18}
-                placeholder={`Start writing your article...\n\nTip: Use clear headings, short paragraphs, and back claims with research.`}
-                className={`${inputCls} resize-none font-mono text-sm leading-relaxed`}
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Excerpt</label>
+              <textarea value={form.excerpt} onChange={(e) => set({ excerpt: e.target.value })} rows={2}
+                placeholder="A short summary shown in post listings..."
+                maxLength={300}
+                className={`${inputCls} resize-none`} />
+              <p className="text-xs text-slate-400 mt-1.5">{form.excerpt.length}/300</p>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-slate-700">Content</label>
+                <button type="button" onClick={() => setShowPreview((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-[#558476] hover:underline">
+                  <Code className="w-3.5 h-3.5" />
+                  {showPreview ? 'Edit HTML' : 'Preview rendered HTML'}
+                </button>
+              </div>
+              {showPreview ? (
+                <div
+                  className="prose prose-sm max-w-none w-full px-4 py-3 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm leading-relaxed min-h-[420px]"
+                  dangerouslySetInnerHTML={{ __html: form.content || '<p class="text-slate-400">Nothing to preview yet.</p>' }}
+                />
+              ) : (
+                <textarea
+                  value={form.content}
+                  onChange={(e) => set({ content: e.target.value })}
+                  rows={18}
+                  placeholder={`Start writing your article...\n\nPlain text or HTML both work (<p>, <h2>, <strong>, <a>, <ul>...) — it's rendered as-is on the storefront.`}
+                  className={`${inputCls} resize-none font-mono text-sm leading-relaxed`}
+                />
+              )}
               <p className="text-xs text-slate-400 mt-1.5">
                 {form.content.split(/\s+/).filter(Boolean).length} words
               </p>
@@ -121,6 +187,57 @@ export default function NewBlogPostPage() {
                 {AUTHORS.map((a) => <option key={a}>{a}</option>)}
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Tags</label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {form.tags.map((tag) => (
+                  <span key={tag} className="flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full bg-[#558476]/10 text-[#558476] text-xs font-medium">
+                    {tag}
+                    <button type="button" onClick={() => removeTag(tag)} className="p-0.5 hover:text-red-500"><X className="w-3 h-3" /></button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }}
+                  placeholder="Add a tag…"
+                  className={inputCls}
+                />
+                <button type="button" onClick={addTag} className="p-2.5 rounded-lg border border-slate-200 text-slate-500 hover:text-[#558476] hover:border-[#558476]/40">
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+            <h3 className="text-sm font-semibold text-slate-900 mb-3">Cover Image</h3>
+            <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleImageChange} />
+            {form.image ? (
+              <div className="relative group">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={form.image} alt="" className="w-full aspect-video rounded-lg object-cover border border-slate-200" />
+                <div className="absolute inset-0 rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
+                    className="px-3 py-1.5 rounded-lg bg-white text-xs font-medium text-slate-700 hover:text-[#558476]">
+                    {isUploading ? 'Uploading…' : 'Replace'}
+                  </button>
+                  <button type="button" onClick={() => set({ image: '' })}
+                    className="px-3 py-1.5 rounded-lg bg-white text-xs font-medium text-red-500">
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
+                className="w-full aspect-video border-2 border-dashed border-slate-200 rounded-lg flex flex-col items-center justify-center gap-1.5 hover:border-[#558476]/40 transition-colors disabled:opacity-60">
+                <ImagePlus className="w-6 h-6 text-slate-300" />
+                <span className="text-xs text-slate-500 font-medium">{isUploading ? 'Uploading…' : 'Click to upload cover image'}</span>
+              </button>
+            )}
           </div>
 
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
@@ -131,7 +248,7 @@ export default function NewBlogPostPage() {
                 {form.title || 'Your Post Title'}
               </p>
               <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                {form.content.slice(0, 120) || 'Post description will appear here...'}
+                {form.excerpt || 'Post description will appear here...'}
               </p>
             </div>
           </div>

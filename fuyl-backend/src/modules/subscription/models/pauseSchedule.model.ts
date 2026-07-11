@@ -14,7 +14,7 @@ export interface ISubscriptionPauseSchedule extends Document {
 const SubscriptionPauseScheduleSchema = new Schema<ISubscriptionPauseSchedule>(
   {
     subscriptionId: { type: Schema.Types.ObjectId, ref: 'Subscription', required: true, index: true },
-    customerId: { type: Schema.Types.ObjectId, ref: 'Customer', required: true },
+    customerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     startDate: { type: Date, required: true },
     endDate: { type: Date },
     reason: { type: String, trim: true },

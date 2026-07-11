@@ -98,7 +98,7 @@ export function Header() {
         {/* Logo */}
         <Link href="/" className="shrink-0 mr-auto lg:mr-0">
           <Image
-            src="https://fuyl.in/cdn/shop/files/Final_Logo_290526.png?v=1780044950"
+            src="/logo.webp"
             alt="FUYL"
             width={100}
             height={36}

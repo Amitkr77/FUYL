@@ -16,6 +16,12 @@ export const OrderStatus = {
   RETURNED: 'returned',
 } as const;
 
+export const ProductStatus = {
+  ACTIVE: 'active',
+  DRAFT: 'draft',
+  ARCHIVED: 'archived',
+} as const;
+
 export const PaymentStatus = {
   PENDING: 'pending',
   SUCCESS: 'success',
@@ -79,6 +85,18 @@ export const NotificationChannel = {
   SMS: 'sms',
   WHATSAPP: 'whatsapp',
   PUSH: 'push',
+} as const;
+
+export const ShipmentStatus = {
+  PENDING: 'pending',               // shipment record created, not yet handed to carrier
+  LABEL_CREATED: 'label_created',
+  PICKED_UP: 'picked_up',
+  IN_TRANSIT: 'in_transit',
+  OUT_FOR_DELIVERY: 'out_for_delivery',
+  DELIVERED: 'delivered',
+  FAILED: 'failed',
+  RETURNED_TO_ORIGIN: 'returned_to_origin',
+  CANCELLED: 'cancelled',
 } as const;
 
 export type EnumOf<T extends Record<string, string>> = T[keyof T];

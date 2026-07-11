@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { User } from '@/types/user'
 import { login as apiLogin, register as apiRegister } from '@/lib/api/account'
+import { useCartStore } from './cartStore'
 
 interface AuthState {
   user:       User | null
@@ -12,9 +13,10 @@ interface AuthState {
   error:      string | null
   // Actions
   login:      (email: string, password: string) => Promise<void>
-  register:   (payload: { firstName: string; lastName: string; email: string; password: string; phone?: string }) => Promise<void>
+  register:   (payload: { firstName: string; lastName: string; email: string; password: string; phone?: string; referralCode?: string }) => Promise<void>
   logout:     () => void
   clearError: () => void
+  setUser:    (user: User) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -28,8 +30,9 @@ export const useAuthStore = create<AuthState>()(
       login: async (email, password) => {
         set({ isLoading: true, error: null })
         try {
-          const { token, user } = await apiLogin({ email, password })
-          set({ token, user })
+          const { accessToken, user } = await apiLogin({ email, password })
+          set({ token: accessToken, user })
+          await useCartStore.getState().mergeGuestCart()
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : 'Login failed. Please try again.'
           set({ error: message })
@@ -41,8 +44,9 @@ export const useAuthStore = create<AuthState>()(
       register: async (payload) => {
         set({ isLoading: true, error: null })
         try {
-          const { token, user } = await apiRegister(payload)
-          set({ token, user })
+          const { accessToken, user } = await apiRegister(payload)
+          set({ token: accessToken, user })
+          await useCartStore.getState().mergeGuestCart()
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : 'Registration failed. Please try again.'
           set({ error: message })
@@ -53,6 +57,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout:     () => set({ user: null, token: null }),
       clearError: () => set({ error: null }),
+      setUser:    (user) => set({ user }),
     }),
     {
       name:       'fuyl_auth',

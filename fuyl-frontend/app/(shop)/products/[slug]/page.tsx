@@ -1,9 +1,14 @@
+import { notFound } from 'next/navigation'
 import { generateSEO } from '@/lib/utils/seo'
-import { getProduct } from '@/lib/api/products'
+import { getProduct, getProductReviews, type ReviewCard } from '@/lib/api/products'
 import { ProductGallery } from '@/components/product/ProductGallery'
 import { ProductInfo } from '@/components/product/ProductInfo'
 import { ProductTabs } from '@/components/product/ProductTabs'
 import { ReviewsWidget } from '@/components/product/ReviewsWidget'
+import { DeliveryInfo } from '@/components/product/DeliveryInfo'
+import { CertificationMarquee } from '@/components/product/CertificationMarquee'
+import { FaqAccordion } from '@/components/product/FaqAccordion'
+import { RecommendedProducts } from '@/components/product/RecommendedProducts'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import type { Product } from '@/types/product'
 
@@ -24,46 +29,40 @@ export async function generateMetadata({ params }: Props) {
   }
 }
 
-// Fallback product for when backend isn't ready yet
-const FALLBACK_PRODUCT: Product = {
-  id:             'fuyl-complete',
-  slug:           'fuyl-complete',
-  name:           'FUYL COMPLETE+',
-  title:          'FUYL COMPLETE+',
-  description:    '<p>60+ premium ingredients in one daily sachet. Covers gut health, energy, immunity, liver support, stress, antioxidants and more. Made in India, research-backed, free from artificial colours and flavours.</p>',
-  seoDescription: 'Complete daily nutrition powder — 60+ research-backed ingredients in one sachet.',
-  price:          1499,
-  compareAtPrice: 1799,
-  badge:          'Best Seller',
-  available:      true,
-  rating:         4.8,
-  reviewCount:    247,
-  tags:           ['vegetarian', 'free-shipping', 'made-in-india'],
-  images: [
-    { id: '1', url: 'https://fuyl.in/cdn/shop/files/FUYL_Complete_Product_Shot.jpg', altText: 'FUYL COMPLETE+ sachet', width: 800, height: 800 },
-  ],
-  variants: [
-    { id: 'v1', title: 'Mixed Berry · 15 Sachets', price: 1499, compareAtPrice: 1799, available: true, sku: 'FUYL-COMP-001' },
-  ],
-}
-
-const FALLBACK_REVIEWS = [
-  { id: '1', author: 'Priya S.', rating: 5, date: 'May 2025', body: 'I have been taking FUYL for 3 months now. My energy levels are noticeably better and my digestion has improved significantly.', verified: true },
-  { id: '2', author: 'Rahul M.', rating: 5, date: 'April 2025', body: 'Finally a supplement brand that is transparent about what\'s in it. The taste is great too — doesn\'t taste like medicine at all.', verified: true },
-  { id: '3', author: 'Dr. Anita K.', rating: 5, date: 'March 2025', body: 'As a nutritionist I am impressed by the ingredient quality and clinical backing. I now recommend FUYL to my clients.', verified: false },
-]
-
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params
 
-  let product: Product = FALLBACK_PRODUCT
+  // BUG FIXED (found live — this was reported as "add to cart isn't
+  // working"): a failed product fetch (wrong/stale slug, product
+  // unpublished, brief backend hiccup) used to silently render a
+  // hardcoded fallback product with a fake variant id ("v1") instead of a
+  // real one. The page looked completely normal, but "Add to Bag" always
+  // failed — v1 isn't a real 24-character Mongo id, so the cart API
+  // rejected it — and the button's own error handling (see
+  // AddToCartButton.tsx) had the same silent-failure bug, so it showed
+  // "Added to Bag" regardless. A real product that fails to load should
+  // 404, not impersonate a working page.
+  let product: Product
   try {
     product = await getProduct(slug)
   } catch {
-    // Use fallback while backend is being built
+    notFound()
+  }
+
+  let reviews: ReviewCard[] = []
+  let averageRating = product.rating ?? 0
+  let totalCount = product.reviewCount ?? 0
+  try {
+    const reviewData = await getProductReviews(product.id)
+    reviews = reviewData.reviews
+    averageRating = reviewData.averageRating
+    totalCount = reviewData.totalCount
+  } catch {
+    // No reviews yet, or the reviews service hiccuped — not fatal to the page.
   }
 
   return (
+    <>
     <div className="container-brand section-py">
       <Breadcrumbs
         className="mb-6"
@@ -84,10 +83,25 @@ export default async function ProductPage({ params }: Props) {
 
       {/* Reviews */}
       <ReviewsWidget
-        reviews={FALLBACK_REVIEWS}
-        averageRating={product.rating ?? 4.8}
-        totalCount={product.reviewCount ?? 0}
+        reviews={reviews}
+        averageRating={averageRating}
+        totalCount={totalCount}
       />
+
+      <div className="mt-10">
+        <DeliveryInfo />
+      </div>
+
+      <div className="mt-10">
+        <FaqAccordion faqs={product.faqs} />
+      </div>
+
+      <div className="mt-10">
+        <RecommendedProducts excludeProductId={product.id} />
+      </div>
     </div>
+
+    <CertificationMarquee certifications={product.certifications} />
+    </>
   )
 }

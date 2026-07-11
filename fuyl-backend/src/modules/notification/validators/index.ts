@@ -27,7 +27,12 @@ export const categoryOverrideSchema = z.object({
   preference: z.enum(['enabled', 'disabled']),
 });
 
+export const pushTokenSchema = z.object({
+  token: z.string().min(10).max(4096),
+});
+
 export type TemplateDTO = z.infer<typeof templateSchema>;
 export type UpdateTemplateDTO = z.infer<typeof updateTemplateSchema>;
 export type PreferenceDTO = z.infer<typeof preferenceSchema>;
 export type CategoryOverrideDTO = z.infer<typeof categoryOverrideSchema>;
+export type PushTokenDTO = z.infer<typeof pushTokenSchema>;

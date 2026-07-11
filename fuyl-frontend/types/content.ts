@@ -48,3 +48,11 @@ export interface FAQ {
   question: string
   answer: string
 }
+
+export interface InstagramPost {
+  id: string
+  caption?: string
+  mediaUrl: string
+  permalink: string
+  mediaType: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM'
+}

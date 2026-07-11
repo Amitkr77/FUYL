@@ -21,6 +21,10 @@ import { adminRouter } from '../modules/admin';
 // NEW modules — fully implemented
 import { subscriptionRouter } from '../modules/subscription';
 import { referralRouter } from '../modules/referral';
+import { uploadRouter } from '../modules/upload';
+import { contentRouter } from '../modules/content';
+import { marketingRouter } from '../modules/marketing';
+import { shippingRouter } from '../modules/shipping';
 
 const router = Router();
 
@@ -49,5 +53,9 @@ router.use(adminRouter);
 // NEW modules
 router.use(subscriptionRouter);
 router.use(referralRouter);
+router.use(uploadRouter);
+router.use(contentRouter);
+router.use(marketingRouter);
+router.use(shippingRouter);
 
 export default router;

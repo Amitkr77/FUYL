@@ -7,6 +7,11 @@ export interface JwtPayload {
   userId: string;
   role: string;
   email: string;
+  // Granular permission grants, additive on top of role. Baked into the
+  // token at issuance (same staleness trade-off `role` already has —
+  // changes take effect on next login/refresh, not instantly), so
+  // permission checks don't need a DB roundtrip per request.
+  permissions?: string[];
   iat?: number;
   exp?: number;
 }
@@ -31,8 +36,18 @@ export function authenticate(required: boolean = true) {
       req.user = payload;
       next();
     } catch {
-      if (required) return next(new UnauthorizedError('Invalid or expired token'));
-      next();
+      // BUG FIXED (found live — reported as "add to cart works but review
+      // order says cart is empty"): "optional" auth used to mean a bad
+      // token was silently treated the same as no token at all, so an
+      // expired access token on e.g. POST /cart/items quietly fell back to
+      // the anonymous/guest identity instead of erroring — the item landed
+      // in a guest cart, not the signed-in user's cart, with no visible
+      // failure. "Optional" should only mean a *missing* Authorization
+      // header is fine; a *present-but-invalid* one is a stale session, not
+      // an anonymous request, and must still 401 so the frontend's
+      // apiFetch refresh-and-retry logic (which only fires on 401) can
+      // catch it and retry with a valid identity instead of a wrong one.
+      return next(new UnauthorizedError('Invalid or expired token'));
     }
   };
 }

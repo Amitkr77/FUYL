@@ -1,153 +1,47 @@
 import { SubscriptionRepository } from '../repositories/subscription.repository';
-import { DeliveryRepository } from '../repositories/delivery.repository';
-import { EventRepository } from '../repositories/event.repository';
-import { ISubscription } from '../models/subscription.model';
-import { SubscriptionStatus } from '../../../shared/enums';
-import { calcNextDeliveryDate } from '../utils/billingCycle';
-import { razorpayService } from '../utils/razorpay.service';
-import { eventBus, Events } from '../../../shared/services/eventBus.service';
-import { queueService } from '../../../shared/services/queue.service';
 import { logger } from '../../../config/logger';
-import mongoose from 'mongoose';
 
 const subRepo = new SubscriptionRepository();
-const deliveryRepo = new DeliveryRepository();
-const eventRepo = new EventRepository();
 
 /**
- * Billing cycle executor — runs daily via cron.
- * Picks due subscriptions, generates an order, charges via Razorpay, records delivery.
+ * Billing monitor — runs daily via cron.
+ *
+ * This used to be the trigger that created subscription orders: it found
+ * "due" subscriptions and optimistically spawned an order for each one
+ * before any payment had actually been confirmed (see git history). That
+ * was wrong for two reasons:
+ *
+ *  1. Razorpay Subscriptions (UPI Autopay/e-mandate) charges the customer
+ *     on its own schedule and tells us the outcome via webhook
+ *     (subscription.charged / payment_failed / halted) — our own cron
+ *     guessing "it's due, so it must have been charged" has no real
+ *     signal behind it.
+ *  2. It used a hardcoded placeholder shipping address for every order
+ *     ("Subscriber", Bangalore 560001) regardless of who the customer was.
+ *
+ * Order creation now happens in razorpayWebhookService.onCharged(), which
+ * only runs once Razorpay confirms a real payment, and resolves the
+ * customer's actual saved address. This service's remaining job is a
+ * read-only safety net: flag ACTIVE subscriptions whose nextDeliveryDate
+ * passed without any webhook moving them since, which likely means a
+ * webhook delivery was missed. It never mutates subscription/order state
+ * or fabricates a charge outcome — only a human (or a Razorpay-side
+ * reconciliation report) can determine what actually happened to a
+ * payment we never heard back about.
  */
 export class BillingService {
-  async runDaily(): Promise<{ processed: number; succeeded: number; failed: number }> {
-    const now = new Date();
-    const due = await subRepo.findDueForBilling(now);
-    logger.info(`[billing] processing ${due.length} due subscriptions`);
-
-    let succeeded = 0;
-    let failed = 0;
-
-    for (const sub of due) {
-      try {
-        await this.processSubscription(sub);
-        succeeded++;
-      } catch (err) {
-        logger.error(`[billing] subscription ${sub.id} failed`, err);
-        failed++;
-      }
+  async runDaily(graceHours = 24): Promise<{ overdue: number }> {
+    const overdue = await subRepo.findOverdueActive(graceHours);
+    if (overdue.length > 0) {
+      logger.warn(
+        `[billing] ${overdue.length} subscription(s) are ACTIVE with nextDeliveryDate more than ${graceHours}h in the past ` +
+        `and no webhook has updated them since — possible missed Razorpay webhook delivery. Needs manual review.`,
+        { subscriptionIds: overdue.map((s) => s.id) }
+      );
+    } else {
+      logger.info('[billing] no overdue subscriptions found');
     }
-
-    return { processed: due.length, succeeded, failed };
-  }
-
-  async processSubscription(sub: ISubscription): Promise<void> {
-    const cycleNumber = await deliveryRepo.nextCycleNumber(sub._id);
-
-    // Schedule a delivery record (status=processing)
-    const delivery = await deliveryRepo.create({
-      subscriptionId: sub._id,
-      customerId: sub.customerId,
-      cycleNumber,
-      scheduledFor: sub.nextDeliveryDate,
-      executedAt: new Date(),
-      amount: sub.finalPrice,
-      currency: sub.currency,
-      status: 'processing',
-    });
-
-    try {
-      // Attempt Razorpay charge — for subscriptions Razorpay auto-charges via the webhook.
-      // In a real flow we wait for `subscription.charged` webhook. For the scaffold we
-      // assume success and create an "order" placeholder (real impl calls order.service).
-      const orderId = await this.spawnOrder(sub, delivery);
-
-      await deliveryRepo.markStatus(delivery.id, 'success', {
-        orderId: new mongoose.Types.ObjectId(orderId),
-      });
-
-      await subRepo.update(sub._id, {
-        nextDeliveryDate: calcNextDeliveryDate(sub.nextDeliveryDate, sub.interval, sub.intervalCount),
-        currentCycleStart: sub.currentCycleEnd,
-        currentCycleEnd: calcNextDeliveryDate(sub.nextDeliveryDate, sub.interval, sub.intervalCount),
-      });
-      await subRepo.resetFailures(sub._id);
-      await subRepo.incrementCycle(sub._id);
-
-      await eventRepo.log({
-        subscriptionId: sub._id,
-        customerId: sub.customerId,
-        type: 'charged',
-        message: `Cycle ${cycleNumber} charged successfully`,
-        metadata: { orderId, deliveryId: delivery.id, amount: sub.finalPrice },
-      });
-
-      eventBus.publish(Events.SUBSCRIPTION_CHARGED, {
-        subscriptionId: sub.id,
-        customerId: sub.customerId.toString(),
-        amount: sub.finalPrice,
-        cycleNumber,
-        orderId,
-      });
-
-      // Trigger cashback via wallet module (subscribed)
-      // Trigger reminder via notification queue
-      queueService.subscriptionReminder({
-        subscriptionId: sub.id,
-        customerId: sub.customerId.toString(),
-        cycleNumber,
-      });
-    } catch (err) {
-      await deliveryRepo.markStatus(delivery.id, 'failed', {
-        failureReason: err instanceof Error ? err.message : 'Unknown error',
-      });
-      await subRepo.incrementFailure(sub._id);
-      const updated = await subRepo.findById(sub._id);
-      if (updated && updated.consecutiveFailures >= 3) {
-        await subRepo.updateStatus(sub._id, SubscriptionStatus.PAST_DUE);
-        eventBus.publish(Events.SUBSCRIPTION_FAILED, {
-          subscriptionId: sub.id,
-          customerId: sub.customerId.toString(),
-          reason: 'Max retries exceeded',
-        });
-        queueService.subscriptionDunning({ subscriptionId: sub.id });
-      }
-      throw err;
-    }
-  }
-
-  /**
-   * Spawn a real order through the order module — wires to orderService.createFromSubscription().
-   */
-  private async spawnOrder(sub: any, _delivery: any): Promise<string> {
-    const { orderService } = await import('../../order/services/order.service');
-    // Resolve a shipping address. In production this comes from the customer's saved address.
-    // For scaffold, use a minimal placeholder if no addressSnapshotId is set.
-    const shippingAddress = {
-      fullName: 'Subscriber',
-      phone: '+910000000000',
-      line1: 'Auto-generated from subscription',
-      city: 'Bangalore',
-      state: 'Karnataka',
-      pincode: '560001',
-      country: 'IN',
-      type: 'home' as const,
-    };
-
-    const order = await orderService.createFromSubscription({
-      subscriptionId: sub._id.toString(),
-      customerId: sub.customerId.toString(),
-      productId: sub.productId.toString(),
-      variantId: sub.variantId?.toString(),
-      quantity: sub.quantity,
-      unitPrice: sub.basePrice,
-      discountPercent: sub.discountPercent,
-      shippingAddress,
-      cycleNumber: await deliveryRepo.nextCycleNumber(sub._id) - 1, // we already incremented
-      paymentMethod: sub.paymentMethod,
-      razorpayPaymentId: undefined, // Razorpay subscription webhook will record this separately
-    });
-
-    return order.id;
+    return { overdue: overdue.length };
   }
 }
 

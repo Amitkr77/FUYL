@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authRequired, authOptional } from '../../../shared/middleware/auth.middleware';
-import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
+import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
 import { planController, subscriptionController, adminSubscriptionController } from '../controllers';
 import { razorpayWebhookHandler } from '../controllers';
 
@@ -24,11 +24,11 @@ router.get('/subscriptions/:id/deliveries', authRequired, subscriptionController
 router.get('/subscriptions/:id/events', authRequired, subscriptionController.listEvents);
 
 // ─── Admin: plans ──────────────────────────────────────────────────
-router.post('/admin/subscription/plans', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), planController.create);
+router.post('/admin/subscription/plans', authRequired, requirePermission(Permissions.SUBSCRIPTIONS_MANAGE), planController.create);
 router.get('/admin/subscription/plans', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), planController.list);
 router.get('/admin/subscription/plans/:id', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), planController.get);
-router.patch('/admin/subscription/plans/:id', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), planController.update);
-router.delete('/admin/subscription/plans/:id', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), planController.deactivate);
+router.patch('/admin/subscription/plans/:id', authRequired, requirePermission(Permissions.SUBSCRIPTIONS_MANAGE), planController.update);
+router.delete('/admin/subscription/plans/:id', authRequired, requirePermission(Permissions.SUBSCRIPTIONS_MANAGE), planController.deactivate);
 
 // ─── Admin: dashboard ──────────────────────────────────────────────
 router.get('/admin/subscription/dashboard', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), adminSubscriptionController.dashboard);

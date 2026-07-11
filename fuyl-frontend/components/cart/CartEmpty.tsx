@@ -9,7 +9,7 @@ export function CartEmpty() {
       </p>
       <Link
         href="/collections/all"
-        className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-sm transition-colors hover:bg-brand-rose-dark"
+        className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest"
       >
         Shop Now
       </Link>

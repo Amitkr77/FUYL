@@ -1,19 +1,19 @@
-import Link from 'next/link'
-import Image from 'next/image'
-import { Badge } from '@/components/ui/Badge'
-import { formatPrice, discountPercent } from '@/lib/utils/formatPrice'
-import type { Product } from '@/types/product'
+import Link from "next/link";
+import Image from "next/image";
+import { Badge } from "@/components/ui/Badge";
+import { formatPrice, discountPercent } from "@/lib/utils/formatPrice";
+import type { Product } from "@/types/product";
 
 interface ProductCardProps {
-  product: Product
+  product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const variant = product.variants[0]
-  const image   = product.images[0]
+  const variant = product.variants[0];
+  const image = product.images[0];
   const savings = variant?.compareAtPrice
     ? discountPercent(variant.price, variant.compareAtPrice)
-    : ''
+    : "";
 
   return (
     <Link href={`/products/${product.slug}`} className="group block">
@@ -46,7 +46,9 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="flex items-baseline gap-2">
           {variant && (
             <>
-              <span className="text-body-md font-semibold text-brand-forest">{formatPrice(variant.price)}</span>
+              <span className="text-body-md font-semibold text-brand-forest">
+                {formatPrice(variant.price)}
+              </span>
               {variant.compareAtPrice && (
                 <span className="text-body-sm line-through text-brand-muted">
                   {formatPrice(variant.compareAtPrice)}
@@ -57,5 +59,5 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </div>
     </Link>
-  )
+  );
 }

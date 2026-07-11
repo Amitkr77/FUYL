@@ -1,11 +1,13 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { formatPrice } from '@/lib/utils/formatPrice'
 import { useCart } from '@/lib/hooks/useCart'
 
 export function CartSummary() {
-  const { subtotal, isLoading, checkout } = useCart()
+  const router = useRouter()
+  const { subtotal } = useCart()
   const shipping = subtotal >= 499 ? 0 : 79
   const total    = subtotal + shipping
 
@@ -36,7 +38,7 @@ export function CartSummary() {
         </div>
       </div>
       {/* Rose Gold primary CTA — key conversion action */}
-      <Button variant="primary" size="lg" fullWidth loading={isLoading} onClick={checkout}>
+      <Button variant="primary" size="lg" fullWidth onClick={() => router.push('/checkout')}>
         Proceed to Checkout
       </Button>
       <p className="text-body-xs text-center text-brand-muted">

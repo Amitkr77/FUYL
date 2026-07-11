@@ -5,6 +5,8 @@ export const MOCK_STATS = {
   products: 8,
 }
 
+// Mirrors the backend's ProductStatus enum (fuyl-backend/src/shared/enums/index.ts)
+// exactly — do not diverge without updating both sides.
 export type ProductStatus = 'active' | 'draft' | 'archived'
 
 export interface Product {
@@ -28,7 +30,17 @@ export const MOCK_PRODUCTS: Product[] = [
   { id: 'p8', name: 'FUYL MENS FORMULA', sku: 'FM-15', price: 1549, stock: 0, status: 'archived', category: 'Nutrition' },
 ]
 
-export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+// Mirrors the backend's canonical OrderStatus enum (fuyl-backend/src/shared/enums/index.ts)
+// exactly — do not diverge without updating both sides.
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'packed'
+  | 'shipped'
+  | 'delivered'
+  | 'completed'
+  | 'cancelled'
+  | 'returned'
 
 export interface Order {
   id: string
@@ -43,14 +55,14 @@ export interface Order {
 export const MOCK_ORDERS: Order[] = [
   { id: 'ORD-1089', customer: 'Priya Sharma', email: 'priya.sharma@gmail.com', date: '2025-06-30', items: 2, total: 4198, status: 'delivered' },
   { id: 'ORD-1088', customer: 'Rahul Mehta', email: 'rahul.mehta@gmail.com', date: '2025-06-30', items: 1, total: 1499, status: 'shipped' },
-  { id: 'ORD-1087', customer: 'Anjali Kapoor', email: 'anjali.k@outlook.com', date: '2025-06-29', items: 3, total: 5697, status: 'processing' },
+  { id: 'ORD-1087', customer: 'Anjali Kapoor', email: 'anjali.k@outlook.com', date: '2025-06-29', items: 3, total: 5697, status: 'confirmed' },
   { id: 'ORD-1086', customer: 'Vikram Singh', email: 'vikram.s@gmail.com', date: '2025-06-29', items: 1, total: 2699, status: 'delivered' },
   { id: 'ORD-1085', customer: 'Neha Gupta', email: 'neha.gupta@yahoo.com', date: '2025-06-28', items: 2, total: 2998, status: 'shipped' },
   { id: 'ORD-1084', customer: 'Arjun Nair', email: 'arjun.nair@gmail.com', date: '2025-06-28', items: 1, total: 999, status: 'cancelled' },
   { id: 'ORD-1083', customer: 'Shreya Patel', email: 'shreya.patel@gmail.com', date: '2025-06-27', items: 2, total: 4198, status: 'delivered' },
   { id: 'ORD-1082', customer: 'Karan Joshi', email: 'karan.joshi@gmail.com', date: '2025-06-27', items: 1, total: 1499, status: 'delivered' },
   { id: 'ORD-1081', customer: 'Divya Reddy', email: 'divya.reddy@gmail.com', date: '2025-06-26', items: 3, total: 7097, status: 'delivered' },
-  { id: 'ORD-1080', customer: 'Amit Kumar', email: 'amit.kumar@gmail.com', date: '2025-06-26', items: 1, total: 2699, status: 'processing' },
+  { id: 'ORD-1080', customer: 'Amit Kumar', email: 'amit.kumar@gmail.com', date: '2025-06-26', items: 1, total: 2699, status: 'confirmed' },
   { id: 'ORD-1079', customer: 'Sunita Bose', email: 'sunita.bose@gmail.com', date: '2025-06-25', items: 2, total: 3198, status: 'delivered' },
   { id: 'ORD-1078', customer: 'Rohan Malhotra', email: 'rohan.m@outlook.com', date: '2025-06-25', items: 1, total: 1499, status: 'delivered' },
   { id: 'ORD-1077', customer: 'Pooja Iyer', email: 'pooja.iyer@gmail.com', date: '2025-06-24', items: 2, total: 4198, status: 'shipped' },

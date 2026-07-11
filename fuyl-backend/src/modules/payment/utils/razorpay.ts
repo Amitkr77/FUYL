@@ -37,11 +37,11 @@ class RazorpayGateway {
     return this.request(`/payments/${id}`, 'GET');
   }
 
-  async capturePayment(paymentId: string, amount: number, currency: string): Promise<any> {
+  async capturePayment(paymentId: string, amount: number /* in paise */, currency: string): Promise<any> {
     return this.request(`/payments/${paymentId}/capture`, 'POST', { amount, currency });
   }
 
-  async refund(paymentId: string, params: { amount?: number; notes?: Record<string, string> }): Promise<any> {
+  async refund(paymentId: string, params: { amount?: number /* in paise */; notes?: Record<string, string> }): Promise<any> {
     return this.request(`/payments/${paymentId}/refund`, 'POST', params);
   }
 

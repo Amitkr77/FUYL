@@ -1,23 +1,35 @@
-import { IndianRupee, ShoppingCart, Users, Package, ArrowRight } from 'lucide-react'
+import { IndianRupee, ShoppingCart, Users, Package, ArrowRight, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import StatsCard from '@/components/ui/StatsCard'
 import Badge from '@/components/ui/Badge'
 import RevenueChart from '@/components/dashboard/RevenueChart'
-import { MOCK_STATS, MOCK_ORDERS } from '@/lib/mock-data'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { adminApiFetch, AdminApiError } from '@/lib/api'
+import { listAdminOrders, type OrderStatus } from '@/lib/orders'
+import { getRevenueChartData, type ChartPoint } from '@/lib/analytics'
 
-const statusVariant = (status: string) => {
+const statusVariant = (status: OrderStatus) => {
   switch (status) {
+    case 'completed': return 'success'
     case 'delivered': return 'success'
     case 'shipped': return 'info'
-    case 'processing': return 'warning'
+    case 'confirmed': return 'info'
+    case 'packed': return 'warning'
     case 'pending': return 'default'
     case 'cancelled': return 'danger'
+    case 'returned': return 'danger'
     default: return 'default'
   }
 }
 
-export default function DashboardPage() {
+interface AdminOverview {
+  users: { total: number }
+  orders: { total: number }
+  revenue: { last30d: number }
+  catalog: { productsTotal: number }
+}
+
+export default async function DashboardPage() {
   const today = new Date().toLocaleDateString('en-IN', {
     weekday: 'long',
     day: '2-digit',
@@ -25,7 +37,27 @@ export default function DashboardPage() {
     year: 'numeric',
   })
 
-  const recentOrders = MOCK_ORDERS.slice(0, 5)
+  let overview: AdminOverview | null = null
+  let overviewError = ''
+  try {
+    overview = await adminApiFetch<AdminOverview>('/admin/overview')
+  } catch (err) {
+    overviewError = err instanceof AdminApiError ? err.message : 'Could not load dashboard stats.'
+  }
+
+  let recentOrders: Awaited<ReturnType<typeof listAdminOrders>> = []
+  try {
+    recentOrders = (await listAdminOrders()).slice(0, 5)
+  } catch {
+    // Non-fatal — the rest of the dashboard still renders.
+  }
+
+  let chartData: ChartPoint[] = []
+  try {
+    chartData = await getRevenueChartData(7)
+  } catch {
+    // Non-fatal — chart just renders empty.
+  }
 
   return (
     <div className="space-y-6">
@@ -38,43 +70,45 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
+      {overviewError && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {overviewError}
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatsCard
           icon={IndianRupee}
-          label="Total Revenue"
-          value={formatCurrency(MOCK_STATS.revenue)}
-          change="+18.2"
+          label="Revenue (30d)"
+          value={overview ? formatCurrency(overview.revenue.last30d) : '—'}
           iconColor="text-[#558476]"
           iconBg="bg-[#558476]/10"
         />
         <StatsCard
           icon={ShoppingCart}
           label="Total Orders"
-          value={MOCK_STATS.orders.toLocaleString('en-IN')}
-          change="+8.4"
+          value={overview ? overview.orders.total.toLocaleString('en-IN') : '—'}
           iconColor="text-blue-600"
           iconBg="bg-blue-50"
         />
         <StatsCard
           icon={Users}
           label="Total Customers"
-          value={MOCK_STATS.customers.toLocaleString('en-IN')}
-          change="+12.1"
+          value={overview ? overview.users.total.toLocaleString('en-IN') : '—'}
           iconColor="text-violet-600"
           iconBg="bg-violet-50"
         />
         <StatsCard
           icon={Package}
           label="Products"
-          value={MOCK_STATS.products.toString()}
-          change="0"
+          value={overview ? overview.catalog.productsTotal.toString() : '—'}
           iconColor="text-amber-600"
           iconBg="bg-amber-50"
         />
       </div>
 
       {/* Revenue Chart */}
-      <RevenueChart />
+      <RevenueChart data={chartData} />
 
       {/* Bottom row */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
@@ -106,15 +140,15 @@ export default function DashboardPage() {
               <tbody className="divide-y divide-slate-50">
                 {recentOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-5 py-3.5 text-sm font-medium text-slate-900">{order.id}</td>
+                    <td className="px-5 py-3.5 text-sm font-medium text-slate-900">{order.orderNumber}</td>
                     <td className="px-5 py-3.5">
-                      <p className="text-sm font-medium text-slate-900">{order.customer}</p>
-                      <p className="text-xs text-slate-400">{order.email}</p>
+                      <p className="text-sm font-medium text-slate-900">{order.customerName}</p>
+                      <p className="text-xs text-slate-400">{order.phone}</p>
                     </td>
                     <td className="px-5 py-3.5 text-sm text-slate-500 hidden sm:table-cell">{formatDate(order.date)}</td>
                     <td className="px-5 py-3.5 text-sm font-semibold text-slate-900">{formatCurrency(order.total)}</td>
                     <td className="px-5 py-3.5">
-                      <Badge variant={statusVariant(order.status) as 'success' | 'warning' | 'danger' | 'info' | 'default'}>
+                      <Badge variant={statusVariant(order.status)}>
                         {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                       </Badge>
                     </td>

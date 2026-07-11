@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authRequired } from '../../../shared/middleware/auth.middleware';
-import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
+import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
 import { promotionController } from '../controllers';
 
 const router = Router();
@@ -15,7 +15,7 @@ router.get('/promotions/my-redemptions', authRequired, promotionController.listM
 router.post(
   '/admin/promotions/campaigns',
   authRequired,
-  authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+  requirePermission(Permissions.PROMOTIONS_MANAGE),
   promotionController.createCampaign
 );
 router.get(
@@ -33,13 +33,13 @@ router.get(
 router.patch(
   '/admin/promotions/campaigns/:id',
   authRequired,
-  authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+  requirePermission(Permissions.PROMOTIONS_MANAGE),
   promotionController.updateCampaign
 );
 router.delete(
   '/admin/promotions/campaigns/:id',
   authRequired,
-  authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+  requirePermission(Permissions.PROMOTIONS_MANAGE),
   promotionController.deleteCampaign
 );
 

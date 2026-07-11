@@ -167,10 +167,10 @@ export class WalletService {
     if (wallet.balance < amount) throw new BadRequestError('Insufficient wallet balance');
 
     const balanceBefore = wallet.balance;
-    const updated = await walletRepo.applyDelta(wallet._id, -amount, 'balance');
-    if (!updated) throw new BadRequestError('Insufficient wallet balance');
-    const updated2 = await walletRepo.applyDelta(wallet._id, amount, 'heldBalance');
-    if (!updated2) throw new Error('Failed to update heldBalance');
+    // Single atomic write moving balance -> heldBalance together, instead
+    // of two separate applyDelta() calls that could desync under a crash.
+    const updated2 = await walletRepo.moveToHeld(wallet._id, amount);
+    if (!updated2) throw new BadRequestError('Insufficient wallet balance');
 
     const tx = await txRepo.create({
       walletId: updated2._id,
@@ -199,10 +199,9 @@ export class WalletService {
     if (!wallet) throw new NotFoundError('Wallet');
 
     const balanceBefore = wallet.balance;
-    const updated = await walletRepo.applyDelta(wallet._id, original.amount, 'balance');
-    if (!updated) throw new Error('Failed to release balance');
-    const updated2 = await walletRepo.applyDelta(wallet._id, -original.amount, 'heldBalance');
-    if (!updated2) throw new Error('Failed to release heldBalance');
+    // Single atomic write moving heldBalance -> balance together.
+    const updated2 = await walletRepo.releaseFromHeld(wallet._id, original.amount);
+    if (!updated2) throw new Error('Failed to release hold — heldBalance lower than expected');
 
     const releaseTx = await txRepo.create({
       walletId: updated2._id,

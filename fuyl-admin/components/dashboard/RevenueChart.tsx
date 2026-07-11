@@ -10,11 +10,11 @@ import {
   Tooltip,
   Legend,
 } from 'recharts'
-import { MOCK_REVENUE_CHART } from '@/lib/mock-data'
+import type { ChartPoint } from '@/lib/analytics'
 
 const formatRevenue = (value: number) => `₹${(value / 1000).toFixed(0)}k`
 
-export default function RevenueChart() {
+export default function RevenueChart({ data }: { data: ChartPoint[] }) {
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
       <div className="mb-5">
@@ -22,7 +22,7 @@ export default function RevenueChart() {
         <p className="text-sm text-slate-500 mt-0.5">Last 7 days performance</p>
       </div>
       <ResponsiveContainer width="100%" height={260}>
-        <LineChart data={MOCK_REVENUE_CHART} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+        <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis
             dataKey="date"

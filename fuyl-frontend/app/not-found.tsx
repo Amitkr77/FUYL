@@ -16,7 +16,7 @@ export default function NotFound() {
       <div className="flex flex-wrap gap-3 justify-center">
         <Link
           href="/"
-          className="inline-flex items-center justify-center h-11 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-sm transition-colors hover:bg-brand-rose-dark"
+          className="inline-flex items-center justify-center h-11 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest"
         >
           Go Home
         </Link>

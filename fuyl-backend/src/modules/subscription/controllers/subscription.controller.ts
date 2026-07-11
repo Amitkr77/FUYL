@@ -26,7 +26,21 @@ export class SubscriptionController {
     try {
       const status = req.query.status as string | undefined;
       const subs = await subscriptionService.listMine(req.user!.userId, status);
-      return success(res, subs);
+      // Same enrichment as the admin listing (subscription.controller admin.controller.ts) —
+      // attach product name so the storefront doesn't need an N+1 lookup per row.
+      const { ProductModel } = await import('../../catalog/models/product.model');
+      const productIds = [...new Set(subs.map((s) => s.productId.toString()))];
+      const products = await ProductModel.find({ _id: { $in: productIds } }, { name: 1, media: 1 });
+      const byId = new Map(products.map((p) => [p._id.toString(), p]));
+      const items = subs.map((s) => {
+        const p = byId.get(s.productId.toString());
+        return {
+          ...s.toObject(),
+          productName: p?.name ?? 'Unknown product',
+          productImage: p?.media?.[0]?.url ?? '',
+        };
+      });
+      return success(res, items);
     } catch (err) { next(err); }
   };
 

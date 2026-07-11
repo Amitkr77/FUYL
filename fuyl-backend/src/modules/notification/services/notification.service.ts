@@ -5,6 +5,7 @@ import { NotificationPreferenceRepository } from '../repositories/preference.rep
 import { renderTemplate, extractVariables } from '../utils/templateEngine';
 import { sendEmail } from '../utils/emailProvider';
 import { sendSms, sendWhatsapp } from '../utils/smsProvider';
+import { sendPush } from '../utils/pushProvider';
 import { QUEUE_NAMES, redisConnection } from '../../../config/queue';
 import { logger } from '../../../config/logger';
 import { Types } from 'mongoose';
@@ -93,6 +94,28 @@ class NotificationService {
       }
     }
 
+    // 2b. Resolve email/phone/push tokens from userId when the caller only
+    // gave us a userId. BUG FIXED (found in the fixing/testing pass): every
+    // event subscriber except USER_REGISTERED (which happens to carry the
+    // email in its own event payload) calls dispatch() with
+    // `to: { userId }` and nothing else. With no resolution step, every
+    // other notification type (order placed, subscription
+    // activated/charged/failed, referral rewards, etc.) hit the channel
+    // switch below with to.email/to.phone undefined and failed immediately
+    // with "Email/Phone required" — meaning virtually no transactional
+    // notification in the app could ever actually be delivered. Confirmed
+    // by inspection: `to.email` is only ever set at the one call site that
+    // happens to already have it; every other dispatch() call passes only
+    // `userId`.
+    if (payload.userId && (!payload.to.email || !payload.to.phone)) {
+      const { UserModel } = await import('../../identity/models/user.model');
+      const user = await UserModel.findById(payload.userId, { email: 1, phone: 1 }).lean();
+      if (user) {
+        payload.to.email = payload.to.email ?? user.email;
+        payload.to.phone = payload.to.phone ?? user.phone;
+      }
+    }
+
     // 3. Render template
     const data = payload.data ?? {};
     const subject = tpl.subject ? renderTemplate(tpl.subject, data) : undefined;
@@ -122,9 +145,34 @@ class NotificationService {
         }
         const r = await sendWhatsapp({ to: payload.to.phone, body });
         providerMessageId = r.providerMessageId;
+      } else if (tpl.channel === 'push') {
+        // Device tokens live on the preference doc (a user can have several —
+        // one per device/browser). payload.to.pushToken lets a caller target
+        // one specific device explicitly; otherwise fan out to every
+        // registered token for this user.
+        let tokens: string[] = payload.to.pushToken ? [payload.to.pushToken] : [];
+        if (tokens.length === 0 && payload.userId) {
+          const pref = await prefRepo.findByUser(payload.userId);
+          tokens = pref?.pushTokens ?? [];
+        }
+        if (tokens.length === 0) {
+          await logRepo.updateStatus(logId, 'failed', { error: 'No push token registered for this user' });
+          return;
+        }
+        const r = await sendPush({ tokens, title: subject ?? tpl.name, body, data: { template: tpl.name } });
+        if (r.invalidTokens.length > 0 && payload.userId) {
+          await Promise.all(r.invalidTokens.map((t) => prefRepo.removePushToken(payload.userId!, t)));
+        }
+        // Only a real (configured) delivery attempt can actually fail —
+        // stub mode (no Firebase credentials) just logs, same as the
+        // email/SMS/WhatsApp providers' unconfigured fallback, which is
+        // treated as "sent" rather than surfaced as an error.
+        if (!r.stub && r.successCount === 0) {
+          await logRepo.updateStatus(logId, 'failed', { error: 'Push delivery failed for all devices' });
+          return;
+        }
       } else {
-        // push — not implemented yet
-        await logRepo.updateStatus(logId, 'skipped', { error: 'Push channel not implemented' });
+        await logRepo.updateStatus(logId, 'skipped', { error: `Unknown channel "${tpl.channel}"` });
         return;
       }
 

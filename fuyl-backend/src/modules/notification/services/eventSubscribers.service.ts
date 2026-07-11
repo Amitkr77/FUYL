@@ -24,7 +24,19 @@ export function registerNotificationEventSubscribers(): void {
   );
 
   // ORDER_PLACED → order_placed email
-  eventBus.on<{ orderId: string; userId: string; amount: number; isSubscriptionOrder?: boolean }>(
+  //
+  // BUG FIXED (found live end-to-end testing, only reproducible once Redis
+  // was actually running so the notification worker could reach this data):
+  // this previously fabricated orderNumber by slicing the raw Mongo _id
+  // (customers would see e.g. "98BBD73A" instead of the real
+  // "FUL-2026-00008"), hardcoded itemCount to 1 regardless of cart size,
+  // and hardcoded paymentMethod to 'razorpay' regardless of how the order
+  // was actually paid. order.service.ts's ORDER_PLACED publish calls now
+  // carry the real values.
+  eventBus.on<{
+    orderId: string; userId: string; amount: number; isSubscriptionOrder?: boolean;
+    orderNumber?: string; itemCount?: number; paymentMethod?: string;
+  }>(
     Events.ORDER_PLACED,
     async (payload) => {
       await notificationService.dispatch({
@@ -32,10 +44,10 @@ export function registerNotificationEventSubscribers(): void {
         to: { userId: payload.userId },
         template: 'order_placed',
         data: {
-          orderNumber: payload.orderId.slice(-8).toUpperCase(),
+          orderNumber: payload.orderNumber ?? payload.orderId,
           total: payload.amount,
-          itemCount: 1,
-          paymentMethod: 'razorpay',
+          itemCount: payload.itemCount ?? 1,
+          paymentMethod: payload.paymentMethod ?? 'unknown',
           currency: '₹',
         },
         userId: payload.userId,
@@ -45,7 +57,11 @@ export function registerNotificationEventSubscribers(): void {
   );
 
   // ORDER_SHIPPED → order_shipped email
-  eventBus.on<{ orderId: string; userId: string; trackingNumber?: string; carrier?: string }>(
+  //
+  // BUG FIXED (same class as ORDER_PLACED above, found in the same pass):
+  // fabricated a fake order number from the raw Mongo _id — order.service.ts
+  // now includes the real one in the event payload.
+  eventBus.on<{ orderId: string; userId: string; trackingNumber?: string; carrier?: string; orderNumber?: string }>(
     Events.ORDER_SHIPPED,
     async (payload) => {
       await notificationService.dispatch({
@@ -53,7 +69,7 @@ export function registerNotificationEventSubscribers(): void {
         to: { userId: payload.userId },
         template: 'order_shipped',
         data: {
-          orderNumber: payload.orderId.slice(-8).toUpperCase(),
+          orderNumber: payload.orderNumber ?? payload.orderId,
           trackingNumber: payload.trackingNumber ?? 'N/A',
           carrier: payload.carrier ?? 'N/A',
         },
@@ -64,14 +80,14 @@ export function registerNotificationEventSubscribers(): void {
   );
 
   // ORDER_DELIVERED → order_delivered email
-  eventBus.on<{ orderId: string; userId: string }>(
+  eventBus.on<{ orderId: string; userId: string; orderNumber?: string }>(
     Events.ORDER_DELIVERED,
     async (payload) => {
       await notificationService.dispatch({
         channel: 'email',
         to: { userId: payload.userId },
         template: 'order_delivered',
-        data: { orderNumber: payload.orderId.slice(-8).toUpperCase() },
+        data: { orderNumber: payload.orderNumber ?? payload.orderId },
         userId: payload.userId,
         category: 'transactional',
       });
@@ -100,21 +116,31 @@ export function registerNotificationEventSubscribers(): void {
   );
 
   // SUBSCRIPTION_CHARGED → subscription_charged email
-  eventBus.on<{ subscriptionId: string; userId: string; planName: string; amount: number; cycleNumber: number; nextDeliveryDate: string }>(
+  //
+  // BUG FIXED (found in the fixing/testing pass): this handler read
+  // `payload.userId`, but razorpayWebhook.service.ts's onCharged() (the
+  // only publisher of this event) has only ever sent `customerId` — same
+  // field name every other SUBSCRIPTION_CHARGED subscriber (e.g. the
+  // wallet cashback handler) already reads. `payload.userId` was always
+  // undefined, so `to: { userId: undefined }` meant this email could never
+  // resolve a recipient and silently never sent. Also picked up
+  // `nextDeliveryDate`, which the publisher now includes (previously
+  // omitted entirely, which would have rendered as "undefined" in the
+  // template even once recipient resolution was fixed).
+  eventBus.on<{ subscriptionId: string; customerId: string; amount: number; cycleNumber: number; nextDeliveryDate?: string }>(
     Events.SUBSCRIPTION_CHARGED,
     async (payload) => {
       await notificationService.dispatch({
         channel: 'email',
-        to: { userId: payload.userId },
+        to: { userId: payload.customerId },
         template: 'subscription_charged',
         data: {
-          planName: payload.planName,
           amount: payload.amount,
           cycleNumber: payload.cycleNumber,
           nextDeliveryDate: payload.nextDeliveryDate,
           currency: '₹',
         },
-        userId: payload.userId,
+        userId: payload.customerId,
         category: 'subscription',
       });
     }

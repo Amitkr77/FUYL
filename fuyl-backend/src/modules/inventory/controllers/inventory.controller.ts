@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthedRequest } from '../../../shared/middleware/auth.middleware';
 import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
+import { ForbiddenError } from '../../../shared/errors';
 import { inventoryService } from '../services';
 import { success, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
@@ -41,6 +42,15 @@ export class InventoryController {
     } catch (err) { next(err); }
   };
 
+  listAllForAdmin = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const page = Number(req.query.page ?? 1);
+      const limit = Math.min(Number(req.query.limit ?? 50), 200);
+      const result = await inventoryService.listAllForAdmin(page, limit);
+      return paginate(res, result.items, result.total, result.page, result.limit);
+    } catch (err) { next(err); }
+  };
+
   // ─── Stock adjustments (seller/admin) ─────────────────────────
   adjust = [
     validate(stockAdjustmentSchema),
@@ -48,7 +58,7 @@ export class InventoryController {
       try {
         // Sellers can only adjust their own stock
         if (req.user?.role === Roles.SELLER && req.body.sellerId !== req.user.userId) {
-          return next(new Error('Sellers can only adjust their own stock'));
+          return next(new ForbiddenError('Sellers can only adjust their own stock'));
         }
         const updated = await inventoryService.adjustStock(req.body, req.user?.userId);
         return success(res, updated);

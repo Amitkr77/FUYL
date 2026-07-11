@@ -145,7 +145,7 @@ export default function SciencePage() {
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center items-center px-4">
             <Link
               href="/pages/ingredients"
-              className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-rose text-white rounded-sm transition-colors hover:bg-brand-rose-dark w-full sm:w-auto"
+              className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest w-full sm:w-auto"
             >
               View All Ingredients →
             </Link>
