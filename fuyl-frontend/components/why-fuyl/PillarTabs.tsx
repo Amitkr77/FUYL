@@ -933,7 +933,7 @@ function IndianGrid() {
               sizes="(max-width: 1024px) 50vw, 25vw"
             />
             <div className="absolute inset-0 bg-black/20" />
-            <span className="absolute bottom-3 right-3 rounded-full bg-brand-rose px-3 py-1 text-[10px] font-bold text-white shadow-md">
+            <span className="absolute bottom-3 right-3 rounded-full bg-brand-forest px-3 py-1 text-[10px] font-bold text-white shadow-md">
               {card.source}
             </span>
           </div>

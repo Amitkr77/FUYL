@@ -54,8 +54,8 @@ export function CartDrawer() {
                   {item.variantTitle && item.variantTitle !== 'Default Title' && (
                     <p className="text-body-xs mt-0.5 text-brand-muted">{item.variantTitle}</p>
                   )}
-                  {/* Rose Gold price — premium pricing highlight */}
-                  <p className="text-body-sm font-semibold mt-1 text-brand-rose">
+                  {/* Forest Green price — pricing highlight */}
+                  <p className="text-body-sm font-semibold mt-1 text-brand-forest">
                     {formatPrice(item.price)}
                   </p>
                   <div className="flex items-center gap-2 mt-2">
@@ -77,7 +77,7 @@ export function CartDrawer() {
                     <button
                       onClick={() => removeItem(item.productId, item.variantId || undefined)}
                       aria-label="Remove item"
-                      className="ml-auto p-1 text-brand-muted hover:text-brand-rose transition-colors"
+                      className="ml-auto p-1 text-brand-muted hover:text-brand-forest transition-colors"
                     >
                       <Trash2 size={14} />
                     </button>

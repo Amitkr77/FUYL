@@ -71,12 +71,24 @@ function MobileNavItem({ item, onClose }: { item: NavItem; onClose: () => void }
   )
 }
 
-export function Header() {
+interface HeaderProps {
+  // Top products from the shop page, passed down from the (server) root
+  // layout — replaces the Shop submenu's static children when non-empty, so
+  // it always mirrors whatever currently sits at the top of /collections/all
+  // instead of two hand-picked links going stale as the catalog changes.
+  shopItems?: NavItem[]
+}
+
+export function Header({ shopItems }: HeaderProps = {}) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const { itemCount, openCart } = useCart()
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const navItems = shopItems?.length
+    ? NAV_ITEMS.map((item) => (item.label === 'Shop' ? { ...item, children: shopItems } : item))
+    : NAV_ITEMS
 
   const handleMouseEnter = (label: string) => {
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current)
@@ -109,7 +121,7 @@ export function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden lg:flex items-center gap-1 mx-auto" aria-label="Main navigation">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <div
               key={item.label}
               className="relative"
@@ -159,7 +171,7 @@ export function Header() {
           >
             <ShoppingBag size={18} />
             {itemCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 bg-brand-rose text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center leading-none">
+              <span className="absolute -top-0.5 -right-0.5 bg-brand-forest text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center leading-none">
                 {itemCount > 9 ? '9+' : itemCount}
               </span>
             )}
@@ -179,7 +191,7 @@ export function Header() {
       {mobileOpen && (
         <div className="lg:hidden bg-white border-t border-brand-border animate-fade-in">
           <nav className="container-brand py-2 flex flex-col" aria-label="Mobile navigation">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <MobileNavItem key={item.label} item={item} onClose={() => setMobileOpen(false)} />
             ))}
             <button

@@ -3,8 +3,8 @@
 import { useState, useTransition } from 'react'
 import { CheckCircle2, AlertCircle } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
-import type { AdminOrderDetail, OrderStatus } from '@/lib/orders'
-import { MANUAL_STATUS_OPTIONS } from '@/lib/orders'
+import type { AdminOrderDetail } from '@/lib/orders'
+import { type OrderStatus, MANUAL_STATUS_OPTIONS } from '@/lib/orderStatus'
 import { updateOrderStatusAction } from '@/app/(admin)/orders/actions'
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'confirmed', 'packed', 'shipped', 'delivered', 'completed']

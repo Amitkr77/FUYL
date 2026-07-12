@@ -1,4 +1,5 @@
 import { adminApiFetch, AdminApiError } from './api'
+import type { OrderStatus } from './orderStatus'
 
 // ─── Backend raw shapes (subset of fields this file uses) ──────────────────
 // Mirrors fuyl-backend's order.model.ts. Note: Order has no populate() and
@@ -8,17 +9,13 @@ import { adminApiFetch, AdminApiError } from './api'
 // the integration audit), so "customer" here means "who this order shipped
 // to," not a live-linked user record.
 
-export type OrderStatus =
-  | 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered'
-  | 'completed' | 'cancelled' | 'returned'
-
-// Statuses PATCH /admin/orders/:id/status actually accepts (verified against
-// updateStatusSchema) — 'returned' is never settable this way, and
-// 'cancelled' is rejected there too (must go through the cancel endpoint,
-// handled separately in updateAdminOrderStatus below).
-export const MANUAL_STATUS_OPTIONS: OrderStatus[] = [
-  'pending', 'confirmed', 'packed', 'shipped', 'delivered', 'completed', 'cancelled',
-]
+// OrderStatus and MANUAL_STATUS_OPTIONS now live in lib/orderStatus.ts (a
+// zero-dependency file) — re-exported here so existing server-side imports
+// from '@/lib/orders' keep working unchanged. Client Components needing
+// MANUAL_STATUS_OPTIONS must import it from '@/lib/orderStatus' directly,
+// not from here — see that file's comment for why.
+export type { OrderStatus } from './orderStatus'
+export { MANUAL_STATUS_OPTIONS } from './orderStatus'
 
 interface BackendAddress {
   fullName: string

@@ -66,13 +66,13 @@ export function IngredientsGrid() {
               </h2>
               <p className="text-body-sm text-brand-muted mb-8 max-w-md leading-relaxed">
                 Rooted in{" "}
-                <span className="text-brand-rose">
+                <span className="text-brand-forest">
                   Indian botanical tradition
                 </span>
                 . Validated by{" "}
-                <span className="text-brand-rose">global clinical science</span>
+                <span className="text-brand-forest">global clinical science</span>
                 . Every ingredient here for a reason. Every choice made with
-                your <span className="text-brand-rose">long term health</span>{" "}
+                your <span className="text-brand-forest">long term health</span>{" "}
                 in mind.
               </p>
             </ScrollReveal>

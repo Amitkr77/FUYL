@@ -62,7 +62,7 @@ export function AmbassadorSection() {
 
                 {/* Step badge */}
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-brand-rose/15 border border-brand-rose/30 text-brand-rose text-sm font-bold shrink-0">
+                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-brand-forest/15 border border-brand-forest/30 text-brand-forest text-sm font-bold shrink-0">
                     {n.replace("0", "")}
                   </span>
                   <div className="h-px flex-1 bg-brand-border" />

@@ -85,22 +85,22 @@ export default function OurStoryPage() {
           items={[{ label: "Our Story" }]}
         />
 
-        <p className="relative text-[10px] uppercase tracking-[4px] text-brand-rose mb-6 sm:mb-7">
+        <p className="relative text-[10px] uppercase tracking-[4px] text-brand-sage mb-6 sm:mb-7">
           The Story Behind FUYL
         </p>
 
         <blockquote className="relative mx-auto mb-6 max-w-3xl font-normal italic leading-relaxed text-white text-lg sm:text-2xl md:text-[28px]">
-          <span className="not-italic text-brand-rose text-4xl sm:text-[64px] lg:text-[80px] leading-[0.5] align-[-14px] sm:align-[-22px] lg:align-[-28px] mr-1">
+          <span className="not-italic text-brand-sage text-4xl sm:text-[64px] lg:text-[80px] leading-[0.5] align-[-14px] sm:align-[-22px] lg:align-[-28px] mr-1">
             &ldquo;
           </span>
           We didn&apos;t set out to build a supplement brand. We set out to
           solve our own problem — and found that millions of Indians shared it.
-          <span className="not-italic text-brand-rose text-4xl sm:text-[64px] lg:text-[80px] leading-[0.5] align-[-14px] sm:align-[-22px] lg:align-[-28px] ml-1">
+          <span className="not-italic text-brand-sage text-4xl sm:text-[64px] lg:text-[80px] leading-[0.5] align-[-14px] sm:align-[-22px] lg:align-[-28px] ml-1">
             &rdquo;
           </span>
         </blockquote>
 
-        <div className="mx-auto mb-5 h-px w-10 bg-brand-rose" />
+        <div className="mx-auto mb-5 h-px w-10 bg-brand-sage" />
 
         <p className="text-[11px] uppercase tracking-[2px] text-white/40">
           The Founders · FUYL

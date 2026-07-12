@@ -55,7 +55,7 @@ function Stars() {
   return (
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map((i) => (
-        <Star key={i} size={14} className="fill-brand-rose text-brand-rose" />
+        <Star key={i} size={14} className="fill-brand-forest text-brand-forest" />
       ))}
     </div>
   );

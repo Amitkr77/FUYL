@@ -59,7 +59,25 @@ class InventoryService {
 
   // ─── Stock adjustments ───────────────────────────────────────
   async adjustStock(dto: StockAdjustmentDTO, performedBy?: string) {
-    const stock = await stockRepo.findOrCreate(dto.productId, dto.sellerId, dto.variantId, dto.warehouseId);
+    // BUG FIXED (found live — reported as "set stock to 100, checkout says
+    // out of stock"): this used to trust dto.sellerId as-is, which the admin
+    // client sources from whichever admin is currently logged in — not
+    // necessarily the product's actual owner. InventoryStock's unique index
+    // is {productId, variantId, warehouseId} only (no sellerId), so a stock
+    // row already exists for that combination once ANY admin has touched
+    // it. Checkout always resolves sellerId from the product's own
+    // `sellerId` field (catalog.service.ts's checkout path), so a second
+    // admin adjusting stock under their own userId would look for a row
+    // under the wrong sellerId, find nothing, and collide with the unique
+    // index trying to create one — surfacing as a raw duplicate-key error
+    // that reserveStock's catch-all mislabels "out of stock". Resolving
+    // sellerId from the product itself, authoritatively, closes that gap
+    // regardless of which admin performs the adjustment.
+    const { catalogService } = await import('../../catalog/services/catalog.service');
+    const product = await catalogService.getProduct(dto.productId);
+    const sellerId = product.sellerId.toString();
+
+    const stock = await stockRepo.findOrCreate(dto.productId, sellerId, dto.variantId, dto.warehouseId);
     const balanceBefore = stock.onHand;
 
     const updated = await stockRepo.applyOnHandDelta(stock._id, dto.delta);
@@ -75,7 +93,7 @@ class InventoryService {
     await movementRepo.create({
       productId: new Types.ObjectId(dto.productId),
       variantId: dto.variantId ? new Types.ObjectId(dto.variantId) : undefined,
-      sellerId: new Types.ObjectId(dto.sellerId),
+      sellerId: new Types.ObjectId(sellerId),
       warehouseId: dto.warehouseId,
       type: movementType as any,
       quantity: dto.delta,
@@ -108,8 +126,13 @@ class InventoryService {
     return updated;
   }
 
-  async setReorderLevels(productId: string, sellerId: string, dto: SetReorderDTO, variantId?: string) {
-    const stock = await stockRepo.findOrCreate(productId, sellerId, variantId);
+  async setReorderLevels(productId: string, _sellerId: string, dto: SetReorderDTO, variantId?: string) {
+    // Same fix as adjustStock — resolve sellerId from the product itself
+    // rather than the caller-supplied value, so this can never key a stock
+    // row differently than checkout's reserveStock will look it up under.
+    const { catalogService } = await import('../../catalog/services/catalog.service');
+    const product = await catalogService.getProduct(productId);
+    const stock = await stockRepo.findOrCreate(productId, product.sellerId.toString(), variantId);
     return stockRepo.update(stock._id, {
       reorderThreshold: dto.reorderThreshold,
       reorderQuantity: dto.reorderQuantity,

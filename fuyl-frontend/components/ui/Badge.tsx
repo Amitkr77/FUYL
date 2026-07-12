@@ -10,9 +10,9 @@ interface BadgeProps {
 
 const variants: Record<BadgeVariant, string> = {
   default: 'bg-brand-forest  text-white',
-  /* Rose Gold — premium membership, featured pricing, luxury highlight */
-  berry:   'bg-brand-rose    text-white',
-  premium: 'bg-brand-rose    text-white',
+  /* Forest Green — premium membership, featured pricing, luxury highlight */
+  berry:   'bg-brand-forest  text-white',
+  premium: 'bg-brand-forest  text-white',
   success: 'bg-brand-teal    text-white',
   warning: 'bg-amber-500     text-white',
   muted:   'bg-brand-border  text-brand-muted',

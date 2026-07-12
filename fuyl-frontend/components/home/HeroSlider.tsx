@@ -155,7 +155,7 @@ export function HeroSlider() {
       {/* {!paused && (
         <div
           key={`progress-${current}`}
-          className="absolute bottom-0 left-0 h-0.5 max-w-full bg-brand-rose z-10"
+          className="absolute bottom-0 left-0 h-0.5 max-w-full bg-brand-forest z-10"
           style={{
             animation: `progressBar ${DURATION}ms linear forwards`,
           }}
