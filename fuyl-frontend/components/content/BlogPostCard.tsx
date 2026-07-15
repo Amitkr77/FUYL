@@ -41,7 +41,7 @@ export function BlogPostCard({ post, featured }: BlogPostCardProps) {
             ))}
             <span className="text-body-xs" style={{ color: 'var(--color-brand-muted)' }}>{readTime} min read</span>
           </div>
-          <h2 className="text-display-lg font-display group-hover:text-[#8B1A4A] transition-colors">
+          <h2 className="text-display-lg font-display group-hover:text-brand-teal transition-colors">
             {title.toUpperCase()}
           </h2>
           <p className="text-body-md leading-relaxed" style={{ color: 'var(--color-brand-muted)' }}>{excerpt}</p>
@@ -76,7 +76,7 @@ export function BlogPostCard({ post, featured }: BlogPostCardProps) {
         ))}
         <span className="text-body-xs" style={{ color: 'var(--color-brand-muted)' }}>{readTime} min read</span>
       </div>
-      <h3 className="text-body-lg font-semibold leading-snug group-hover:text-[#8B1A4A] transition-colors line-clamp-2">
+      <h3 className="text-body-lg font-semibold leading-snug group-hover:text-brand-teal transition-colors line-clamp-2">
         {title}
       </h3>
       <p className="text-body-sm leading-relaxed line-clamp-3" style={{ color: 'var(--color-brand-muted)' }}>{excerpt}</p>

@@ -2,29 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Package,
-  RotateCcw,
-  Wallet as WalletIcon,
-  MapPin,
-  Heart,
-  Pencil,
-  LogOut,
-  ChevronRight,
-} from "lucide-react";
+import { Pencil, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/lib/store/authStore";
-import { updateProfile } from "@/lib/api/account";
+import { updateProfile, forgotPassword } from "@/lib/api/account";
 
-const ACCOUNT_LINKS = [
-  { label: "Orders", href: "/account/orders", icon: Package },
-  { label: "Subscriptions", href: "/account/subscriptions", icon: RotateCcw },
-  { label: "Wallet", href: "/account/wallet", icon: WalletIcon },
-  { label: "Addresses", href: "/account/addresses", icon: MapPin },
-  { label: "Wishlist", href: "/account/wishlist", icon: Heart },
-] as const;
-
-type Mode = "login" | "register";
+type Mode = "login" | "register" | "forgot";
 
 export default function AccountPage() {
   const router = useRouter();
@@ -41,7 +24,6 @@ export default function AccountPage() {
     clearError,
     user,
     token,
-    logout,
     setUser,
   } = useAuthStore();
 
@@ -72,8 +54,12 @@ export default function AccountPage() {
     }
   }, [user]);
 
+  const profileComplete = Boolean(
+    profileForm.firstName.trim() && profileForm.lastName.trim(),
+  );
+
   const handleSaveProfile = async () => {
-    if (!token) return;
+    if (!token || !profileComplete) return;
     setSaving(true);
     setSaveError(null);
     try {
@@ -99,7 +85,17 @@ export default function AccountPage() {
     if (token && user && redirectTo) router.replace(redirectTo);
   }, [token, user, redirectTo, router]);
 
+  const loginComplete = Boolean(form.email.trim() && form.password);
+  const registerComplete = Boolean(
+    form.firstName.trim() &&
+    form.lastName.trim() &&
+    form.email.trim() &&
+    form.password,
+  );
+  const submitComplete = mode === "login" ? loginComplete : registerComplete;
+
   const handleSubmit = async () => {
+    if (!submitComplete) return;
     if (mode === "login") {
       await login(form.email, form.password);
     } else {
@@ -119,20 +115,39 @@ export default function AccountPage() {
     }
   };
 
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotStatus, setForgotStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const forgotComplete = Boolean(forgotEmail.trim());
+
+  const handleForgotSubmit = async () => {
+    if (!forgotComplete) return;
+    setForgotStatus("loading");
+    setForgotError(null);
+    try {
+      await forgotPassword(forgotEmail.trim());
+      setForgotStatus("sent");
+    } catch (err) {
+      setForgotError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setForgotStatus("error");
+    }
+  };
+
   // Logged in state
   if (token && user) {
     if (redirectTo) return null; // effect above navigates away
 
     if (isEditing) {
       return (
-        <div className="container-brand section-py max-w-md mx-auto">
-          <h1 className="text-display-lg font-display mb-8 text-center text-brand-forest">
+        <div className="max-w-md">
+          <h1 className="text-display-lg font-display mb-8 text-brand-forest">
             EDIT PROFILE
           </h1>
           <div className="bg-white border border-brand-border rounded-2xl shadow-sm p-6 sm:p-8 space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <Field
                 label="First Name"
+                required
                 value={profileForm.firstName}
                 onChange={(e) =>
                   setProfileForm((f) => ({ ...f, firstName: e.target.value }))
@@ -140,6 +155,7 @@ export default function AccountPage() {
               />
               <Field
                 label="Last Name"
+                required
                 value={profileForm.lastName}
                 onChange={(e) =>
                   setProfileForm((f) => ({ ...f, lastName: e.target.value }))
@@ -167,6 +183,7 @@ export default function AccountPage() {
                 size="lg"
                 fullWidth
                 loading={isSaving}
+                disabled={!profileComplete}
                 onClick={handleSaveProfile}
               >
                 Save
@@ -188,66 +205,122 @@ export default function AccountPage() {
       );
     }
 
-    const initials = `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase();
-
     return (
-      <div className="container-brand section-py max-w-lg mx-auto">
-        {/* Profile summary */}
-        <div className="flex items-center gap-4 bg-brand-cream rounded-2xl p-6 sm:p-8 mb-6">
-          <div className="shrink-0 w-14 h-14 rounded-full bg-brand-forest text-white flex items-center justify-center text-body-lg font-display font-bold">
-            {initials || "?"}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-body-md font-semibold text-brand-forest truncate">
-              {user.firstName} {user.lastName}
-            </p>
-            <p className="text-body-xs text-brand-muted truncate">
-              {user.email}
-              {user.phone && <> · {user.phone}</>}
-            </p>
-          </div>
-          <button
-            onClick={() => setEditing(true)}
-            aria-label="Edit profile"
-            className="shrink-0 p-2 rounded-full text-brand-olive hover:text-brand-teal hover:bg-white transition-colors"
-          >
-            <Pencil size={16} />
-          </button>
-        </div>
-
-        {/* Account links */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-          {ACCOUNT_LINKS.map(({ label, href, icon: Icon }) => (
+      <div className="max-w-md">
+        <h1 className="text-display-lg font-display mb-8 text-brand-forest">
+          MY PROFILE
+        </h1>
+        <div className="bg-white border border-brand-border rounded-2xl shadow-sm p-6 sm:p-8">
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <p className="text-label text-brand-muted mb-1">Name</p>
+              <p className="text-body-md font-semibold text-brand-forest">
+                {user.firstName} {user.lastName}
+              </p>
+            </div>
             <button
-              key={href}
-              onClick={() => (window.location.href = href)}
-              className="group flex flex-col items-start gap-3 p-4 rounded-xl border border-brand-border bg-white hover:border-brand-teal hover:shadow-sm transition-all text-left"
+              onClick={() => setEditing(true)}
+              aria-label="Edit profile"
+              className="shrink-0 p-2 rounded-full text-brand-olive hover:text-brand-teal hover:bg-brand-sage/40 transition-colors"
             >
-              <span className="w-10 h-10 rounded-full bg-brand-sage/60 text-brand-forest flex items-center justify-center group-hover:bg-brand-teal group-hover:text-white transition-colors">
-                <Icon size={18} />
-              </span>
-              <span className="flex items-center gap-1 text-body-sm font-semibold text-brand-forest">
-                {label}
-                <ChevronRight size={14} className="text-brand-muted group-hover:translate-x-0.5 transition-transform" />
-              </span>
+              <Pencil size={16} />
             </button>
-          ))}
+          </div>
+          <div className="space-y-4">
+            <div>
+              <p className="text-label text-brand-muted mb-1">Email</p>
+              <p className="text-body-sm text-brand-forest">{user.email}</p>
+            </div>
+            <div>
+              <p className="text-label text-brand-muted mb-1">Phone</p>
+              <p className="text-body-sm text-brand-forest">
+                {user.phone || "—"}
+              </p>
+            </div>
+          </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Sign out */}
-        <button
-          onClick={logout}
-          className="flex items-center gap-2 text-body-sm font-semibold text-brand-muted hover:text-brand-forest transition-colors border-t border-brand-border w-full pt-5"
-        >
-          <LogOut size={16} />
-          Sign Out
-        </button>
+  if (mode === "forgot") {
+    return (
+      <div className="section-py max-w-md mx-auto">
+        <h1 className="text-display-lg font-display mb-8 text-center text-brand-forest">
+          RESET PASSWORD
+        </h1>
+
+        <div className="bg-white border border-brand-border rounded-2xl shadow-sm p-6 sm:p-8">
+          {forgotStatus === "sent" ? (
+            <div className="text-center space-y-4">
+              <p className="text-body-sm text-brand-forest">
+                If an account exists for <strong>{forgotEmail}</strong>, we&apos;ve sent a
+                password reset link to it. Check your inbox.
+              </p>
+              <Button
+                variant="outline"
+                size="lg"
+                fullWidth
+                onClick={() => {
+                  setMode("login");
+                  setForgotStatus("idle");
+                }}
+              >
+                Back to Sign In
+              </Button>
+            </div>
+          ) : (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleForgotSubmit();
+              }}
+              className="space-y-4"
+            >
+              <p className="text-body-sm text-brand-muted">
+                Enter the email on your account and we&apos;ll send you a link to reset
+                your password.
+              </p>
+              <Field
+                label="Email"
+                required
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                type="email"
+              />
+
+              {forgotStatus === "error" && forgotError && (
+                <p className="text-body-xs p-3 rounded-sm bg-red-50 text-red-700">
+                  {forgotError}
+                </p>
+              )}
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                fullWidth
+                loading={forgotStatus === "loading"}
+                disabled={!forgotComplete}
+              >
+                Send Reset Link
+              </Button>
+              <button
+                type="button"
+                onClick={() => setMode("login")}
+                className="w-full text-center text-body-xs font-semibold text-brand-muted hover:text-brand-forest transition-colors"
+              >
+                Back to Sign In
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container-brand section-py max-w-md mx-auto">
+    <div className="section-py max-w-md mx-auto">
       <h1 className="text-display-lg font-display mb-8 text-center text-brand-forest">
         {mode === "login" ? "WELCOME BACK" : "CREATE ACCOUNT"}
       </h1>
@@ -258,6 +331,7 @@ export default function AccountPage() {
           {(["login", "register"] as Mode[]).map((m) => (
             <button
               key={m}
+              type="button"
               onClick={() => {
                 setMode(m);
                 clearError();
@@ -273,7 +347,13 @@ export default function AccountPage() {
           ))}
         </div>
 
-        <div className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+          className="space-y-4"
+        >
           {mode === "register" && referralCode && (
             <p className="text-body-xs p-3 rounded-sm bg-brand-cream text-brand-forest">
               Referral code <strong>{referralCode}</strong> will be applied when
@@ -284,11 +364,13 @@ export default function AccountPage() {
             <div className="grid grid-cols-2 gap-4">
               <Field
                 label="First Name"
+                required
                 value={form.firstName}
                 onChange={set("firstName")}
               />
               <Field
                 label="Last Name"
+                required
                 value={form.lastName}
                 onChange={set("lastName")}
               />
@@ -296,16 +378,33 @@ export default function AccountPage() {
           )}
           <Field
             label="Email"
+            required
             value={form.email}
             onChange={set("email")}
             type="email"
           />
           <Field
             label="Password"
+            required
             value={form.password}
             onChange={set("password")}
             type="password"
           />
+          {mode === "login" && (
+            <button
+              type="button"
+              onClick={() => {
+                setForgotEmail(form.email);
+                setForgotStatus("idle");
+                setForgotError(null);
+                clearError();
+                setMode("forgot");
+              }}
+              className="block ml-auto text-body-xs font-semibold text-brand-teal hover:text-brand-forest transition-colors -mt-2"
+            >
+              Forgot password?
+            </button>
+          )}
           {mode === "register" && (
             <Field
               label="Phone (optional)"
@@ -322,15 +421,16 @@ export default function AccountPage() {
           )}
 
           <Button
+            type="submit"
             variant="primary"
             size="lg"
             fullWidth
             loading={isLoading}
-            onClick={handleSubmit}
+            disabled={!submitComplete}
           >
             {mode === "login" ? "Sign In" : "Create Account"}
           </Button>
-        </div>
+        </form>
       </div>
     </div>
   );
@@ -341,23 +441,44 @@ function Field({
   value,
   onChange,
   type = "text",
+  required,
 }: {
   label: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   type?: string;
+  required?: boolean;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === "password";
+
   return (
     <div>
       <label className="block text-label mb-1.5 text-brand-muted">
         {label}
+        {required && <span className="text-brand-teal"> *</span>}
       </label>
-      <input
-        type={type}
-        value={value}
-        onChange={onChange}
-        className="w-full h-11 px-3 text-body-sm border border-brand-border rounded-sm outline-none transition-colors focus:border-brand-teal"
-      />
+      <div className="relative">
+        <input
+          type={isPassword ? (showPassword ? "text" : "password") : type}
+          value={value}
+          onChange={onChange}
+          required={required}
+          className={`w-full h-11 px-3 text-body-sm border border-brand-border rounded-sm outline-none transition-colors focus:border-brand-teal ${
+            isPassword ? "pr-10" : ""
+          }`}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword((s) => !s)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-forest transition-colors"
+          >
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

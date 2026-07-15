@@ -23,7 +23,7 @@ export function CartLineItem({ item }: CartLineItemProps) {
       <div className="flex-1 min-w-0 flex flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <Link href={`/products/${item.slug}`} className="text-body-sm font-semibold hover:text-[#8B1A4A] transition-colors">
+            <Link href={`/products/${item.slug}`} className="text-body-sm font-semibold hover:text-brand-teal transition-colors">
               {item.name}
             </Link>
             {item.variantTitle && item.variantTitle !== 'Default Title' && (

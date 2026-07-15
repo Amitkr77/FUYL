@@ -11,7 +11,7 @@ const STATUS_COLORS: Record<string, string> = {
   pending:   '#F59E0B',
   confirmed: '#3B82F6',
   packed:    '#3B82F6',
-  shipped:   '#8B1A4A',
+  shipped:   '#12291F',
   delivered: '#10B981',
   completed: '#10B981',
   cancelled: '#6B7280',
@@ -37,7 +37,7 @@ export default function OrdersPage() {
     return (
       <div className="container-brand section-py text-center">
         <p className="text-display-md font-display mb-4">SIGN IN TO VIEW ORDERS</p>
-        <Link href="/account" className="inline-flex items-center justify-center h-11 px-6 text-xs font-semibold uppercase tracking-widest bg-[#8B1A4A] text-white rounded-sm hover:bg-[#C4526A] transition-colors">
+        <Link href="/account" className="inline-flex items-center justify-center h-11 px-6 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest">
           Sign In
         </Link>
       </div>
@@ -45,7 +45,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="container-brand section-py max-w-2xl mx-auto">
+    <div>
       <h1 className="text-display-xl font-display mb-10">MY ORDERS</h1>
 
       {isLoading && (
@@ -68,7 +68,7 @@ export default function OrdersPage() {
             <Link
               key={order.id}
               href={`/account/orders/${order.id}`}
-              className="block border rounded-sm p-5 hover:border-[#8B1A4A] transition-colors"
+              className="block border rounded-sm p-5 hover:border-brand-forest transition-colors"
               style={{ borderColor: 'var(--color-brand-border)' }}
             >
               <div className="flex items-center justify-between mb-3">

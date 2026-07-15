@@ -101,7 +101,7 @@ export default function ContactPage() {
                     <div>
                       <p className="text-body-xs font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--color-brand-muted)' }}>{label}</p>
                       {href
-                        ? <a href={href} className="text-body-sm font-medium hover:text-[#8B1A4A] transition-colors">{value}</a>
+                        ? <a href={href} className="text-body-sm font-medium hover:text-brand-teal transition-colors">{value}</a>
                         : <p className="text-body-sm">{value}</p>
                       }
                     </div>
@@ -141,7 +141,7 @@ export default function ContactPage() {
                   </p>
                   <button
                     onClick={() => setStatus('idle')}
-                    className="mt-4 text-body-sm font-semibold hover:text-[#8B1A4A] transition-colors"
+                    className="mt-4 text-body-sm font-semibold hover:text-brand-teal transition-colors"
                   >
                     Send another message →
                   </button>

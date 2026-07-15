@@ -88,7 +88,7 @@ export function ReferAndEarnClient() {
             <p className="text-body-md mb-6" style={{ color: 'var(--color-brand-muted)' }}>
               Sign in to get your personal referral link.
             </p>
-            <Link href="/account?redirect=/pages/refer-and-earn" className="inline-flex items-center justify-center h-11 px-6 text-xs font-semibold uppercase tracking-widest bg-[#8B1A4A] text-white rounded-sm hover:bg-[#C4526A] transition-colors">
+            <Link href="/account?redirect=/pages/refer-and-earn" className="inline-flex items-center justify-center h-11 px-6 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest">
               Sign In
             </Link>
           </div>
@@ -109,7 +109,7 @@ export function ReferAndEarnClient() {
             </p>
             <button
               onClick={handleGenerate}
-              className="inline-flex items-center justify-center h-11 px-6 text-xs font-semibold uppercase tracking-widest bg-[#8B1A4A] text-white rounded-sm hover:bg-[#C4526A] transition-colors"
+              className="inline-flex items-center justify-center h-11 px-6 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest"
             >
               Get My Referral Link
             </button>

@@ -86,7 +86,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
         </div>
       )}
 
-      {/* Price — Rose Gold featured pricing */}
+      {/* Price — Forest Green featured pricing */}
       <div className="flex items-baseline gap-3">
         <span className="text-display-md font-display text-brand-forest">
           {formatPrice(purchaseType === "subscribe" ? subscribedPrice : variant.price)}
@@ -96,7 +96,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
             <span className="text-body-md line-through text-brand-muted">
               {formatPrice(compareAtPrice)}
             </span>
-            {/* Rose Gold savings badge — premium pricing highlight */}
+            {/* Forest Green savings badge — premium pricing highlight */}
             {savings && <Badge variant="berry">{savings}</Badge>}
           </>
         )}

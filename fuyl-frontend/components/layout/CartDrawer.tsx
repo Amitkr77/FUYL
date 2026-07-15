@@ -96,7 +96,7 @@ export function CartDrawer() {
             <p className="text-body-xs text-brand-muted">
               Shipping &amp; taxes calculated at checkout
             </p>
-            {/* Primary CTA — Rose Gold (premium conversion action) */}
+            {/* Primary CTA — Forest Green (premium conversion action) */}
             <Button variant="primary" size="lg" fullWidth onClick={() => { closeCart(); router.push('/checkout') }}>
               Proceed to Checkout
             </Button>

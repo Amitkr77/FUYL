@@ -55,7 +55,7 @@ export default function ReferralLandingPage() {
           <p className="text-body-md mb-8" style={{ color: 'var(--color-brand-muted)' }}>
             Referral code <strong>{params.code}</strong> has been applied to your account.
           </p>
-          <Link href="/" className="inline-flex items-center justify-center h-11 px-6 text-xs font-semibold uppercase tracking-widest bg-[#8B1A4A] text-white rounded-sm hover:bg-[#C4526A] transition-colors">
+          <Link href="/" className="inline-flex items-center justify-center h-11 px-6 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest">
             Start Shopping
           </Link>
         </>

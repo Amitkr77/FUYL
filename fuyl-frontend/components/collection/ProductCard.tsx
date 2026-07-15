@@ -30,7 +30,7 @@ export function ProductCard({ product }: ProductCardProps) {
         )}
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-          {/* Rose Gold premium badge */}
+          {/* Forest Green premium badge */}
           {product.badge && <Badge variant="berry">{product.badge}</Badge>}
           {savings && <Badge variant="default">{savings}</Badge>}
           {!product.available && <Badge variant="muted">Sold Out</Badge>}

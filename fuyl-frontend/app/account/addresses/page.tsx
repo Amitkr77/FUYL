@@ -43,8 +43,12 @@ export default function AddressesPage() {
     setFormError(null)
   }
 
+  const addressComplete = Boolean(
+    form.label.trim() && form.line1.trim() && form.city.trim() && form.state.trim() && form.postalCode.trim(),
+  )
+
   const handleSave = async () => {
-    if (!token) return
+    if (!token || !addressComplete) return
     setSaving(true)
     setFormError(null)
     try {
@@ -74,7 +78,7 @@ export default function AddressesPage() {
     return (
       <div className="container-brand section-py text-center">
         <p className="text-display-md font-display mb-4">SIGN IN TO MANAGE ADDRESSES</p>
-        <Link href="/account" className="inline-flex items-center justify-center h-11 px-6 text-xs font-semibold uppercase tracking-widest bg-[#8B1A4A] text-white rounded-sm hover:bg-[#C4526A] transition-colors">
+        <Link href="/account" className="inline-flex items-center justify-center h-11 px-6 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest">
           Sign In
         </Link>
       </div>
@@ -82,13 +86,13 @@ export default function AddressesPage() {
   }
 
   return (
-    <div className="container-brand section-py max-w-2xl mx-auto">
+    <div>
       <div className="flex items-center justify-between mb-10">
         <h1 className="text-display-xl font-display">MY ADDRESSES</h1>
         {!isEditing && (
           <button
             onClick={startNew}
-            className="h-10 px-5 text-xs font-semibold uppercase tracking-widest bg-[#8B1A4A] text-white rounded-sm hover:bg-[#C4526A] transition-colors"
+            className="h-10 px-5 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest"
           >
             Add Address
           </button>
@@ -106,15 +110,15 @@ export default function AddressesPage() {
             {isEditing === 'new' ? 'New Address' : 'Edit Address'}
           </p>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Label (e.g. Home)" value={form.label} onChange={(v) => setForm((f) => ({ ...f, label: v }))} />
+            <Field label="Label (e.g. Home)" required value={form.label} onChange={(v) => setForm((f) => ({ ...f, label: v }))} />
             <Field label="Phone" value={form.phone ?? ''} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
           </div>
-          <Field label="Address Line 1" value={form.line1} onChange={(v) => setForm((f) => ({ ...f, line1: v }))} />
+          <Field label="Address Line 1" required value={form.line1} onChange={(v) => setForm((f) => ({ ...f, line1: v }))} />
           <Field label="Address Line 2 (optional)" value={form.line2 ?? ''} onChange={(v) => setForm((f) => ({ ...f, line2: v }))} />
           <div className="grid grid-cols-3 gap-3">
-            <Field label="City" value={form.city} onChange={(v) => setForm((f) => ({ ...f, city: v }))} />
-            <Field label="State" value={form.state} onChange={(v) => setForm((f) => ({ ...f, state: v }))} />
-            <Field label="Postal Code" value={form.postalCode} onChange={(v) => setForm((f) => ({ ...f, postalCode: v }))} />
+            <Field label="City" required value={form.city} onChange={(v) => setForm((f) => ({ ...f, city: v }))} />
+            <Field label="State" required value={form.state} onChange={(v) => setForm((f) => ({ ...f, state: v }))} />
+            <Field label="Postal Code" required value={form.postalCode} onChange={(v) => setForm((f) => ({ ...f, postalCode: v }))} />
           </div>
           <label className="flex items-center gap-2 text-body-sm pt-2">
             <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm((f) => ({ ...f, isDefault: e.target.checked }))} />
@@ -128,8 +132,8 @@ export default function AddressesPage() {
           <div className="flex gap-3 pt-2">
             <button
               onClick={handleSave}
-              disabled={isSaving}
-              className="h-10 px-5 text-xs font-semibold uppercase tracking-widest bg-[#8B1A4A] text-white rounded-sm hover:bg-[#C4526A] transition-colors disabled:opacity-50"
+              disabled={isSaving || !addressComplete}
+              className="h-10 px-5 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest disabled:opacity-50"
             >
               {isSaving ? 'Saving…' : 'Save'}
             </button>
@@ -156,7 +160,7 @@ export default function AddressesPage() {
                 <div className="flex items-center gap-2">
                   <p className="text-body-sm font-semibold">{a.label}</p>
                   {a.isDefault && (
-                    <span className="text-body-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-sm" style={{ background: '#E8D9DD', color: '#8B1A4A' }}>
+                    <span className="text-body-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-sm" style={{ background: 'var(--color-brand-sage)', color: 'var(--color-brand-forest)' }}>
                       Default
                     </span>
                   )}
@@ -182,14 +186,18 @@ export default function AddressesPage() {
   )
 }
 
-function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function Field({ label, value, onChange, required }: { label: string; value: string; onChange: (v: string) => void; required?: boolean }) {
   return (
     <div>
-      <label className="block text-label mb-1.5" style={{ color: 'var(--color-brand-muted)' }}>{label}</label>
+      <label className="block text-label mb-1.5" style={{ color: 'var(--color-brand-muted)' }}>
+        {label}
+        {required && <span style={{ color: 'var(--color-brand-berry)' }}> *</span>}
+      </label>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        required={required}
         className="w-full h-11 px-3 text-body-sm border rounded-sm outline-none transition-colors"
         style={{ borderColor: 'var(--color-brand-border)' }}
         onFocus={(e) => e.currentTarget.style.borderColor = 'var(--color-brand-berry)'}

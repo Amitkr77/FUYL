@@ -41,12 +41,12 @@ export function ProblemSection() {
           </p> */}
         </ScrollReveal>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
           {PROBLEMS.map(({ icon, text }, i) => (
-            <ScrollReveal key={text} delay={i * 60}>
+            <ScrollReveal key={text} delay={i * 60} className="h-full">
               <div
                 className={`
-          flex flex-col items-center p-6 sm:p-8 text-center gap-5 min-h-52
+          flex h-full flex-col items-center p-6 sm:p-8 text-center gap-5 min-h-52
           lg:border-r lg:border-brand-border
           ${i === PROBLEMS.length - 1 ? "lg:border-r-0" : ""}
         `}

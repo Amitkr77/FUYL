@@ -33,7 +33,7 @@ export default function WalletPage() {
     return (
       <div className="container-brand section-py text-center">
         <p className="text-display-md font-display mb-4">SIGN IN TO VIEW YOUR WALLET</p>
-        <Link href="/account" className="inline-flex items-center justify-center h-11 px-6 text-xs font-semibold uppercase tracking-widest bg-[#8B1A4A] text-white rounded-sm hover:bg-[#C4526A] transition-colors">
+        <Link href="/account" className="inline-flex items-center justify-center h-11 px-6 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest">
           Sign In
         </Link>
       </div>
@@ -41,7 +41,7 @@ export default function WalletPage() {
   }
 
   return (
-    <div className="container-brand section-py max-w-2xl mx-auto">
+    <div>
       <h1 className="text-display-xl font-display mb-10">MY WALLET</h1>
 
       {isLoading && (

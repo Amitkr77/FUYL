@@ -67,7 +67,7 @@ export default function WishlistPage() {
     return (
       <div className="container-brand section-py text-center">
         <p className="text-display-md font-display mb-4">SIGN IN TO VIEW YOUR WISHLIST</p>
-        <Link href="/account" className="inline-flex items-center justify-center h-11 px-6 text-xs font-semibold uppercase tracking-widest bg-[#8B1A4A] text-white rounded-sm hover:bg-[#C4526A] transition-colors">
+        <Link href="/account" className="inline-flex items-center justify-center h-11 px-6 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest">
           Sign In
         </Link>
       </div>
@@ -75,7 +75,7 @@ export default function WishlistPage() {
   }
 
   return (
-    <div className="container-brand section-py max-w-2xl mx-auto">
+    <div>
       <h1 className="text-display-xl font-display mb-10">MY WISHLIST</h1>
 
       {isLoading && <p className="text-body-md" style={{ color: 'var(--color-brand-muted)' }}>Loading wishlist…</p>}
@@ -109,7 +109,7 @@ export default function WishlistPage() {
                   )}
                 </Link>
                 <div className="flex-1 min-w-0">
-                  <Link href={`/products/${row.product.slug}`} className="text-body-sm font-semibold hover:text-[#8B1A4A] transition-colors">
+                  <Link href={`/products/${row.product.slug}`} className="text-body-sm font-semibold hover:text-brand-teal transition-colors">
                     {row.product.name}
                   </Link>
                   <p className="text-body-sm mt-1">{formatPrice(row.product.price)}</p>
@@ -118,7 +118,7 @@ export default function WishlistPage() {
                   <button
                     onClick={() => handleAddToCart(row, row.product!)}
                     disabled={busy || !row.product.available}
-                    className="h-9 px-4 text-xs font-semibold uppercase tracking-widest bg-[#8B1A4A] text-white rounded-sm hover:bg-[#C4526A] transition-colors disabled:opacity-50 whitespace-nowrap"
+                    className="h-9 px-4 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest disabled:opacity-50 whitespace-nowrap"
                   >
                     {row.product.available ? 'Add to Cart' : 'Sold Out'}
                   </button>

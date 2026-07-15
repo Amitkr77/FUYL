@@ -1,21 +1,45 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Script from 'next/script'
 import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useCartStore } from '@/lib/store/cartStore'
 import { previewCheckout, placeOrder, type CheckoutAddressInput, type CheckoutPaymentMethod, type CheckoutPreview } from '@/lib/api/checkout'
+import { getAddresses, type Address } from '@/lib/api/customer'
 import { createPayment, verifyPayment } from '@/lib/api/payment'
 import { openRazorpayCheckout } from '@/lib/utils/razorpay'
 import { formatPrice } from '@/lib/utils/formatPrice'
 import { ApiError } from '@/lib/api/client'
+import type { User } from '@/types/user'
 
-type Step = 'address' | 'review' | 'paying' | 'success' | 'error'
+type Step = 'address' | 'review' | 'paying' | 'error'
 
 const EMPTY_ADDRESS: CheckoutAddressInput = {
   fullName: '', phone: '', line1: '', line2: '', city: '', state: '', pincode: '', country: 'IN', type: 'home',
+}
+
+// Saved addresses (lib/api/customer.ts's Address) have no name field of their
+// own — checkout's shippingAddress requires one, so it comes from the
+// account's own first/last name. Saved addresses also don't require a
+// phone (account/addresses lets you skip it) but checkout does, so fall
+// back to the account's phone when the address itself doesn't have one.
+function toCheckoutAddress(a: Address, user: User | null): CheckoutAddressInput {
+  const label = a.label.trim().toLowerCase()
+  const type: CheckoutAddressInput['type'] = label === 'home' ? 'home' : label === 'work' || label === 'office' ? 'office' : 'other'
+  return {
+    fullName: user ? `${user.firstName} ${user.lastName}`.trim() : '',
+    phone:    a.phone || user?.phone || '',
+    line1:    a.line1,
+    line2:    a.line2,
+    city:     a.city,
+    state:    a.state,
+    pincode:  a.postalCode,
+    country:  a.country || 'IN',
+    type,
+  }
 }
 
 export default function CheckoutPage() {
@@ -28,22 +52,58 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('razorpay')
   const [preview, setPreview] = useState<CheckoutPreview | null>(null)
   const [error, setError] = useState('')
-  const [orderNumber, setOrderNumber] = useState('')
   // Set once placeOrder() succeeds — lets a payment-step retry re-attempt
   // payment for the same order instead of placing a second one.
   const [placedOrder, setPlacedOrder] = useState<{ orderId: string; orderNumber: string } | null>(null)
+  // Plain ref (not state) so the empty-cart guard below sees it synchronously
+  // the instant an order is placed, before syncCart's own re-render can race it.
+  const orderPlacedRef = useRef(false)
+
+  // Saved addresses — 'new' means the manual-entry form is showing (either
+  // because the account has no saved addresses, or the shopper chose to add
+  // one). A real id means that saved address is selected and filling `address`.
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState<string | 'new'>('new')
+  const [addressesLoading, setAddressesLoading] = useState(true)
+
+  const selectSavedAddress = (a: Address) => {
+    setSelectedAddressId(a.id)
+    setAddress(toCheckoutAddress(a, user))
+    setPreview(null)
+    setStep('address')
+  }
 
   // Checkout requires auth on the backend — there's no guest checkout.
   useEffect(() => {
     if (!token) router.replace('/account?redirect=/checkout')
   }, [token, router])
 
-  // Nothing to check out — send back to cart, unless we just successfully
-  // ordered (which empties the cart and would otherwise bounce this screen away).
+  // Load saved addresses once and default to the account's default address
+  // (or its first saved one) so a returning shopper isn't retyping it —
+  // falls back to the blank manual-entry form on any failure or if there's
+  // simply nothing saved yet.
   useEffect(() => {
-    if (!items.length && step !== 'success') router.replace('/cart')
+    if (!token) return
+    let cancelled = false
+    getAddresses(token)
+      .then((addrs) => {
+        if (cancelled) return
+        setSavedAddresses(addrs)
+        const preferred = addrs.find((a) => a.isDefault) ?? addrs[0]
+        if (preferred) selectSavedAddress(preferred)
+      })
+      .catch(() => { /* no saved addresses available — manual entry still works */ })
+      .finally(() => { if (!cancelled) setAddressesLoading(false) })
+    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.length, step])
+  }, [token])
+
+  // Nothing to check out — send back to cart, unless we just successfully
+  // ordered (which empties the cart and would otherwise bounce this screen away
+  // right as we're navigating to the success page).
+  useEffect(() => {
+    if (!items.length && !orderPlacedRef.current) router.replace('/cart')
+  }, [items.length, router])
 
   if (!token) return null
 
@@ -71,8 +131,7 @@ export default function CheckoutPage() {
 
       if (payment.method === 'cod') {
         await useCartStore.getState().syncCart()
-        setOrderNumber(order.orderNumber)
-        setStep('success')
+        router.push(`/checkout/success?orderId=${order.orderId}`)
         return
       }
 
@@ -93,8 +152,7 @@ export default function CheckoutPage() {
               razorpaySignature: response.razorpay_signature,
             })
             await useCartStore.getState().syncCart()
-            setOrderNumber(order.orderNumber)
-            setStep('success')
+            router.push(`/checkout/success?orderId=${order.orderId}`)
           } catch (err) {
             setError(
               (err instanceof ApiError ? err.message : 'Payment verification failed.') +
@@ -118,6 +176,7 @@ export default function CheckoutPage() {
     setError('')
     try {
       const order = await placeOrder(token, { shippingAddress: address, paymentMethod })
+      orderPlacedRef.current = true
       setPlacedOrder(order)
       await attemptPayment(order)
     } catch (err) {
@@ -133,20 +192,6 @@ export default function CheckoutPage() {
     } else {
       handleConfirm()
     }
-  }
-
-  if (step === 'success') {
-    return (
-      <div className="container-brand section-py max-w-md mx-auto text-center">
-        <h1 className="text-display-xl font-display mb-4">ORDER CONFIRMED</h1>
-        <p className="text-body-md mb-8" style={{ color: 'var(--color-brand-muted)' }}>
-          Order #{orderNumber} has been placed.
-        </p>
-        <Button variant="primary" size="lg" fullWidth onClick={() => router.push('/collections/all')}>
-          Continue Shopping
-        </Button>
-      </div>
-    )
   }
 
   return (
@@ -177,15 +222,71 @@ export default function CheckoutPage() {
 
       <div className="space-y-4 mb-8">
         <h2 className="text-display-md font-display">Shipping Address</h2>
-        <Field label="Full Name" value={address.fullName} onChange={set('fullName')} />
-        <Field label="Phone" value={address.phone} onChange={set('phone')} type="tel" />
-        <Field label="Address Line 1" value={address.line1} onChange={set('line1')} />
-        <Field label="Address Line 2 (optional)" value={address.line2 ?? ''} onChange={set('line2')} />
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="City" value={address.city} onChange={set('city')} />
-          <Field label="State" value={address.state} onChange={set('state')} />
-        </div>
-        <Field label="Pincode" value={address.pincode} onChange={set('pincode')} />
+
+        {addressesLoading && (
+          <p className="text-body-sm text-brand-muted">Loading your saved addresses…</p>
+        )}
+
+        {!addressesLoading && savedAddresses.length > 0 && selectedAddressId !== 'new' && (
+          <div className="space-y-3">
+            {savedAddresses.map((a) => (
+              <label
+                key={a.id}
+                className="flex items-start gap-3 p-4 border rounded-sm cursor-pointer text-body-sm bg-white border-brand-border has-checked:border-brand-teal transition-colors"
+              >
+                <input
+                  type="radio"
+                  name="savedAddress"
+                  className="mt-1 accent-brand-teal"
+                  checked={selectedAddressId === a.id}
+                  onChange={() => selectSavedAddress(a)}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 font-semibold text-brand-forest">
+                    {a.label}
+                    {a.isDefault && <Badge variant="muted">Default</Badge>}
+                  </div>
+                  <p className="text-brand-muted mt-0.5">
+                    {a.line1}{a.line2 ? `, ${a.line2}` : ''}, {a.city}, {a.state} {a.postalCode}
+                  </p>
+                  {(a.phone || user?.phone) && (
+                    <p className="text-brand-muted">{a.phone || user?.phone}</p>
+                  )}
+                </div>
+              </label>
+            ))}
+            <button
+              type="button"
+              onClick={() => { setSelectedAddressId('new'); setAddress(EMPTY_ADDRESS); setPreview(null); setStep('address') }}
+              className="text-body-sm font-semibold text-brand-teal hover:text-brand-forest transition-colors"
+            >
+              + Add a new address
+            </button>
+          </div>
+        )}
+
+        {!addressesLoading && (savedAddresses.length === 0 || selectedAddressId === 'new') && (
+          <>
+            {savedAddresses.length > 0 && (
+              <button
+                type="button"
+                onClick={() => selectSavedAddress(savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0])}
+                className="text-body-sm font-semibold text-brand-teal hover:text-brand-forest transition-colors"
+              >
+                ← Use a saved address
+              </button>
+            )}
+            <Field label="Full Name" value={address.fullName} onChange={set('fullName')} />
+            <Field label="Phone" value={address.phone} onChange={set('phone')} type="tel" />
+            <Field label="Address Line 1" value={address.line1} onChange={set('line1')} />
+            <Field label="Address Line 2 (optional)" value={address.line2 ?? ''} onChange={set('line2')} />
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="City" value={address.city} onChange={set('city')} />
+              <Field label="State" value={address.state} onChange={set('state')} />
+            </div>
+            <Field label="Pincode" value={address.pincode} onChange={set('pincode')} />
+          </>
+        )}
       </div>
 
       <div className="space-y-3 mb-8">

@@ -46,8 +46,8 @@ const CAT: Record<Category, { gradient: string; badge: string }> = {
     badge: "bg-violet-100 text-violet-700",
   },
   Antioxidant: {
-    gradient: "from-rose-500 to-red-700",
-    badge: "bg-rose-100 text-rose-700",
+    gradient: "from-brand-forest to-brand-olive",
+    badge: "bg-brand-sage text-brand-forest",
   },
   Enzyme: {
     gradient: "from-teal-500 to-cyan-700",

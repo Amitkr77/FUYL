@@ -37,7 +37,7 @@ export function CartSummary() {
           <span>{formatPrice(total)}</span>
         </div>
       </div>
-      {/* Rose Gold primary CTA — key conversion action */}
+      {/* Forest Green primary CTA — key conversion action */}
       <Button variant="primary" size="lg" fullWidth onClick={() => router.push('/checkout')}>
         Proceed to Checkout
       </Button>

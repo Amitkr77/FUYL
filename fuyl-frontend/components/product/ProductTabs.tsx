@@ -28,7 +28,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
             className={cn(
               'px-4 py-3 text-label transition-colors duration-150 border-b-2 -mb-px',
               active === tab
-                ? 'text-[#8B1A4A] border-[#8B1A4A]'
+                ? 'text-brand-forest border-brand-forest'
                 : 'text-[#6B6B6B] border-transparent hover:text-[#0A0A0A]'
             )}
           >

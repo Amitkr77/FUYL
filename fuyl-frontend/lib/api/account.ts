@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { User, Order, OrderLineItem } from '@/types/user'
+import type { User, Order, OrderLineItem, OrderAddress, OrderTimelineEvent } from '@/types/user'
 
 // ─── Backend response shapes ──────────────────────────────────────────────
 // The backend returns its raw Mongoose documents (_id, grandTotal,
@@ -24,6 +24,12 @@ interface BackendOrderItem {
   image?: string
 }
 
+interface BackendTimelineEvent {
+  status: Order['status']
+  at: string
+  note?: string
+}
+
 interface BackendOrder {
   _id: string
   orderNumber: string
@@ -31,8 +37,25 @@ interface BackendOrder {
   status: Order['status']
   items: BackendOrderItem[]
   subtotal: number
+  discountTotal: number
+  taxTotal: number
   shippingTotal: number
   grandTotal: number
+  paymentMethod: Order['paymentMethod']
+  paymentStatus: Order['paymentStatus']
+  razorpayPaymentId?: string
+  shippingAddress: OrderAddress
+  billingAddress: OrderAddress
+  trackingNumber?: string
+  trackingUrl?: string
+  carrier?: string
+  timeline: BackendTimelineEvent[]
+  placedAt: string
+  shippedAt?: string
+  deliveredAt?: string
+  cancelledAt?: string
+  cancelledReason?: string
+  notes?: string
 }
 
 function mapUser(u: BackendUser): User {
@@ -59,8 +82,29 @@ function mapOrder(o: BackendOrder): Order {
       image: i.image ?? '',
     })),
     subtotal: o.subtotal,
+    discountTotal: o.discountTotal,
+    taxTotal: o.taxTotal,
     shipping: o.shippingTotal,
     total: o.grandTotal,
+    paymentMethod: o.paymentMethod,
+    paymentStatus: o.paymentStatus,
+    razorpayPaymentId: o.razorpayPaymentId,
+    shippingAddress: o.shippingAddress,
+    billingAddress: o.billingAddress,
+    trackingNumber: o.trackingNumber,
+    trackingUrl: o.trackingUrl,
+    carrier: o.carrier,
+    timeline: (o.timeline ?? []).map((t): OrderTimelineEvent => ({
+      status: t.status,
+      at: t.at,
+      note: t.note,
+    })),
+    placedAt: o.placedAt ?? o.createdAt,
+    shippedAt: o.shippedAt,
+    deliveredAt: o.deliveredAt,
+    cancelledAt: o.cancelledAt,
+    cancelledReason: o.cancelledReason,
+    notes: o.notes,
   }
 }
 
@@ -106,4 +150,8 @@ export async function getOrder(token: string, orderId: string): Promise<Order> {
 
 export async function forgotPassword(email: string): Promise<void> {
   return apiFetch('/auth/forgot-password', { method: 'POST', body: { email } })
+}
+
+export async function resetPassword(token: string, password: string): Promise<void> {
+  return apiFetch('/auth/reset-password', { method: 'POST', body: { token, password } })
 }

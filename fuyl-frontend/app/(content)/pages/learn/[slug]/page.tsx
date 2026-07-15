@@ -62,7 +62,7 @@ export default async function BlogPostPage({ params }: Props) {
         )}
         <Link
           href="/pages/learn"
-          className="text-body-xs font-semibold uppercase tracking-wider hover:text-[#8B1A4A] transition-colors"
+          className="text-body-xs font-semibold uppercase tracking-wider hover:text-brand-teal transition-colors"
           style={{ color: "var(--color-brand-muted)" }}
         >
           ← Back to Learn
