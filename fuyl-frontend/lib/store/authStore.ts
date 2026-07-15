@@ -17,6 +17,11 @@ interface AuthState {
   logout:     () => void
   clearError: () => void
   setUser:    (user: User) => void
+  // Used by checkout's inline identify flow — the token/user there already
+  // come from a resolved backend session (login/register/checkout-identify
+  // all issue the same shape), so this just adopts it directly rather than
+  // re-deriving it through login()/register() again.
+  setSession: (token: string, user: User) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -58,6 +63,7 @@ export const useAuthStore = create<AuthState>()(
       logout:     () => set({ user: null, token: null }),
       clearError: () => set({ error: null }),
       setUser:    (user) => set({ user }),
+      setSession: (token, user) => set({ token, user, error: null }),
     }),
     {
       name:       'fuyl_auth',

@@ -125,6 +125,34 @@ export async function register(payload: {
   return { accessToken: res.accessToken, user: mapUser(res.user) }
 }
 
+// ─── Checkout identify — lets checkout resolve/create an account inline,
+// without ever sending the shopper to a separate login/register page. ────
+
+export async function checkEmailExists(email: string): Promise<boolean> {
+  const res = await apiFetch<{ exists: boolean }>(`/auth/email-exists?email=${encodeURIComponent(email)}`)
+  return res.exists
+}
+
+export type CheckoutIdentifyResult =
+  | { status: 'needs_password' }
+  | { status: 'authenticated'; accessToken: string; user: User; isNewAccount: boolean }
+
+export async function checkoutIdentify(payload: {
+  email: string
+  password?: string
+  fullName?: string
+  phone?: string
+  guestId?: string
+}): Promise<CheckoutIdentifyResult> {
+  const { guestId, ...body } = payload
+  const res = await apiFetch<
+    | { status: 'needs_password' }
+    | { status: 'authenticated'; accessToken: string; user: BackendUser; isNewAccount: boolean }
+  >('/auth/checkout-identify', { method: 'POST', body, guestId })
+  if (res.status === 'needs_password') return res
+  return { status: 'authenticated', accessToken: res.accessToken, user: mapUser(res.user), isNewAccount: res.isNewAccount }
+}
+
 export async function getProfile(token: string): Promise<User> {
   const res = await apiFetch<BackendUser>('/auth/me', { token })
   return mapUser(res)

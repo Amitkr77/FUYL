@@ -14,6 +14,8 @@ router.post('/auth/forgot-password', authLimiter, identityController.forgotPassw
 router.post('/auth/reset-password', authLimiter, identityController.resetPassword);
 router.post('/auth/verify-email', identityController.verifyEmail);
 router.post('/auth/resend-verification', authLimiter, identityController.resendVerification);
+router.get('/auth/email-exists', authLimiter, identityController.emailExists);
+router.post('/auth/checkout-identify', authLimiter, identityController.checkoutIdentify);
 
 // Authenticated routes
 router.post('/auth/logout', authRequired, identityController.logout);

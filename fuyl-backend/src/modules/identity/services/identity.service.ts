@@ -11,6 +11,7 @@ import {
   generatePasswordResetToken,
   verifyEmailVerificationToken,
   verifyPasswordResetToken,
+  generateRandomToken,
 } from '../utils/crypto';
 import {
   BadRequestError,
@@ -24,7 +25,7 @@ import { JwtPayload } from '../../../shared/middleware/auth.middleware';
 import { eventBus, Events } from '../../../shared/services/eventBus.service';
 import { queueService } from '../../../shared/services/queue.service';
 import { logger } from '../../../config/logger';
-import { RegisterDTO, LoginDTO, ResetPasswordDTO, ChangePasswordDTO } from '../validators';
+import { RegisterDTO, LoginDTO, ResetPasswordDTO, ChangePasswordDTO, CheckoutIdentifyDTO } from '../validators';
 import { addDays } from '../../../shared/utils';
 import { Request } from 'express';
 import mongoose from 'mongoose';
@@ -226,6 +227,101 @@ export class IdentityService {
       data: { token, name: user.displayName ?? user.email },
     });
     return { sent: true };
+  }
+
+  /**
+   * Public — used by the checkout page to decide whether to reveal a
+   * password field for a returning customer. No side effects, safe to call
+   * on every keystroke/blur while typing an email.
+   */
+  async checkEmailExists(email: string): Promise<boolean> {
+    const user = await userRepo.findByEmail(email);
+    return !!user;
+  }
+
+  /**
+   * Resolves the identity checkout should proceed as, without ever sending
+   * the shopper to a separate login/register page:
+   *   - New email  -> account created silently (random password, "set your
+   *     password" email sent via the existing forgot-password flow), then
+   *     logged in immediately.
+   *   - Known email, no password yet -> returns 'needs_password' so the
+   *     checkout page can reveal one inline field, rather than erroring.
+   *   - Known email + correct password -> logged in normally.
+   * Either way, any guest cart is merged into the resolved account so
+   * checkout continues with the same items the shopper already added.
+   */
+  async checkoutIdentify(
+    dto: CheckoutIdentifyDTO,
+    meta: { ip?: string; userAgent?: string; deviceFingerprint?: string },
+    guestId?: string
+  ): Promise<
+    | { status: 'needs_password' }
+    | { status: 'authenticated'; user: unknown; accessToken: string; refreshToken: string; isNewAccount: boolean }
+  > {
+    const existing = await userRepo.findByEmail(dto.email);
+
+    if (existing) {
+      if (!existing.isActive || existing.isDeleted) throw new ForbiddenError('Account disabled');
+      if (existing.lockedUntil && existing.lockedUntil > new Date()) {
+        throw new ForbiddenError('Account temporarily locked. Try again later.');
+      }
+      if (!dto.password) {
+        return { status: 'needs_password' };
+      }
+
+      const ok = await comparePassword(dto.password, existing.passwordHash);
+      if (!ok) {
+        await userRepo.incrementFailedLogin(dto.email);
+        throw new UnauthorizedError('Incorrect password');
+      }
+
+      await userRepo.resetFailedLogin(existing.id);
+      await userRepo.update(existing.id, { lastLoginAt: new Date(), lastLoginIp: meta.ip });
+      const tokens = await this.issueTokens(existing, meta);
+
+      if (guestId) {
+        const { cartService } = await import('../../cart/services/cart.service');
+        await cartService.mergeGuestCartIntoUser(guestId, existing.id);
+      }
+
+      eventBus.publish(Events.USER_LOGIN, { userId: existing.id, ip: meta.ip });
+      return { status: 'authenticated', user: existing, ...tokens, isNewAccount: false };
+    }
+
+    // New email — create the account silently, right from the checkout form.
+    const nameParts = (dto.fullName ?? '').trim().split(/\s+/).filter(Boolean);
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ') || undefined;
+
+    const registerResult = await this.register(
+      {
+        email: dto.email,
+        password: generateRandomToken(16),
+        firstName,
+        lastName,
+        phone: dto.phone,
+        role: RoleEnum.CUSTOMER,
+      } as RegisterDTO,
+      meta
+    );
+
+    if (guestId) {
+      const { cartService } = await import('../../cart/services/cart.service');
+      await cartService.mergeGuestCartIntoUser(guestId, registerResult.user.id);
+    }
+
+    // Reuses the existing forgot-password email so they can set a real
+    // password whenever they want — no new email template needed.
+    void this.forgotPassword(dto.email);
+
+    return {
+      status: 'authenticated',
+      user: registerResult.user,
+      accessToken: registerResult.accessToken,
+      refreshToken: registerResult.refreshToken,
+      isNewAccount: true,
+    };
   }
 
   async getMe(userId: string) {

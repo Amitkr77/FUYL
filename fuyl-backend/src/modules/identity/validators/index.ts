@@ -59,6 +59,20 @@ export const setPermissionsSchema = z.object({
   permissions: z.array(z.enum(PERMISSION_VALUES)),
 });
 
+// ─── Checkout identify (guest → account, without a separate register page) ──
+export const emailExistsSchema = z.object({
+  email: z.string().email(),
+});
+
+export const checkoutIdentifySchema = z.object({
+  email: z.string().email(),
+  // Only required if the email already belongs to an existing account —
+  // checked server-side, not assumed here.
+  password: z.string().min(1).optional(),
+  fullName: z.string().min(1).max(150).optional(),
+  phone: z.string().regex(/^\+?[1-9]\d{7,14}$/).optional(),
+});
+
 export type RegisterDTO = z.infer<typeof registerSchema>;
 export type LoginDTO = z.infer<typeof loginSchema>;
 export type RefreshDTO = z.infer<typeof refreshSchema>;
@@ -68,3 +82,5 @@ export type VerifyEmailDTO = z.infer<typeof verifyEmailSchema>;
 export type ChangePasswordDTO = z.infer<typeof changePasswordSchema>;
 export type ResendVerificationDTO = z.infer<typeof resendVerificationSchema>;
 export type SetPermissionsDTO = z.infer<typeof setPermissionsSchema>;
+export type EmailExistsDTO = z.infer<typeof emailExistsSchema>;
+export type CheckoutIdentifyDTO = z.infer<typeof checkoutIdentifySchema>;

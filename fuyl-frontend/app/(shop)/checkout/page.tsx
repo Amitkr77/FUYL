@@ -9,6 +9,7 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { useCartStore } from '@/lib/store/cartStore'
 import { previewCheckout, placeOrder, type CheckoutAddressInput, type CheckoutPaymentMethod, type CheckoutPreview } from '@/lib/api/checkout'
 import { getAddresses, type Address } from '@/lib/api/customer'
+import { checkEmailExists, checkoutIdentify } from '@/lib/api/account'
 import { createPayment, verifyPayment } from '@/lib/api/payment'
 import { openRazorpayCheckout } from '@/lib/utils/razorpay'
 import { formatPrice } from '@/lib/utils/formatPrice'
@@ -52,9 +53,35 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('razorpay')
   const [preview, setPreview] = useState<CheckoutPreview | null>(null)
   const [error, setError] = useState('')
+
+  // Guest checkout — resolves to a real account inline, without ever
+  // sending the shopper to a separate login/register page (see
+  // lib/api/account.ts's checkoutIdentify). Only relevant when !token.
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [needsPassword, setNeedsPassword] = useState(false)
+  const [identifying, setIdentifying] = useState(false)
+
+  const handleEmailBlur = async () => {
+    if (token || !email || !email.includes('@')) return
+    try {
+      const exists = await checkEmailExists(email)
+      setNeedsPassword(exists)
+    } catch {
+      // Non-fatal — worst case the password prompt only appears after
+      // Review Order is clicked instead of proactively on blur.
+    }
+  }
   // Set once placeOrder() succeeds — lets a payment-step retry re-attempt
   // payment for the same order instead of placing a second one.
   const [placedOrder, setPlacedOrder] = useState<{ orderId: string; orderNumber: string } | null>(null)
+  // When checkoutIdentify() resolves a returning customer mid-checkout,
+  // `token` changes and would otherwise re-trigger the saved-address
+  // auto-select below — silently discarding the address they just typed and
+  // bouncing them back from the review step. Set right before setSession()
+  // so that effect can tell "just authenticated via checkout" apart from "a
+  // real logged-in user loaded this page normally".
+  const skipAutoSelectRef = useRef(false)
   // Plain ref (not state) so the empty-cart guard below sees it synchronously
   // the instant an order is placed, before syncCart's own re-render can race it.
   const orderPlacedRef = useRef(false)
@@ -73,22 +100,20 @@ export default function CheckoutPage() {
     setStep('address')
   }
 
-  // Checkout requires auth on the backend — there's no guest checkout.
-  useEffect(() => {
-    if (!token) router.replace('/account?redirect=/checkout')
-  }, [token, router])
-
   // Load saved addresses once and default to the account's default address
   // (or its first saved one) so a returning shopper isn't retyping it —
   // falls back to the blank manual-entry form on any failure or if there's
   // simply nothing saved yet.
   useEffect(() => {
-    if (!token) return
+    // A guest has no saved addresses to fetch — resolve immediately so the
+    // manual-entry form shows right away instead of loading forever.
+    if (!token) { setAddressesLoading(false); return }
     let cancelled = false
     getAddresses(token)
       .then((addrs) => {
         if (cancelled) return
         setSavedAddresses(addrs)
+        if (skipAutoSelectRef.current) { skipAutoSelectRef.current = false; return }
         const preferred = addrs.find((a) => a.isDefault) ?? addrs[0]
         if (preferred) selectSavedAddress(preferred)
       })
@@ -105,17 +130,45 @@ export default function CheckoutPage() {
     if (!items.length && !orderPlacedRef.current) router.replace('/cart')
   }, [items.length, router])
 
-  if (!token) return null
-
   const set = (k: keyof CheckoutAddressInput) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setAddress((a) => ({ ...a, [k]: e.target.value }))
 
-  const addressComplete = Boolean(address.fullName && address.phone && address.line1 && address.city && address.state && address.pincode)
+  const addressComplete = Boolean(
+    address.fullName && address.phone && address.line1 && address.city && address.state && address.pincode &&
+    (token || email)
+  )
 
   const handleReview = async () => {
     setError('')
     try {
-      const result = await previewCheckout(token, { shippingAddress: address, paymentMethod })
+      let activeToken = token
+
+      if (!activeToken) {
+        setIdentifying(true)
+        try {
+          const guestId = useCartStore.getState().guestId ?? undefined
+          const result = await checkoutIdentify({
+            email,
+            password: needsPassword ? password : undefined,
+            fullName: address.fullName,
+            phone: address.phone,
+            guestId,
+          })
+          if (result.status === 'needs_password') {
+            setNeedsPassword(true)
+            setError('This email already has an account — enter your password to continue.')
+            return
+          }
+          skipAutoSelectRef.current = true
+          useAuthStore.getState().setSession(result.accessToken, result.user)
+          await useCartStore.getState().syncCart()
+          activeToken = result.accessToken
+        } finally {
+          setIdentifying(false)
+        }
+      }
+
+      const result = await previewCheckout(activeToken, { shippingAddress: address, paymentMethod })
       setPreview(result)
       setStep('review')
     } catch (err) {
@@ -175,7 +228,7 @@ export default function CheckoutPage() {
   const handleConfirm = async () => {
     setError('')
     try {
-      const order = await placeOrder(token, { shippingAddress: address, paymentMethod })
+      const order = await placeOrder(token!, { shippingAddress: address, paymentMethod })
       orderPlacedRef.current = true
       setPlacedOrder(order)
       await attemptPayment(order)
@@ -219,6 +272,32 @@ export default function CheckoutPage() {
           </p>
         )}
       </div>
+
+      {!token && (
+        <div className="space-y-4 mb-8">
+          <h2 className="text-display-md font-display">Contact</h2>
+          <Field
+            label="Email"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setNeedsPassword(false); setPassword('') }}
+            onBlur={handleEmailBlur}
+            type="email"
+          />
+          {needsPassword && (
+            <>
+              <Field label="Password" value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
+              <p className="text-body-xs" style={{ color: 'var(--color-brand-muted)' }}>
+                Looks like you already have an account with this email — enter your password to continue.
+              </p>
+            </>
+          )}
+          {!needsPassword && email && (
+            <p className="text-body-xs" style={{ color: 'var(--color-brand-muted)' }}>
+              We&apos;ll set up your account automatically — no separate sign-up needed.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="space-y-4 mb-8">
         <h2 className="text-display-md font-display">Shipping Address</h2>
@@ -313,7 +392,14 @@ export default function CheckoutPage() {
       )}
 
       {step === 'address' && (
-        <Button variant="primary" size="lg" fullWidth disabled={!addressComplete} onClick={handleReview}>
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
+          loading={identifying}
+          disabled={!addressComplete || (needsPassword && !password)}
+          onClick={handleReview}
+        >
           Review Order
         </Button>
       )}
@@ -336,10 +422,11 @@ export default function CheckoutPage() {
   )
 }
 
-function Field({ label, value, onChange, type = 'text' }: {
+function Field({ label, value, onChange, onBlur, type = 'text' }: {
   label: string
   value: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onBlur?: () => void
   type?: string
 }) {
   return (
@@ -352,7 +439,7 @@ function Field({ label, value, onChange, type = 'text' }: {
         className="w-full h-11 px-3 text-body-sm border rounded-sm outline-none transition-colors"
         style={{ borderColor: 'var(--color-brand-border)' }}
         onFocus={(e) => e.currentTarget.style.borderColor = 'var(--color-brand-berry)'}
-        onBlur={(e)  => e.currentTarget.style.borderColor = 'var(--color-brand-border)'}
+        onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--color-brand-border)'; onBlur?.() }}
       />
     </div>
   )

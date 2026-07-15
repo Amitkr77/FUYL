@@ -245,7 +245,7 @@ export default function AccountPage() {
 
   if (mode === "forgot") {
     return (
-      <div className="section-py max-w-md mx-auto">
+      <div className="container-brand section-py max-w-md mx-auto">
         <h1 className="text-display-lg font-display mb-8 text-center text-brand-forest">
           RESET PASSWORD
         </h1>
@@ -320,7 +320,7 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="section-py max-w-md mx-auto">
+    <div className="container-brand section-py max-w-md mx-auto">
       <h1 className="text-display-lg font-display mb-8 text-center text-brand-forest">
         {mode === "login" ? "WELCOME BACK" : "CREATE ACCOUNT"}
       </h1>

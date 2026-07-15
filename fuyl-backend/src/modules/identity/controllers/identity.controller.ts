@@ -13,6 +13,8 @@ import {
   changePasswordSchema,
   resendVerificationSchema,
   setPermissionsSchema,
+  emailExistsSchema,
+  checkoutIdentifySchema,
 } from '../validators';
 import { env } from '../../../config/env';
 import { BadRequestError } from '../../../shared/errors';
@@ -53,6 +55,42 @@ export class IdentityController {
           maxAge: 7 * 24 * 60 * 60 * 1000,
         });
         return success(res, { user: result.user, accessToken: result.accessToken });
+      } catch (err) { next(err); }
+    },
+  ];
+
+  emailExists = [
+    validate(emailExistsSchema, 'query'),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        const exists = await identityService.checkEmailExists(req.query.email as string);
+        return success(res, { exists });
+      } catch (err) { next(err); }
+    },
+  ];
+
+  checkoutIdentify = [
+    validate(checkoutIdentifySchema),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        const meta = IdentityService.extractMeta(req);
+        const guestId = req.headers['x-guest-id'] as string | undefined;
+        const result = await identityService.checkoutIdentify(req.body, meta, guestId);
+        if (result.status === 'needs_password') {
+          return success(res, { status: 'needs_password' });
+        }
+        res.cookie(env.jwt.cookieName, result.refreshToken, {
+          httpOnly: true,
+          secure: env.isProd,
+          sameSite: 'strict',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+        return success(res, {
+          status: 'authenticated',
+          user: result.user,
+          accessToken: result.accessToken,
+          isNewAccount: result.isNewAccount,
+        });
       } catch (err) { next(err); }
     },
   ];
