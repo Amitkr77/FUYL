@@ -34,7 +34,7 @@ export function NewsletterSection() {
       <div className="container-brand max-w-2xl mx-auto text-center">
         <ScrollReveal>
           <div className="flex justify-center mb-4">
-            <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label">
+            <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label">
               Stay in the loop
             </span>
           </div>

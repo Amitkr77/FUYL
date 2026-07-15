@@ -5,6 +5,7 @@ import { ProductSpotlight }    from '@/components/home/ProductSpotlight'
 import { IngredientsGrid }     from '@/components/home/IngredientsGrid'
 import { ThirtyDayPath }       from '@/components/home/ThirtyDayPath'
 import { VideoSection }        from '@/components/home/VideoSection'
+import { JoinOurTeam }         from '@/components/home/JoinOurTeam'
 import { TestimonialsSection } from '@/components/home/TestimonialsSection'
 import { FaqSection }          from '@/components/home/FaqSection'
 import { AmbassadorSection }   from '@/components/home/AmbassadorSection'
@@ -42,19 +43,22 @@ export default function HomePage() {
       {/* 7 — Video + launch countdown (dark) */}
       <VideoSection />
 
-      {/* 8 — Testimonials */}
+      {/* 8 — Join our team */}
+      <JoinOurTeam />
+
+      {/* 9 — Testimonials */}
       <TestimonialsSection />
 
-      {/* 9 — FAQ */}
+      {/* 10 — FAQ */}
       <FaqSection />
 
-      {/* 10 — Ambassador / referral */}
+      {/* 11 — Ambassador / referral */}
       <AmbassadorSection />
 
-      {/* 11 — Instagram feed */}
+      {/* 12 — Instagram feed */}
       <InstagramFeed />
 
-      {/* 12 — Newsletter (berry) */}
+      {/* 13 — Newsletter (berry) */}
       <NewsletterSection />
     </>
   )

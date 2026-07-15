@@ -20,25 +20,27 @@ export default async function LearnPage() {
     // Graceful fallback — an empty editorial hub renders below rather than crashing.
   }
 
-  const categories = ["All", ...new Set(posts.map((p) => p.tags[0]).filter(Boolean))];
+  const categories = [
+    "All",
+    ...new Set(posts.map((p) => p.tags[0]).filter(Boolean)),
+  ];
 
   return (
     <>
       {/* Hero */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 min-h-[80vh]">
+      <section className="grid grid-cols-1 lg:grid-cols-2 min-h-[60vh]">
         {/* Left — Content */}
         <div className="bg-brand-cream flex items-center px-6 py-20 sm:px-10 lg:px-16 xl:px-24 lg:py-28">
           <ScrollReveal>
             <Breadcrumbs className="mb-5" items={[{ label: "Learn" }]} />
-            <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label mb-5">
+            {/* <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label mb-5">
               The FUYL Editorial
-            </span>
+            </span> */}
             <h1 className="text-display-2xl font-display text-brand-forest mb-6">
-              LEARN.
+              Our Journal
             </h1>
             <p className="text-body-lg text-brand-muted leading-relaxed max-w-lg">
-              Nutrition science, ingredient deep-dives, wellness guides and
-              expert perspectives — no fluff, no brand propaganda.
+              Redefining what matters
             </p>
           </ScrollReveal>
         </div>
@@ -101,7 +103,10 @@ export default async function LearnPage() {
 
           {/* Grid */}
           {posts.length === 0 ? (
-            <p className="text-body-md text-center py-12" style={{ color: "var(--color-brand-muted)" }}>
+            <p
+              className="text-body-md text-center py-12"
+              style={{ color: "var(--color-brand-muted)" }}
+            >
               New articles are on the way — check back soon.
             </p>
           ) : (

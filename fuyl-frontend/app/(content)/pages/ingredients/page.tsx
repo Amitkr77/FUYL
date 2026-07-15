@@ -237,7 +237,7 @@ export default function IngredientsPage() {
   return (
     <>
       {/* ── Hero ─────────────────────────────────────────── */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 min-h-[80vh]">
+      <section className="grid grid-cols-1 lg:grid-cols-2 min-h-[60vh]">
         {/* Right — Image */}
         <div className="relative min-h-[50vh] lg:min-h-0">
           <Image
@@ -245,7 +245,7 @@ export default function IngredientsPage() {
             alt="FUYL COMPLETE+ product"
             fill
             priority
-            className="object-cover object-center"
+            className="object-contain object-center"
             sizes="(max-width: 1024px) 100vw, 50vw"
           />
         </div>
@@ -253,20 +253,19 @@ export default function IngredientsPage() {
         {/* Left — Content */}
         <div className="bg-brand-cream flex items-center px-6 py-20 sm:px-10 lg:px-16 xl:px-24 lg:py-28">
           <ScrollReveal>
-            <Breadcrumbs className="mb-5" items={[{ label: 'Ingredients' }]} />
-            <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label mb-5">
+            <Breadcrumbs className="mb-5" items={[{ label: "Ingredients" }]} />
+            {/* <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label mb-5">
               Full Transparency
-            </span>
+            </span> */}
             <h1 className="text-display-xl font-display text-brand-forest mb-6">
-              60+ INGREDIENTS.
-              <br />
-              EVERY ONE EXPLAINED.
+              INGREDIENTS
             </h1>
             <p className="text-body-lg text-brand-muted leading-relaxed max-w-lg">
-              No proprietary blends. No hidden doses. Click any ingredient to
-              understand exactly what it does, at what dose, and why it&apos;s
-              in FUYL COMPLETE+.
+              Science behind the ingredients that make up the FUYL COMPLETE+
             </p>
+            <button className="mt-10 inline-flex items-center justify-center h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest">
+              Explore Ingredients →
+            </button>
           </ScrollReveal>
         </div>
       </section>

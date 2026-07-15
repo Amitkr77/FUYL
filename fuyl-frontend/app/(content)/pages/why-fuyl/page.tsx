@@ -16,24 +16,23 @@ export default function WhyFuylPage() {
   return (
     <>
       {/* Hero */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 min-h-[80vh]">
+      <section className="grid grid-cols-1 lg:grid-cols-2 min-h-[60vh]">
         {/* Left — Content */}
         <div className="bg-brand-cream flex items-center px-6 py-20 sm:px-10 lg:px-16 xl:px-24 lg:py-28">
           <ScrollReveal>
             <Breadcrumbs className="mb-5" items={[{ label: "Why FUYL" }]} />
-            <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label mb-5">
+            {/* <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label mb-5">
               Our Philosophy
-            </span>
-            <h1 className="text-display-2xl font-display text-brand-forest mb-6">
-              WHY FUYL
-              <br />
-              EXISTS.
+            </span> */}
+            <h1 className="text-display-xl font-display text-brand-forest mb-6">
+              WHY FUYL COMPLETE+ IS DIFFERENT
             </h1>
-            <p className="text-body-lg text-brand-muted leading-relaxed max-w-lg">
-              The Indian supplement industry is broken. Most products are
-              under-dosed, over-marketed, and built around Western nutritional
-              profiles that don&apos;t account for how Indian bodies eat, live
-              and work. We built FUYL to fix that.
+            <p className="text-body-md text-brand-muted leading-relaxed max-w-xl text-justify">
+              We built COMPLETE+ because the daily nutritional supplement
+              industry has failed the health-conscious consumer through token
+              doses, cheap ingredient forms, claims that do not hold up, and
+              products too unpleasant to take consistently. Here is exactly how
+              we think about every decision in this formulation.
             </p>
           </ScrollReveal>
         </div>
@@ -58,17 +57,19 @@ export default function WhyFuylPage() {
       >
         <div className="container-brand">
           <ScrollReveal>
-            <p
+            {/* <p
               className="text-label text-center mb-3 text-sm font-bold tracking-widest uppercase"
               style={{ color: "var(--color-brand-berry)" }}
             >
               The FUYL Difference
-            </p>
-            <h2 className="text-display-xl font-display text-center mb-14 text-brand-forest">
-              HOW WE DO
-              <br />
-              THINGS DIFFERENTLY.
+            </p> */}
+
+            <h2 className="text-display-xl font-display text-center mb-5 text-brand-forest">
+              PILLARS THAT MAKE FUYL
             </h2>
+            <p className="text-body-lg text-brand-muted leading-relaxed max-w-xl mx-auto text-center mb-6">
+              DISCOVER THE USPs THAT MAKE OUR PRODUCTS EXCEPTIONAL
+            </p>
           </ScrollReveal>
 
           <PillarTabs />

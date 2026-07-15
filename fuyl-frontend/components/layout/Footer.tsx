@@ -1,12 +1,20 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Mail, Phone } from "lucide-react";
 import { FOOTER_LINKS, SITE } from "@/lib/constants";
 
 function InstagramIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
       <defs>
-        <linearGradient id="ig-gradient" x1="0" y1="32" x2="32" y2="0" gradientUnits="userSpaceOnUse">
+        <linearGradient
+          id="ig-gradient"
+          x1="0"
+          y1="32"
+          x2="32"
+          y2="0"
+          gradientUnits="userSpaceOnUse"
+        >
           <stop offset="0%" stopColor="#FFDD55" />
           <stop offset="30%" stopColor="#FF543E" />
           <stop offset="60%" stopColor="#C837AB" />
@@ -14,8 +22,24 @@ function InstagramIcon() {
         </linearGradient>
       </defs>
       <rect width="32" height="32" rx="9" fill="url(#ig-gradient)" />
-      <rect x="9" y="9" width="14" height="14" rx="4" stroke="white" strokeWidth="1.8" fill="none" />
-      <circle cx="16" cy="16" r="4" stroke="white" strokeWidth="1.8" fill="none" />
+      <rect
+        x="9"
+        y="9"
+        width="14"
+        height="14"
+        rx="4"
+        stroke="white"
+        strokeWidth="1.8"
+        fill="none"
+      />
+      <circle
+        cx="16"
+        cy="16"
+        r="4"
+        stroke="white"
+        strokeWidth="1.8"
+        fill="none"
+      />
       <circle cx="20.6" cy="11.4" r="1" fill="white" />
     </svg>
   );
@@ -39,6 +63,17 @@ function FacebookIcon() {
     </svg>
   );
 }
+function PinterestIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="9" fill="#E60023" />
+      <path
+        d="M16 8c-4.4 0-7 2.9-7 6.4 0 2 .9 3.6 2.7 4.2.3.1.5 0 .6-.3l.2-.9c.1-.3 0-.4-.1-.6-.5-.6-.8-1.4-.8-2.5 0-3.2 2.3-6 6-6 3.3 0 5.1 2 5.1 4.7 0 3.5-1.5 6.5-3.8 6.5-1.2 0-2.2-1-1.9-2.3.4-1.5 1.1-3.2 1.1-4.3 0-1-.5-1.8-1.6-1.8-1.3 0-2.3 1.3-2.3 3.1 0 1.1.4 1.9.4 1.9l-1.5 6.5c-.3 1.4-.1 3.2 0 3.4 0 .1.2.1.2 0 .1-.1 1.4-1.7 1.8-3.2l.7-2.8c.4.7 1.4 1.3 2.6 1.3 3.4 0 5.7-3.1 5.7-7.2 0-3.1-2.6-6-6.9-6z"
+        fill="white"
+      />
+    </svg>
+  );
+}
 function LinkedinIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
@@ -54,8 +89,25 @@ function LinkedinIcon() {
 function VisaIcon() {
   return (
     <svg width="38" height="24" viewBox="0 0 48 32" fill="none">
-      <rect x="0.5" y="0.5" width="47" height="31" rx="4" fill="white" stroke="#E5E5E5" />
-      <text x="24" y="21" textAnchor="middle" fontFamily="Arial, sans-serif" fontStyle="italic" fontWeight="700" fontSize="13" fill="#1A1F71">
+      <rect
+        x="0.5"
+        y="0.5"
+        width="47"
+        height="31"
+        rx="4"
+        fill="white"
+        stroke="#E5E5E5"
+      />
+      <text
+        x="24"
+        y="21"
+        textAnchor="middle"
+        fontFamily="Arial, sans-serif"
+        fontStyle="italic"
+        fontWeight="700"
+        fontSize="13"
+        fill="#1A1F71"
+      >
         VISA
       </text>
     </svg>
@@ -64,7 +116,15 @@ function VisaIcon() {
 function MastercardIcon() {
   return (
     <svg width="38" height="24" viewBox="0 0 48 32" fill="none">
-      <rect x="0.5" y="0.5" width="47" height="31" rx="4" fill="white" stroke="#E5E5E5" />
+      <rect
+        x="0.5"
+        y="0.5"
+        width="47"
+        height="31"
+        rx="4"
+        fill="white"
+        stroke="#E5E5E5"
+      />
       <circle cx="20" cy="16" r="9" fill="#EB001B" />
       <circle cx="28" cy="16" r="9" fill="#F79E1B" />
       <path d="M24 9.5a9 9 0 0 1 0 13 9 9 0 0 1 0-13z" fill="#FF5F00" />
@@ -74,8 +134,23 @@ function MastercardIcon() {
 function UpiIcon() {
   return (
     <svg width="38" height="24" viewBox="0 0 48 32" fill="none">
-      <rect x="0.5" y="0.5" width="47" height="31" rx="4" fill="white" stroke="#E5E5E5" />
-      <text x="24" y="20" textAnchor="middle" fontFamily="Arial, sans-serif" fontWeight="800" fontSize="12">
+      <rect
+        x="0.5"
+        y="0.5"
+        width="47"
+        height="31"
+        rx="4"
+        fill="white"
+        stroke="#E5E5E5"
+      />
+      <text
+        x="24"
+        y="20"
+        textAnchor="middle"
+        fontFamily="Arial, sans-serif"
+        fontWeight="800"
+        fontSize="12"
+      >
         <tspan fill="#097939">UP</tspan>
         <tspan fill="#ED752E">I</tspan>
       </text>
@@ -86,13 +161,28 @@ function RupayIcon() {
   return (
     <svg width="38" height="24" viewBox="0 0 48 32" fill="none">
       <defs>
-        <linearGradient id="rupay-gradient" x1="0" y1="0" x2="48" y2="0" gradientUnits="userSpaceOnUse">
+        <linearGradient
+          id="rupay-gradient"
+          x1="0"
+          y1="0"
+          x2="48"
+          y2="0"
+          gradientUnits="userSpaceOnUse"
+        >
           <stop offset="0%" stopColor="#F37021" />
           <stop offset="100%" stopColor="#0F9D58" />
         </linearGradient>
       </defs>
       <rect width="48" height="32" rx="4" fill="url(#rupay-gradient)" />
-      <text x="24" y="20" textAnchor="middle" fontFamily="Arial, sans-serif" fontWeight="700" fontSize="10" fill="white">
+      <text
+        x="24"
+        y="20"
+        textAnchor="middle"
+        fontFamily="Arial, sans-serif"
+        fontWeight="700"
+        fontSize="10"
+        fill="white"
+      >
         RuPay
       </text>
     </svg>
@@ -104,6 +194,7 @@ export function Footer() {
     { href: SITE.instagram, icon: InstagramIcon, label: "Instagram" },
     { href: SITE.youtube, icon: YoutubeIcon, label: "YouTube" },
     { href: SITE.facebook, icon: FacebookIcon, label: "Facebook" },
+    { href: SITE.pinterest, icon: PinterestIcon, label: "Pinterest" },
     { href: SITE.linkedin, icon: LinkedinIcon, label: "LinkedIn" },
   ];
 
@@ -128,31 +219,21 @@ export function Footer() {
       <footer className="bg-neutral-100">
         <div className="container-brand py-16 grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
           {/* Brand */}
-          <div className="lg:col-span-2">
-            <Link href="/">
-              <Image
-                src="https://fuyl.in/cdn/shop/files/Final_Logo_290526.png?v=1780044950"
-                alt="FUYL"
-                width={90}
-                height={32}
-                className="h-14 w-auto object-contain brightness-0"
-              />
-            </Link>
-            <p className="mt-4 text-body-sm leading-relaxed max-w-xs text-brand-muted">
-              Complete daily nutrition. 60+ premium ingredients. One sachet
-              every morning.
-            </p>
-            <div className="mt-6 flex flex-col items-start">
+          <div className="md:col-span-2">
+            <p className="text-label text-brand-forest">Find us here</p>
+            <div className="mt-4 flex flex-col items-start gap-1">
               <a
                 href={`mailto:${SITE.email}`}
-                className="flex min-h-6 items-center py-2 text-body-xs text-brand-muted hover:text-brand-teal transition-colors"
+                className="flex min-h-6 items-center gap-2.5 py-2 text-body-xs text-brand-muted hover:text-brand-teal transition-colors"
               >
+                <Mail size={15} className="shrink-0" />
                 {SITE.email}
               </a>
               <a
                 href={`tel:${SITE.phone}`}
-                className="flex min-h-6 items-center py-2 text-body-xs text-brand-muted hover:text-brand-teal transition-colors"
+                className="flex min-h-6 items-center gap-2.5 py-2 text-body-xs text-brand-muted hover:text-brand-teal transition-colors"
               >
+                <Phone size={15} className="shrink-0" />
                 {SITE.phone}
               </a>
             </div>

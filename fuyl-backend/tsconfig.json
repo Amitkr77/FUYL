@@ -14,13 +14,7 @@
     "sourceMap": true,
     "removeComments": false,
     "moduleResolution": "node10",
-    "ignoreDeprecations": "5.0",
-    "baseUrl": "./src",
-    "paths": {
-      "@shared/*": ["shared/*"],
-      "@modules/*": ["modules/*"],
-      "@config/*": ["config/*"]
-    },
+    "ignoreDeprecations": "6.0",
     "types": ["node", "jest"]
   },
   "include": ["src/**/*.ts"],

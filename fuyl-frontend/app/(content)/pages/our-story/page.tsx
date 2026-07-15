@@ -12,16 +12,35 @@ export const metadata = generateSEO({
   url: "https://fuyl.in/pages/our-story",
 });
 
-const FEATURES = [
+// `body` may contain simple inline HTML (e.g. <strong>word</strong> to bold
+// it) — rendered via dangerouslySetInnerHTML below, same pattern already
+// used for blog post content elsewhere in this app.
+const FOUNDERS = [
   {
     image: "/images/hero-slide-1.webp",
-    title: "The Problem We Lived",
-    body: "Two health-conscious friends, chronically fatigued despite eating well. Six micronutrient deficiencies discovered between them — and a broken supplement industry that offered no honest solution.",
+    title: "SWEEKAR SAXENA",
+    body: `I am a product of "<strong>Kota Factory</strong>", an engineer, an Executive MBA from IIM Lucknow, health conscious individual. Yet, for most of my adult life, I was quietly undernourished. From avoiding vegetables as a child to surviving hostel food and then navigating a demanding career across startups like Indus OS, KiranaKing, Jugnoo, Ola and Mercedes-Benz. I discovered something many of us do far too late: <strong>eating better does not necessarily mean nourishing better.</strong>
+
+That realization became deeply personal after my wife and I moved to the Gulf in 2017. Over the next several years, we struggled through cycles of gut issues, fatigue, stress, poor sleep, and hormonal imbalances. We tried specialists, diets, exercise, and countless supplements. The lesson that kept emerging was simple: without strong foundations micronutrition, gut health, and cellular recovery everything else works below its potential.
+
+As I spoke to friends, founders, and professionals around me, I realized our story wasn't unique. So many people who cared about their health still felt something was missing low energy, restless sleep, an unsettled gut, and a sense of never quite feeling their best. Most had tried supplements. Few had found one they truly trusted.
+
+That gap became the founding insight behind <strong>FUYL</strong>L. Together with Anupam, we spent months building <strong>FUYL Complete+</strong>, a daily wellness powder designed around four pillars: complete micronutrition, gut health, cellular recovery, and calm, sustained energy. Not because we wanted to create another supplement, but because we wanted to build the product we wished had existed years earlier.
+
+<strong>LONGER . STRONGER . YOU</strong>`,
   },
   {
     image: "/images/fuyl-complete+.webp",
-    title: "The Product We Built",
-    body: "Fourteen months of research. 200+ clinical studies. Eight prototype iterations. FUYL COMPLETE+ — 60+ ingredients at transparent, research-backed doses designed specifically for the Indian body.",
+    title: "ANUPAM PANDEY",
+    body: `The story of an average urban Indian is one long hustle. We don't inherit our place. We earn it, in a crowd, pushing because everyone around us is pushing. But the hustle always takes something in return, and for almost all of us, the first thing it quietly takes is our health.
+
+It begins in a hostel mess and never really stops. JEE, then college, then the job in a city that runs faster than you do, then maybe UPSC in Old Rajendra Nagar. And through all of it, your career stays on point while your nutrition slips into the back seat. Then your thirties arrive, the body sends the bill, and you realise you optimised everything in your life except the one thing holding it all up.
+
+I know this arc because I lived most of it. I always 'knew' what was missing. The fruits, the greens, the fibre, the micronutrients my body was quietly running short on. Knowing was never the problem. Time was. <strong>You cannot eat your way to a dozen fruits, a fistful of greens, and a full spread of vitamins every single day when your day has no room left in it.</strong> That gap, between what we know we should eat and what our lives allow, is where FUYL began.
+
+So my co-founder Sweekar and I built the thing we wished existed: <strong>one honest sachet</strong>, made with care behind every choice, for people still in the middle of their hustle who shouldn't have to choose between their ambition and their health. One sachet. Every morning. Everything covered.
+
+<strong>LONGER . STRONGER . YOU</strong>`,
   },
 ];
 
@@ -111,7 +130,7 @@ export default function OurStoryPage() {
       <section className="section-py bg-brand-cream">
         <div className="container-brand">
           <div className="flex flex-col items-stretch md:flex-row">
-            {FEATURES.map(({ image, title, body }, i) => (
+            {FOUNDERS.map(({ image, title, body }, i) => (
               <Fragment key={title}>
                 {/* Divider — horizontal on mobile, vertical on desktop */}
                 {i > 0 && (
@@ -122,22 +141,23 @@ export default function OurStoryPage() {
 
                 <ScrollReveal delay={i * 120} className="flex-1 min-w-0">
                   <div className="flex flex-col items-center gap-7 text-center px-4 py-2">
-                    <div className="relative h-52 w-52 shrink-0 overflow-hidden rounded-full border-[5px] border-brand-border shadow-lg">
+                    <div className="relative h-64 w-64 sm:h-80 sm:w-80 shrink-0 overflow-hidden rounded-full border-[5px] border-brand-border shadow-lg">
                       <Image
                         src={image}
                         alt={title}
                         fill
                         className="object-cover"
-                        sizes="208px"
+                        sizes="(max-width: 640px) 256px, 320px"
                       />
                     </div>
                     <div>
-                      <h3 className="text-display-md font-display mb-4">
+                      <h3 className="text-display-md font-display mb-4 text-center">
                         {title.toUpperCase()}
                       </h3>
-                      <p className="mx-auto max-w-sm text-body-md leading-relaxed text-brand-muted">
-                        {body}
-                      </p>
+                      <p
+                        className="mx-auto max-w-xl whitespace-pre-line text-body-md leading-relaxed text-brand-muted text-justify"
+                        dangerouslySetInnerHTML={{ __html: body }}
+                      />
                     </div>
                   </div>
                 </ScrollReveal>
@@ -221,8 +241,7 @@ export default function OurStoryPage() {
               THIS IS WHAT WE BUILT.
             </p>
             <p className="text-body-lg mb-10 text-brand-muted">
-              A commitment to transparency, to science, and to your long-term
-              health. We are honoured to be part of your journey.
+              Nourish Daily. Feel Stronger. Live Longer.
             </p>
 
             <div className="mb-6 flex flex-wrap justify-center gap-4">
@@ -232,12 +251,12 @@ export default function OurStoryPage() {
               >
                 Try FUYL Complete+ — ₹1,499 for 15 sachets →
               </Link>
-              <Link
+              {/* <Link
                 href="/pages/contact"
                 className="inline-flex h-12 items-center justify-center rounded-sm border border-brand-border px-8 text-xs font-semibold uppercase tracking-widest text-brand-forest transition-colors hover:border-brand-teal hover:text-brand-teal"
               >
                 Talk to Us
-              </Link>
+              </Link> */}
             </div>
 
             <p className="text-body-xs text-brand-muted/60 uppercase tracking-widest">

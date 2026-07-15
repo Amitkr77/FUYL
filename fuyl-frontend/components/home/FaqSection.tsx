@@ -65,23 +65,19 @@ export function FaqSection() {
               <div className="inline-flex w-fit items-center gap-2 rounded-full   bg-brand-sage px-4 py-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-brand-teal" />
                 <span className="text-[10px] text-label  text-brand-muted">
-                  FAQ
+                  Any doubt?
                 </span>
               </div>
 
               {/* Heading */}
               <h2 className="text-display-xl font-display text-brand-forest mt-6 sm:mt-8">
-                QUESTIONS?
-                <br />
-                <span className="text-brand-teal">WE HAVE</span>
-                <br />
-                ANSWERS.
+                YOUR QUESTIONS ANSWERED SIMPLY
               </h2>
 
-              <p className="mt-5 max-w-md text-[15px] leading-relaxed text-brand-muted">
+              {/* <p className="mt-5 max-w-md text-[15px] leading-relaxed text-brand-muted">
                 Everything you need to know about ingredients, results, safety
                 and starting your FUYL journey.
-              </p>
+              </p> */}
 
               {/* Trust */}
               {/* <div className="mt-6 flex flex-wrap gap-2">
@@ -183,7 +179,7 @@ export function FaqSection() {
               </div>
 
               {/* Bottom CTA */}
-              <div className="mt-auto rounded-2xl bg-brand-forest p-5 sm:p-7 flex flex-col sm:flex-row items-center sm:justify-between gap-4 sm:gap-5 text-center sm:text-left">
+              {/* <div className="mt-auto rounded-2xl bg-brand-forest p-5 sm:p-7 flex flex-col sm:flex-row items-center sm:justify-between gap-4 sm:gap-5 text-center sm:text-left">
                 <div>
                   <p className="font-display text-lg font-bold text-white leading-tight">
                     Ready to start your
@@ -207,7 +203,7 @@ export function FaqSection() {
                     Learn More
                   </Link>
                 </div>
-              </div>
+              </div> */}
             </div>
           </ScrollReveal>
         </div>

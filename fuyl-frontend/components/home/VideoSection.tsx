@@ -1,15 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { Countdown } from "@/components/ui/Countdown";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
+import { useCountdown } from "@/lib/hooks/useCountdown";
 
 const LAUNCH_DATE = "2026-07-06T00:00:00+05:30";
 
 export function VideoSection() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
+  const { isComplete } = useCountdown(LAUNCH_DATE);
 
   useEffect(() => {
     videoRef.current?.play().catch(() => {});
@@ -52,28 +55,52 @@ export function VideoSection() {
 
       {/* Centered content */}
       <div className="relative z-10 flex flex-col items-center justify-center text-center text-white px-5 py-20 sm:py-16 lg:py-24 min-h-dvh max-w-full">
-        <ScrollReveal>
-          <div className="flex justify-center mb-4">
-            <span className="inline-block rounded-full px-3 py-1 bg-white/10 text-white text-label">
-              Launching Soon
-            </span>
-          </div>
-          <h2 className="text-display-xl font-display mb-3 sm:mb-6 max-w-3xl">
-            FUYL COMPLETE+
-            <br />
-            IS ALMOST HERE.
-          </h2>
-          <p className="text-sm sm:text-lg text-white/70 max-w-[90%] sm:max-w-md mx-auto mb-6 sm:mb-10 leading-relaxed">
-            Join the waitlist for early access, launch-day pricing, and a free
-            nutrition consultation.
-          </p>
-        </ScrollReveal>
+        {isComplete ? (
+          <ScrollReveal>
+            <div className="flex justify-center mb-4">
+              <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label">
+                Now Available
+              </span>
+            </div>
+            <h2 className="text-display-xl font-display mb-3 sm:mb-6 max-w-3xl">
+              IT&apos;S LIVE.
+            </h2>
+            <p className="text-sm sm:text-lg text-white/70 max-w-[90%] sm:max-w-md mx-auto mb-8 sm:mb-10 leading-relaxed">
+              The wait is over. FUYL COMPLETE+ is now available.
+            </p>
+            <Link
+              href="/products/fuyl-complete"
+              className="inline-flex items-center justify-center h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white! rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest!"
+            >
+              Shop Now
+            </Link>
+          </ScrollReveal>
+        ) : (
+          <>
+            <ScrollReveal>
+              <div className="flex justify-center mb-4">
+                <span className="inline-block rounded-full px-3 py-1  text-brand-forest text-label">
+                  Launching Soon
+                </span>
+              </div>
+              <h2 className="text-display-xl font-display mb-3 sm:mb-6 max-w-3xl">
+                FUYL COMPLETE+
+                <br />
+                IS ALMOST HERE.
+              </h2>
+              <p className="text-sm sm:text-lg text-white/70 max-w-[90%] sm:max-w-md mx-auto mb-6 sm:mb-10 leading-relaxed">
+                Join the waitlist for early access, launch-day pricing, and a free
+                nutrition consultation.
+              </p>
+            </ScrollReveal>
 
-        <ScrollReveal delay={100}>
-          <div className="w-full max-w-full overflow-x-auto sm:overflow-visible">
-            <Countdown targetDate={LAUNCH_DATE} />
-          </div>
-        </ScrollReveal>
+            <ScrollReveal delay={100}>
+              <div className="w-full max-w-full overflow-x-auto sm:overflow-visible">
+                <Countdown targetDate={LAUNCH_DATE} />
+              </div>
+            </ScrollReveal>
+          </>
+        )}
 
         {/* <ScrollReveal delay={200}>
           <form

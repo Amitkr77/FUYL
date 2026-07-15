@@ -30,7 +30,7 @@ export async function InstagramFeed() {
         <ScrollReveal>
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
             <div>
-              <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label mb-3 uppercase tracking-widest">
+              <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label mb-3 uppercase tracking-widest">
                 {/* @fuylnutrition */}
                 from our feed
               </span>

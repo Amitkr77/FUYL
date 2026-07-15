@@ -26,11 +26,11 @@ export function ProblemSection() {
     <section className="section-py bg-neutral-100">
       <div className="container-brand">
         <ScrollReveal>
-          <div className="flex justify-center mb-4">
-            <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label">
+          {/* <div className="flex justify-center mb-4">
+            <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label">
               Sound Familiar?
             </span>
-          </div>
+          </div> */}
           <h2 className="text-display-xl font-display text-center mb-14 text-brand-forest max-w-4xl mx-auto">
             {/* YOUR BODY IS TRYING TO TELL YOU SOMETHING. */}
             Sound Familiar?

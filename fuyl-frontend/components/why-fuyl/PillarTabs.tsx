@@ -650,41 +650,6 @@ const INDIAN_CARDS = [
   },
 ];
 
-// ─── Tab 4: Manufacturing points ─────────────────────────────────────────────
-
-const MFG_POINTS = [
-  {
-    emoji: "🏭",
-    title: "FSSAI Certified Facility",
-    body: "Manufactured in an FSSAI-licensed facility meeting India's highest food safety and hygiene standards.",
-  },
-  {
-    emoji: "✅",
-    title: "GMP Compliant",
-    body: "Every step of production follows Good Manufacturing Practices — from raw material sourcing to final packing.",
-  },
-  {
-    emoji: "🔬",
-    title: "Third-Party Batch Testing",
-    body: "Every batch is independently lab-tested before it leaves the facility — label claims verified to the milligram.",
-  },
-  {
-    emoji: "🚫",
-    title: "No Artificial Colours or Preservatives",
-    body: "Colour and flavour come from real ingredients only. No synthetic dyes, no banned substances, no unnecessary fillers.",
-  },
-  {
-    emoji: "🌱",
-    title: "Clean-Label Philosophy",
-    body: "What's on the label is all that's in the sachet. No proprietary blends. No hidden ingredients. Complete transparency.",
-  },
-  {
-    emoji: "📦",
-    title: "Nitrogen-Flushed Sachets",
-    body: "Each sachet is nitrogen-flushed to prevent oxidation, protecting ingredient potency from manufacture to consumption.",
-  },
-];
-
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
 const PILLARS = [
@@ -763,19 +728,8 @@ function FlipCard({
 
           {/* Content */}
           <div className="relative z-10 flex h-full flex-col justify-between p-4 sm:p-5">
-            <div className="flex items-start justify-between">
-              <span
-                className={cn(
-                  "rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider sm:text-xs",
-                  cat.badge,
-                )}
-              >
-                {ingredient.category}
-              </span>
-
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 backdrop-blur">
-                <Eye className="h-4 w-4 text-white" />
-              </div>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center self-end rounded-full bg-brand-forest backdrop-blur">
+              <Eye className="h-4 w-4 text-white" />
             </div>
 
             <h3 className="text-lg font-bold leading-tight text-white drop-shadow-lg sm:text-xl md:text-2xl">
@@ -792,15 +746,13 @@ function FlipCard({
           }}
           className="absolute inset-0 flex flex-col rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-lg"
         >
-          <div className="mb-3 flex items-start justify-between">
-            <h3 className="text-base font-bold leading-tight text-neutral-900 sm:text-lg">
-              {ingredient.name}
-            </h3>
-
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100">
-              <EyeOff className="h-4 w-4 text-neutral-500" />
-            </div>
+          <div className="mb-3 flex h-8 w-8 shrink-0 items-center justify-center self-start rounded-full bg-neutral-100">
+            <EyeOff className="h-4 w-4 text-neutral-500" />
           </div>
+
+          <h3 className="mb-3 text-base font-bold leading-tight text-neutral-900 sm:text-lg">
+            {ingredient.name}
+          </h3>
 
           <p className="flex-1 text-sm leading-6 text-neutral-600 sm:text-base">
             {ingredient.description}
@@ -837,17 +789,6 @@ function IngredientGrid() {
     <div className="flex flex-col gap-5">
       {/* Legend + count */}
       <div className="flex flex-wrap items-center gap-2">
-        {(Object.keys(CAT) as Category[]).map((cat) => (
-          <span
-            key={cat}
-            className={cn(
-              "rounded-full px-2.5 py-0.5 text-[10px] font-semibold",
-              CAT[cat].badge,
-            )}
-          >
-            {cat}
-          </span>
-        ))}
         <span className="ml-auto rounded-full bg-gray-100 px-3 py-0.5 text-[10px] font-medium text-gray-500">
           60 ingredients · tap to reveal
         </span>
@@ -868,36 +809,38 @@ function IngredientGrid() {
   );
 }
 
-// ─── Tab 2: Clinical cards (2 × 3) — image LEFT, content RIGHT ──────────────
+// ─── Tab 2: Clinical cards (2 × 3) — content LEFT, image RIGHT ──────────────
+// Uses flex-row-reverse on desktop so image stays right while DOM order keeps
+// image first (so mobile still shows image on top naturally).
 
 function ClinicalGrid() {
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
       {CLINICAL_CARDS.map((card, i) => (
         <div
           key={i}
-          className="flex flex-col overflow-hidden rounded-2xl border border-brand-border bg-white shadow-sm transition-shadow hover:shadow-lg lg:flex-row"
+          className="flex flex-col overflow-hidden rounded-2xl border border-brand-border bg-white shadow-sm transition-shadow hover:shadow-lg lg:flex-row-reverse"
         >
-          {/* Image — full-width top on mobile/tablet, left on lg+ */}
-          <div className="relative h-64 sm:h-72 lg:h-auto shrink-0 lg:w-5/12">
+          {/* Image — full-width top on mobile/tablet, right on lg+ */}
+          <div className="relative h-72 sm:h-80 lg:h-auto shrink-0 lg:w-5/12">
+            <span className="absolute bottom-3 left-3 rounded-full bg-brand-teal px-3 py-1 text-xs font-bold text-white shadow-md">
+              {card.stat}
+            </span>
             <Image
               src={card.image}
               alt={card.title}
               fill
               className="object-cover"
-              sizes="(max-width: 1024px) 50vw, 25vw"
+              sizes="(max-width: 1024px) 50vw, 30vw"
             />
             <div className="absolute inset-0 bg-black/20" />
-            <span className="absolute bottom-3 left-3 rounded-full bg-brand-teal px-3 py-1 text-xs font-bold text-white shadow-md">
-              {card.stat}
-            </span>
           </div>
 
           {/* Content */}
-          <div className="flex flex-1 flex-col justify-center gap-3 p-6">
-            <span className="text-2xl">{card.emoji}</span>
-            <div className="flex flex-col gap-1.5">
-              <p className="text-body-md font-bold text-brand-forest">
+          <div className="flex flex-1 flex-col justify-center gap-4 p-7 sm:p-8">
+            <span className="text-3xl">{card.emoji}</span>
+            <div className="flex flex-col gap-2">
+              <p className="text-body-lg font-bold text-brand-forest">
                 {card.title}
               </p>
               <p className="text-body-sm leading-relaxed text-brand-muted">
@@ -911,26 +854,26 @@ function ClinicalGrid() {
   );
 }
 
-// ─── Tab 3: Indian-body cards (2 × 3) — content LEFT, image RIGHT ───────────
-// Uses flex-row-reverse on desktop so image stays right while DOM order keeps
-// image first (so mobile shows image on top naturally).
+// ─── Tab 3: Indian-body cards (2 × 3) — image LEFT, content RIGHT ───────────
+// Plain flex-row on desktop, same DOM order as mobile (image first), so image
+// stays left at every breakpoint. Sized to match ClinicalGrid's cards.
 
 function IndianGrid() {
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
       {INDIAN_CARDS.map((card, i) => (
         <div
           key={i}
-          className="flex flex-col overflow-hidden rounded-2xl border border-brand-border bg-white shadow-sm transition-shadow hover:shadow-lg lg:flex-row-reverse"
+          className="flex flex-col overflow-hidden rounded-2xl border border-brand-border bg-white shadow-sm transition-shadow hover:shadow-lg lg:flex-row"
         >
-          {/* Image — full-width top on mobile/tablet, right on lg+ */}
-          <div className="relative h-64 sm:h-72 lg:h-auto shrink-0 lg:w-5/12">
+          {/* Image — full-width top on mobile/tablet, left on lg+ */}
+          <div className="relative h-72 sm:h-80 lg:h-auto shrink-0 lg:w-5/12">
             <Image
               src={card.image}
               alt={card.title}
               fill
               className="object-cover"
-              sizes="(max-width: 1024px) 50vw, 25vw"
+              sizes="(max-width: 1024px) 50vw, 30vw"
             />
             <div className="absolute inset-0 bg-black/20" />
             <span className="absolute bottom-3 right-3 rounded-full bg-brand-forest px-3 py-1 text-[10px] font-bold text-white shadow-md">
@@ -939,12 +882,12 @@ function IndianGrid() {
           </div>
 
           {/* Content */}
-          <div className="flex flex-1 flex-col justify-center gap-3 p-6">
-            <span className="font-display text-display-md leading-none text-brand-teal">
+          <div className="flex flex-1 flex-col justify-center gap-4 p-7 sm:p-8">
+            <span className="font-display text-display-lg leading-none text-brand-teal">
               {card.stat}
             </span>
-            <div className="flex flex-col gap-1.5">
-              <p className="text-body-md font-bold text-brand-forest">
+            <div className="flex flex-col gap-2">
+              <p className="text-body-lg font-bold text-brand-forest">
                 {card.title}
               </p>
               <p className="text-body-sm leading-relaxed text-brand-muted">
@@ -972,45 +915,22 @@ function ManufacturingCard() {
           className="object-cover"
           sizes="(max-width: 1024px) 100vw, 42vw"
         />
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-black/55" />
-
-        {/* Heading over the image */}
-        <div className="absolute inset-0 flex flex-col items-start justify-end p-8">
-          <p className="text-label mb-2 tracking-widest text-blue-300">
-            Manufacturing Standard
-          </p>
-          <h3 className="font-display text-display-lg leading-tight text-white">
-            BUILT WITHOUT
-            <br />
-            COMPROMISE.
-          </h3>
-          <p className="mt-3 text-sm leading-relaxed text-white/55">
-            Uncompromising standards at every step of the production chain.
-          </p>
-        </div>
       </div>
 
-      {/* Content panel — right on desktop, below on mobile */}
-      <div className="flex flex-col divide-y divide-brand-border lg:w-7/12">
-        {MFG_POINTS.map((point, i) => (
-          <div
-            key={i}
-            className="flex gap-4 px-6 py-5 transition-colors hover:bg-brand-cream/50"
-          >
-            <span className="mt-0.5 shrink-0 text-xl">{point.emoji}</span>
-            <div className="flex flex-col gap-0.5">
-              <p className="text-body-sm font-bold text-brand-forest">
-                {point.title}
-              </p>
-              <p className="text-body-sm leading-relaxed text-brand-muted">
-                {point.body}
-              </p>
-            </div>
-          </div>
-        ))}
+      {/* Content panel — right on desktop, below on mobile — heading + paragraph, vertically centered */}
+      <div className="flex flex-1 flex-col justify-center gap-3 p-8 sm:p-10 lg:w-7/12">
+        <p className="text-label tracking-widest text-brand-teal">
+          Manufacturing Standard
+        </p>
+        <h3 className="font-display text-display-lg leading-tight text-brand-forest">
+          BUILT WITHOUT
+          <br />
+          COMPROMISE.
+        </h3>
+        <p className="mt-1 text-body-md leading-relaxed text-brand-muted">
+          Uncompromising standards at every step of the production chain.
+        </p>
       </div>
-      
     </div>
   );
 }
@@ -1052,7 +972,7 @@ export function PillarTabs() {
               className={cn(
                 "group relative h-64 w-64 shrink-0 overflow-hidden rounded-3xl border transition-all duration-300",
                 "sm:h-72 sm:w-72",
-                "lg:h-80 lg:w-auto",
+                "lg:h-96 lg:w-auto",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2",
                 active === i
                   ? "scale-[1.02] border-brand-teal shadow-2xl"
@@ -1074,8 +994,8 @@ export function PillarTabs() {
                 className={cn(
                   "absolute inset-0 transition-all duration-300",
                   active === i
-                    ? "bg-gradient-to-t from-brand-forest via-brand-forest/50 to-transparent"
-                    : "bg-gradient-to-t from-black/70 via-black/30 to-transparent group-hover:from-black/60",
+                    ? "bg-linear-to-t from-brand-forest via-brand-forest/50 to-transparent"
+                    : "bg-linear-to-t from-black/70 via-black/30 to-transparent group-hover:from-black/60",
                 )}
               />
 

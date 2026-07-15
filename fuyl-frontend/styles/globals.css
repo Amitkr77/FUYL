@@ -223,9 +223,22 @@
 }
 
 /* ─── Typography Utilities ──────────────────────────────────────────── */
+/* Headings sitewide render at 400 for a cleaner, less "shouty" look —
+   unlayered (not @layer base/utilities), so this beats any font-bold/
+   font-semibold/font-extrabold utility left on a heading tag regardless
+   of cascade-layer order, without having to hunt down every such class. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 400;
+}
+
 .text-display {
   font-family: var(--font-display);
-  font-weight: 800;
+  font-weight: 400;
   text-transform: uppercase;
   letter-spacing: -0.03em;
   line-height: 0.95;
@@ -239,30 +252,38 @@
   text-transform: uppercase;
 }
 
-/* Fluid display scale */
+/* Fluid display scale — all pinned to 400 for the same reason as the h1-h6
+   reset above (these are applied to non-heading tags like <p>/<span> that
+   visually stand in for headings, so the tag-selector reset above can't
+   reach them). Each tier is shifted down one step from its old size (2xl
+   now renders at the old xl size, xl at old lg, lg at old md) — the classes
+   keep their names so no component needs touching, they're just smaller. */
 .text-display-2xl {
-  font-size: clamp(3rem, 8vw, 7rem);
-  line-height: 0.92;
-  letter-spacing: -0.04em;
-}
-
-.text-display-xl {
   font-size: clamp(2.25rem, 5vw, 4.5rem);
-  font-weight: 800;
+  font-weight: 400;
   line-height: 0.94;
   letter-spacing: -0.035em;
 }
 
-.text-display-lg {
-  font-size: clamp(1.75rem, 3.5vw, 3rem);
+.text-display-xl {
+  font-size: clamp(1.75rem, 3.5vw, 2.6rem);
+  font-weight: 400;
   line-height: 0.97;
   letter-spacing: -0.03em;
 }
 
-.text-display-md {
+.text-display-lg {
   font-size: clamp(1.25rem, 2.5vw, 2rem);
+  font-weight: 400;
   line-height: 1;
   letter-spacing: -0.02em;
+}
+
+.text-display-md {
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
 }
 
 .text-body-lg {

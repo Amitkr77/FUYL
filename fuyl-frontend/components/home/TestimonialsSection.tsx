@@ -55,7 +55,11 @@ function Stars() {
   return (
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map((i) => (
-        <Star key={i} size={14} className="fill-brand-forest text-brand-forest" />
+        <Star
+          key={i}
+          size={14}
+          className="fill-brand-forest text-brand-forest"
+        />
       ))}
     </div>
   );
@@ -71,16 +75,18 @@ export function TestimonialsSection() {
       <div className="container-brand">
         <ScrollReveal>
           <div className="flex justify-center mb-4">
-            <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label">
+            <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label">
               Testimonials
             </span>
           </div>
 
           <h2 className="text-display-xl font-display text-center text-brand-forest">
-            WHAT THEY'RE
-            <br />
-            SAYING.
+            WHAT PEOPLE ARE SAYING
           </h2>
+          <p className="text-body-md text-brand-muted text-center max-w-2xl mx-auto mt-4">
+            Trusted by experts and customers worldwide
+          </p>
+          {/* </ScrollReveal> */}
 
           {/* Tabs */}
           <div className="mt-10 flex justify-center">
@@ -126,10 +132,14 @@ export function TestimonialsSection() {
         {/* Mobile: horizontal scroll; md+: 3-col grid */}
         <div className="mt-12 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden -mx-4 sm:-mx-6 md:mx-0 md:overflow-visible">
           <div className="flex gap-4 px-4 sm:px-6 md:px-0 pb-2 md:pb-0 md:grid md:grid-cols-3 md:gap-6">
-          {items.map((item, index) => (
-            <ScrollReveal key={item.id} delay={index * 100} className="shrink-0 w-72 sm:w-80 md:w-auto flex flex-col">
-              <article
-                className="
+            {items.map((item, index) => (
+              <ScrollReveal
+                key={item.id}
+                delay={index * 100}
+                className="shrink-0 w-72 sm:w-80 md:w-auto flex flex-col"
+              >
+                <article
+                  className="
                 relative
                 flex
                 flex-col
@@ -144,33 +154,33 @@ export function TestimonialsSection() {
                 hover:-translate-y-1
                 hover:shadow-lg
               "
-              >
-                <Quote
-                  size={32}
-                  className="
+                >
+                  <Quote
+                    size={32}
+                    className="
                     absolute
                     right-6
                     top-6
                     text-brand-teal/20
                   "
-                />
+                  />
 
-                <Stars />
+                  <Stars />
 
-                <p
-                  className="
+                  <p
+                    className="
                   mt-5
                   flex-1
                   text-body-md
                   leading-relaxed
                   text-brand-muted
                 "
-                >
-                  “{item.body}”
-                </p>
+                  >
+                    “{item.body}”
+                  </p>
 
-                <div
-                  className="
+                  <div
+                    className="
                   mt-6
                   flex
                   items-center
@@ -179,9 +189,9 @@ export function TestimonialsSection() {
                   border-brand-border
                   pt-5
                 "
-                >
-                  <div
-                    className="
+                  >
+                    <div
+                      className="
                     flex
                     h-11
                     w-11
@@ -193,21 +203,23 @@ export function TestimonialsSection() {
                     font-semibold
                     text-white
                   "
-                  >
-                    {item.name.charAt(0)}
-                  </div>
+                    >
+                      {item.name.charAt(0)}
+                    </div>
 
-                  <div>
-                    <p className="text-body-sm font-semibold text-brand-forest">
-                      {item.name}
-                    </p>
+                    <div>
+                      <p className="text-body-sm font-semibold text-brand-forest">
+                        {item.name}
+                      </p>
 
-                    <p className="text-body-xs text-brand-muted">{item.role}</p>
+                      <p className="text-body-xs text-brand-muted">
+                        {item.role}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </article>
-            </ScrollReveal>
-          ))}
+                </article>
+              </ScrollReveal>
+            ))}
           </div>
         </div>
       </div>

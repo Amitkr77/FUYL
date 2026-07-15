@@ -72,7 +72,7 @@ export function ReferAndEarnClient() {
       {/* Page header */}
       <div className="bg-white border-b border-brand-border">
         <div className="container-brand py-8">
-          <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label mb-3">
+          <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label mb-3">
             Ambassador Programme
           </span>
           <h1 className="text-display-xl font-display text-brand-forest">REFER &amp; EARN</h1>

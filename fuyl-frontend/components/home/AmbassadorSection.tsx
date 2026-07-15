@@ -35,7 +35,7 @@ export function AmbassadorSection() {
         <ScrollReveal>
           <div className="text-center max-w-4xl mx-auto mb-12 sm:mb-16">
             <div className="flex justify-center mb-4">
-              <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label">
+              <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label">
                 FUYL Ambassador Programme
               </span>
             </div>
@@ -44,8 +44,8 @@ export function AmbassadorSection() {
               <br />
             </h2>
             <p className="text-sm sm:text-base text-brand-muted leading-relaxed">
-              Found something that works?
-              <span className="text-brand-teal">SHARE IT. EARN.</span>
+              Found something that works? SHARE. REFER. EARN.
+              <span className="text-brand-teal"></span>
             </p>
           </div>
         </ScrollReveal>

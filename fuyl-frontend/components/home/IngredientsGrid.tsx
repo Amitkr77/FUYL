@@ -58,7 +58,7 @@ export function IngredientsGrid() {
           {/* Left — label, heading, list, CTA */}
           <div className="flex flex-col">
             <ScrollReveal>
-              <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label mb-1">
+              <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label mb-1">
                 Ingredients
               </span>
               <h2 className="text-display-xl font-display text-brand-forest mb-4">
@@ -70,7 +70,9 @@ export function IngredientsGrid() {
                   Indian botanical tradition
                 </span>
                 . Validated by{" "}
-                <span className="text-brand-forest">global clinical science</span>
+                <span className="text-brand-forest">
+                  global clinical science
+                </span>
                 . Every ingredient here for a reason. Every choice made with
                 your <span className="text-brand-forest">long term health</span>{" "}
                 in mind.
@@ -82,12 +84,12 @@ export function IngredientsGrid() {
               {INGREDIENTS.map(({ name, sub, emoji }, i) => (
                 <ScrollReveal key={name} delay={i * 40}>
                   <div className="flex items-center gap-6 py-3.5">
-                    <span className="text-2xl w-8 shrink-0">{emoji}</span>
+                    <span className="text-3xl w-10 shrink-0">{emoji}</span>
                     <div>
-                      <p className="text-body-sm font-semibold text-brand-forest">
+                      <p className="text-body-md font-semibold text-brand-forest">
                         {name}
                       </p>
-                      <p className="text-[11px] mt-0.5 text-brand-teal leading-snug">
+                      <p className="text-[15px] mt-0.5 text-brand-teal leading-snug">
                         {sub}
                       </p>
                     </div>

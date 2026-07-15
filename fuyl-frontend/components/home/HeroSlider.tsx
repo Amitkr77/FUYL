@@ -92,7 +92,7 @@ export function HeroSlider() {
             {/* Headline */}
             <h1
               key={`headline-${slide.id}`}
-              className="font-display text-[clamp(1.75rem,8vw,4.5rem)] font-bold text-white leading-[1.1] mb-3 sm:mb-4 animate-fadeIn break-words"
+              className="font-display text-[clamp(1.75rem,8vw,3.5rem)] font-bold text-white leading-[1.1] mb-3 sm:mb-4 animate-fadeIn wrap-break-word uppercase"
             >
               {slide.headline.map((line, index) => (
                 <span key={index} className="block">
@@ -113,7 +113,7 @@ export function HeroSlider() {
             <div className="flex flex-wrap gap-3 max-w-full">
               <Link
                 href={slide.cta.href}
-                className="inline-flex items-center justify-center h-11 sm:h-12 px-6 sm:px-8 text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest bg-white text-black rounded-sm transition-colors hover:bg-brand-forest hover:text-white whitespace-nowrap"
+                className="inline-flex items-center justify-center h-11 sm:h-12 px-6 sm:px-8 text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest bg-white text-brand-forest rounded-sm transition-colors hover:bg-brand-forest hover:text-white whitespace-nowrap"
               >
                 {slide.cta.label}
               </Link>

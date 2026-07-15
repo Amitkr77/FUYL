@@ -44,7 +44,7 @@ export function ThirtyDayPath() {
       <div className="container-brand">
         <ScrollReveal>
           <div className="flex justify-center mb-4">
-            <span className="inline-block rounded-full px-3 py-1 bg-brand-teal/10 text-brand-teal text-label">
+            <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label">
               THE 30-DAY PATH
             </span>
           </div>
@@ -160,19 +160,22 @@ export function ThirtyDayPath() {
               about it anymore. Because it has become their morning.
             </p>
 
-            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
               <Link
                 href="/products/fuyl-complete"
-                className="inline-flex h-11 items-center justify-center rounded-sm border bg-brand-forest px-6 sm:px-8 text-xs font-semibold uppercase tracking-widest text-white! transition-colors hover:bg-brand-sage hover:text-brand-forest! whitespace-nowrap"
+                className="inline-flex w-full sm:w-auto min-h-11 items-center justify-center rounded-sm border bg-brand-forest px-4 sm:px-8 py-3 text-[10px] sm:text-xs font-semibold uppercase tracking-wide sm:tracking-widest text-center text-white! transition-colors hover:bg-brand-sage hover:text-brand-forest! whitespace-normal sm:whitespace-nowrap hover:border-none"
               >
-                Shop FUYL COMPLETE+ →
+                START YOUR 30 DAYS - SHOP FUYL COMPLETE+ →
               </Link>
-              <Link
-                href="/pages/why-fuyl"
-                className="inline-flex h-11 items-center justify-center rounded-sm border border-brand-forest px-6 text-xs font-semibold uppercase tracking-widest text-brand-forest! transition-colors hover:bg-brand-forest hover:text-white! whitespace-nowrap"
-              >
-                Why FUYL?
-              </Link>
+
+              {/*
+  <Link
+    href="/pages/why-fuyl"
+    className="inline-flex w-full sm:w-auto min-h-11 items-center justify-center rounded-sm border border-brand-forest px-4 sm:px-6 py-3 text-[10px] sm:text-xs font-semibold uppercase tracking-wide sm:tracking-widest text-center text-brand-forest! transition-colors hover:bg-brand-forest hover:text-white! whitespace-normal sm:whitespace-nowrap"
+  >
+    Why FUYL?
+  </Link>
+  */}
             </div>
           </div>
         </ScrollReveal>
