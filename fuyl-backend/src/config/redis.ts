@@ -4,8 +4,10 @@ import { logger } from './logger';
 export const redisConfig = {
   host: env.redis.host,
   port: env.redis.port,
+  username: env.redis.username,
   password: env.redis.password,
   db: env.redis.db,
+  ...(env.redis.tls ? { tls: { servername: env.redis.host } } : {}),
   maxRetriesPerRequest: null,
   enableReadyCheck: true,
   lazyConnect: false,
