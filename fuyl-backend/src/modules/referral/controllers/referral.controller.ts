@@ -81,11 +81,20 @@ export class ReferralController {
 
         if (channel === 'whatsapp' || channel === 'sms') {
           if (req.body.to) {
+            // BUG FIXED: this referenced a 'referral_share' template that
+            // was never defined in builtinTemplates.ts (on top of the
+            // separate queueService.notificationDispatch pipeline bug —
+            // see queue.service.ts), so this never sent even when
+            // req.body.to was populated. Renamed to referral_share_sms
+            // (plain-text, shared by SMS/WhatsApp) and split from the
+            // HTML-only referral_share_email below — a single template
+            // body can't correctly serve both a plain-text SMS and a
+            // branded HTML email at once.
             queueService.notificationDispatch({
               channel: channel === 'whatsapp' ? 'whatsapp' : 'sms',
               to: req.body.to,
-              template: 'referral_share',
-              data: { message: buildSmsMessage(code.code), link },
+              template: 'referral_share_sms',
+              data: { code: code.code, link },
             });
           }
           return success(res, { link, message: buildWhatsAppMessage(code.code) });
@@ -95,8 +104,8 @@ export class ReferralController {
             queueService.notificationDispatch({
               channel: 'email',
               to: req.body.to,
-              template: 'referral_share',
-              data: { subject: buildEmailSubject(), body: buildEmailBody(code.code) },
+              template: 'referral_share_email',
+              data: { code: code.code, link },
             });
           }
           return success(res, { link, subject: buildEmailSubject(), body: buildEmailBody(code.code) });

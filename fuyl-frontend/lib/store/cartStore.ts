@@ -72,11 +72,17 @@ export const useCartStore = create<CartState>()(
         openCart:  () => set({ isOpen: true }),
         closeCart: () => set({ isOpen: false }),
 
+        // Does NOT open the cart drawer itself — that used to be a blanket
+        // side effect here, which meant BuyNowButton (add + navigate
+        // straight to checkout) triggered the drawer opening at the same
+        // instant it navigated away. Callers that want the drawer to open
+        // (AddToCartButton, the wishlist page) call openCart() themselves
+        // right after a successful add; BuyNowButton deliberately doesn't.
         addItem: async (input) => {
           set({ isLoading: true })
           try {
             const cart = await addCartItem(currentAuth(), input)
-            set({ items: cart.items, isOpen: true })
+            set({ items: cart.items })
           } finally {
             set({ isLoading: false })
           }

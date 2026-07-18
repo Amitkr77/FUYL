@@ -4,7 +4,7 @@ import StatsCard from '@/components/ui/StatsCard'
 import Badge from '@/components/ui/Badge'
 import RevenueChart from '@/components/dashboard/RevenueChart'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { adminApiFetch, AdminApiError } from '@/lib/api'
+import { adminApiFetch, getErrorMessage } from '@/lib/api'
 import { listAdminOrders, type OrderStatus } from '@/lib/orders'
 import { getRevenueChartData, type ChartPoint } from '@/lib/analytics'
 
@@ -42,7 +42,7 @@ export default async function DashboardPage() {
   try {
     overview = await adminApiFetch<AdminOverview>('/admin/overview')
   } catch (err) {
-    overviewError = err instanceof AdminApiError ? err.message : 'Could not load dashboard stats.'
+    overviewError = getErrorMessage(err, 'Could not load dashboard stats.')
   }
 
   let recentOrders: Awaited<ReturnType<typeof listAdminOrders>> = []

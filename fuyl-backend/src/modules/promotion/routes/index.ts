@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authRequired } from '../../../shared/middleware/auth.middleware';
+import { authRequired, authOptional } from '../../../shared/middleware/auth.middleware';
 import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
 import { promotionController } from '../controllers';
 
@@ -8,7 +8,12 @@ const router = Router();
 // Customer-facing
 router.get('/promotions/active', authRequired, promotionController.listActive);
 router.get('/promotions/featured', authRequired, promotionController.listFeatured);
-router.post('/promotions/validate-coupon', authRequired, promotionController.validateCoupon);
+// authOptional — checkout lets a not-yet-identified guest validate/apply a
+// coupon before their account exists. Per-user limits (max redemptions,
+// first-order-only) simply can't be checked yet without an identity; those
+// are re-verified authoritatively once the same code flows through
+// checkout.service.ts's preview()/placeOrder() with a resolved userId.
+router.post('/promotions/validate-coupon', authOptional, promotionController.validateCoupon);
 router.get('/promotions/my-redemptions', authRequired, promotionController.listMyRedemptions);
 
 // Admin: Campaigns

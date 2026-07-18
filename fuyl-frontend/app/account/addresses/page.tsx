@@ -4,10 +4,29 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store/authStore'
 import { getAddresses, addAddress, updateAddress, removeAddress, type Address, type AddressInput } from '@/lib/api/customer'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { Spinner } from '@/components/ui/Spinner'
+import { getErrorMessage } from '@/lib/api/client'
 
 const emptyForm: AddressInput = {
   label: '', line1: '', line2: '', city: '', state: '', postalCode: '', country: 'IN',
   phone: '', isDefault: false, isBilling: false, isShipping: true,
+}
+
+function AddressCardSkeleton() {
+  return (
+    <div className="border rounded-sm p-5" style={{ borderColor: 'var(--color-brand-border)' }}>
+      <div className="flex items-center justify-between mb-2">
+        <Skeleton className="h-3.5 w-20" />
+        <div className="flex gap-3">
+          <Skeleton className="h-3 w-8" />
+          <Skeleton className="h-3 w-12" />
+        </div>
+      </div>
+      <Skeleton className="h-3.5 w-3/4 mb-1.5" />
+      <Skeleton className="h-3 w-24" />
+    </div>
+  )
 }
 
 export default function AddressesPage() {
@@ -19,13 +38,14 @@ export default function AddressesPage() {
   const [form, setForm]           = useState<AddressInput>(emptyForm)
   const [isSaving, setSaving]     = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [removingId, setRemovingId] = useState<string | null>(null)
 
   const load = () => {
     if (!token) return
     setLoading(true)
     getAddresses(token)
       .then(setAddresses)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load addresses'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load addresses')))
       .finally(() => setLoading(false))
   }
 
@@ -58,7 +78,7 @@ export default function AddressesPage() {
       setAddresses(updated)
       setEditing(null)
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Failed to save address')
+      setFormError(getErrorMessage(err, 'Failed to save address'))
     } finally {
       setSaving(false)
     }
@@ -66,11 +86,14 @@ export default function AddressesPage() {
 
   const handleRemove = async (id: string) => {
     if (!token || !confirm('Remove this address?')) return
+    setRemovingId(id)
     try {
       await removeAddress(token, id)
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove address')
+      setError(getErrorMessage(err, 'Failed to remove address'))
+    } finally {
+      setRemovingId(null)
     }
   }
 
@@ -99,7 +122,13 @@ export default function AddressesPage() {
         )}
       </div>
 
-      {isLoading && <p className="text-body-md" style={{ color: 'var(--color-brand-muted)' }}>Loading addresses…</p>}
+      {isLoading && (
+        <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading addresses">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <AddressCardSkeleton key={i} />
+          ))}
+        </div>
+      )}
       {!isLoading && error && (
         <p className="text-body-sm p-3 rounded-sm" style={{ background: '#FEE2E2', color: '#B91C1C' }}>{error}</p>
       )}
@@ -153,7 +182,7 @@ export default function AddressesPage() {
       )}
 
       {!isEditing && addresses.length > 0 && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 animate-fade-in">
           {addresses.map((a) => (
             <div key={a.id} className="border rounded-sm p-5" style={{ borderColor: 'var(--color-brand-border)' }}>
               <div className="flex items-start justify-between mb-2">
@@ -165,12 +194,18 @@ export default function AddressesPage() {
                     </span>
                   )}
                 </div>
-                <div className="flex gap-3">
-                  <button onClick={() => startEdit(a)} className="text-body-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-brand-muted)' }}>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => startEdit(a)} disabled={removingId === a.id} className="text-body-xs font-semibold uppercase tracking-wide disabled:opacity-50" style={{ color: 'var(--color-brand-muted)' }}>
                     Edit
                   </button>
-                  <button onClick={() => handleRemove(a.id)} className="text-body-xs font-semibold uppercase tracking-wide" style={{ color: '#B91C1C' }}>
-                    Remove
+                  <button
+                    onClick={() => handleRemove(a.id)}
+                    disabled={removingId === a.id}
+                    className="flex items-center gap-1.5 text-body-xs font-semibold uppercase tracking-wide disabled:opacity-50"
+                    style={{ color: '#B91C1C' }}
+                  >
+                    {removingId === a.id && <Spinner size={12} />}
+                    {removingId === a.id ? 'Removing…' : 'Remove'}
                   </button>
                 </div>
               </div>

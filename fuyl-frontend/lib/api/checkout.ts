@@ -25,6 +25,16 @@ export interface CheckoutInput {
 
 interface BackendPreview {
   grandTotal: number
+  // BUG FIXED (found live while auditing the checkout flow): the coupon
+  // discount does NOT live inside `pricing.discountTotal` — that field is
+  // the pricing engine's own price-book/volume-tier discount (unrelated to
+  // coupons, and 0 whenever no price book applies, which is always so far).
+  // checkout.service.ts's preview() puts the actual coupon discount at this
+  // top-level `couponDiscount` field and folds it into the top-level
+  // `grandTotal` already — the old mapping read the wrong field, so the
+  // order total was correctly discounted but the "Discount" line always
+  // silently showed ₹0 even when a coupon had genuinely been applied.
+  couponDiscount: number
   pricing: { subtotal: number; discountTotal: number; taxTotal: number; shippingTotal: number }
 }
 
@@ -39,7 +49,7 @@ export interface CheckoutPreview {
 function mapPreview(raw: BackendPreview): CheckoutPreview {
   return {
     subtotal:      raw.pricing.subtotal,
-    discountTotal: raw.pricing.discountTotal,
+    discountTotal: raw.pricing.discountTotal + raw.couponDiscount,
     taxTotal:      raw.pricing.taxTotal,
     shippingTotal: raw.pricing.shippingTotal,
     grandTotal:    raw.grandTotal,

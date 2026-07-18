@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import { Plus, Edit2, Trash2, Eye, AlertCircle } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
-import { listAdminPosts, AdminApiError } from '@/lib/blog'
+import { listAdminPosts } from '@/lib/blog'
 import { deletePostAction } from './actions'
 import { formatDate } from '@/lib/utils'
+import { getErrorMessage } from '@/lib/api'
 
 export default async function BlogPage() {
   let posts: Awaited<ReturnType<typeof listAdminPosts>> = []
@@ -11,7 +12,7 @@ export default async function BlogPage() {
   try {
     posts = await listAdminPosts()
   } catch (err) {
-    error = err instanceof AdminApiError ? err.message : 'Could not load posts.'
+    error = getErrorMessage(err, 'Could not load posts.')
   }
 
   return (

@@ -25,6 +25,7 @@ import { JwtPayload } from '../../../shared/middleware/auth.middleware';
 import { eventBus, Events } from '../../../shared/services/eventBus.service';
 import { queueService } from '../../../shared/services/queue.service';
 import { logger } from '../../../config/logger';
+import { env } from '../../../config/env';
 import { RegisterDTO, LoginDTO, ResetPasswordDTO, ChangePasswordDTO, CheckoutIdentifyDTO } from '../validators';
 import { addDays } from '../../../shared/utils';
 import { Request } from 'express';
@@ -68,7 +69,11 @@ export class IdentityService {
       channel: 'email',
       to: { email: user.email, userId: user.id },
       template: 'email_verification',
-      data: { token: verifyToken, name: user.displayName ?? user.email },
+      data: {
+        token: verifyToken,
+        verifyUrl: `${env.clientUrl}/verify-email?token=${verifyToken}`,
+        name: user.displayName ?? user.email,
+      },
     });
 
     // Emit user.registered event — referral module will pick this up
@@ -169,7 +174,11 @@ export class IdentityService {
       channel: 'email',
       to: { email: user.email, userId: user.id },
       template: 'password_reset',
-      data: { token, name: user.displayName ?? user.email },
+      data: {
+        token,
+        resetUrl: `${env.clientUrl}/reset-password?token=${token}`,
+        name: user.displayName ?? user.email,
+      },
     });
     return { sent: true };
   }
@@ -212,6 +221,15 @@ export class IdentityService {
     if (!user) throw new NotFoundError('User');
     if (user.isEmailVerified) return { verified: true };
     await userRepo.update(user.id, { isEmailVerified: true });
+    // welcome template's own description has always said "sent after
+    // successful email verification" — nothing ever actually triggered it
+    // until now.
+    queueService.notificationDispatch({
+      channel: 'email',
+      to: { email: user.email, userId: user.id },
+      template: 'welcome',
+      data: { name: user.displayName ?? user.email },
+    });
     return { verified: true };
   }
 
@@ -224,7 +242,11 @@ export class IdentityService {
       channel: 'email',
       to: { email: user.email, userId: user.id },
       template: 'email_verification',
-      data: { token, name: user.displayName ?? user.email },
+      data: {
+        token,
+        verifyUrl: `${env.clientUrl}/verify-email?token=${token}`,
+        name: user.displayName ?? user.email,
+      },
     });
     return { sent: true };
   }

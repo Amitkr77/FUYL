@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { Plus, AlertCircle } from 'lucide-react'
 import { CampaignsTable } from '@/components/promotions/CampaignsTable'
-import { listCampaigns, AdminApiError } from '@/lib/promotions'
+import { listCampaigns } from '@/lib/promotions'
+import { getErrorMessage } from '@/lib/api'
 
 export default async function PromotionsPage() {
   let campaigns: Awaited<ReturnType<typeof listCampaigns>> = []
@@ -9,7 +10,7 @@ export default async function PromotionsPage() {
   try {
     campaigns = await listCampaigns()
   } catch (err) {
-    error = err instanceof AdminApiError ? err.message : 'Could not load campaigns.'
+    error = getErrorMessage(err, 'Could not load campaigns.')
   }
 
   return (

@@ -4,7 +4,6 @@ import { CampaignRepository } from '../repositories/campaign.repository';
 import { MilestoneService } from './milestone.service';
 import { RewardType, ReferralStatus } from '../../../shared/enums';
 import { eventBus, Events } from '../../../shared/services/eventBus.service';
-import { queueService } from '../../../shared/services/queue.service';
 import { env } from '../../../config/env';
 import { addDays } from '../../../shared/utils';
 import { logger } from '../../../config/logger';
@@ -85,19 +84,17 @@ export class RewardService {
       refereeReward: { id: refereeReward.id, amount: refereeReward.amount, type: refereeReward.type },
     });
 
-    // Dispatch notifications
-    queueService.notificationDispatch({
-      channel: 'email',
-      to: { userId: referral.referrerId.toString() },
-      template: 'referral_reward_earned',
-      data: { amount: referrerReward.amount, role: 'referrer' },
-    });
-    queueService.notificationDispatch({
-      channel: 'email',
-      to: { userId: referral.refereeId.toString() },
-      template: 'referral_reward_earned',
-      data: { amount: refereeReward.amount, role: 'referee' },
-    });
+    // Notification: the REFERRAL_REWARDED publish above is already picked up
+    // by the notification module's own subscriber (referral_rewarded
+    // template, sent to the referrer) — this used to ALSO fire two direct
+    // dispatch() calls referencing a 'referral_reward_earned' template that
+    // was never defined in builtinTemplates.ts (and, until the
+    // queueService.notificationDispatch pipeline bug was fixed, silently
+    // never sent anyway). Removed rather than fixed in place: reintroducing
+    // it correctly would mean either sending the referrer a duplicate email
+    // or building out referee notification support, both of which touch
+    // reward-crediting behavior beyond this pass's scope (template/link
+    // correctness) — worth a follow-up if referee notification is wanted.
 
     // Milestone check for referrer
     await milestoneService.checkAndGrant(referral.referrerId.toString());

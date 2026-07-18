@@ -2,11 +2,49 @@ import { getSession, setSessionCookie, clearSessionCookie } from './auth'
 
 const API_URL = process.env.API_URL || 'http://localhost:4000/api/v1'
 
+// Shape applies to Zod validation failures (validate.middleware.ts's
+// `details: [{path, message}]`) — other error branches may put a
+// differently-shaped object here, so treat as unknown until checked.
+export type AdminApiErrorDetail = { path: string; message: string }
+
 export class AdminApiError extends Error {
-  constructor(public status: number, message: string, public code?: string) {
+  constructor(
+    public status: number,
+    message: string,
+    public code?: string,
+    public details?: AdminApiErrorDetail[]
+  ) {
     super(message)
     this.name = 'AdminApiError'
   }
+}
+
+function isFieldValidationDetails(details: unknown): details is AdminApiErrorDetail[] {
+  return Array.isArray(details) && details.length > 0 && details.every(
+    (d) => d && typeof d === 'object' && typeof (d as AdminApiErrorDetail).message === 'string'
+  )
+}
+
+// "shippingAddress.pincode" -> "Pincode", "email" -> "Email" — just the last
+// path segment (the field itself), camelCase spaced out and capitalized.
+function humanizeFieldPath(path: string): string {
+  const last = path.split('.').filter(Boolean).pop() || path
+  return last.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()).trim()
+}
+
+// Every call site used to show only AdminApiError's generic "Validation
+// failed" message and silently drop the backend's per-field `details`,
+// leaving the admin with no idea what to fix. This surfaces those
+// field-level reasons when present and shaped like validation output; any
+// other error (wrong shape, or none) falls back to the plain message.
+export function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof AdminApiError && isFieldValidationDetails(err.details)) {
+    return err.details
+      .map((d) => (d.path ? `${humanizeFieldPath(d.path)}: ${d.message}` : d.message))
+      .join('; ')
+  }
+  if (err instanceof Error && err.message) return err.message
+  return fallback
 }
 
 async function rawFetch(path: string, options: { method?: string; body?: unknown; token?: string } = {}): Promise<Response> {
@@ -30,11 +68,12 @@ async function parseResponse<T>(res: Response): Promise<T> {
   try { json = text ? JSON.parse(text) : null } catch { /* non-JSON body */ }
 
   if (!res.ok) {
-    const errorBody = json as { error?: { code?: string; message?: string } } | null
+    const errorBody = json as { error?: { code?: string; message?: string; details?: AdminApiErrorDetail[] } } | null
     throw new AdminApiError(
       res.status,
       errorBody?.error?.message ?? text ?? `Request failed with status ${res.status}`,
-      errorBody?.error?.code
+      errorBody?.error?.code,
+      errorBody?.error?.details
     )
   }
 

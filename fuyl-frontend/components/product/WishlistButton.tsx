@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { Heart } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { getWishlist, addToWishlist, removeFromWishlist } from '@/lib/api/customer'
+import { Spinner } from '@/components/ui/Spinner'
 
 interface WishlistButtonProps {
   productId: string
@@ -59,10 +60,14 @@ export function WishlistButton({ productId, variantId }: WishlistButtonProps) {
         background: isWishlisted ? 'var(--color-brand-berry)' : 'transparent',
       }}
     >
-      <Heart
-        size={18}
-        className={isWishlisted ? 'text-white fill-current' : 'text-brand-forest'}
-      />
+      {isLoading ? (
+        <Spinner size={16} className={isWishlisted ? 'text-white' : 'text-brand-forest'} />
+      ) : (
+        <Heart
+          size={18}
+          className={isWishlisted ? 'text-white fill-current' : 'text-brand-forest'}
+        />
+      )}
     </button>
   )
 }

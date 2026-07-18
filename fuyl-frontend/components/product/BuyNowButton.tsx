@@ -6,6 +6,7 @@ import { AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useCart } from '@/lib/hooks/useCart'
 import type { Product, ProductVariant } from '@/types/product'
+import { getErrorMessage } from '@/lib/api/client'
 
 interface BuyNowButtonProps {
   product:  Product
@@ -36,7 +37,7 @@ export function BuyNowButton({ product, variant, quantity, subscriptionInterval,
       })
       router.push('/checkout')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start checkout. Please try again.')
+      setError(getErrorMessage(err, 'Could not start checkout. Please try again.'))
     }
   }
 

@@ -1,15 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Pencil, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/lib/store/authStore";
 import { updateProfile, forgotPassword } from "@/lib/api/account";
+import { getErrorMessage } from '@/lib/api/client'
 
 type Mode = "login" | "register" | "forgot";
 
 export default function AccountPage() {
+  return (
+    <Suspense fallback={null}>
+      <AccountPageContent />
+    </Suspense>
+  );
+}
+
+function AccountPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect");
@@ -68,7 +77,7 @@ export default function AccountPage() {
       setEditing(false);
     } catch (err: unknown) {
       setSaveError(
-        err instanceof Error ? err.message : "Failed to update profile",
+        getErrorMessage(err, "Failed to update profile"),
       );
     } finally {
       setSaving(false);
@@ -128,7 +137,7 @@ export default function AccountPage() {
       await forgotPassword(forgotEmail.trim());
       setForgotStatus("sent");
     } catch (err) {
-      setForgotError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setForgotError(getErrorMessage(err, "Something went wrong. Please try again."));
       setForgotStatus("error");
     }
   };

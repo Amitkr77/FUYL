@@ -1,6 +1,7 @@
 import { AlertCircle } from 'lucide-react'
 import { OrdersTable, ExportButton } from '@/components/orders/OrdersTable'
-import { listAdminOrders, AdminApiError } from '@/lib/orders'
+import { listAdminOrders } from '@/lib/orders'
+import { getErrorMessage } from '@/lib/api'
 
 export default async function OrdersPage() {
   let orders: Awaited<ReturnType<typeof listAdminOrders>> = []
@@ -8,7 +9,7 @@ export default async function OrdersPage() {
   try {
     orders = await listAdminOrders()
   } catch (err) {
-    error = err instanceof AdminApiError ? err.message : 'Could not load orders.'
+    error = getErrorMessage(err, 'Could not load orders.')
   }
 
   return (

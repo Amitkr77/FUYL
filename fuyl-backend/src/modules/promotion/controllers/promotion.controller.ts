@@ -89,7 +89,7 @@ export class PromotionController {
     validate(validateCouponSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        const result = await promotionService.validateCoupon(req.user!.userId, req.body);
+        const result = await promotionService.validateCoupon(req.user?.userId, req.body);
         return success(res, result);
       } catch (err) { next(err); }
     },

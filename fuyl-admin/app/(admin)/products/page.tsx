@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Plus, AlertCircle } from 'lucide-react'
 import { ProductsTable } from '@/components/products/ProductsTable'
 import { listAdminProducts } from '@/lib/products'
-import { AdminApiError } from '@/lib/api'
+import { getErrorMessage } from '@/lib/api'
 
 export default async function ProductsPage() {
   let products: Awaited<ReturnType<typeof listAdminProducts>> = []
@@ -10,7 +10,7 @@ export default async function ProductsPage() {
   try {
     products = await listAdminProducts()
   } catch (err) {
-    error = err instanceof AdminApiError ? err.message : 'Could not load products.'
+    error = getErrorMessage(err, 'Could not load products.')
   }
 
   return (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -8,9 +8,53 @@ import { Badge } from '@/components/ui/Badge'
 import { useAuthStore } from '@/lib/store/authStore'
 import { getOrder } from '@/lib/api/account'
 import { formatPrice } from '@/lib/utils/formatPrice'
+import { Skeleton } from '@/components/ui/Skeleton'
 import type { Order } from '@/types/user'
+import { getErrorMessage } from '@/lib/api/client'
+
+function OrderSummarySkeleton() {
+  return (
+    <div className="border border-brand-border rounded-2xl p-6 sm:p-8 mb-8" aria-busy="true" aria-label="Loading your order">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-3.5 w-28" />
+        </div>
+        <Skeleton className="h-5 w-16" />
+      </div>
+      <div className="flex flex-col gap-4 mb-6">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4">
+            <Skeleton className="w-14 h-14 shrink-0" />
+            <div className="flex-1 flex flex-col gap-1.5">
+              <Skeleton className="h-3.5 w-2/3" />
+              <Skeleton className="h-3 w-14" />
+            </div>
+            <Skeleton className="h-3.5 w-14" />
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-brand-border pt-4 flex flex-col gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex justify-between">
+            <Skeleton className="h-3.5 w-16" />
+            <Skeleton className="h-3.5 w-14" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={<div className="container-brand section-py max-w-xl mx-auto"><OrderSummarySkeleton /></div>}>
+      <CheckoutSuccessContent />
+    </Suspense>
+  )
+}
+
+function CheckoutSuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderId = searchParams.get('orderId')
@@ -26,7 +70,7 @@ export default function CheckoutSuccessPage() {
     setLoading(true)
     getOrder(token, orderId)
       .then(setOrder)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Could not load your order'))
+      .catch((err) => setError(getErrorMessage(err, 'Could not load your order')))
       .finally(() => setLoading(false))
   }, [token, orderId, router])
 
@@ -44,16 +88,14 @@ export default function CheckoutSuccessPage() {
         </p>
       </div>
 
-      {isLoading && (
-        <p className="text-body-md text-brand-muted text-center mb-8">Loading your order…</p>
-      )}
+      {isLoading && <OrderSummarySkeleton />}
 
       {!isLoading && error && (
         <p className="text-body-sm p-3 rounded-sm bg-red-50 text-red-700 text-center mb-8">{error}</p>
       )}
 
       {!isLoading && !error && order && (
-        <div className="border border-brand-border rounded-2xl p-6 sm:p-8 mb-8">
+        <div className="border border-brand-border rounded-2xl p-6 sm:p-8 mb-8 animate-fade-in">
           <div className="flex items-center justify-between mb-6">
             <div>
               <p className="text-label text-brand-muted mb-1">Order Number</p>

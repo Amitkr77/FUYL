@@ -1,6 +1,7 @@
 import { AlertCircle } from 'lucide-react'
 import { ReturnsTable } from '@/components/returns/ReturnsTable'
-import { listReturns, AdminApiError } from '@/lib/returns'
+import { listReturns } from '@/lib/returns'
+import { getErrorMessage } from '@/lib/api'
 
 export default async function ReturnsPage() {
   let returns: Awaited<ReturnType<typeof listReturns>> = []
@@ -8,7 +9,7 @@ export default async function ReturnsPage() {
   try {
     returns = await listReturns()
   } catch (err) {
-    error = err instanceof AdminApiError ? err.message : 'Could not load returns.'
+    error = getErrorMessage(err, 'Could not load returns.')
   }
 
   const pendingCount = returns.filter((r) => r.status === 'requested').length

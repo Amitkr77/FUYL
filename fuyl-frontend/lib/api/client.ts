@@ -55,6 +55,37 @@ export class ApiError extends Error {
   }
 }
 
+function isFieldValidationDetails(details: unknown): details is ApiErrorDetail[] {
+  return Array.isArray(details) && details.length > 0 && details.every(
+    (d) => d && typeof d === 'object' && typeof (d as ApiErrorDetail).message === 'string'
+  )
+}
+
+// "shippingAddress.pincode" -> "Pincode", "email" -> "Email" — just the last
+// path segment (the field itself), camelCase spaced out and capitalized.
+function humanizeFieldPath(path: string): string {
+  const last = path.split('.').filter(Boolean).pop() || path
+  return last.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()).trim()
+}
+
+// The backend's validate.middleware.ts sends `message: 'Validation failed'`
+// plus a `details: [{path, message}]` array with the actual per-field
+// reasons (e.g. "email: Invalid email", "password: String must contain at
+// least 8 character(s)") — every call site used to show only the generic
+// message and silently drop `details`, leaving the shopper with no idea
+// what to fix. This surfaces those field-level reasons when present and
+// shaped like validation output; any other error (wrong shape, or none)
+// falls back to the plain message exactly as before.
+export function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiError && isFieldValidationDetails(err.details)) {
+    return err.details
+      .map((d) => (d.path ? `${humanizeFieldPath(d.path)}: ${d.message}` : d.message))
+      .join('; ')
+  }
+  if (err instanceof Error && err.message) return err.message
+  return fallback
+}
+
 export async function apiFetch<T>(
   path: string,
   { method = 'GET', body, token, guestId, cache, tags, revalidate, _isRetry }: RequestOptions = {}

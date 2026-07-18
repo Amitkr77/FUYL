@@ -1,7 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { updateAdminOrderStatus, AdminApiError, type StatusUpdateInput } from '@/lib/orders'
+import { updateAdminOrderStatus, type StatusUpdateInput } from '@/lib/orders'
+import { getErrorMessage } from '@/lib/api'
 
 export type OrderActionState = { error: string } | { success: true }
 
@@ -9,7 +10,7 @@ export async function updateOrderStatusAction(id: string, input: StatusUpdateInp
   try {
     await updateAdminOrderStatus(id, input)
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not update order status.' }
+    return { error: getErrorMessage(err, 'Could not update order status.') }
   }
   revalidatePath(`/orders/${id}`)
   revalidatePath('/orders')

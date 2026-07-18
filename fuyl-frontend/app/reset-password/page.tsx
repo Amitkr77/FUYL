@@ -1,16 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { resetPassword } from '@/lib/api/account'
-import { ApiError } from '@/lib/api/client'
+import { getErrorMessage } from '@/lib/api/client'
 
 type Status = 'idle' | 'loading' | 'success' | 'error'
 
 export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordContent />
+    </Suspense>
+  )
+}
+
+function ResetPasswordContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
 
@@ -31,7 +39,7 @@ export default function ResetPasswordPage() {
       await resetPassword(token, password)
       setStatus('success')
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not reset your password. The link may have expired.')
+      setError(getErrorMessage(err, 'Could not reset your password. The link may have expired.'))
       setStatus('error')
     }
   }

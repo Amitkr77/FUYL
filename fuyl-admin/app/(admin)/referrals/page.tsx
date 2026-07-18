@@ -1,7 +1,8 @@
 import { AlertCircle, Users, Share2, Gift, TrendingUp } from 'lucide-react'
-import { getReferralStats, listReferrals, AdminApiError } from '@/lib/referrals'
+import { getReferralStats, listReferrals } from '@/lib/referrals'
 import { ReferralsTable } from '@/components/referrals/ReferralsTable'
 import { formatCurrency } from '@/lib/utils'
+import { getErrorMessage } from '@/lib/api'
 
 export default async function ReferralsPage() {
   let stats: Awaited<ReturnType<typeof getReferralStats>> | null = null
@@ -10,7 +11,7 @@ export default async function ReferralsPage() {
   try {
     ;[stats, referrals] = await Promise.all([getReferralStats(), listReferrals()])
   } catch (err) {
-    error = err instanceof AdminApiError ? err.message : 'Could not load referral data.'
+    error = getErrorMessage(err, 'Could not load referral data.')
   }
 
   return (

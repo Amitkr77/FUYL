@@ -12,7 +12,7 @@ import { formatPrice } from '@/lib/utils/formatPrice'
 
 export function CartDrawer() {
   const router = useRouter()
-  const { items, isOpen, closeCart, updateQty, removeItem, subtotal, syncCart } = useCart()
+  const { items, isOpen, closeCart, updateQty, removeItem, subtotal, syncCart, isLoading } = useCart()
 
   // Reconcile local cart state with the backend once on mount, rather than
   // trusting persisted localStorage indefinitely (this component is always
@@ -61,23 +61,26 @@ export function CartDrawer() {
                   <div className="flex items-center gap-2 mt-2">
                     <button
                       onClick={() => updateQty(item.productId, item.variantId || undefined, item.quantity - 1)}
+                      disabled={isLoading}
                       aria-label="Decrease quantity"
-                      className="p-1 rounded-sm border border-brand-border text-brand-olive hover:text-brand-teal hover:border-brand-teal transition-colors"
+                      className="p-1 rounded-sm border border-brand-border text-brand-olive hover:text-brand-teal hover:border-brand-teal transition-colors disabled:opacity-50"
                     >
                       <Minus size={12} />
                     </button>
                     <span className="text-body-sm w-6 text-center tabular-nums">{item.quantity}</span>
                     <button
                       onClick={() => updateQty(item.productId, item.variantId || undefined, item.quantity + 1)}
+                      disabled={isLoading}
                       aria-label="Increase quantity"
-                      className="p-1 rounded-sm border border-brand-border text-brand-olive hover:text-brand-teal hover:border-brand-teal transition-colors"
+                      className="p-1 rounded-sm border border-brand-border text-brand-olive hover:text-brand-teal hover:border-brand-teal transition-colors disabled:opacity-50"
                     >
                       <Plus size={12} />
                     </button>
                     <button
                       onClick={() => removeItem(item.productId, item.variantId || undefined)}
+                      disabled={isLoading}
                       aria-label="Remove item"
-                      className="ml-auto p-1 text-brand-muted hover:text-brand-forest transition-colors"
+                      className="ml-auto p-1 text-brand-muted hover:text-brand-forest transition-colors disabled:opacity-50"
                     >
                       <Trash2 size={14} />
                     </button>

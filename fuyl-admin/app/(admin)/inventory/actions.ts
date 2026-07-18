@@ -1,7 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { adjustStock, AdminApiError, type AdjustStockInput } from '@/lib/inventory'
+import { adjustStock, type AdjustStockInput } from '@/lib/inventory'
+import { getErrorMessage } from '@/lib/api'
 
 export type InventoryActionState = { error: string } | { success: true }
 
@@ -9,7 +10,7 @@ export async function adjustStockAction(input: AdjustStockInput): Promise<Invent
   try {
     await adjustStock(input)
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not adjust stock.' }
+    return { error: getErrorMessage(err, 'Could not adjust stock.') }
   }
   revalidatePath('/inventory')
   return { success: true }

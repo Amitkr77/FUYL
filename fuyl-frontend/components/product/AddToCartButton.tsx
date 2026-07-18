@@ -4,7 +4,9 @@ import { useState } from 'react'
 import { Check, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useCart } from '@/lib/hooks/useCart'
+import { useCartStore } from '@/lib/store/cartStore'
 import type { Product, ProductVariant } from '@/types/product'
+import { getErrorMessage } from '@/lib/api/client'
 
 interface AddToCartButtonProps {
   product:  Product
@@ -32,6 +34,7 @@ export function AddToCartButton({ product, variant, quantity, subscriptionInterv
         subscriptionInterval,
         subscriptionDiscountPercent,
       })
+      useCartStore.getState().openCart()
       setAdded(true)
       setTimeout(() => setAdded(false), 2000)
     } catch (err) {
@@ -39,7 +42,7 @@ export function AddToCartButton({ product, variant, quantity, subscriptionInterv
       // this had no error handling at all, so a failed add-to-cart call
       // (which cartStore.ts's addItem used to swallow silently) had no way
       // to reach the user. Now it does.
-      setError(err instanceof Error ? err.message : 'Could not add this to your bag. Please try again.')
+      setError(getErrorMessage(err, 'Could not add this to your bag. Please try again.'))
     }
   }
 

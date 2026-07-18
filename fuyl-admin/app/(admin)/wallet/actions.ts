@@ -1,7 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { adjustWallet, setWalletFrozen, AdminApiError } from '@/lib/wallet'
+import { adjustWallet, setWalletFrozen } from '@/lib/wallet'
+import { getErrorMessage } from '@/lib/api'
 
 export type WalletActionState = { error: string } | { success: true }
 
@@ -14,7 +15,7 @@ export async function adjustWalletAction(input: {
   try {
     await adjustWallet(input)
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not adjust wallet.' }
+    return { error: getErrorMessage(err, 'Could not adjust wallet.') }
   }
   revalidatePath(`/wallet/${input.userId}`)
   return { success: true }
@@ -24,7 +25,7 @@ export async function setWalletFrozenAction(userId: string, frozen: boolean, rea
   try {
     await setWalletFrozen(userId, frozen, reason)
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not update wallet freeze status.' }
+    return { error: getErrorMessage(err, 'Could not update wallet freeze status.') }
   }
   revalidatePath(`/wallet/${userId}`)
   return { success: true }

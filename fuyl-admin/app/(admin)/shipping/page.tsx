@@ -1,6 +1,7 @@
 import { AlertCircle, Clock, Truck, CheckCircle2, XCircle } from 'lucide-react'
-import { getShippingStats, listShipments, AdminApiError } from '@/lib/shipping'
+import { getShippingStats, listShipments } from '@/lib/shipping'
 import { ShipmentsTable } from '@/components/shipping/ShipmentsTable'
+import { getErrorMessage } from '@/lib/api'
 
 export default async function ShippingPage() {
   let stats: Awaited<ReturnType<typeof getShippingStats>> | null = null
@@ -9,7 +10,7 @@ export default async function ShippingPage() {
   try {
     ;[stats, shipments] = await Promise.all([getShippingStats(), listShipments()])
   } catch (err) {
-    error = err instanceof AdminApiError ? err.message : 'Could not load shipments.'
+    error = getErrorMessage(err, 'Could not load shipments.')
   }
 
   return (

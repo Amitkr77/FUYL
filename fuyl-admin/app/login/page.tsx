@@ -75,7 +75,7 @@ export default function LoginPage() {
         {/* Bottom tag */}
         <div className="relative z-10 mt-auto flex items-center gap-2 text-white/40 text-xs">
           <ShieldCheck className="w-4 h-4" />
-          <span>Secured admin portal · FUYL Nutrition Pvt. Ltd.</span>
+          <span>Secured admin portal </span>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { AlertCircle } from 'lucide-react'
 import { InventoryTable } from '@/components/inventory/InventoryTable'
-import { listInventory, AdminApiError } from '@/lib/inventory'
+import { listInventory } from '@/lib/inventory'
+import { getErrorMessage } from '@/lib/api'
 
 export default async function InventoryPage() {
   let stock: Awaited<ReturnType<typeof listInventory>> = []
@@ -8,7 +9,7 @@ export default async function InventoryPage() {
   try {
     stock = await listInventory()
   } catch (err) {
-    error = err instanceof AdminApiError ? err.message : 'Could not load inventory.'
+    error = getErrorMessage(err, 'Could not load inventory.')
   }
 
   const lowStockCount = stock.filter((s) => s.reorderThreshold > 0 && s.available <= s.reorderThreshold).length

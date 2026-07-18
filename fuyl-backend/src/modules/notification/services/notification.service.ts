@@ -3,11 +3,12 @@ import { NotificationLogRepository } from '../repositories/notificationLog.repos
 import { TemplateRepository } from '../repositories/template.repository';
 import { NotificationPreferenceRepository } from '../repositories/preference.repository';
 import { renderTemplate, extractVariables } from '../utils/templateEngine';
-import { sendEmail } from '../utils/emailProvider';
+import { sendEmail, htmlToText } from '../utils/emailProvider';
 import { sendSms, sendWhatsapp } from '../utils/smsProvider';
 import { sendPush } from '../utils/pushProvider';
 import { QUEUE_NAMES, redisConnection } from '../../../config/queue';
 import { logger } from '../../../config/logger';
+import { env } from '../../../config/env';
 import { Types } from 'mongoose';
 import { BUILTIN_TEMPLATES } from '../utils/builtinTemplates';
 
@@ -117,7 +118,17 @@ class NotificationService {
     }
 
     // 3. Render template
-    const data = payload.data ?? {};
+    // logoUrl/year/shopUrl/accountUrl are shared across every branded email
+    // template (see emailLayout.ts's header/footer) — injected here once
+    // rather than at every dispatch call site. Harmless no-ops for SMS/
+    // WhatsApp templates, which don't reference them.
+    const data: Record<string, unknown> = {
+      ...(payload.data ?? {}),
+      year: new Date().getFullYear(),
+      logoUrl: `${env.clientUrl}/logo.webp`,
+      shopUrl: `${env.clientUrl}/collections/all`,
+      accountUrl: `${env.clientUrl}/account`,
+    };
     const subject = tpl.subject ? renderTemplate(tpl.subject, data) : undefined;
     const body = renderTemplate(tpl.body, data);
 
@@ -129,7 +140,10 @@ class NotificationService {
           await logRepo.updateStatus(logId, 'failed', { error: 'Email address required' });
           return;
         }
-        const r = await sendEmail({ to: payload.to.email, subject: subject ?? '', html: body, text: body });
+        // The HTML body is authoritative; plain-text-only clients get a
+        // stripped-down text version instead of raw markup (previously the
+        // same HTML string was sent as both `html` and `text`).
+        const r = await sendEmail({ to: payload.to.email, subject: subject ?? '', html: body, text: htmlToText(body) });
         providerMessageId = r.providerMessageId;
       } else if (tpl.channel === 'sms') {
         if (!payload.to.phone) {

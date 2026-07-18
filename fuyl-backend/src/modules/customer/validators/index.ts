@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { phoneSchema } from '../../../shared/validators';
 
 export const updateProfileSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
@@ -20,7 +21,7 @@ export const addressSchema = z.object({
   state: z.string().min(1).max(100),
   postalCode: z.string().min(3).max(20),
   country: z.string().min(2).max(3).default('IN'),
-  phone: z.string().optional(),
+  phone: phoneSchema.optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   isDefault: z.boolean().default(false),

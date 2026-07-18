@@ -183,3 +183,11 @@ export async function forgotPassword(email: string): Promise<void> {
 export async function resetPassword(token: string, password: string): Promise<void> {
   return apiFetch('/auth/reset-password', { method: 'POST', body: { token, password } })
 }
+
+export async function verifyEmail(token: string): Promise<void> {
+  return apiFetch('/auth/verify-email', { method: 'POST', body: { token } })
+}
+
+export async function resendVerification(email: string): Promise<void> {
+  return apiFetch('/auth/resend-verification', { method: 'POST', body: { email } })
+}

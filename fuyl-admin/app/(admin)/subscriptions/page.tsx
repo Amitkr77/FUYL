@@ -1,7 +1,8 @@
 import { AlertCircle, Repeat, PauseCircle, AlertTriangle, IndianRupee } from 'lucide-react'
-import { getSubscriptionStats, listSubscriptions, AdminApiError } from '@/lib/subscriptions'
+import { getSubscriptionStats, listSubscriptions } from '@/lib/subscriptions'
 import { SubscriptionsTable } from '@/components/subscriptions/SubscriptionsTable'
 import { formatCurrency } from '@/lib/utils'
+import { getErrorMessage } from '@/lib/api'
 
 export default async function SubscriptionsPage() {
   let stats: Awaited<ReturnType<typeof getSubscriptionStats>> | null = null
@@ -10,7 +11,7 @@ export default async function SubscriptionsPage() {
   try {
     ;[stats, subscriptions] = await Promise.all([getSubscriptionStats(), listSubscriptions()])
   } catch (err) {
-    error = err instanceof AdminApiError ? err.message : 'Could not load subscriptions.'
+    error = getErrorMessage(err, 'Could not load subscriptions.')
   }
 
   return (

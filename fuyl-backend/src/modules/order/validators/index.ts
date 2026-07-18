@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { OrderStatus, PaymentMethod } from '../../../shared/enums';
+import { phoneSchema } from '../../../shared/validators';
 
 export const createOrderSchema = z.object({
   items: z.array(z.object({
@@ -9,7 +10,7 @@ export const createOrderSchema = z.object({
   })).min(1),
   shippingAddress: z.object({
     fullName: z.string().min(1).max(100),
-    phone: z.string().regex(/^\+?[1-9]\d{7,14}$/),
+    phone: phoneSchema,
     line1: z.string().min(1).max(200),
     line2: z.string().max(200).optional(),
     city: z.string().min(1).max(100),
@@ -20,7 +21,7 @@ export const createOrderSchema = z.object({
   }),
   billingAddress: z.object({
     fullName: z.string().min(1).max(100),
-    phone: z.string().regex(/^\+?[1-9]\d{7,14}$/),
+    phone: phoneSchema,
     line1: z.string().min(1).max(200),
     line2: z.string().max(200).optional(),
     city: z.string().min(1).max(100),

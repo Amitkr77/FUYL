@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createPost, updatePost, deletePost, AdminApiError, type BlogPostInput } from '@/lib/blog'
-import { adminApiFetch } from '@/lib/api'
+import { createPost, updatePost, deletePost, type BlogPostInput } from '@/lib/blog'
+import { adminApiFetch, getErrorMessage } from '@/lib/api'
 import type { SignatureResult } from '@/lib/upload'
 
 export type BlogActionState = { error: string } | null
@@ -14,7 +14,7 @@ export async function getBlogImageUploadSignature(): Promise<SignatureResult> {
   try {
     return await adminApiFetch('/uploads/sign', { method: 'POST', body: { folder: 'blog' } })
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not authorize the upload.' }
+    return { error: getErrorMessage(err, 'Could not authorize the upload.') }
   }
 }
 
@@ -22,7 +22,7 @@ export async function createPostAction(input: BlogPostInput): Promise<BlogAction
   try {
     await createPost(input)
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not create the post.' }
+    return { error: getErrorMessage(err, 'Could not create the post.') }
   }
   revalidatePath('/blog')
   redirect('/blog')
@@ -32,7 +32,7 @@ export async function updatePostAction(id: string, input: BlogPostInput): Promis
   try {
     await updatePost(id, input)
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not save changes.' }
+    return { error: getErrorMessage(err, 'Could not save changes.') }
   }
   revalidatePath('/blog')
   revalidatePath(`/blog/${id}`)

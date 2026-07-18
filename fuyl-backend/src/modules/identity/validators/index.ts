@@ -1,13 +1,14 @@
 import { z } from 'zod';
 import { RoleEnum } from '../../../shared/enums';
 import { Permissions } from '../../../shared/middleware/rbac.middleware';
+import { phoneSchema } from '../../../shared/validators';
 
 export const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(128),
   firstName: z.string().min(1).max(50).optional(),
   lastName: z.string().min(1).max(50).optional(),
-  phone: z.string().regex(/^\+?[1-9]\d{7,14}$/).optional(),
+  phone: phoneSchema.optional(),
   role: z.enum([RoleEnum.CUSTOMER, RoleEnum.SELLER]).default(RoleEnum.CUSTOMER),
   referralCode: z.string().min(4).max(50).optional(),
   deviceFingerprint: z.string().max(256).optional(),
@@ -70,7 +71,7 @@ export const checkoutIdentifySchema = z.object({
   // checked server-side, not assumed here.
   password: z.string().min(1).optional(),
   fullName: z.string().min(1).max(150).optional(),
-  phone: z.string().regex(/^\+?[1-9]\d{7,14}$/).optional(),
+  phone: phoneSchema.optional(),
 });
 
 export type RegisterDTO = z.infer<typeof registerSchema>;

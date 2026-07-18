@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Search, ArrowRight } from 'lucide-react'
-import { searchCustomers, AdminApiError } from '@/lib/wallet'
+import { searchCustomers } from '@/lib/wallet'
+import { getErrorMessage } from '@/lib/api'
 
 export default async function WalletSearchPage({
   searchParams,
@@ -14,7 +15,7 @@ export default async function WalletSearchPage({
     try {
       results = await searchCustomers(q)
     } catch (err) {
-      error = err instanceof AdminApiError ? err.message : 'Search failed.'
+      error = getErrorMessage(err, 'Search failed.')
     }
   }
 

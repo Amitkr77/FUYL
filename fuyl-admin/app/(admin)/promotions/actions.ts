@@ -2,11 +2,11 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { getErrorMessage } from '@/lib/api'
 import {
   createCampaign,
   updateCampaignStatus,
   deleteCampaign,
-  AdminApiError,
   type CreateCampaignInput,
   type CampaignStatus,
 } from '@/lib/promotions'
@@ -17,7 +17,7 @@ export async function createCampaignAction(input: CreateCampaignInput): Promise<
   try {
     await createCampaign(input)
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not create the campaign.' }
+    return { error: getErrorMessage(err, 'Could not create the campaign.') }
   }
   revalidatePath('/promotions')
   redirect('/promotions')
@@ -27,7 +27,7 @@ export async function updateCampaignStatusAction(id: string, status: CampaignSta
   try {
     await updateCampaignStatus(id, { status })
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not update campaign status.' }
+    return { error: getErrorMessage(err, 'Could not update campaign status.') }
   }
   revalidatePath('/promotions')
   return { success: true }
@@ -37,7 +37,7 @@ export async function toggleFeaturedAction(id: string, isFeatured: boolean): Pro
   try {
     await updateCampaignStatus(id, { isFeatured })
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not update campaign.' }
+    return { error: getErrorMessage(err, 'Could not update campaign.') }
   }
   revalidatePath('/promotions')
   return { success: true }
@@ -47,7 +47,7 @@ export async function deleteCampaignAction(id: string): Promise<PromotionActionS
   try {
     await deleteCampaign(id)
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not delete the campaign.' }
+    return { error: getErrorMessage(err, 'Could not delete the campaign.') }
   }
   revalidatePath('/promotions')
   return { success: true }

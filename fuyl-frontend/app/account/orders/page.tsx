@@ -5,7 +5,22 @@ import Link from 'next/link'
 import { useAuthStore } from '@/lib/store/authStore'
 import { formatPrice } from '@/lib/utils/formatPrice'
 import { getOrders } from '@/lib/api/account'
+import { Skeleton } from '@/components/ui/Skeleton'
 import type { Order } from '@/types/user'
+import { getErrorMessage } from '@/lib/api/client'
+
+function OrderCardSkeleton() {
+  return (
+    <div className="border rounded-sm p-5" style={{ borderColor: 'var(--color-brand-border)' }}>
+      <div className="flex items-center justify-between mb-3">
+        <Skeleton className="h-3.5 w-24" />
+        <Skeleton className="h-5 w-20" />
+      </div>
+      <Skeleton className="h-3.5 w-40 mb-3" />
+      <Skeleton className="h-4 w-24" />
+    </div>
+  )
+}
 
 const STATUS_COLORS: Record<string, string> = {
   pending:   '#F59E0B',
@@ -29,7 +44,7 @@ export default function OrdersPage() {
     setLoading(true)
     getOrders(token)
       .then(setOrders)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load orders'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load orders')))
       .finally(() => setLoading(false))
   }, [token])
 
@@ -49,7 +64,11 @@ export default function OrdersPage() {
       <h1 className="text-display-xl font-display mb-10">MY ORDERS</h1>
 
       {isLoading && (
-        <p className="text-body-md" style={{ color: 'var(--color-brand-muted)' }}>Loading orders…</p>
+        <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading orders">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <OrderCardSkeleton key={i} />
+          ))}
+        </div>
       )}
 
       {!isLoading && error && (
@@ -63,7 +82,7 @@ export default function OrdersPage() {
       )}
 
       {!isLoading && !error && orders.length > 0 && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 animate-fade-in">
           {orders.map((order) => (
             <Link
               key={order.id}

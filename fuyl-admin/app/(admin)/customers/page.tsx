@@ -1,6 +1,7 @@
 import { AlertCircle } from 'lucide-react'
 import { CustomersTable } from '@/components/customers/CustomersTable'
-import { listCustomers, AdminApiError } from '@/lib/customers'
+import { listCustomers } from '@/lib/customers'
+import { getErrorMessage } from '@/lib/api'
 
 export default async function CustomersPage() {
   let customers: Awaited<ReturnType<typeof listCustomers>> = []
@@ -8,7 +9,7 @@ export default async function CustomersPage() {
   try {
     customers = await listCustomers()
   } catch (err) {
-    error = err instanceof AdminApiError ? err.message : 'Could not load customers.'
+    error = getErrorMessage(err, 'Could not load customers.')
   }
 
   return (

@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { User } from '@/types/user'
 import { login as apiLogin, register as apiRegister } from '@/lib/api/account'
+import { getErrorMessage } from '@/lib/api/client'
 import { useCartStore } from './cartStore'
 
 interface AuthState {
@@ -39,8 +40,7 @@ export const useAuthStore = create<AuthState>()(
           set({ token: accessToken, user })
           await useCartStore.getState().mergeGuestCart()
         } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : 'Login failed. Please try again.'
-          set({ error: message })
+          set({ error: getErrorMessage(err, 'Login failed. Please try again.') })
         } finally {
           set({ isLoading: false })
         }
@@ -53,8 +53,7 @@ export const useAuthStore = create<AuthState>()(
           set({ token: accessToken, user })
           await useCartStore.getState().mergeGuestCart()
         } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : 'Registration failed. Please try again.'
-          set({ error: message })
+          set({ error: getErrorMessage(err, 'Registration failed. Please try again.') })
         } finally {
           set({ isLoading: false })
         }

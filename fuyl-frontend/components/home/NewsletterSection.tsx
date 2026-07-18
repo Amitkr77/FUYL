@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { subscribeNewsletter } from "@/lib/api/content";
+import { getErrorMessage } from "@/lib/api/client";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 export function NewsletterSection() {
@@ -20,11 +21,7 @@ export function NewsletterSection() {
       setStatus("success");
       setEmail("");
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Please try again.";
-      setErrorMsg(msg);
+      setErrorMsg(getErrorMessage(err, "Something went wrong. Please try again."));
       setStatus("error");
     }
   };

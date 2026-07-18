@@ -8,7 +8,7 @@ import {
   archiveAdminProduct,
   type AdminProductInput,
 } from '@/lib/products'
-import { adminApiFetch, AdminApiError } from '@/lib/api'
+import { adminApiFetch, getErrorMessage } from '@/lib/api'
 import type { SignatureResult } from '@/lib/upload'
 
 export type ProductActionState = { error: string } | null
@@ -20,7 +20,7 @@ export async function getProductImageUploadSignature(): Promise<SignatureResult>
   try {
     return await adminApiFetch('/uploads/sign', { method: 'POST', body: { folder: 'products' } })
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not authorize the upload.' }
+    return { error: getErrorMessage(err, 'Could not authorize the upload.') }
   }
 }
 
@@ -28,7 +28,7 @@ export async function createProductAction(input: AdminProductInput): Promise<Pro
   try {
     await createAdminProduct(input)
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not create the product.' }
+    return { error: getErrorMessage(err, 'Could not create the product.') }
   }
   revalidatePath('/products')
   redirect('/products')
@@ -38,7 +38,7 @@ export async function updateProductAction(id: string, input: AdminProductInput):
   try {
     await updateAdminProduct(id, input)
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not save changes.' }
+    return { error: getErrorMessage(err, 'Could not save changes.') }
   }
   revalidatePath('/products')
   revalidatePath(`/products/${id}`)
@@ -49,7 +49,7 @@ export async function archiveProductAction(id: string): Promise<ProductActionSta
   try {
     await archiveAdminProduct(id)
   } catch (err) {
-    return { error: err instanceof AdminApiError ? err.message : 'Could not archive the product.' }
+    return { error: getErrorMessage(err, 'Could not archive the product.') }
   }
   revalidatePath('/products')
   redirect('/products')

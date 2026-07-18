@@ -36,6 +36,33 @@ export interface EmailMessage {
   from?: string;
 }
 
+/**
+ * Derives a plain-text fallback from an HTML email body, for clients that
+ * don't render HTML at all. Not a general-purpose HTML-to-text converter —
+ * just enough for the templates in builtinTemplates.ts (which only ever use
+ * <p>/<a>/<table>/<tr>/<td>/<span>/<strong> tags via emailLayout.ts).
+ */
+export function htmlToText(html: string): string {
+  return html
+    .replace(/<head[\s\S]*?<\/head>/gi, '')
+    .replace(/<a\s+[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, '$2 ($1)')
+    .replace(/<\/(p|div|tr|h[1-6])>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&middot;/g, '·')
+    .replace(/&copy;/g, '©')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .join('\n')
+    .trim();
+}
+
 export async function sendEmail(msg: EmailMessage): Promise<{ providerMessageId: string }> {
   const t = getTransporter();
   const info = await t.sendMail({

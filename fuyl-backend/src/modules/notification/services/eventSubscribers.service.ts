@@ -1,6 +1,7 @@
 import { eventBus, Events } from '../../../shared/services/eventBus.service';
 import { notificationService, NotificationDispatchPayload } from './notification.service';
 import { logger } from '../../../config/logger';
+import { env } from '../../../config/env';
 
 /**
  * Subscribes to domain events and auto-dispatches appropriate notifications.
@@ -8,20 +9,10 @@ import { logger } from '../../../config/logger';
  * who gets notified.
  */
 export function registerNotificationEventSubscribers(): void {
-  // USER_REGISTERED → email verification
-  eventBus.on<{ userId: string; email: string; appliedReferralCode?: string }>(
-    Events.USER_REGISTERED,
-    async (payload) => {
-      await notificationService.dispatch({
-        channel: 'email',
-        to: { email: payload.email, userId: payload.userId },
-        template: 'email_verification',
-        data: { name: payload.email },
-        userId: payload.userId,
-        category: 'transactional',
-      });
-    }
-  );
+  // Note: email_verification is dispatched directly from
+  // identity.service.ts's register() (it already has the raw verification
+  // token in scope there to build a working verifyUrl) — no USER_REGISTERED
+  // subscriber here, to avoid sending that email twice.
 
   // ORDER_PLACED → order_placed email
   //
@@ -49,6 +40,7 @@ export function registerNotificationEventSubscribers(): void {
           itemCount: payload.itemCount ?? 1,
           paymentMethod: payload.paymentMethod ?? 'unknown',
           currency: '₹',
+          orderUrl: `${env.clientUrl}/account/orders/${payload.orderId}`,
         },
         userId: payload.userId,
         category: 'transactional',
@@ -72,6 +64,7 @@ export function registerNotificationEventSubscribers(): void {
           orderNumber: payload.orderNumber ?? payload.orderId,
           trackingNumber: payload.trackingNumber ?? 'N/A',
           carrier: payload.carrier ?? 'N/A',
+          orderUrl: `${env.clientUrl}/account/orders/${payload.orderId}`,
         },
         userId: payload.userId,
         category: 'transactional',
@@ -87,7 +80,10 @@ export function registerNotificationEventSubscribers(): void {
         channel: 'email',
         to: { userId: payload.userId },
         template: 'order_delivered',
-        data: { orderNumber: payload.orderNumber ?? payload.orderId },
+        data: {
+          orderNumber: payload.orderNumber ?? payload.orderId,
+          orderUrl: `${env.clientUrl}/account/orders/${payload.orderId}`,
+        },
         userId: payload.userId,
         category: 'transactional',
       });
@@ -108,6 +104,7 @@ export function registerNotificationEventSubscribers(): void {
           interval: payload.interval,
           nextDeliveryDate: payload.nextDeliveryDate,
           currency: '₹',
+          manageUrl: `${env.clientUrl}/account/subscriptions`,
         },
         userId: payload.userId,
         category: 'subscription',
@@ -139,6 +136,7 @@ export function registerNotificationEventSubscribers(): void {
           cycleNumber: payload.cycleNumber,
           nextDeliveryDate: payload.nextDeliveryDate,
           currency: '₹',
+          manageUrl: `${env.clientUrl}/account/subscriptions`,
         },
         userId: payload.customerId,
         category: 'subscription',
@@ -160,6 +158,7 @@ export function registerNotificationEventSubscribers(): void {
           attemptNumber: payload.attemptNumber,
           maxAttempts: payload.maxAttempts,
           currency: '₹',
+          manageUrl: `${env.clientUrl}/account/subscriptions`,
         },
         userId: payload.userId,
         category: 'subscription',
@@ -178,6 +177,7 @@ export function registerNotificationEventSubscribers(): void {
         data: {
           planName: payload.planName,
           endDate: payload.endDate,
+          manageUrl: `${env.clientUrl}/account/subscriptions`,
         },
         userId: payload.userId,
         category: 'subscription',
@@ -196,6 +196,7 @@ export function registerNotificationEventSubscribers(): void {
         data: {
           code: payload.code,
           refereeReward: payload.refereeReward,
+          walletUrl: `${env.clientUrl}/account/wallet`,
         },
         userId: payload.refereeId,
         category: 'referral',
@@ -214,6 +215,7 @@ export function registerNotificationEventSubscribers(): void {
         data: {
           amount: payload.amount,
           refereeName: payload.refereeName ?? 'a friend',
+          walletUrl: `${env.clientUrl}/account/wallet`,
         },
         userId: payload.referrerId,
         category: 'referral',
@@ -231,7 +233,7 @@ export function registerNotificationEventSubscribers(): void {
         template: 'cart_abandoned',
         data: {
           itemCount: payload.itemCount,
-          cartUrl: payload.cartUrl,
+          cartUrl: payload.cartUrl ?? `${env.clientUrl}/cart`,
         },
         userId: payload.userId,
         category: 'marketing',

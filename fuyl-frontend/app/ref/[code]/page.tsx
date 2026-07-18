@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store/authStore'
 import { applyReferralCode } from '@/lib/api/referrals'
+import { getErrorMessage } from '@/lib/api/client'
 
 // Landing page for a shared referral link (fuyl.in/ref/CODE). A signed-in
 // visitor gets the code applied immediately; a signed-out one is sent to
@@ -31,7 +32,7 @@ export default function ReferralLandingPage() {
       applyReferralCode(current, params.code)
         .then(() => setStatus('applied'))
         .catch((err) => {
-          setError(err instanceof Error ? err.message : 'Could not apply this referral code.')
+          setError(getErrorMessage(err, 'Could not apply this referral code.'))
           setStatus('error')
         })
     }

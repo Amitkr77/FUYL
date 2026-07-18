@@ -2,7 +2,8 @@ import { IndianRupee, ShoppingBag, Calendar, AlertCircle } from 'lucide-react'
 import AnalyticsRevenueChart from '@/components/analytics/RevenueChart'
 import OrdersChart from '@/components/analytics/OrdersChart'
 import { formatCurrency } from '@/lib/utils'
-import { getAnalyticsSummary, getRevenueChartData, getTopProducts, AdminApiError } from '@/lib/analytics'
+import { getAnalyticsSummary, getRevenueChartData, getTopProducts } from '@/lib/analytics'
+import { getErrorMessage } from '@/lib/api'
 
 const DAYS = 7
 
@@ -19,7 +20,7 @@ export default async function AnalyticsPage() {
       getTopProducts(3),
     ])
   } catch (err) {
-    error = err instanceof AdminApiError ? err.message : 'Could not load analytics.'
+    error = getErrorMessage(err, 'Could not load analytics.')
   }
 
   return (

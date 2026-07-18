@@ -9,6 +9,7 @@ import { WishlistButton } from "./WishlistButton";
 import { ProductBadges } from "./ProductBadges";
 import { formatPrice, discountPercent } from "@/lib/utils/formatPrice";
 import { Badge } from "@/components/ui/Badge";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { getActivePlans, type SubscriptionPlan } from "@/lib/api/subscriptionPlans";
 import type { Product } from "@/types/product";
 
@@ -21,17 +22,20 @@ export function ProductInfo({ product }: ProductInfoProps) {
   const [purchaseType, setPurchaseType] = useState<"one-time" | "subscribe">("one-time");
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const [plansLoading, setPlansLoading] = useState(product.isSubscribable);
 
   const variant = product.variants[0];
 
   useEffect(() => {
     if (!product.isSubscribable) return;
+    setPlansLoading(true);
     getActivePlans()
       .then((p) => {
         setPlans(p);
         if (p[0]) setSelectedPlanId(p[0].id);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setPlansLoading(false));
   }, [product.isSubscribable]);
 
   if (!variant) return null;
@@ -127,8 +131,15 @@ export function ProductInfo({ product }: ProductInfoProps) {
       <ProductBadges tags={product.tags} badge={product.badge} />
 
       {/* Purchase options — one-time vs subscribe & save */}
-      {product.isSubscribable && plans.length > 0 && (
-        <div className="flex flex-col gap-2 pt-2">
+      {product.isSubscribable && plansLoading && (
+        <div className="flex flex-col gap-2 pt-2" aria-busy="true" aria-label="Loading purchase options">
+          <Skeleton className="h-3 w-32" />
+          <Skeleton className="h-11 w-full" />
+          <Skeleton className="h-11 w-full" />
+        </div>
+      )}
+      {product.isSubscribable && !plansLoading && plans.length > 0 && (
+        <div className="flex flex-col gap-2 pt-2 animate-fade-in">
           <span className="text-label text-brand-muted">Purchase Options</span>
           <div className="flex flex-col gap-2">
             <label

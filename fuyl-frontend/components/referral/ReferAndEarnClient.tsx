@@ -5,14 +5,49 @@ import Link from 'next/link'
 import { Copy, Check, Mail, MessageCircle, Share2 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { formatPrice } from '@/lib/utils/formatPrice'
+import { getErrorMessage } from '@/lib/api/client'
 import {
   getReferralDashboard, generateReferralCode, shareReferral,
   type ReferralDashboard,
 } from '@/lib/api/referrals'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 const STATUS_LABEL: Record<string, string> = {
   shared: 'Shared', applied: 'Signed up', pending: 'Pending first order',
   eligible: 'Pending first order', rewarded: 'Reward earned', completed: 'Reward earned', rejected: 'Not eligible',
+}
+
+function ReferralDashboardSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Loading your referral dashboard">
+      <div className="border rounded-sm p-6 mb-8" style={{ borderColor: 'var(--color-brand-border)' }}>
+        <Skeleton className="h-3 w-32 mb-3" />
+        <Skeleton className="h-11 w-full mb-4" />
+        <div className="flex flex-wrap gap-2">
+          <Skeleton className="h-10 w-28" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-28" />
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-4 mb-10">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="border rounded-sm p-4 text-center" style={{ borderColor: 'var(--color-brand-border)' }}>
+            <Skeleton className="h-6 w-10 mx-auto mb-2" />
+            <Skeleton className="h-3 w-16 mx-auto" />
+          </div>
+        ))}
+      </div>
+      <Skeleton className="h-3 w-28 mb-4" />
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="flex items-center justify-between border-b pb-3" style={{ borderColor: 'var(--color-brand-border)' }}>
+            <Skeleton className="h-3.5 w-24" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export function ReferAndEarnClient() {
@@ -28,7 +63,7 @@ export function ReferAndEarnClient() {
     setLoading(true)
     getReferralDashboard(token)
       .then(setDash)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Could not load your referral dashboard'))
+      .catch((err) => setError(getErrorMessage(err, 'Could not load your referral dashboard')))
       .finally(() => setLoading(false))
   }
 
@@ -41,7 +76,7 @@ export function ReferAndEarnClient() {
       await generateReferralCode(token)
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not generate a referral code')
+      setError(getErrorMessage(err, 'Could not generate a referral code'))
     }
   }
 
@@ -63,7 +98,7 @@ export function ReferAndEarnClient() {
         window.location.href = `mailto:?subject=${encodeURIComponent(result.subject ?? 'Try FUYL')}&body=${encodeURIComponent(result.body ?? result.link)}`
       }
     } catch (err) {
-      setShareMsg(err instanceof Error ? err.message : 'Could not open share')
+      setShareMsg(getErrorMessage(err, 'Could not open share'))
     }
   }
 
@@ -94,9 +129,7 @@ export function ReferAndEarnClient() {
           </div>
         )}
 
-        {token && isLoading && (
-          <p className="text-body-md" style={{ color: 'var(--color-brand-muted)' }}>Loading your referral dashboard…</p>
-        )}
+        {token && isLoading && <ReferralDashboardSkeleton />}
 
         {token && !isLoading && error && (
           <p className="text-body-sm p-3 rounded-sm mb-6" style={{ background: '#FEE2E2', color: '#B91C1C' }}>{error}</p>
@@ -117,7 +150,7 @@ export function ReferAndEarnClient() {
         )}
 
         {token && !isLoading && dash && dash.code && (
-          <>
+          <div className="animate-fade-in">
             {/* Share link card */}
             <div className="border rounded-sm p-6 mb-8" style={{ borderColor: 'var(--color-brand-border)' }}>
               <p className="text-label mb-2" style={{ color: 'var(--color-brand-muted)' }}>Your referral link</p>
@@ -180,7 +213,7 @@ export function ReferAndEarnClient() {
                 ))}
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

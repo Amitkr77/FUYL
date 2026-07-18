@@ -108,7 +108,12 @@ class PromotionService {
   }
 
   // ─── Customer-facing: Validate + Redeem ──────────────────────
-  async validateCoupon(userId: string, dto: ValidateCouponDTO): Promise<CouponValidationResult> {
+  // userId is optional — checkout lets a not-yet-identified guest validate
+  // a coupon before an account exists. The per-user redemption check below
+  // is skipped in that case (nothing to check yet) and is re-verified for
+  // real once this same code is re-validated with a resolved userId at
+  // checkout.service.ts's preview()/placeOrder() time.
+  async validateCoupon(userId: string | undefined, dto: ValidateCouponDTO): Promise<CouponValidationResult> {
     const code = dto.code.toUpperCase().trim();
     const campaign = await campaignRepo.findByCouponCode(code);
     if (!campaign) {
@@ -146,8 +151,8 @@ class PromotionService {
       return { valid: false, reason: 'Coupon fully redeemed', couponCode: code };
     }
 
-    // Per-user limit
-    if (coupon.maxRedemptionsPerUser !== undefined) {
+    // Per-user limit — only checkable once an identity exists
+    if (userId && coupon.maxRedemptionsPerUser !== undefined) {
       const userCount = await redemptionRepo.countByUserAndCode(userId, code);
       if (userCount >= coupon.maxRedemptionsPerUser) {
         return { valid: false, reason: 'You have already used this coupon', couponCode: code };

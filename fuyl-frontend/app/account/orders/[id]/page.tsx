@@ -7,7 +7,9 @@ import { MapPin, Truck, CreditCard } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { formatPrice } from '@/lib/utils/formatPrice'
 import { getOrder } from '@/lib/api/account'
+import { Skeleton } from '@/components/ui/Skeleton'
 import type { Order, OrderAddress } from '@/types/user'
+import { getErrorMessage } from '@/lib/api/client'
 
 const STATUS_COLORS: Record<string, string> = {
   pending:   '#F59E0B',
@@ -47,6 +49,70 @@ function addressesMatch(a: OrderAddress, b: OrderAddress) {
   return a.line1 === b.line1 && a.city === b.city && a.state === b.state && a.pincode === b.pincode && a.phone === b.phone
 }
 
+function OrderDetailSkeleton() {
+  return (
+    <div className="flex flex-col gap-8" aria-busy="true" aria-label="Loading order">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+        <Skeleton className="h-7 w-24" />
+      </div>
+
+      <div className="border border-brand-border rounded-2xl p-5 sm:p-6">
+        <Skeleton className="h-3 w-28 mb-4" />
+        <div className="flex flex-col gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <Skeleton className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" />
+              <div className="flex flex-col gap-1.5 flex-1">
+                <Skeleton className="h-3.5 w-20" />
+                <Skeleton className="h-3 w-28" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Skeleton className="h-3 w-12 mb-4" />
+        <div className="flex flex-col gap-4">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <Skeleton className="w-16 h-16 shrink-0" />
+              <div className="flex-1 flex flex-col gap-1.5">
+                <Skeleton className="h-3.5 w-2/3" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+              <Skeleton className="h-3.5 w-14" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="border border-brand-border rounded-2xl p-5 sm:p-6">
+            <Skeleton className="h-3 w-24 mb-4" />
+            <Skeleton className="h-3.5 w-32 mb-2" />
+            <Skeleton className="h-3.5 w-24" />
+          </div>
+        ))}
+      </div>
+
+      <div className="border-t pt-4 flex flex-col gap-3" style={{ borderColor: 'var(--color-brand-border)' }}>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex justify-between">
+            <Skeleton className="h-3.5 w-20" />
+            <Skeleton className="h-3.5 w-16" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function AddressBlock({ address }: { address: OrderAddress }) {
   return (
     <div className="text-body-sm">
@@ -71,7 +137,7 @@ export default function OrderDetailPage() {
     setLoading(true)
     getOrder(token, params.id)
       .then(setOrder)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load order'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load order')))
       .finally(() => setLoading(false))
   }, [token, params.id])
 
@@ -92,16 +158,14 @@ export default function OrderDetailPage() {
         ← Back to orders
       </Link>
 
-      {isLoading && (
-        <p className="text-body-md" style={{ color: 'var(--color-brand-muted)' }}>Loading order…</p>
-      )}
+      {isLoading && <OrderDetailSkeleton />}
 
       {!isLoading && error && (
         <p className="text-body-sm p-3 rounded-sm" style={{ background: '#FEE2E2', color: '#B91C1C' }}>{error}</p>
       )}
 
       {!isLoading && !error && order && (
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-8 animate-fade-in">
           {/* Header */}
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>

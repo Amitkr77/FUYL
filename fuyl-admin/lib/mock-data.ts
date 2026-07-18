@@ -94,26 +94,6 @@ export const MOCK_CUSTOMERS: Customer[] = [
   { id: 'c12', name: 'Rohan Malhotra', email: 'rohan.m@outlook.com', orders: 2, totalSpent: 3998, joined: '2025-06-02' },
 ]
 
-export type ContentStatus = 'published' | 'draft'
-
-export interface ContentPage {
-  id: string
-  name: string
-  slug: string
-  lastEdited: string
-  status: ContentStatus
-}
-
-export const MOCK_CONTENT_PAGES: ContentPage[] = [
-  { id: 'home', name: 'Homepage', slug: '/', lastEdited: '2025-06-28', status: 'published' },
-  { id: 'why-fuyl', name: 'Why FUYL', slug: '/pages/why-fuyl', lastEdited: '2025-06-25', status: 'published' },
-  { id: 'science', name: 'The Science', slug: '/pages/science', lastEdited: '2025-06-20', status: 'published' },
-  { id: 'our-story', name: 'Our Story', slug: '/pages/our-story', lastEdited: '2025-06-18', status: 'published' },
-  { id: 'ingredients', name: 'Ingredients', slug: '/pages/ingredients', lastEdited: '2025-06-15', status: 'published' },
-  { id: 'contact', name: 'Contact', slug: '/pages/contact', lastEdited: '2025-06-10', status: 'published' },
-  { id: 'faq', name: 'FAQ', slug: '/pages/faq', lastEdited: '2025-05-30', status: 'draft' },
-]
-
 export type BlogStatus = 'published' | 'draft'
 
 export interface BlogPost {
