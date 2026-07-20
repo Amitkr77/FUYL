@@ -10,6 +10,7 @@ import { CertificationMarquee } from '@/components/product/CertificationMarquee'
 import { FaqAccordion } from '@/components/product/FaqAccordion'
 import { RecommendedProducts } from '@/components/product/RecommendedProducts'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { sanitizeHtml } from '@/lib/utils/sanitizeHtml'
 import type { Product } from '@/types/product'
 
 interface Props { params: Promise<{ slug: string }> }
@@ -79,7 +80,7 @@ export default async function ProductPage({ params }: Props) {
       </div>
 
       {/* Tabs */}
-      <ProductTabs product={product} />
+      <ProductTabs product={product} descriptionHtml={sanitizeHtml(product.description)} />
 
       {/* Reviews */}
       <ReviewsWidget

@@ -3,14 +3,16 @@
 import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
-import { sanitizeHtml } from '@/lib/utils/sanitizeHtml'
 import type { Product } from '@/types/product'
 
 interface ProductTabsProps {
   product: Product
+  // Pre-sanitized on the server (see the product page) so the Node HTML
+  // sanitizer never has to be bundled into this client component.
+  descriptionHtml: string
 }
 
-export function ProductTabs({ product }: ProductTabsProps) {
+export function ProductTabs({ product, descriptionHtml }: ProductTabsProps) {
   const tabs = [
     'Description',
     ...(product.ingredients.length ? ['Ingredients'] : []),
@@ -43,7 +45,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
         {active === 'Description' && (
           <div
             className="prose prose-sm max-w-none text-body-md leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description) || '<p>No description available.</p>' }}
+            dangerouslySetInnerHTML={{ __html: descriptionHtml || '<p>No description available.</p>' }}
           />
         )}
 

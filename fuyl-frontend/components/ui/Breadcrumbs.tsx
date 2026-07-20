@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { SITE } from '@/lib/constants/site'
-import { serializeJsonLd } from '@/lib/utils/sanitizeHtml'
+import { serializeJsonLd } from '@/lib/utils/jsonLd'
 
 export interface BreadcrumbItem {
   label: string
