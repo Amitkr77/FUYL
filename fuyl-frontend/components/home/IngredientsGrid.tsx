@@ -132,7 +132,7 @@ export function IngredientsGrid() {
           <ScrollReveal className="w-full h-full order-1 lg:order-2 ">
             <div className=" relative w-full h-full min-h-105 rounded-2xl overflow-hidden aspect-3/4 sm:aspect-2/3 lg:aspect-auto">
               <Image
-                src="/images/ingredients-hero.webp"
+                src="/images/GIRL HOLDING BOX.png"
                 alt="Woman holding FUYL COMPLETE+"
                 fill
                 className="object-cover object-center"

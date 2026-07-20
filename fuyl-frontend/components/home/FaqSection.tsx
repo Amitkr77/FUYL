@@ -123,9 +123,14 @@ export function FaqSection() {
             </div>
           </ScrollReveal>
 
-          {/* ── RIGHT — accordion ── */}
-          <ScrollReveal delay={120}>
-            <div className="flex flex-col">
+          {/* ── RIGHT — accordion ──
+              On desktop the accordion is absolutely positioned inside its
+              (stretched) grid cell, so it never inflates the row — the row
+              height is driven entirely by the LEFT column. The list fills that
+              exact height and scrolls internally when an open answer would
+              otherwise overflow, keeping both columns matched. */}
+          <ScrollReveal delay={120} className="lg:relative">
+            <div className="flex flex-col lg:absolute lg:inset-0 lg:overflow-y-auto lg:overflow-x-hidden lg:px-5">
               <div className="divide-y divide-brand-border/40">
                 {FAQS.map((item) => {
                   const active = open === item.id;
