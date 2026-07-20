@@ -4,6 +4,7 @@ import { generateSEO } from "@/lib/utils/seo";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { getPost } from "@/lib/api/content";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -100,12 +101,13 @@ export default async function BlogPostPage({ params }: Props) {
             ))}
           </div>
         )}
-        {/* Post content is stored as HTML (the admin editor supports raw HTML,
-            not just plain text) — rendered as-is rather than escaped. */}
+        {/* Post content is stored as HTML (the admin editor supports raw HTML).
+            Sanitized at render so an authored/injected body can't execute
+            scripts in the reader's browser (see lib/utils/sanitizeHtml). */}
         <div
           className="prose max-w-none text-body-md leading-relaxed"
           style={{ color: "var(--color-brand-forest)" }}
-          dangerouslySetInnerHTML={{ __html: post.body }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
         />
       </ScrollReveal>
     </div>

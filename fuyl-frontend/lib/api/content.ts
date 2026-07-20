@@ -80,6 +80,23 @@ export async function getPosts(params?: { limit?: number; tag?: string }): Promi
   return raw.map(mapPost)
 }
 
+// Full-text search over published learn/blog articles (backend
+// GET /posts/search?q=). Returns [] on empty query or any failure so the
+// global search can degrade gracefully.
+export async function searchPosts(query: string, limit = 6): Promise<BlogPost[]> {
+  const q = query.trim()
+  if (!q) return []
+  const qs = new URLSearchParams({ q, limit: String(limit) })
+  try {
+    const raw = await apiFetch<BackendPost[]>(`/posts/search?${qs.toString()}`, {
+      cache: 'no-store',
+    })
+    return raw.map(mapPost)
+  } catch {
+    return []
+  }
+}
+
 export async function getPost(slug: string): Promise<BlogPost> {
   const raw = await apiFetch<BackendPost>(`/posts/${slug}`, {
     tags:       [`post-${slug}`],
@@ -187,8 +204,42 @@ export async function getInstagramPosts(limit = 6): Promise<InstagramPost[]> {
   }
 }
 
-export async function subscribeNewsletter(email: string): Promise<void> {
+// Lifecycle state returned by the subscribe endpoint (double opt-in).
+export type NewsletterSubscribeStatus =
+  | 'pending'            // new address — confirmation email sent
+  | 'already_subscribed' // already active on the list
+  | 'reactivating'       // was unsubscribed before — re-confirmation sent
+
+export async function subscribeNewsletter(
+  email: string,
+  source?: string,
+): Promise<{ status: NewsletterSubscribeStatus }> {
   return apiFetch('/newsletter/subscribe', {
+    method: 'POST',
+    body:   source ? { email, source } : { email },
+  })
+}
+
+export async function verifyNewsletter(
+  token: string,
+): Promise<{ verified: boolean; email?: string; alreadyVerified?: boolean; reason?: 'invalid' | 'expired' }> {
+  return apiFetch('/newsletter/verify', {
+    method: 'POST',
+    body:   { token },
+  })
+}
+
+export async function unsubscribeNewsletter(
+  token: string,
+): Promise<{ unsubscribed: boolean; email?: string; alreadyUnsubscribed?: boolean; reason?: 'invalid' }> {
+  return apiFetch('/newsletter/unsubscribe', {
+    method: 'POST',
+    body:   { token },
+  })
+}
+
+export async function resendNewsletterVerification(email: string): Promise<void> {
+  return apiFetch('/newsletter/resend', {
     method: 'POST',
     body:   { email },
   })

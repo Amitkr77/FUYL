@@ -1,5 +1,6 @@
 import { CartRepository } from '../repositories/cart.repository';
 import { CatalogService } from '../../catalog/services/catalog.service';
+import { PlanRepository } from '../../subscription/repositories/plan.repository';
 import {
   NotFoundError,
   BadRequestError,
@@ -13,6 +14,7 @@ import { ICart, ICartItem } from '../models/cart.model';
 
 const cartRepo = new CartRepository();
 const catalogService = new CatalogService();
+const planRepo = new PlanRepository();
 
 const ABANDONED_CART_THRESHOLD_MIN = 60; // 1 hour of inactivity
 
@@ -50,12 +52,37 @@ class CartService {
     return null;
   }
 
+  /**
+   * Read → mutate → save with optimistic-concurrency retry. If a concurrent
+   * write bumped the cart version between our read and save (VersionError),
+   * re-fetch and re-apply the mutation on the latest state rather than losing
+   * the update. The mutation must be idempotent w.r.t. re-application (all
+   * callers here re-derive from the freshly-read cart, so they are).
+   */
+  private async mutateCart(
+    owner: CartOwner,
+    mutate: (cart: ICart) => void | Promise<void>
+  ): Promise<ICart> {
+    const MAX_ATTEMPTS = 3;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const cart = await this.getOrCreateCart(owner);
+      await mutate(cart);
+      try {
+        return await cart.save();
+      } catch (err) {
+        if ((err as Error)?.name === 'VersionError' && attempt < MAX_ATTEMPTS) continue;
+        throw err;
+      }
+    }
+    // The loop always returns or throws; this satisfies the type checker.
+    throw new Error('cart update failed after concurrent-modification retries');
+  }
+
   async addItem(owner: CartOwner, input: {
     productId: string;
     variantId?: string;
     quantity: number;
     subscriptionInterval?: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly';
-    subscriptionDiscountPercent?: number;
   }): Promise<ICart> {
     const product = await catalogService.getProduct(input.productId);
     if (!product.isPublished) throw new BadRequestError('Product not available');
@@ -63,25 +90,20 @@ class CartService {
     const priceInfo = await catalogService.getPrice(input.productId, input.variantId);
     const variant = input.variantId ? await catalogService.getVariant(input.variantId) : null;
 
-    // If subscription, check subscribable + apply discount
+    // If subscription, check subscribable + apply discount. The discount is
+    // ALWAYS derived server-side from the active plan for this interval — never
+    // from client input — so a shopper can't set their own price.
     let unitPrice = priceInfo.price;
+    let subscriptionDiscountPercent: number | undefined;
     if (input.subscriptionInterval) {
       const ok = await catalogService.isSubscribable(input.productId, input.variantId);
       if (!ok) throw new BadRequestError('Product is not eligible for subscription');
-      if (input.subscriptionDiscountPercent && input.subscriptionDiscountPercent > 0) {
-        unitPrice = Math.round(unitPrice * (1 - input.subscriptionDiscountPercent / 100) * 100) / 100;
+      const plan = await planRepo.findActiveByInterval(input.subscriptionInterval);
+      subscriptionDiscountPercent = plan?.discountPercent ?? 0;
+      if (subscriptionDiscountPercent > 0) {
+        unitPrice = Math.round(unitPrice * (1 - subscriptionDiscountPercent / 100) * 100) / 100;
       }
     }
-
-    const cart = await this.getOrCreateCart(owner);
-
-    // Check if same product/variant already in cart
-    const existingIdx = cart.items.findIndex(
-      (i) =>
-        i.productId.toString() === input.productId &&
-        (i.variantId?.toString() ?? '') === (input.variantId ?? '') &&
-        (i.subscriptionInterval ?? '') === (input.subscriptionInterval ?? '')
-    );
 
     const itemData: ICartItem = {
       productId: new Types.ObjectId(input.productId),
@@ -97,84 +119,92 @@ class CartService {
       isTaxable: product.isTaxable,
       addedAt: new Date(),
       subscriptionInterval: input.subscriptionInterval,
-      subscriptionDiscountPercent: input.subscriptionDiscountPercent,
+      subscriptionDiscountPercent,
     };
 
-    if (existingIdx >= 0) {
-      cart.items[existingIdx].quantity += input.quantity;
-      cart.items[existingIdx].unitPrice = unitPrice; // refresh price snapshot
-    } else {
-      cart.items.push(itemData);
-    }
-
-    await this.recomputeTotals(cart);
-    cart.lastActivityAt = new Date();
-    cart.abandonedReminderSentAt = undefined;
-    const updated = await cart.save();
-    return updated;
+    // Re-applied against the freshly-read cart on each retry: if a concurrent
+    // add already inserted this line, we increment the latest quantity instead
+    // of overwriting it — no lost update.
+    return this.mutateCart(owner, async (cart) => {
+      const existingIdx = cart.items.findIndex(
+        (i) =>
+          i.productId.toString() === input.productId &&
+          (i.variantId?.toString() ?? '') === (input.variantId ?? '') &&
+          (i.subscriptionInterval ?? '') === (input.subscriptionInterval ?? '')
+      );
+      if (existingIdx >= 0) {
+        cart.items[existingIdx].quantity += input.quantity;
+        cart.items[existingIdx].unitPrice = unitPrice; // refresh price snapshot
+      } else {
+        cart.items.push(itemData);
+      }
+      await this.recomputeTotals(cart);
+      cart.lastActivityAt = new Date();
+      cart.abandonedReminderSentAt = undefined;
+    });
   }
 
   async updateItemQuantity(owner: CartOwner, productId: string, variantId: string | undefined, quantity: number): Promise<ICart> {
-    const cart = await this.getOrCreateCart(owner);
-    const idx = cart.items.findIndex(
-      (i) => i.productId.toString() === productId && (i.variantId?.toString() ?? '') === (variantId ?? '')
-    );
-    if (idx < 0) throw new NotFoundError('Cart item');
+    return this.mutateCart(owner, async (cart) => {
+      const idx = cart.items.findIndex(
+        (i) => i.productId.toString() === productId && (i.variantId?.toString() ?? '') === (variantId ?? '')
+      );
+      if (idx < 0) throw new NotFoundError('Cart item');
 
-    cart.items[idx].quantity = quantity;
-    await this.recomputeTotals(cart);
-    cart.lastActivityAt = new Date();
-    return cart.save();
+      cart.items[idx].quantity = quantity;
+      await this.recomputeTotals(cart);
+      cart.lastActivityAt = new Date();
+    });
   }
 
   async removeItem(owner: CartOwner, productId: string, variantId?: string): Promise<ICart> {
-    const cart = await this.getOrCreateCart(owner);
-    cart.items = cart.items.filter(
-      (i) => !(i.productId.toString() === productId && (i.variantId?.toString() ?? '') === (variantId ?? ''))
-    );
-    await this.recomputeTotals(cart);
-    cart.lastActivityAt = new Date();
-    return cart.save();
+    return this.mutateCart(owner, async (cart) => {
+      cart.items = cart.items.filter(
+        (i) => !(i.productId.toString() === productId && (i.variantId?.toString() ?? '') === (variantId ?? ''))
+      );
+      await this.recomputeTotals(cart);
+      cart.lastActivityAt = new Date();
+    });
   }
 
   async clear(owner: CartOwner): Promise<void> {
-    const cart = await this.getCart(owner);
-    if (!cart) return;
-    cart.items = [];
-    cart.couponCode = undefined;
-    cart.couponDiscount = 0;
-    cart.appliedReferralCode = undefined;
-    await this.recomputeTotals(cart);
-    cart.lastActivityAt = new Date();
-    await cart.save();
+    const existing = await this.getCart(owner);
+    if (!existing) return;
+    await this.mutateCart(owner, async (cart) => {
+      cart.items = [];
+      cart.couponCode = undefined;
+      cart.couponDiscount = 0;
+      cart.appliedReferralCode = undefined;
+      await this.recomputeTotals(cart);
+      cart.lastActivityAt = new Date();
+    });
   }
 
   async applyCoupon(owner: CartOwner, couponCode: string): Promise<ICart> {
     // Coupon validation lives in the promotion module.
     // For now we record the code; checkout module will validate + apply discount at checkout.
     // The promotion module's promotion.service can also be called from here if needed.
-    const cart = await this.getOrCreateCart(owner);
-    if (cart.items.length === 0) throw new BadRequestError('Cart is empty');
-    cart.couponCode = couponCode.toUpperCase().trim();
-    cart.lastActivityAt = new Date();
-    return cart.save();
+    return this.mutateCart(owner, (cart) => {
+      if (cart.items.length === 0) throw new BadRequestError('Cart is empty');
+      cart.couponCode = couponCode.toUpperCase().trim();
+      cart.lastActivityAt = new Date();
+    });
   }
 
   async removeCoupon(owner: CartOwner): Promise<ICart> {
-    const cart = await this.getOrCreateCart(owner);
-    if (!cart) throw new NotFoundError('Cart');
-    cart.couponCode = undefined;
-    cart.couponDiscount = 0;
-    await this.recomputeTotals(cart);
-    return cart.save();
+    return this.mutateCart(owner, async (cart) => {
+      cart.couponCode = undefined;
+      cart.couponDiscount = 0;
+      await this.recomputeTotals(cart);
+    });
   }
 
   async applyReferral(owner: CartOwner, referralCode: string): Promise<ICart> {
-    const cart = await this.getOrCreateCart(owner);
-    if (cart.items.length === 0) throw new BadRequestError('Cart is empty');
-    cart.appliedReferralCode = referralCode;
-    cart.lastActivityAt = new Date();
-    return cart.save();
+    return this.mutateCart(owner, (cart) => {
+      if (cart.items.length === 0) throw new BadRequestError('Cart is empty');
+      cart.appliedReferralCode = referralCode;
+      cart.lastActivityAt = new Date();
+    });
   }
 
   async mergeGuestCartIntoUser(guestId: string, userId: string): Promise<ICart> {
@@ -182,31 +212,29 @@ class CartService {
     if (!guestCart || guestCart.items.length === 0) {
       return this.getOrCreateCart({ userId });
     }
-    const userCart = await this.getOrCreateCart({ userId });
-
-    for (const item of guestCart.items) {
-      const idx = userCart.items.findIndex(
-        (i) =>
-          i.productId.toString() === item.productId.toString() &&
-          (i.variantId?.toString() ?? '') === (item.variantId?.toString() ?? '') &&
-          (i.subscriptionInterval ?? '') === (item.subscriptionInterval ?? '')
-      );
-      if (idx >= 0) {
-        userCart.items[idx].quantity += item.quantity;
-      } else {
-        userCart.items.push(item);
+    const saved = await this.mutateCart({ userId }, async (userCart) => {
+      for (const item of guestCart.items) {
+        const idx = userCart.items.findIndex(
+          (i) =>
+            i.productId.toString() === item.productId.toString() &&
+            (i.variantId?.toString() ?? '') === (item.variantId?.toString() ?? '') &&
+            (i.subscriptionInterval ?? '') === (item.subscriptionInterval ?? '')
+        );
+        if (idx >= 0) {
+          userCart.items[idx].quantity += item.quantity;
+        } else {
+          userCart.items.push(item);
+        }
       }
-    }
-    if (!userCart.couponCode && guestCart.couponCode) userCart.couponCode = guestCart.couponCode;
-    if (!userCart.appliedReferralCode && guestCart.appliedReferralCode) {
-      userCart.appliedReferralCode = guestCart.appliedReferralCode;
-    }
+      if (!userCart.couponCode && guestCart.couponCode) userCart.couponCode = guestCart.couponCode;
+      if (!userCart.appliedReferralCode && guestCart.appliedReferralCode) {
+        userCart.appliedReferralCode = guestCart.appliedReferralCode;
+      }
+      await this.recomputeTotals(userCart);
+      userCart.lastActivityAt = new Date();
+    });
 
-    await this.recomputeTotals(userCart);
-    userCart.lastActivityAt = new Date();
-    const saved = await userCart.save();
-
-    // Delete guest cart
+    // Delete guest cart only after the merge has durably committed.
     await cartRepo.delete(guestCart._id);
     return saved;
   }

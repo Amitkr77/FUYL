@@ -33,7 +33,7 @@ function WishlistItemSkeleton() {
 }
 
 export default function WishlistPage() {
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
   const addItem = useCartStore((s) => s.addItem)
   const [rows, setRows]         = useState<WishlistRow[]>([])
   const [isLoading, setLoading] = useState(true)
@@ -83,7 +83,7 @@ export default function WishlistPage() {
     }
   }
 
-  if (!token) {
+  if (!user) {
     return (
       <div className="container-brand section-py text-center">
         <p className="text-display-md font-display mb-4">SIGN IN TO VIEW YOUR WISHLIST</p>

@@ -127,7 +127,7 @@ function AddressBlock({ address }: { address: OrderAddress }) {
 
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>()
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
   const [order, setOrder]     = useState<Order | null>(null)
   const [isLoading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
@@ -141,7 +141,7 @@ export default function OrderDetailPage() {
       .finally(() => setLoading(false))
   }, [token, params.id])
 
-  if (!token) {
+  if (!user) {
     return (
       <div className="container-brand section-py text-center">
         <p className="text-display-md font-display mb-4">SIGN IN TO VIEW THIS ORDER</p>

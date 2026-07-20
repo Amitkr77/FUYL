@@ -111,6 +111,21 @@ export class WalletTransactionRepository {
     return WalletTransactionModel.find({ referenceType, referenceId: new Types.ObjectId(referenceId) });
   }
 
+  /**
+   * Atomically flip a transaction to reversed, only if it isn't already.
+   * Returns the doc if THIS call won the claim, null if it was already reversed
+   * — so reverse() can't debit the wallet twice for one credit under concurrent
+   * or duplicate reversal requests.
+   */
+  async claimForReversal(id: string | Types.ObjectId) {
+    const { WalletTransactionModel } = await import('../models/transaction.model');
+    return WalletTransactionModel.findOneAndUpdate(
+      { _id: id, isReversed: { $ne: true } },
+      { $set: { isReversed: true } },
+      { new: true }
+    );
+  }
+
   async markReversed(id: string | Types.ObjectId, reversedByTxId: string | Types.ObjectId) {
     const { WalletTransactionModel } = await import('../models/transaction.model');
     return WalletTransactionModel.findByIdAndUpdate(

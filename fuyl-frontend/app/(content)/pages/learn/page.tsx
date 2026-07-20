@@ -48,7 +48,7 @@ export default async function LearnPage() {
         {/* Right — Image */}
         <div className="relative min-h-[50vh] lg:min-h-0">
           <Image
-            src="/images/ingredients-hero.webp"
+            src="/images/learn_inside_page.webp"
             alt="FUYL nutrition science"
             fill
             priority
@@ -66,7 +66,7 @@ export default async function LearnPage() {
           {/* Category pills — display-only for now; the backend doesn't
               support filtering by category yet (see lib/api/content.ts) */}
           <ScrollReveal>
-            <div className="mb-12 flex justify-center border-b border-[var(--color-brand-border)]">
+            <div className="mb-12 flex justify-center border-b border-brand-border">
               <div className="flex flex-wrap items-center gap-6">
                 {categories.map((tag) => (
                   <button

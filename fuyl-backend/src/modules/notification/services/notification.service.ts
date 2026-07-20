@@ -125,7 +125,7 @@ class NotificationService {
     const data: Record<string, unknown> = {
       ...(payload.data ?? {}),
       year: new Date().getFullYear(),
-      logoUrl: `${env.clientUrl}/logo.webp`,
+      logoUrl: env.emailLogoUrl || `${env.clientUrl}/logo.webp`,
       shopUrl: `${env.clientUrl}/collections/all`,
       accountUrl: `${env.clientUrl}/account`,
     };

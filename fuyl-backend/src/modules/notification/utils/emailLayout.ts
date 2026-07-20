@@ -71,7 +71,11 @@ export function emailWrap(innerHtml: string): string {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background-color:${COLOR.white};border-radius:12px;overflow:hidden;border:1px solid ${COLOR.border};">
             <tr>
               <td style="padding:32px 32px 24px;text-align:center;border-bottom:1px solid ${COLOR.border};">
-                <img src="{{logoUrl}}" alt="FUYL" width="110" style="display:inline-block;border:0;outline:none;max-width:110px;" />
+                <!-- The inline font styling doubles as the fallback: if the
+                     image is blocked or unsupported (e.g. WebP in Outlook),
+                     the alt text renders as the "FUYL" wordmark instead of a
+                     broken-image icon. -->
+                <img src="{{logoUrl}}" alt="FUYL" width="110" height="40" style="display:inline-block;border:0;outline:none;max-width:110px;height:auto;font-family:${FONT};font-size:26px;font-weight:700;letter-spacing:0.18em;color:${COLOR.forest};text-decoration:none;" />
               </td>
             </tr>
             <tr>

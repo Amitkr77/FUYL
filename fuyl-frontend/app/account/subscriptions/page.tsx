@@ -40,7 +40,7 @@ function SubscriptionCardSkeleton() {
 }
 
 export default function SubscriptionsPage() {
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
   const [subs, setSubs]         = useState<Subscription[]>([])
   const [isLoading, setLoading] = useState(true)
   const [error, setError]       = useState<string | null>(null)
@@ -58,12 +58,19 @@ export default function SubscriptionsPage() {
 
   useEffect(load, [token])
 
-  const runAction = async (key: string, action: () => Promise<void>) => {
-    if (!token) return
+  const runAction = async (key: string, action: (token: string) => Promise<void>) => {
+    // token can be momentarily null right after a reload — restore it before
+    // acting, and pass the guaranteed-non-null token into the action.
+    let authToken = token
+    if (!authToken) {
+      await useAuthStore.getState().rehydrate()
+      authToken = useAuthStore.getState().token
+    }
+    if (!authToken) return
     setActionError(null)
     setBusyKey(key)
     try {
-      await action()
+      await action(authToken)
       load()
     } catch (err) {
       setActionError(getErrorMessage(err, 'Action failed'))
@@ -72,7 +79,7 @@ export default function SubscriptionsPage() {
     }
   }
 
-  if (!token) {
+  if (!user) {
     return (
       <div className="container-brand section-py text-center">
         <p className="text-display-md font-display mb-4">SIGN IN TO VIEW YOUR SUBSCRIPTIONS</p>
@@ -154,16 +161,16 @@ export default function SubscriptionsPage() {
                   <div className="flex flex-wrap gap-2">
                     {s.status === 'active' && (
                       <>
-                        <ActionButton disabled={rowBusy} loading={busyKey === `${s.id}:pause`} onClick={() => runAction(`${s.id}:pause`, () => pauseSubscription(token, s.id))}>
+                        <ActionButton disabled={rowBusy} loading={busyKey === `${s.id}:pause`} onClick={() => runAction(`${s.id}:pause`, (t) => pauseSubscription(t, s.id))}>
                           Pause
                         </ActionButton>
-                        <ActionButton disabled={rowBusy} loading={busyKey === `${s.id}:skip`} onClick={() => runAction(`${s.id}:skip`, () => skipNextDelivery(token, s.id))}>
+                        <ActionButton disabled={rowBusy} loading={busyKey === `${s.id}:skip`} onClick={() => runAction(`${s.id}:skip`, (t) => skipNextDelivery(t, s.id))}>
                           Skip Next Delivery
                         </ActionButton>
                       </>
                     )}
                     {s.status === 'paused' && (
-                      <ActionButton disabled={rowBusy} loading={busyKey === `${s.id}:resume`} primary onClick={() => runAction(`${s.id}:resume`, () => resumeSubscription(token, s.id))}>
+                      <ActionButton disabled={rowBusy} loading={busyKey === `${s.id}:resume`} primary onClick={() => runAction(`${s.id}:resume`, (t) => resumeSubscription(t, s.id))}>
                         Resume
                       </ActionButton>
                     )}
@@ -173,7 +180,7 @@ export default function SubscriptionsPage() {
                       danger
                       onClick={() => {
                         if (confirm('Cancel this subscription? This cannot be undone.')) {
-                          runAction(`${s.id}:cancel`, () => cancelSubscription(token, s.id, 'Cancelled by customer'))
+                          runAction(`${s.id}:cancel`, (t) => cancelSubscription(t, s.id, 'Cancelled by customer'))
                         }
                       }}
                     >

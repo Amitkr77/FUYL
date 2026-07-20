@@ -18,7 +18,7 @@ export default function WhyFuylPage() {
       {/* Hero */}
       <section className="grid grid-cols-1 lg:grid-cols-2 min-h-[60vh]">
         {/* Left — Content */}
-        <div className="bg-brand-cream flex items-center px-6 py-20 sm:px-10 lg:px-16 xl:px-24 lg:py-28">
+        <div className="order-2 lg:order-1 bg-brand-cream flex items-center px-6 py-20 sm:px-10 lg:px-16 xl:px-24 lg:py-28">
           <ScrollReveal>
             <Breadcrumbs className="mb-5" items={[{ label: "Why FUYL" }]} />
             {/* <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label mb-5">
@@ -34,13 +34,20 @@ export default function WhyFuylPage() {
               products too unpleasant to take consistently. Here is exactly how
               we think about every decision in this formulation.
             </p>
+            {/* cta button "shop now" */}
+            <Link
+              href="/collections/all"
+              className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest mt-6"
+            >
+              Shop Now
+            </Link>
           </ScrollReveal>
         </div>
 
         {/* Right — Image */}
-        <div className="relative min-h-[50vh] lg:min-h-0">
+        <div className="order-1 lg:order-2 relative min-h-[50vh] lg:min-h-0">
           <Image
-            src="/images/ingredients-hero.webp"
+            src="/images/We_are_different-hero.webp"
             alt="FUYL ingredients"
             fill
             priority

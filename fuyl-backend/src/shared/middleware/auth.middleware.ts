@@ -32,7 +32,14 @@ export function authenticate(required: boolean = true) {
       return next(new UnauthorizedError('Malformed Authorization header'));
     }
     try {
-      const payload = jwt.verify(token, env.jwt.accessSecret) as JwtPayload;
+      const payload = jwt.verify(token, env.jwt.accessSecret) as JwtPayload & { kind?: string };
+      // Email-verification and password-reset tokens are signed with the same
+      // secret and only differ by a `kind` claim (see identity/utils/crypto).
+      // Real access tokens never carry `kind`, so reject any token that does —
+      // otherwise a reset/verify link token would work as a bearer credential.
+      if (payload.kind) {
+        return next(new UnauthorizedError('Invalid or expired token'));
+      }
       req.user = payload;
       next();
     } catch {

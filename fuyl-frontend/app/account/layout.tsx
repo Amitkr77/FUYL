@@ -5,12 +5,15 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { AccountSidebar } from '@/components/account/AccountSidebar'
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
-  const { token, user, logout } = useAuthStore()
+  const { user, logout } = useAuthStore()
   const pathname = usePathname()
 
   // Logged out: each page renders its own centered sign-in prompt / auth form —
-  // no sidebar shell to wrap it in.
-  if (!token || !user) {
+  // no sidebar shell to wrap it in. Keyed on `user` (persisted) rather than the
+  // access token, which is briefly null right after a reload while it's
+  // re-minted from the refresh cookie — gating on token here would flash the
+  // logged-out shell on every reload.
+  if (!user) {
     return <>{children}</>
   }
 

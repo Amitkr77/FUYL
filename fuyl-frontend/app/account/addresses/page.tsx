@@ -30,7 +30,7 @@ function AddressCardSkeleton() {
 }
 
 export default function AddressesPage() {
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
   const [addresses, setAddresses] = useState<Address[]>([])
   const [isLoading, setLoading]   = useState(true)
   const [error, setError]         = useState<string | null>(null)
@@ -97,7 +97,7 @@ export default function AddressesPage() {
     }
   }
 
-  if (!token) {
+  if (!user) {
     return (
       <div className="container-brand section-py text-center">
         <p className="text-display-md font-display mb-4">SIGN IN TO MANAGE ADDRESSES</p>

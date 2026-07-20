@@ -1,7 +1,47 @@
 import { Types } from 'mongoose';
 import { ICouponRedemption, CouponRedemptionModel } from '../models/redemption.model';
+import { CouponUserRedemptionModel } from '../models/userRedemptionCounter.model';
 
 export class RedemptionRepository {
+  /**
+   * Authoritative per-user redemption count for a coupon (read by
+   * validateCoupon). Backed by the atomic counter, not a row scan.
+   */
+  async getUserRedemptionCount(userId: string | Types.ObjectId, code: string): Promise<number> {
+    const doc = await CouponUserRedemptionModel.findOne({
+      couponCode: code.toUpperCase().trim(),
+      userId: new Types.ObjectId(userId.toString()),
+    });
+    return doc?.count ?? 0;
+  }
+
+  /**
+   * Atomically claim one per-user redemption slot. Returns true if claimed,
+   * false if the user is already at `maxPerUser`. The guarded increment only
+   * matches when `count < maxPerUser`; otherwise the upsert attempts an insert
+   * that trips the unique {couponCode,userId} index (11000) → limit reached.
+   * With no limit, it always increments.
+   */
+  async claimUserSlot(userId: string | Types.ObjectId, code: string, maxPerUser?: number): Promise<boolean> {
+    if (maxPerUser !== undefined && maxPerUser <= 0) return false;
+    const filter: Record<string, unknown> = {
+      couponCode: code.toUpperCase().trim(),
+      userId: new Types.ObjectId(userId.toString()),
+    };
+    if (maxPerUser !== undefined) filter.count = { $lt: maxPerUser };
+    try {
+      await CouponUserRedemptionModel.findOneAndUpdate(
+        filter,
+        { $inc: { count: 1 } },
+        { upsert: true, new: true }
+      );
+      return true;
+    } catch (err) {
+      if ((err as { code?: number })?.code === 11000) return false;
+      throw err;
+    }
+  }
+
   async create(data: Partial<ICouponRedemption>): Promise<ICouponRedemption> {
     return CouponRedemptionModel.create(data);
   }

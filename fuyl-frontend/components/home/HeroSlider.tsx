@@ -11,7 +11,7 @@ const SLIDES = [
     eyebrow: "Introducing FUYL COMPLETE+",
     headline: ["Nourish Daily.", "Feel Stronger.", "Live longer."],
     sub: "A Daily Nutrition Powder.",
-    cta: { label: "SHOP FUYK COMPLETE +", href: "/products/fuyl-complete" },
+    cta: { label: "SHOP FUYL COMPLETE +", href: "/products/fuyl-complete" },
     // ctaAlt: { label: "Learn More", href: "/pages/why-fuyl" },
     image: "/images/hero-slide-1.webp",
   },
@@ -77,10 +77,10 @@ export function HeroSlider() {
         aria-hidden="true"
       />
 
-      {/* Content — pinned to bottom-left on all screen sizes */}
+      {/* Content — bottom-center on mobile, pinned to bottom-left from sm up */}
       <div className="absolute inset-0 flex flex-col justify-end overflow-hidden">
         <div className="w-full max-w-full px-4 pb-28 sm:px-10 sm:pb-32 md:px-16 md:pb-28 lg:px-24 xl:px-32">
-          <div className="max-w-5xl">
+          <div className="max-w-5xl text-center sm:text-left">
             {/* Eyebrow */}
             <p
               key={`eyebrow-${slide.id}`}
@@ -104,13 +104,13 @@ export function HeroSlider() {
             {/* Sub */}
             <p
               key={`sub-${slide.id}`}
-              className="mb-5 sm:mb-7 text-sm sm:text-base text-white/80 max-w-full sm:max-w-md leading-relaxed animate-fadeIn"
+              className="mb-5 sm:mb-7 text-sm sm:text-base text-white/80 max-w-full sm:max-w-md leading-relaxed animate-fadeIn mx-auto sm:mx-0"
             >
               {slide.sub}
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-wrap gap-3 max-w-full">
+            <div className="flex flex-wrap gap-3 max-w-full justify-center sm:justify-start">
               <Link
                 href={slide.cta.href}
                 className="inline-flex items-center justify-center h-11 sm:h-12 px-6 sm:px-8 text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest bg-white text-brand-forest rounded-sm transition-colors hover:bg-brand-forest hover:text-white whitespace-nowrap"

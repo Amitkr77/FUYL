@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { sanitizeHtml } from '@/lib/utils/sanitizeHtml'
 import type { Product } from '@/types/product'
 
 interface ProductTabsProps {
@@ -42,7 +43,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
         {active === 'Description' && (
           <div
             className="prose prose-sm max-w-none text-body-md leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: product.description || '<p>No description available.</p>' }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description) || '<p>No description available.</p>' }}
           />
         )}
 

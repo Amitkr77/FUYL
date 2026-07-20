@@ -1,11 +1,12 @@
 'use client'
 
+import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
 
 export interface IngredientData {
   id:          string
   name:        string
-  amount:      string
+  amount?:     string
   benefit:     string
   description: string
   emoji:       string
@@ -13,6 +14,7 @@ export interface IngredientData {
   bg:          string
   accent:      string
   clinical?:   string
+  image?:      string
 }
 
 interface IngredientCardProps {
@@ -21,7 +23,7 @@ interface IngredientCardProps {
 }
 
 export function IngredientCard({ ingredient, onClick }: IngredientCardProps) {
-  const { name, amount, benefit, emoji, bg, accent } = ingredient
+  const { name, amount, benefit, emoji, bg, accent, image } = ingredient
 
   return (
     <button
@@ -32,10 +34,22 @@ export function IngredientCard({ ingredient, onClick }: IngredientCardProps) {
     >
       {/* Image area */}
       <div
-        className="w-full aspect-square flex items-center justify-center transition-transform duration-300 group-hover:scale-105"
+        className="relative w-full aspect-square overflow-hidden transition-transform duration-300 group-hover:scale-105"
         style={{ background: bg }}
       >
-        <span className="text-5xl select-none">{emoji}</span>
+        {image ? (
+          <Image
+            src={image}
+            alt={name}
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <span className="text-5xl select-none">{emoji}</span>
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -44,7 +58,9 @@ export function IngredientCard({ ingredient, onClick }: IngredientCardProps) {
         style={{ background: 'var(--color-brand-white)' }}
       >
         <p className="text-body-sm font-semibold leading-snug">{name}</p>
-        <p className="text-body-xs font-medium" style={{ color: accent }}>{amount}</p>
+        {amount && (
+          <p className="text-body-xs font-medium" style={{ color: accent }}>{amount}</p>
+        )}
         <div className="flex items-end justify-between mt-auto pt-2 gap-2">
           <p className="text-body-xs" style={{ color: 'var(--color-brand-muted)' }}>{benefit}</p>
           <ArrowRight

@@ -2,6 +2,11 @@ import { FilterQuery, Types } from 'mongoose';
 import { IProduct, ProductModel } from '../models/product.model';
 import { ProductStatus } from '../../../shared/enums';
 
+/** Escape regex metacharacters so search input is treated as a literal. */
+function escapeRegex(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * isPublished/isDeleted remain the fields every existing query filters on;
  * `status` is the admin-facing source of truth. Keep them in sync on every
@@ -63,10 +68,14 @@ export class ProductRepository {
     );
   }
 
+  // List/search return plain objects via .lean() — these are read-only,
+  // high-traffic catalog paths and never call document methods, so skipping
+  // Mongoose hydration is a pure CPU/GC win with an identical response shape
+  // (serializeProduct already handles plain objects).
   async paginate(filter: FilterQuery<IProduct> = {}, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
-      ProductModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      ProductModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       ProductModel.countDocuments(filter),
     ]);
     return { items, total, page, limit };
@@ -74,12 +83,24 @@ export class ProductRepository {
 
   async search(query: string, filter: FilterQuery<IProduct> = {}, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
-    const finalFilter = { ...filter, $text: { $search: query } };
+    // Case-insensitive substring match so partial words ("ashwa", "compl")
+    // hit — the `$text` index only matches whole, stemmed terms. Covers the
+    // fields a shopper would actually type; `description` (long HTML) is left
+    // out on purpose. Input is escaped so it can't act as a regex.
+    const re = { $regex: escapeRegex(query), $options: 'i' };
+    const finalFilter = {
+      ...filter,
+      $or: [
+        { name: re },
+        { shortDescription: re },
+        { brand: re },
+        { 'seo.keywords': re },
+        { ingredients: re },
+        { benefits: re },
+      ],
+    };
     const [items, total] = await Promise.all([
-      ProductModel.find(finalFilter, { score: { $meta: 'textScore' } })
-        .sort({ score: { $meta: 'textScore' } })
-        .skip(skip)
-        .limit(limit),
+      ProductModel.find(finalFilter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       ProductModel.countDocuments(finalFilter),
     ]);
     return { items, total, page, limit };

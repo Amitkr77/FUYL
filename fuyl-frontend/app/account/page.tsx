@@ -6,7 +6,7 @@ import { Pencil, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/lib/store/authStore";
 import { updateProfile, forgotPassword } from "@/lib/api/account";
-import { getErrorMessage } from '@/lib/api/client'
+import { getErrorMessage } from "@/lib/api/client";
 
 type Mode = "login" | "register" | "forgot";
 
@@ -76,9 +76,7 @@ function AccountPageContent() {
       setUser(updated);
       setEditing(false);
     } catch (err: unknown) {
-      setSaveError(
-        getErrorMessage(err, "Failed to update profile"),
-      );
+      setSaveError(getErrorMessage(err, "Failed to update profile"));
     } finally {
       setSaving(false);
     }
@@ -125,7 +123,9 @@ function AccountPageContent() {
   };
 
   const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotStatus, setForgotStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
+  const [forgotStatus, setForgotStatus] = useState<
+    "idle" | "loading" | "sent" | "error"
+  >("idle");
   const [forgotError, setForgotError] = useState<string | null>(null);
   const forgotComplete = Boolean(forgotEmail.trim());
 
@@ -137,13 +137,17 @@ function AccountPageContent() {
       await forgotPassword(forgotEmail.trim());
       setForgotStatus("sent");
     } catch (err) {
-      setForgotError(getErrorMessage(err, "Something went wrong. Please try again."));
+      setForgotError(
+        getErrorMessage(err, "Something went wrong. Please try again."),
+      );
       setForgotStatus("error");
     }
   };
 
-  // Logged in state
-  if (token && user) {
+  // Logged in state — keyed on `user` (persisted), not the access token, which
+  // is re-minted from the refresh cookie shortly after a reload. Gating on
+  // token here would briefly show the login form to an already-signed-in user.
+  if (user) {
     if (redirectTo) return null; // effect above navigates away
 
     if (isEditing) {
@@ -263,8 +267,8 @@ function AccountPageContent() {
           {forgotStatus === "sent" ? (
             <div className="text-center space-y-4">
               <p className="text-body-sm text-brand-forest">
-                If an account exists for <strong>{forgotEmail}</strong>, we&apos;ve sent a
-                password reset link to it. Check your inbox.
+                If an account exists for <strong>{forgotEmail}</strong>,
+                we&apos;ve sent a password reset link to it. Check your inbox.
               </p>
               <Button
                 variant="outline"
@@ -287,8 +291,8 @@ function AccountPageContent() {
               className="space-y-4"
             >
               <p className="text-body-sm text-brand-muted">
-                Enter the email on your account and we&apos;ll send you a link to reset
-                your password.
+                Enter the email on your account and we&apos;ll send you a link
+                to reset your password.
               </p>
               <Field
                 label="Email"
@@ -329,7 +333,7 @@ function AccountPageContent() {
   }
 
   return (
-    <div className="container-brand section-py max-w-md mx-auto">
+    <div className=" section-py max-w-xl mx-auto">
       <h1 className="text-display-lg font-display mb-8 text-center text-brand-forest">
         {mode === "login" ? "WELCOME BACK" : "CREATE ACCOUNT"}
       </h1>

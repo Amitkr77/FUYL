@@ -128,6 +128,13 @@ class ContentService {
     return postRepo.paginate({ status: "published" }, page, limit);
   }
 
+  // Public full-text search over published posts only.
+  async searchPosts(query: string, page = 1, limit = 10) {
+    const q = query.trim();
+    if (!q) return { items: [], total: 0, page, limit };
+    return postRepo.search(q, { status: "published" }, page, limit);
+  }
+
   // ─── CMS Pages ──────────────────────────────────────────────────
   async createPage(dto: CreateCMSPageDTO) {
     const slug = await this.uniquePageSlug(dto.title);

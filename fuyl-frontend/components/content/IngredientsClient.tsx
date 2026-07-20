@@ -7,11 +7,18 @@ import { cn } from "@/lib/utils/cn";
 import { IngredientCard } from "./IngredientCard";
 import type { IngredientData } from "./IngredientCard";
 
+const PHOTO = "/images/ingredients/ingredient-photos";
+
 const TAB_IMAGES: Record<string, string> = {
-  "Adaptogens & Stress": "/images/ingredients/first-tab.webp",
-  "Probiotics & Gut": "/images/ingredients/second-tab.webp",
-  "Energy & Vitality": "/images/ingredients/third-tab.webp",
-  "Immunity & Antioxidants": "/images/ingredients/fourth-tab.webp",
+  Antioxidants: `${PHOTO}/30-astaxanthin.png`,
+  "Cognitive Health & Adaptogens": `${PHOTO}/17-ashwagandha.png`,
+  Detox: `${PHOTO}/15-milk-thistle.png`,
+  "Fruits & Berries": `${PHOTO}/07-blueberry.png`,
+  "Greens & Superfoods": `${PHOTO}/01-spinach.png`,
+  "Gut Health": `${PHOTO}/27-bacillus-coagulans.png`,
+  Immunity: `${PHOTO}/20-amla.png`,
+  Sweetener: `${PHOTO}/36-monkfruit.png`,
+  "Vitamins & Minerals": `${PHOTO}/42-vitamin-c.png`,
 };
 
 interface Props {
@@ -122,7 +129,7 @@ export function IngredientsClient({ categories, ingredients }: Props) {
                     "shrink-0 flex items-center gap-2 px-4! py-2! rounded-full border text-body-xs font-semibold uppercase tracking-widest transition-all duration-200",
                     active
                       ? "border-transparent shadow-sm"
-                      : "hover:border-[var(--color-brand-teal)] hover:text-[var(--color-brand-teal)]",
+                      : "hover:border-brand-teal hover:text-brand-teal",
                   )}
                   style={
                     active
@@ -229,15 +236,27 @@ export function IngredientsClient({ categories, ingredients }: Props) {
 
             {/* Large emoji / image area */}
             <div
-              className="w-full shrink-0 flex items-center justify-center transition-colors duration-300"
-              style={{ background: selected.bg, height: "240px" }}
+              className="relative w-full shrink-0 overflow-hidden transition-colors duration-300"
+              style={{ background: selected.bg, height: "400px" }}
             >
-              <span
-                className="leading-none select-none"
-                style={{ fontSize: "5.5rem" }}
-              >
-                {selected.emoji}
-              </span>
+              {selected.image ? (
+                <Image
+                  src={selected.image}
+                  alt={selected.name}
+                  fill
+                  className="object-cover"
+                  sizes="440px"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <span
+                    className="leading-none select-none"
+                    style={{ fontSize: "5.5rem" }}
+                  >
+                    {selected.emoji}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Scrollable content */}
@@ -255,12 +274,14 @@ export function IngredientsClient({ categories, ingredients }: Props) {
                 <h2 className="text-display-md font-display leading-tight">
                   {selected.name.toUpperCase()}
                 </h2>
-                <p
-                  className="text-label mt-2"
-                  style={{ color: selected.accent }}
-                >
-                  {selected.amount} per sachet
-                </p>
+                {selected.amount && (
+                  <p
+                    className="text-label mt-2"
+                    style={{ color: selected.accent }}
+                  >
+                    {selected.amount} per sachet
+                  </p>
+                )}
               </div>
 
               {/* Description */}

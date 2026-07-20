@@ -34,7 +34,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function OrdersPage() {
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
   const [orders, setOrders]   = useState<Order[]>([])
   const [isLoading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
@@ -48,7 +48,7 @@ export default function OrdersPage() {
       .finally(() => setLoading(false))
   }, [token])
 
-  if (!token) {
+  if (!user) {
     return (
       <div className="container-brand section-py text-center">
         <p className="text-display-md font-display mb-4">SIGN IN TO VIEW ORDERS</p>

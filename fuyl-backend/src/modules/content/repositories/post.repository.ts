@@ -1,6 +1,11 @@
 import { FilterQuery, Types } from 'mongoose';
 import { IPost, PostModel } from '../models/post.model';
 
+/** Escape regex metacharacters so search input is treated as a literal. */
+function escapeRegex(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export class PostRepository {
   async create(data: Partial<IPost>): Promise<IPost> {
     return PostModel.create(data);
@@ -35,6 +40,27 @@ export class PostRepository {
     const [items, total] = await Promise.all([
       PostModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
       PostModel.countDocuments(filter),
+    ]);
+    return { items, total, page, limit };
+  }
+
+  /**
+   * Case-insensitive substring search over title/excerpt/tags. Regex (not the
+   * `$text` index) so partial words like "ashwa" still hit — the blog is small
+   * enough that a scan over these short fields is cheap, and `$text` can't be
+   * combined with regex in an `$or`. `escapeRegex` keeps user input from being
+   * interpreted as a regex.
+   */
+  async search(query: string, filter: FilterQuery<IPost> = {}, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    const re = { $regex: escapeRegex(query), $options: 'i' };
+    const finalFilter: FilterQuery<IPost> = {
+      ...filter,
+      $or: [{ title: re }, { excerpt: re }, { tags: re }],
+    };
+    const [items, total] = await Promise.all([
+      PostModel.find(finalFilter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      PostModel.countDocuments(finalFilter),
     ]);
     return { items, total, page, limit };
   }

@@ -23,6 +23,16 @@ export class ContentController {
     } catch (err) { next(err); }
   };
 
+  searchPosts = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const q = (req.query.q as string) || '';
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const result = await contentService.searchPosts(q, page, limit);
+      return paginate(res, result.items, result.total, result.page, result.limit);
+    } catch (err) { next(err); }
+  };
+
   getBySlug = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try { return success(res, await contentService.getBySlug(req.params.slug)); }
     catch (err) { next(err); }

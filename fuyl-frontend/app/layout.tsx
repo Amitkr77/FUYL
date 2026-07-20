@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { CartDrawer } from '@/components/layout/CartDrawer'
 import { generateSEO, orgSchema } from '@/lib/utils/seo'
+import { serializeJsonLd } from '@/lib/utils/sanitizeHtml'
 import { getProducts } from '@/lib/api/products'
 import type { NavItem } from '@/lib/constants/nav'
 import '@/styles/globals.css'
@@ -49,7 +50,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(orgSchema) }}
         />
       </head>
       <body>

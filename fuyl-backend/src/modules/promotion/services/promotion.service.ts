@@ -151,9 +151,10 @@ class PromotionService {
       return { valid: false, reason: 'Coupon fully redeemed', couponCode: code };
     }
 
-    // Per-user limit — only checkable once an identity exists
+    // Per-user limit — read from the atomic counter (authoritative; incremented
+    // at redeem). Reliably blocks a user from reusing a coupon on a later order.
     if (userId && coupon.maxRedemptionsPerUser !== undefined) {
-      const userCount = await redemptionRepo.countByUserAndCode(userId, code);
+      const userCount = await redemptionRepo.getUserRedemptionCount(userId, code);
       if (userCount >= coupon.maxRedemptionsPerUser) {
         return { valid: false, reason: 'You have already used this coupon', couponCode: code };
       }
@@ -200,20 +201,43 @@ class PromotionService {
     const coupon = campaign.coupons.find((c) => c.code === upperCode);
     if (!coupon) throw new NotFoundError('Coupon');
 
-    await redemptionRepo.create({
-      couponCode: upperCode,
-      campaignId: campaign._id,
-      userId: new Types.ObjectId(userId),
-      orderId: new Types.ObjectId(orderId),
-      cartId: cartId ? new Types.ObjectId(cartId) : undefined,
-      discountType: coupon.discountType,
-      discountAmount,
-      currency: coupon.currency ?? 'INR',
-      status: 'applied',
-      appliedAt: new Date(),
-    });
+    try {
+      await redemptionRepo.create({
+        couponCode: upperCode,
+        campaignId: campaign._id,
+        userId: new Types.ObjectId(userId),
+        orderId: new Types.ObjectId(orderId),
+        cartId: cartId ? new Types.ObjectId(cartId) : undefined,
+        discountType: coupon.discountType,
+        discountAmount,
+        currency: coupon.currency ?? 'INR',
+        status: 'applied',
+        appliedAt: new Date(),
+      });
+    } catch (err) {
+      // Unique {orderId, couponCode} index: this order already redeemed this
+      // coupon (a retried/replayed checkout) — idempotent no-op, don't
+      // double-count.
+      if ((err as { code?: number })?.code === 11000) {
+        logger.warn(`[promotion] duplicate redemption for order ${orderId}, coupon ${upperCode} — skipping`);
+        return;
+      }
+      throw err;
+    }
 
-    await campaignRepo.incrementCouponRedemption(upperCode);
+    // Atomic per-user claim: keeps the per-user counter accurate (never past
+    // maxRedemptionsPerUser) so validateCoupon reliably blocks reuse on later
+    // orders. A false result means a concurrent burst raced past validation —
+    // bounded, logged; the counter itself never overshoots.
+    const claimedUserSlot = await redemptionRepo.claimUserSlot(userId, upperCode, coupon.maxRedemptionsPerUser);
+    if (!claimedUserSlot) {
+      logger.warn(`[promotion] per-user limit reached in race for coupon ${upperCode}, user ${userId}`);
+    }
+
+    // Capped increment: never drives the global counter past maxRedemptionsGlobal,
+    // so validateCoupon keeps rejecting once the cap is genuinely reached even
+    // if a concurrent burst slipped a few redemptions through validation.
+    await campaignRepo.incrementCouponRedemption(upperCode, coupon.maxRedemptionsGlobal);
     logger.info(`[promotion] redeemed coupon ${upperCode} for user ${userId} (discount ₹${discountAmount})`);
   }
 

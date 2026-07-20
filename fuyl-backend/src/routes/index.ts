@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { env } from '../config/env';
+import { cacheService } from '../shared/services/cache.service';
 
 // Existing modules (stubs)
 import { identityRouter } from '../modules/identity';
@@ -28,9 +30,27 @@ import { shippingRouter } from '../modules/shipping';
 
 const router = Router();
 
-// Health check
+// Liveness — is the process up? (cheap, no dependencies)
 router.get('/health', (_req: Request, res: Response) => {
   res.json({ success: true, service: env.appName, env: env.nodeEnv, time: new Date().toISOString() });
+});
+
+// Readiness — can we actually serve traffic? Checks MongoDB + Redis so an
+// orchestrator reroutes/restarts a pod whose dependencies are down instead of
+// sending it live traffic. Redis ping is bounded (the shared client retries
+// forever, so an unbounded ping would hang this probe when Redis is down).
+router.get('/health/ready', async (_req: Request, res: Response) => {
+  const mongoUp = mongoose.connection.readyState === 1;
+  const redisUp = await Promise.race([
+    cacheService.getClient().ping().then((r) => r === 'PONG').catch(() => false),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 1000)),
+  ]);
+  const ok = mongoUp && redisUp;
+  res.status(ok ? 200 : 503).json({
+    success: ok,
+    checks: { mongo: mongoUp, redis: redisUp },
+    time: new Date().toISOString(),
+  });
 });
 
 // Existing modules

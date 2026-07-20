@@ -21,7 +21,7 @@ type RequestOptions = {
 // from an authenticated request, silently exchange that cookie for a new
 // access token via POST /auth/refresh and retry once, so an expired token
 // doesn't kick the user out mid-session.
-async function tryRefreshToken(): Promise<string | null> {
+export async function tryRefreshToken(): Promise<string | null> {
   try {
     const res = await fetch(`${BASE_URL}/auth/refresh`, {
       method: 'POST',

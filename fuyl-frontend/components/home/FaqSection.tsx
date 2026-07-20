@@ -8,54 +8,59 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 const FAQS = [
   {
     id: "01",
-    question: "What exactly is FUYL COMPLETE+?",
+    question: "What is FUYL COMPLETE+ and who is it for?",
     answer:
-      "FUYL COMPLETE+ is a daily nutrition powder containing 60+ premium ingredients — including probiotics, adaptogens, vitamins, minerals, antioxidants, digestive enzymes and omega fatty acids — all in one 10g sachet. Mix it with water or a smoothie every morning.",
+      "FUYL COMPLETE+ is a daily nutrition powder with 60+ premium ingredients covering gut health, energy support, immunity support, antioxidants, liver support, skin & cellular health support, adaptogens, omega support, vitamins, and minerals - all in one 10g sachet. It is for health-conscious urban Indians who want one trusted nutritional foundation they can rely on every morning without complexity or compromise.",
   },
   {
     id: "02",
-    question: "How soon will I see results?",
+    question: "How does it taste and what does it look like?",
     answer:
-      "Most people notice improved digestion and energy within the first 7–10 days. Stress resilience and deeper sleep usually improve in week 2. By day 30, many customers report noticeable improvements across energy, gut health, immunity and mood.",
+      "Natural mixed berry flavour from 2,600mg of real berry powder: blueberry, tart cherry, acai berry, strawberry, and raspberry. When mixed with 200ml cold water it produces a light, refreshing deep berry red drink. The colour is entirely from the fruit powder. No artificial colouring agents. No chalky texture. No medicinal smell.",
   },
   {
     id: "03",
-    question: "Is it safe to take every day?",
+    question: "How is this different from a regular multivitamin?",
     answer:
-      "Yes. All ingredients are used at evidence-based daily doses. FUYL COMPLETE+ is manufactured in an FSSAI-certified facility and contains no artificial colours, harmful stimulants or banned substances.",
+      "A multivitamin covers vitamins and minerals. COMPLETE+ covers vitamins and minerals plus 11 functional blends including berry antioxidants, phytonutrients, prebiotic fiber, adaptogens, liver support, digestive enzymes, probiotics. It also uses active bioavailable forms - chelated bisglycinate over oxides and sulfates that most multivitamins do not. The ingredients are documented publicly on our WHY FUYL page.",
   },
   {
     id: "04",
-    question: "Can I take it with other supplements?",
+    question: "Is it suitable for vegetarians?",
     answer:
-      "In most cases yes. FUYL COMPLETE+ is designed to cover your daily nutrition foundation. If you take prescription medication or therapeutic doses of nutrients, consult your doctor first.",
+      "Yes. FUYL Complete+ is 100% vegetarian. Every ingredient is plant-sourced or produced through fermentation. This is certified on the product label.",
   },
   {
     id: "05",
-    question: "What does it taste like?",
+    question: "can i have more than 1 sachet in a day?",
     answer:
-      "A refreshing Mixed Berry flavour — light, smooth and not overly sweet. It blends easily with cold water, smoothies, coconut water or juice.",
+      "It is recommended to not consume more than 1 sachet a day. One sachet has some nutrients that meet your RDA (Recommended Dietary Allowance). Having more than 1 sachet a day exceeds this allowance. ",
   },
   {
     id: "06",
-    question: "What is your refund policy?",
+    question: "when will i start noticing a difference?",
     answer:
-      "We offer a 30-day money-back guarantee. If you do not feel a meaningful difference after consistent use, contact us and we will issue a full refund.",
+      "Most people notice changes in gut comfort and energy by week 2. The adaptogen stack from KSM-66 reaches meaningful cortisol modulation at approximately 10-14 days. The full foundation builds over 30 days of consistent daily use. Nutrition is not an event. It is a practice.",
   },
-];
-
-const TRUST = [
-  { label: "FSSAI Certified" },
-  { label: "30-Day Guarantee" },
-  { label: "No Artificial Colours" },
-  { label: "60+ Ingredients" },
+  {
+    id: "07",
+    question: "what is KSM-66 and why does it matter?",
+    answer:
+      "KSM-66 is a specific branded ashwagandha root extract by Ixoreal Biomed with 22+ gold-standard clinical trials. Generic ashwagandha may be root, leaf, or a mix with no specified extraction process. KSM-66 is full-spectrum root with defined with anolide content and documented clinical evidence. The difference in quality is meaningful and verifiable.",
+  },
+  {
+    id: "08",
+    question: "Can i take it with existing medicines?",
+    answer:
+      "If you are on prescription medication or have a diagnosed medical condition, consult your doctor before starting any new supplement. Complete+ is a food supplement, not a medicine, but some ingredients including KSM-66 may interact with thyroid medications at therapeutic doses.",
+  },
 ];
 
 export function FaqSection() {
   const [open, setOpen] = useState("01");
 
   return (
-    <section className="bg-brand-cream py-24 lg:py-32 overflow-hidden">
+    <section id="faq" className="bg-brand-cream py-24 lg:py-32 overflow-hidden scroll-mt-24">
       <div className="container-brand">
         <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:gap-14 items-stretch">
           {/* ── LEFT — label, heading, image, CTA ── */}
@@ -94,7 +99,7 @@ export function FaqSection() {
               {/* Image */}
               <div className="group relative mt-8 h-64 sm:h-80 lg:h-96 overflow-hidden rounded-3xl">
                 <Image
-                  src="/images/ingredients-hero.webp"
+                  src="/images/FAQ.png"
                   alt="FUYL ingredients"
                   fill
                   className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
@@ -105,7 +110,7 @@ export function FaqSection() {
               {/* CTA */}
               <Link
                 href="/pages/contact"
-                className="group/link mt-6 flex items-center justify-between rounded-2xl border border-brand-border bg-brand-forest text-brand-sage px-5 py-3.5 transition-all hover:border-brand-teal hover:bg-brand-sage hover:text-brand-forest sm:px-6 sm:py-4"
+                className="group/link mt-6 flex items-center justify-between rounded-2xl  bg-brand-forest text-brand-sage px-5 py-3.5 transition-all hover:border-brand-teal hover:bg-brand-sage hover:text-brand-forest sm:px-6 sm:py-4"
               >
                 <span className="text-sm font-medium ">
                   Still have questions?
@@ -120,8 +125,8 @@ export function FaqSection() {
 
           {/* ── RIGHT — accordion ── */}
           <ScrollReveal delay={120}>
-            <div className="h-full flex flex-col">
-              <div className="flex-1 divide-y divide-brand-border/40 flex flex-col justify-around h-full">
+            <div className="flex flex-col">
+              <div className="divide-y divide-brand-border/40">
                 {FAQS.map((item) => {
                   const active = open === item.id;
                   return (

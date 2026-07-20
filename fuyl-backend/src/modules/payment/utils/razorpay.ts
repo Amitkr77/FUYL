@@ -4,6 +4,17 @@ import { logger } from '../../../config/logger';
 import { BadRequestError } from '../../../shared/errors';
 
 /**
+ * Constant-time comparison of two hex signatures. Avoids the early-exit timing
+ * leak of `===` (payment-integrity code should never leak how many leading
+ * bytes matched). A length mismatch returns false without a timing-sensitive
+ * compare, since timingSafeEqual requires equal-length buffers.
+ */
+function timingSafeEqualHex(expected: string, provided: string): boolean {
+  if (typeof provided !== 'string' || expected.length !== provided.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(provided));
+}
+
+/**
  * Razorpay Orders & Payments REST wrapper.
  * Used for one-time order payments (subscription recurring charges are handled
  * via Razorpay Subscriptions API in the subscription module).
@@ -51,7 +62,7 @@ class RazorpayGateway {
       .createHmac('sha256', env.razorpay.keySecret)
       .update(`${orderId}|${paymentId}`)
       .digest('hex');
-    return expected === signature;
+    return timingSafeEqualHex(expected, signature);
   }
 
   verifyWebhookSignature(rawBody: string, signature: string): boolean {
@@ -60,7 +71,7 @@ class RazorpayGateway {
       .createHmac('sha256', env.razorpay.webhookSecret)
       .update(rawBody)
       .digest('hex');
-    return expected === signature;
+    return timingSafeEqualHex(expected, signature);
   }
 
   private async request(path: string, method: string, body?: unknown): Promise<any> {

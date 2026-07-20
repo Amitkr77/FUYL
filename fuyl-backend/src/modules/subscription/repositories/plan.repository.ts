@@ -15,6 +15,18 @@ export class PlanRepository {
     return SubscriptionPlanModel.find({ isActive: true }).sort({ createdAt: -1 });
   }
 
+  /**
+   * The active plan for a given interval — the platform runs one plan set per
+   * interval (weekly/monthly/…), so this resolves the authoritative discount
+   * for a "subscribe & save" cart line. Newest active plan wins if more than
+   * one exists for the interval.
+   */
+  async findActiveByInterval(
+    interval: ISubscriptionPlan['interval']
+  ): Promise<ISubscriptionPlan | null> {
+    return SubscriptionPlanModel.findOne({ interval, isActive: true }).sort({ createdAt: -1 });
+  }
+
   async findAll(filter: FilterQuery<ISubscriptionPlan> = {}, opts: { page: number; limit: number } = { page: 1, limit: 20 }) {
     const skip = (opts.page - 1) * opts.limit;
     const [items, total] = await Promise.all([

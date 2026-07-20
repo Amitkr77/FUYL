@@ -86,7 +86,12 @@ const CartSchema = new Schema<ICart>(
     convertedToOrderId: { type: Schema.Types.ObjectId, ref: 'Order' },
     metadata: { type: Schema.Types.Mixed },
   },
-  { timestamps: true }
+  // optimisticConcurrency: save() now includes the loaded document version in
+  // its update filter and throws VersionError if the cart changed underneath
+  // it. cart.service wraps its read→mutate→save cycles in a retry so concurrent
+  // mutations (rapid add taps, a merge racing an add) re-apply on the latest
+  // state instead of silently clobbering each other (lost update).
+  { timestamps: true, optimisticConcurrency: true }
 );
 
 CartSchema.index({ userId: 1, isConverted: 1 });

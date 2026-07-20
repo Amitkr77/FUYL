@@ -189,6 +189,13 @@ export class IdentityService {
     const user = await userRepo.findById(decoded.userId);
     if (!user) throw new NotFoundError('User');
 
+    // Single-use: a token issued at or before the last password change has
+    // already been consumed (or superseded by a newer request/change), so
+    // reject it — a leaked reset link can't be replayed within its 1h window.
+    if (user.passwordChangedAt && Math.floor(user.passwordChangedAt.getTime() / 1000) >= decoded.issuedAt) {
+      throw new BadRequestError('Invalid or expired reset token');
+    }
+
     const passwordHash = await hashPassword(dto.password);
     await userRepo.update(user.id, {
       passwordHash,

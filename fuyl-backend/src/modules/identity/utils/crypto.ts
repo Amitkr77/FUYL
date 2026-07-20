@@ -58,11 +58,13 @@ export function generatePasswordResetToken(userId: string): string {
   return jwt.sign({ userId, kind: 'password_reset' }, env.jwt.accessSecret, passwordResetOptions);
 }
 
-export function verifyPasswordResetToken(token: string): { userId: string } | null {
+export function verifyPasswordResetToken(token: string): { userId: string; issuedAt: number } | null {
   try {
-    const payload = jwt.verify(token, env.jwt.accessSecret) as { userId: string; kind?: string };
+    const payload = jwt.verify(token, env.jwt.accessSecret) as { userId: string; kind?: string; iat?: number };
     if (payload.kind !== 'password_reset') return null;
-    return { userId: payload.userId };
+    // issuedAt (seconds) lets the service enforce single-use by comparing
+    // against the user's passwordChangedAt.
+    return { userId: payload.userId, issuedAt: payload.iat ?? 0 };
   } catch {
     return null;
   }

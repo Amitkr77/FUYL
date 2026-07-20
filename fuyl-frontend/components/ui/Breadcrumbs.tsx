@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { SITE } from '@/lib/constants/site'
+import { serializeJsonLd } from '@/lib/utils/sanitizeHtml'
 
 export interface BreadcrumbItem {
   label: string
@@ -37,7 +38,7 @@ export function Breadcrumbs({ items, className, variant = 'light' }: Breadcrumbs
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }}
       />
       <nav aria-label="Breadcrumb" className={className}>
         <ol className={`flex flex-wrap items-center gap-1.5 text-body-xs ${muted}`}>

@@ -43,6 +43,21 @@ export class ReferralRepository {
     return ReferralModel.findByIdAndUpdate(id, { $set: { status, ...patch } }, { new: true });
   }
 
+  /**
+   * Atomically transition a referral to REWARDED, but only if it isn't already
+   * rewarded/completed. Returns the updated doc if THIS call won the claim, or
+   * null if another (duplicate/concurrent) call already rewarded it. This is
+   * the idempotency guard that makes reward granting safe under at-least-once
+   * event delivery — the caller must only grant rewards when it gets a doc back.
+   */
+  async claimForReward(id: string | Types.ObjectId): Promise<IReferral | null> {
+    return ReferralModel.findOneAndUpdate(
+      { _id: id, status: { $nin: [ReferralStatus.REWARDED, ReferralStatus.COMPLETED] } },
+      { $set: { status: ReferralStatus.REWARDED, rewardedAt: new Date() } },
+      { new: true }
+    );
+  }
+
   async findExpiredPending(before: Date, limit = 500): Promise<IReferral[]> {
     return ReferralModel
       .find({

@@ -8,6 +8,8 @@ const router = Router();
 // (getPosts -> GET /posts, getPost -> GET /posts/:slug), which were defined
 // against this exact contract before a backend existed for it.
 router.get('/posts', contentController.listPublished);
+// Must precede /posts/:slug so "search" isn't matched as a post slug.
+router.get('/posts/search', contentController.searchPosts);
 router.get('/posts/:slug', contentController.getBySlug);
 
 // Public — CMS pages, ingredients, testimonials, FAQs (matches

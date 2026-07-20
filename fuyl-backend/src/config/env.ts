@@ -25,6 +25,11 @@ export const env = {
   // "//api/v1/..." — confirmed by booting the server and testing directly.
   apiPrefix: (process.env.API_PREFIX ?? '/api/v1').replace(/^\/+/, ''),
   clientUrl: process.env.CLIENT_URL ?? 'http://localhost:3000',
+  // Absolute, publicly-reachable logo URL for transactional emails. Email
+  // clients can't load images from `localhost` (dev CLIENT_URL) and several
+  // (Outlook/Windows Mail) don't render WebP — set this to a hosted PNG/JPG so
+  // the header logo shows everywhere. Falls back to the storefront's logo.
+  emailLogoUrl: process.env.EMAIL_LOGO_URL || '',
   // Matches fuyl-frontend's REVALIDATE_SECRET — used to call its
   // POST /api/revalidate route on-demand after catalog/content mutations,
   // instead of waiting out that page's ISR `revalidate` window (up to
@@ -52,8 +57,11 @@ export const env = {
   },
 
   jwt: {
-    accessSecret: required('JWT_ACCESS_SECRET', 'dev_access_secret'),
-    refreshSecret: required('JWT_REFRESH_SECRET', 'dev_refresh_secret'),
+    // No fallback by design: token forgery is trivial if these ever run with
+    // a known/default value, so a missing secret must hard-fail at boot
+    // rather than silently signing tokens with a guessable string.
+    accessSecret: required('JWT_ACCESS_SECRET'),
+    refreshSecret: required('JWT_REFRESH_SECRET'),
     accessExpiry: process.env.JWT_ACCESS_EXPIRY ?? '15m',
     refreshExpiry: process.env.JWT_REFRESH_EXPIRY ?? '7d',
     cookieName: process.env.JWT_COOKIE_NAME ?? 'fuyl_refresh',

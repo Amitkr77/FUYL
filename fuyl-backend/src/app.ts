@@ -64,8 +64,11 @@ export function createApp() {
   // Rate limiting
   app.use(`/${env.apiPrefix}`, apiLimiter);
 
-  // Swagger docs
-  app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  // Swagger docs — never expose the full API surface publicly in production.
+  // Gate behind non-prod; put it behind admin auth if it's ever needed in prod.
+  if (!env.isProd) {
+    app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  }
 
   // API routes
   app.use(`/${env.apiPrefix}`, apiRouter);

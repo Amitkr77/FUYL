@@ -33,22 +33,19 @@ export default function LoginPage() {
               <div className="text-xs font-medium text-[#558476] tracking-[0.3em] uppercase">Admin</div>
             </div>
           </div> */}
-          <Link href="/" className="shrink-0 mr-auto lg:mr-0">
+          <Link href="/" className="inline-flex justify-center mb-12">
+            {/* The brand logo is dark forest-green artwork; invert it to white
+                so it reads against the dark #12291F panel. */}
             <Image
               src="/images/logo.webp"
               alt="FUYL"
-              width={100}
-              height={36}
+              width={160}
+              height={58}
               priority
-              className="h-14 w-auto object-contain"
+              className="h-16 w-auto object-contain brightness-0 invert"
             />
           </Link>
 
-          <h1 className="text-4xl font-bold text-white mb-4 leading-tight">
-            Fuel Your
-            <br />
-            <span className="text-[#558476]">Growth</span>
-          </h1>
           <p className="text-white/60 text-lg leading-relaxed mb-12">
             Manage your FUYL business — products, orders, customers, and content
             — all from one place.

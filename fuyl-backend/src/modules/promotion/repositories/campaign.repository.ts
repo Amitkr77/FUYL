@@ -53,13 +53,20 @@ export class CampaignRepository {
   }
 
   /**
-   * Increment the redemption counter for a specific coupon code.
+   * Increment the redemption counter for a coupon. When `maxGlobal` is given,
+   * the increment is applied atomically ONLY if the counter is still below the
+   * cap (`$elemMatch` + positional `$`), so concurrent redemptions can't drive
+   * the counter past the global limit. Returns true if it incremented, false if
+   * the cap was already reached (counter left untouched).
    */
-  async incrementCouponRedemption(code: string): Promise<void> {
-    await CampaignModel.updateOne(
-      { 'coupons.code': code.toUpperCase().trim() },
-      { $inc: { 'coupons.$.redemptionsCount': 1 } }
-    );
+  async incrementCouponRedemption(code: string, maxGlobal?: number): Promise<boolean> {
+    const trimmed = code.toUpperCase().trim();
+    const filter =
+      maxGlobal === undefined
+        ? { 'coupons.code': trimmed }
+        : { coupons: { $elemMatch: { code: trimmed, redemptionsCount: { $lt: maxGlobal } } } };
+    const res = await CampaignModel.updateOne(filter, { $inc: { 'coupons.$.redemptionsCount': 1 } });
+    return res.modifiedCount > 0;
   }
 
   async decrementCouponRedemption(code: string): Promise<void> {

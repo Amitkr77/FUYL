@@ -21,6 +21,7 @@ import {
   Repeat,
   Undo2,
   Truck,
+  Mail,
 } from 'lucide-react'
 import { logout } from '@/app/(admin)/actions'
 
@@ -60,6 +61,7 @@ const navSections: NavSection[] = [
       { label: 'Promotions', href: '/promotions', icon: Tag },
       { label: 'Referrals', href: '/referrals', icon: Gift },
       { label: 'Wallet', href: '/wallet', icon: Wallet },
+      { label: 'Newsletter', href: '/newsletter', icon: Mail },
     ],
   },
   {

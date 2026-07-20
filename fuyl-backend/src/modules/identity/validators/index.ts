@@ -9,7 +9,11 @@ export const registerSchema = z.object({
   firstName: z.string().min(1).max(50).optional(),
   lastName: z.string().min(1).max(50).optional(),
   phone: phoneSchema.optional(),
-  role: z.enum([RoleEnum.CUSTOMER, RoleEnum.SELLER]).default(RoleEnum.CUSTOMER),
+  // Public self-registration is customers ONLY. Accepting SELLER here let
+  // anyone self-provision a seller account, which is authorized for catalog
+  // create/update/delete — an unauthenticated path to full catalog compromise.
+  // Seller/admin accounts must be provisioned out-of-band (admin tooling/script).
+  role: z.literal(RoleEnum.CUSTOMER).default(RoleEnum.CUSTOMER),
   referralCode: z.string().min(4).max(50).optional(),
   deviceFingerprint: z.string().max(256).optional(),
 });

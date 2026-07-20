@@ -15,7 +15,7 @@ interface WishlistButtonProps {
 export function WishlistButton({ productId, variantId }: WishlistButtonProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
   const [isWishlisted, setWishlisted] = useState(false)
   const [isLoading, setLoading] = useState(false)
 
@@ -27,17 +27,28 @@ export function WishlistButton({ productId, variantId }: WishlistButtonProps) {
   }, [token, productId])
 
   const handleToggle = async () => {
-    if (!token) {
+    // "Logged in?" is keyed on the persisted user, not the token (which can be
+    // momentarily absent right after a reload while it's re-minted).
+    if (!user) {
+      router.push(`/account?redirect=${encodeURIComponent(pathname)}`)
+      return
+    }
+    let authToken = token
+    if (!authToken) {
+      await useAuthStore.getState().rehydrate()
+      authToken = useAuthStore.getState().token
+    }
+    if (!authToken) {
       router.push(`/account?redirect=${encodeURIComponent(pathname)}`)
       return
     }
     setLoading(true)
     try {
       if (isWishlisted) {
-        await removeFromWishlist(token, productId, variantId)
+        await removeFromWishlist(authToken, productId, variantId)
         setWishlisted(false)
       } else {
-        await addToWishlist(token, productId, variantId)
+        await addToWishlist(authToken, productId, variantId)
         setWishlisted(true)
       }
     } catch {

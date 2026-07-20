@@ -51,6 +51,24 @@ export class WalletService {
 
   async credit(input: CreditInput) {
     if (input.amount <= 0) throw new BadRequestError('Credit amount must be positive');
+
+    // Idempotency: a reference-bound credit (referral reward, refund, reversal)
+    // must apply at most once even if its triggering event is redelivered
+    // (BullMQ is at-least-once). If a matching credit already exists, no-op.
+    if (input.referenceType && input.referenceId) {
+      try {
+        const existing = await txRepo.findByReference(input.referenceType, input.referenceId);
+        const dup = existing.find((t) => t.type === 'credit' && t.source === input.source);
+        if (dup) {
+          logger.warn(`[wallet] duplicate credit skipped (source=${input.source}, ref=${input.referenceType}:${input.referenceId})`);
+          return { wallet: await this.getOrCreateWallet(input.userId), transaction: dup };
+        }
+      } catch {
+        // Non-ObjectId reference or lookup failure — proceed without dedup
+        // rather than blocking a legitimate credit.
+      }
+    }
+
     const wallet = await this.getOrCreateWallet(input.userId);
     if (wallet.isFrozen) throw new ForbiddenError('Wallet is frozen');
 
@@ -118,7 +136,12 @@ export class WalletService {
     const original = await txRepo.findById(transactionId);
     if (!original) throw new NotFoundError('Wallet transaction');
     if (original.type !== 'credit') throw new BadRequestError('Only credit transactions can be reversed');
-    if (original.isReversed) throw new ConflictError('Transaction already reversed');
+
+    // Atomic claim replaces the previous read-then-check on isReversed: only the
+    // caller that wins this flip proceeds, so concurrent/duplicate reversals
+    // can't debit the wallet twice for a single credit.
+    const claimed = await txRepo.claimForReversal(original._id);
+    if (!claimed) throw new ConflictError('Transaction already reversed');
 
     // Reverse debit (debit the wallet back)
     const wallet = await walletRepo.findById(original.walletId);

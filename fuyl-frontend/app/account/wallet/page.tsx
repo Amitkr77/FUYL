@@ -48,7 +48,7 @@ function WalletSkeleton() {
 }
 
 export default function WalletPage() {
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
   const [balance, setBalance]         = useState<WalletBalance | null>(null)
   const [transactions, setTransactions] = useState<WalletTransaction[]>([])
   const [isLoading, setLoading]       = useState(true)
@@ -63,7 +63,7 @@ export default function WalletPage() {
       .finally(() => setLoading(false))
   }, [token])
 
-  if (!token) {
+  if (!user) {
     return (
       <div className="container-brand section-py text-center">
         <p className="text-display-md font-display mb-4">SIGN IN TO VIEW YOUR WALLET</p>

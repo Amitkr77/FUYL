@@ -2,7 +2,7 @@ import { RewardRepository } from '../repositories/reward.repository';
 import { ReferralRepository } from '../repositories/referral.repository';
 import { CampaignRepository } from '../repositories/campaign.repository';
 import { MilestoneService } from './milestone.service';
-import { RewardType, ReferralStatus } from '../../../shared/enums';
+import { RewardType } from '../../../shared/enums';
 import { eventBus, Events } from '../../../shared/services/eventBus.service';
 import { env } from '../../../config/env';
 import { addDays } from '../../../shared/utils';
@@ -22,6 +22,16 @@ export class RewardService {
   async grant(referralId: string) {
     const referral = await referralRepo.findById(referralId);
     if (!referral) throw new Error('Referral not found');
+
+    // Atomic idempotency claim: only ONE caller can transition this referral to
+    // REWARDED. If a duplicate/concurrent grant (at-least-once event delivery)
+    // already won, this returns null and we skip — preventing double reward rows
+    // and the double wallet credit they trigger via REFERRAL_REWARDED.
+    const claimed = await referralRepo.claimForReward(referral._id);
+    if (!claimed) {
+      logger.info(`[reward] referral ${referralId} already rewarded — skipping duplicate grant`);
+      return;
+    }
 
     const campaign = referral.campaignId
       ? await campaignRepo.findById(referral.campaignId.toString())
@@ -60,10 +70,9 @@ export class RewardService {
       isReversed: false,
     });
 
-    // Credit wallet (fire-and-forget — wallet module subscribes to REFERRAL_REDEEMED)
+    // Status was already set to REWARDED atomically by claimForReward above —
+    // here we only attach the reward references.
     await referralRepo.update(referral._id, {
-      status: ReferralStatus.REWARDED,
-      rewardedAt: new Date(),
       rewardReferrerId: referrerReward._id,
       rewardRefereeId: refereeReward._id,
     });

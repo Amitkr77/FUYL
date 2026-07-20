@@ -19,17 +19,26 @@ export default function ReferralLandingPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    // The auth store persists to localStorage and rehydrates asynchronously
-    // on mount — `token` reads as null for an instant even for an
-    // already-signed-in visitor, so waiting for hasHydrated() avoids
-    // wrongly bouncing them to registration before their real session loads.
-    const decide = () => {
-      const current = useAuthStore.getState().token
-      if (!current) {
+    // "Signed in?" is keyed on the persisted `user`, not the access token —
+    // the token isn't persisted; it's re-minted from the refresh cookie
+    // asynchronously after hydration (see authStore.rehydrate). So we wait for
+    // hydration, decide by `user`, and for a signed-in visitor await the token
+    // restore before calling the API.
+    const decide = async () => {
+      const { user } = useAuthStore.getState()
+      if (!user) {
         router.replace(`/account?ref=${encodeURIComponent(params.code)}&redirect=/`)
         return
       }
-      applyReferralCode(current, params.code)
+      // Ensure the access token is restored (no-op if already present).
+      await useAuthStore.getState().rehydrate()
+      const token = useAuthStore.getState().token
+      if (!token) {
+        // Refresh failed — session is actually over; send to registration.
+        router.replace(`/account?ref=${encodeURIComponent(params.code)}&redirect=/`)
+        return
+      }
+      applyReferralCode(token, params.code)
         .then(() => setStatus('applied'))
         .catch((err) => {
           setError(getErrorMessage(err, 'Could not apply this referral code.'))
@@ -38,9 +47,9 @@ export default function ReferralLandingPage() {
     }
 
     if (useAuthStore.persist.hasHydrated()) {
-      decide()
+      void decide()
     } else {
-      const unsub = useAuthStore.persist.onFinishHydration(decide)
+      const unsub = useAuthStore.persist.onFinishHydration(() => void decide())
       return unsub
     }
   }, [params.code, router])

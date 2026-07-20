@@ -243,6 +243,23 @@ export async function getProducts(params?: {
   return items.map((raw) => mapProduct(raw, [], []))
 }
 
+// Full-text product search (backend GET /catalog/products/search?q=). Like
+// getProducts, list items map without variants/tags to avoid an N+1 — search
+// result cards read price/compareAtPrice off the mapped product directly.
+export async function searchProducts(query: string, limit = 6): Promise<Product[]> {
+  const q = query.trim()
+  if (!q) return []
+  const qs = new URLSearchParams({ q, limit: String(limit) })
+  try {
+    const items = await apiFetch<BackendProduct[]>(`/catalog/products/search?${qs.toString()}`, {
+      cache: 'no-store',
+    })
+    return items.map((raw) => mapProduct(raw, [], []))
+  } catch {
+    return []
+  }
+}
+
 function mapReview(r: BackendReview): ReviewCard {
   return {
     id:       r._id,

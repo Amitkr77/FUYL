@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ShoppingBag, User, Search, Menu, X, ChevronDown } from "lucide-react";
 import { NAV_ITEMS, type NavItem } from "@/lib/constants/nav";
 import { MegaMenu } from "./MegaMenu";
+import { SearchModal } from "@/components/search/SearchModal";
 import { cn } from "@/lib/utils/cn";
 import { useCart } from "@/lib/hooks/useCart";
 
@@ -22,20 +23,32 @@ function MobileNavItem({
   return (
     <div className="border-b border-brand-border/60 last:border-0">
       {hasChildren ? (
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="flex w-full items-center justify-between py-3.5 text-left text-label text-brand-forest transition-colors hover:text-brand-teal"
-        >
-          {item.label}
-          <ChevronDown
-            size={15}
-            className={cn(
-              "shrink-0 text-brand-muted transition-transform duration-200",
-              open && "rotate-180 text-brand-teal",
-            )}
-          />
-        </button>
+        <div className="flex w-full items-center justify-between">
+          <Link
+            href={item.href}
+            target={item.external ? "_blank" : undefined}
+            rel={item.external ? "noopener noreferrer" : undefined}
+            onClick={onClose}
+            className="flex-1 py-3.5 text-label text-brand-forest transition-colors hover:text-brand-teal"
+          >
+            {item.label}
+          </Link>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? `Collapse ${item.label} menu` : `Expand ${item.label} menu`}
+            aria-expanded={open}
+            className="shrink-0 p-3.5 -mr-3.5 text-brand-muted transition-colors hover:text-brand-teal"
+          >
+            <ChevronDown
+              size={15}
+              className={cn(
+                "transition-transform duration-200",
+                open && "rotate-180 text-brand-teal",
+              )}
+            />
+          </button>
+        </div>
       ) : (
         <Link
           href={item.href}
@@ -241,72 +254,8 @@ export function Header({ shopItems }: HeaderProps = {}) {
         )}
       </header>
 
-      {/* Search modal */}
-      {searchOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/40 backdrop-blur-sm"
-          onClick={() => setSearchOpen(false)}
-        >
-          <div
-            className="w-full max-w-xl mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const q = (
-                  e.currentTarget.elements.namedItem("q") as HTMLInputElement
-                )?.value;
-                if (q)
-                  window.location.href = `/collections/all?q=${encodeURIComponent(q)}`;
-                setSearchOpen(false);
-              }}
-            >
-              <div className="flex items-center gap-3 px-5 py-4 border-b border-brand-border">
-                <Search size={18} className="text-brand-muted shrink-0" />
-                <input
-                  name="q"
-                  type="search"
-                  placeholder="Search products, ingredients..."
-                  autoFocus
-                  onKeyDown={(e) => e.key === "Escape" && setSearchOpen(false)}
-                  className="flex-1 text-brand-forest placeholder:text-brand-muted text-base outline-none bg-transparent"
-                />
-                <button
-                  type="button"
-                  onClick={() => setSearchOpen(false)}
-                  className="text-brand-muted hover:text-brand-forest transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </form>
-            <div className="px-5 py-4">
-              <p className="text-label text-brand-muted mb-3">Quick links</p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  "FUYL COMPLETE+",
-                  "Ashwagandha",
-                  "Probiotics",
-                  "Vitamin D3",
-                ].map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => {
-                      window.location.href = `/collections/all?q=${encodeURIComponent(q)}`;
-                      setSearchOpen(false);
-                    }}
-                    className="px-3 py-1.5 text-xs font-medium rounded-full border border-brand-border text-brand-muted hover:border-brand-teal hover:text-brand-teal transition-colors"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Global search modal — live results across products, articles & pages */}
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 }

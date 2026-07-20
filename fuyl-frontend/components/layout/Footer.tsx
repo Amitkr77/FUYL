@@ -207,7 +207,7 @@ export function Footer() {
 
   return (
     <>
-      <div className="relative  w-full  overflow-hidden h-52 sm:h-72 md:h-96 lg:h-120 xl:h-174 bg-neutral-100">
+      <div className="relative  w-full  overflow-hidden h-52 sm:h-72 md:h-96 lg:h-120 xl:h-184 bg-neutral-100">
         <Image
           src="/images/footer-image.webp"
           alt="FUYL"

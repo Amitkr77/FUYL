@@ -63,6 +63,42 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     description: 'Sent after successful email verification',
   },
   {
+    name: 'newsletter_confirmation',
+    channel: 'email',
+    subject: 'Confirm your FUYL newsletter subscription',
+    body: emailWrap(`
+      <p style="margin:0 0 16px;">Hi there,</p>
+      <p style="margin:0 0 8px;">Thanks for signing up for the FUYL newsletter. Please confirm your email address to start receiving nutrition tips, new product drops, and subscriber-only offers.</p>
+      ${emailButton('{{confirmUrl}}', 'Confirm Subscription')}
+      ${emailFallbackLink('{{confirmUrl}}')}
+      <p style="margin:24px 0 0;font-size:13px;color:#4A5A3A;">This link expires in 24 hours. If you didn't request this, you can safely ignore this email — you won't be subscribed.</p>
+    `),
+    description: 'Double opt-in confirmation, sent when someone subscribes to the newsletter',
+  },
+  {
+    name: 'newsletter_welcome',
+    channel: 'email',
+    subject: 'Welcome to the FUYL newsletter 🎉',
+    body: emailWrap(`
+      <p style="margin:0 0 16px;">You're in! 🎉</p>
+      <p style="margin:0 0 8px;">Your subscription is confirmed. Expect nutrition insights, new product announcements, and offers we save for subscribers only.</p>
+      ${emailButton('{{shopUrl}}', 'Explore FUYL')}
+      <p style="margin:24px 0 0;font-size:12px;color:#4A5A3A;">Changed your mind? You can <a href="{{unsubscribeUrl}}" style="color:#558476;">unsubscribe anytime</a>.</p>
+    `),
+    description: 'Sent after a newsletter subscriber confirms their email (double opt-in)',
+  },
+  {
+    name: 'newsletter_unsubscribed',
+    channel: 'email',
+    subject: "You've been unsubscribed from FUYL",
+    body: emailWrap(`
+      <p style="margin:0 0 16px;">You're unsubscribed.</p>
+      <p style="margin:0 0 8px;">We've removed <strong>{{email}}</strong> from the FUYL newsletter. You won't receive any more marketing emails from us.</p>
+      <p style="margin:16px 0 0;font-size:13px;color:#4A5A3A;">Changed your mind? You can subscribe again anytime from our website.</p>
+    `),
+    description: 'Confirmation sent after a subscriber unsubscribes from the newsletter',
+  },
+  {
     name: 'order_placed',
     channel: 'email',
     subject: 'Order {{orderNumber}} confirmed',

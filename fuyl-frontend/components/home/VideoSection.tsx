@@ -7,7 +7,7 @@ import { Countdown } from "@/components/ui/Countdown";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { useCountdown } from "@/lib/hooks/useCountdown";
 
-const LAUNCH_DATE = "2026-07-06T00:00:00+05:30";
+const LAUNCH_DATE = "2026-08-01T00:00:00+05:30";
 
 export function VideoSection() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -89,8 +89,8 @@ export function VideoSection() {
                 IS ALMOST HERE.
               </h2>
               <p className="text-sm sm:text-lg text-white/70 max-w-[90%] sm:max-w-md mx-auto mb-6 sm:mb-10 leading-relaxed">
-                Join the waitlist for early access, launch-day pricing, and a free
-                nutrition consultation.
+                Join the waitlist for early access, launch-day pricing, and a
+                free nutrition consultation.
               </p>
             </ScrollReveal>
 

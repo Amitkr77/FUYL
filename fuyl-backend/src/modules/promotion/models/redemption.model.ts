@@ -38,7 +38,14 @@ const CouponRedemptionSchema = new Schema<ICouponRedemption>(
 );
 
 CouponRedemptionSchema.index({ userId: 1, couponCode: 1, status: 1 });
-CouponRedemptionSchema.index({ orderId: 1 });
+// Idempotency: a given order can redeem a given coupon at most once. Prevents a
+// retried/replayed checkout from creating a duplicate redemption (and thus
+// double-counting the coupon). Partial so redemptions without an orderId are
+// exempt from the uniqueness constraint.
+CouponRedemptionSchema.index(
+  { orderId: 1, couponCode: 1 },
+  { unique: true, partialFilterExpression: { orderId: { $exists: true } } }
+);
 
 export const CouponRedemptionModel = mongoose.model<ICouponRedemption>(
   'CouponRedemption',

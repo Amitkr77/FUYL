@@ -120,36 +120,73 @@ class CheckoutService {
       throw new BadRequestError('Some items out of stock', reservationResult.failed);
     }
 
-    // 2. Debit wallet if split payment
-    if (preview.walletRedemption > 0) {
-      await walletService.debit({
-        userId,
-        amount: preview.walletRedemption,
-        source: 'order_payment' as any,
-        description: `Payment for order`,
-        referenceType: 'cart',
-        referenceId: preview.cart._id.toString(),
-      });
-    }
+    // Steps 2–4 move money and create the order. Without a DB transaction
+    // (needs a replica set), a failure between the wallet debit and a
+    // successful order creation would otherwise leave the shopper debited with
+    // no order. Wrap them so any failure up to and including order creation
+    // compensates: re-credit the wallet and release the held stock, then
+    // rethrow. Post-order bookkeeping (steps 5–7) is intentionally left outside
+    // this boundary — once the order exists and payment is captured, those
+    // failures must NOT reverse the order/payment (behavior unchanged).
+    let walletDebited = false;
+    let order;
+    try {
+      // 2. Debit wallet if split payment
+      if (preview.walletRedemption > 0) {
+        await walletService.debit({
+          userId,
+          amount: preview.walletRedemption,
+          source: 'order_payment' as any,
+          description: `Payment for order`,
+          referenceType: 'cart',
+          referenceId: preview.cart._id.toString(),
+        });
+        walletDebited = true;
+      }
 
-    // 3. Verify Razorpay payment if applicable
-    if (dto.paymentMethod === 'razorpay' && dto.razorpayPaymentId && dto.razorpaySignature) {
-      // Signature verification is handled by payment module's webhook.
-      // Here we just record the payment ID.
-    }
+      // 3. Razorpay payment confirmation is handled asynchronously by the
+      //    payment module's webhook (see payment/controllers/webhook.controller).
 
-    // 4. Create the order
-    const order = await orderService.create(userId, {
-      items: preview.cart.items.map((i) => ({
-        productId: i.productId.toString(),
-        variantId: i.variantId?.toString(),
-        quantity: i.quantity,
-      })),
-      paymentMethod: dto.paymentMethod as any,
-      shippingAddress: preview.shippingAddress as any,
-      billingAddress: preview.billingAddress as any,
-      notes: dto.notes,
-    } as any);
+      // 4. Create the order
+      order = await orderService.create(userId, {
+        items: preview.cart.items.map((i) => ({
+          productId: i.productId.toString(),
+          variantId: i.variantId?.toString(),
+          quantity: i.quantity,
+        })),
+        paymentMethod: dto.paymentMethod as any,
+        shippingAddress: preview.shippingAddress as any,
+        billingAddress: preview.billingAddress as any,
+        notes: dto.notes,
+      } as any);
+    } catch (err) {
+      if (walletDebited) {
+        try {
+          await walletService.credit({
+            userId,
+            amount: preview.walletRedemption,
+            source: 'refund' as any,
+            description: 'Auto-reversal: checkout failed after wallet debit',
+            referenceType: 'cart',
+            referenceId: preview.cart._id.toString(),
+          });
+        } catch (compErr) {
+          // The debit could not be reversed — must be reconciled manually.
+          logger.error('[checkout] CRITICAL: wallet debit could not be auto-reversed', {
+            userId,
+            amount: preview.walletRedemption,
+            cartId: preview.cart._id.toString(),
+            error: compErr,
+          });
+        }
+      }
+      try {
+        await inventoryService.releaseReservations({ cartId: preview.cart._id.toString() });
+      } catch (relErr) {
+        logger.warn('[checkout] failed to release reservations during rollback', relErr);
+      }
+      throw err;
+    }
 
     // 5. Apply coupon redemption
     if (preview.coupon?.valid && preview.couponDiscount > 0) {
