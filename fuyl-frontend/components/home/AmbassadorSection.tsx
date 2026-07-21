@@ -56,9 +56,9 @@ export function AmbassadorSection() {
             <ScrollReveal key={n} delay={i * 100}>
               <div className="relative flex flex-col gap-5 p-5 sm:p-7 rounded-2xl border border-brand-border bg-white h-full overflow-hidden group hover:bg-brand-cream transition-colors duration-300">
                 {/* Large watermark number */}
-                <span className="absolute -top-3 -right-1 font-display text-[96px] font-bold leading-none text-brand-forest/5 select-none pointer-events-none">
+                {/* <span className="absolute -top-3 -right-1 font-display text-[96px] font-bold leading-none text-brand-forest/5 select-none pointer-events-none">
                   {n}
-                </span>
+                </span> */}
 
                 {/* Step badge */}
                 <div className="flex items-center gap-3">

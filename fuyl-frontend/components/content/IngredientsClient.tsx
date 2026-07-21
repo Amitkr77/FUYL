@@ -106,7 +106,7 @@ export function IngredientsClient({ categories, ingredients }: Props) {
           <div
             role="tablist"
             aria-label="Ingredient categories"
-            className="flex gap-2 overflow-x-auto pb-1"
+            className="flex gap-2 overflow-x-auto py-2"
             style={
               {
                 scrollbarWidth: "none",
@@ -263,8 +263,8 @@ export function IngredientsClient({ categories, ingredients }: Props) {
             <div className="flex-1 overflow-y-auto p-7 space-y-5">
               {/* Category tag */}
               <span
-                className="inline-block text-label px-3 py-1 rounded-full"
-                style={{ background: selected.bg, color: selected.accent }}
+                className="inline-block text-label px-3 py-1 rounded-full bg-brand-sage text-brand-forest font-semibold uppercase tracking-widest"
+                // style={{ background: selected.bg, color: selected.accent }}
               >
                 {selected.category}
               </span>

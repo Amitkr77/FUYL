@@ -63,7 +63,7 @@ export function CouponInput({ items, token, applied, onApply, onRemove }: Coupon
           type="button"
           onClick={onRemove}
           aria-label="Remove coupon"
-          className="shrink-0 text-brand-forest hover:text-red-600 transition-colors"
+          className="shrink-0 -m-1 p-1 text-brand-forest hover:text-red-600 transition-colors"
         >
           <X size={16} />
         </button>
@@ -81,14 +81,14 @@ export function CouponInput({ items, token, applied, onApply, onRemove }: Coupon
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleApply() } }}
           placeholder="Promo code"
           aria-label="Promo code"
-          className="flex-1 h-10 px-3 text-body-sm border rounded-sm outline-none uppercase tracking-wide transition-colors"
+          className="min-w-0 flex-1 h-11 sm:h-10 px-3 text-body-sm border rounded-sm outline-none uppercase tracking-wide transition-colors"
           style={{ borderColor: status === 'error' ? '#B91C1C' : 'var(--color-brand-border)' }}
         />
         <button
           type="button"
           onClick={handleApply}
           disabled={!code.trim() || status === 'loading'}
-          className="h-10 px-4 text-xs font-semibold uppercase tracking-widest border rounded-sm transition-colors disabled:opacity-50 border-brand-forest text-brand-forest hover:bg-brand-forest hover:text-white"
+          className="shrink-0 inline-flex items-center justify-center min-w-20 h-11 sm:h-10 px-4 text-xs font-semibold uppercase tracking-widest border rounded-sm transition-colors disabled:opacity-50 border-brand-forest text-brand-forest hover:bg-brand-forest hover:text-white"
         >
           {status === 'loading' ? <Loader2 size={15} className="animate-spin" /> : 'Apply'}
         </button>

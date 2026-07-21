@@ -130,7 +130,7 @@ export function FaqSection() {
               exact height and scrolls internally when an open answer would
               otherwise overflow, keeping both columns matched. */}
           <ScrollReveal delay={120} className="lg:relative">
-            <div className="flex flex-col lg:absolute lg:inset-0 lg:overflow-y-auto lg:overflow-x-hidden lg:px-5">
+            <div className="flex flex-col lg:absolute lg:inset-0 lg:overflow-y-auto lg:overflow-x-hidden lg:px-5 scrollbar-none [&::-webkit-scrollbar]:hidden">
               <div className="divide-y divide-brand-border/40">
                 {FAQS.map((item) => {
                   const active = open === item.id;

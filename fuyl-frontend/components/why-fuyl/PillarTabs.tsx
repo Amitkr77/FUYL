@@ -704,28 +704,28 @@ function FlipCard({
             backfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
           }}
-          className="absolute inset-0 flex flex-col rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-lg"
+          className="absolute inset-0 flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white p-3 shadow-lg sm:p-4 md:p-5"
         >
-          <div className="mb-3 flex h-8 w-8 shrink-0 items-center justify-center self-start rounded-full bg-neutral-100">
-            <EyeOff className="h-4 w-4 text-neutral-500" />
+          <div className=" flex h-7 w-7 shrink-0 items-center justify-center self-end rounded-full bg-neutral-100 sm:mb-3 sm:h-8 sm:w-8">
+            <EyeOff className="h-3.5 w-3.5 text-neutral-500 sm:h-4 sm:w-4" />
           </div>
 
-          <h3 className="mb-3 text-base font-bold leading-tight text-neutral-900 sm:text-lg">
+          {/* <h3 className="mb-2 text-sm font-bold leading-tight text-neutral-900 sm:mb-3 sm:text-base md:text-lg">
             {ingredient.name}
-          </h3>
+          </h3> */}
 
-          <p className="flex-1 text-sm leading-6 text-neutral-600 sm:text-base">
+          <p className="flex-1 overflow-y-auto text-xs leading-5 text-neutral-600 sm:text-sm sm:leading-6 md:text-base">
             {ingredient.description}
           </p>
 
-          <span
+          {/* <span
             className={cn(
-              "mt-4 self-start rounded-full px-3 py-1 text-xs sm:text-sm font-semibold",
+              "mt-3 max-w-full self-start truncate rounded-full px-2.5 py-0.5 text-[11px] font-semibold sm:mt-4 sm:px-3 sm:py-1 sm:text-xs md:text-sm",
               cat.badge,
             )}
           >
             {ingredient.benefit}
-          </span>
+          </span> */}
         </div>
       </div>
     </div>

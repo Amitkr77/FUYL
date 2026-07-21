@@ -207,12 +207,15 @@ export function Footer() {
 
   return (
     <>
-      <div className="relative  w-full  overflow-hidden h-52 sm:h-72 md:h-96 lg:h-120 xl:h-184 bg-neutral-100">
+      <div className="relative w-full overflow-hidden h-52 sm:h-72 md:h-96 lg:h-120 xl:h-184 bg-neutral-100">
+        {/* Centered wordmark — object-contain at every size so it's never
+            cropped (object-cover was eating the top on wide screens). Any
+            extra space blends into the matching neutral-100 background. */}
         <Image
           src="/images/footer-image.webp"
           alt="FUYL"
           fill
-          className="object-contain md:object-cover object-center"
+          className="object-contain object-center"
           sizes="100vw"
         />
       </div>
