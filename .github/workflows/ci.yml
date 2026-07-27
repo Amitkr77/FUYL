@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    name: typecheck / lint (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [fuyl-backend, fuyl-frontend, fuyl-admin]
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # Type safety is enforced (currently green for all three apps).
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # Lint is informational for now — flip continue-on-error to false once the
+      # existing lint debt is cleared, to make it a required gate.
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+
+  backend-build:
+    name: backend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fuyl-backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: fuyl-backend/package-lock.json
+      - run: npm ci
+      - name: Build
+        run: npm run build
+
+  # NOTE: fuyl-frontend / fuyl-admin `next build` is intentionally omitted here
+  # because it fetches from a live backend during static generation. Run those
+  # builds in an environment with backend access (or with fixture data) before
+  # deploying. Backend integration/e2e tests also need live Mongo + Redis —
+  # add them here with service containers when ready.
