@@ -112,6 +112,10 @@ export const Events = {
   ORDER_CANCELLED: 'order.cancelled',
   ORDER_RETURNED: 'order.returned',
 
+  // Fired for intermediate shipment scan states (picked_up / in_transit /
+  // out_for_delivery). Order-level shipped/delivered keep their own events.
+  SHIPMENT_STATUS_UPDATED: 'shipment.status_updated',
+
   PAYMENT_SUCCESS: 'payment.success',
   PAYMENT_FAILED: 'payment.failed',
   PAYMENT_REFUNDED: 'payment.refunded',

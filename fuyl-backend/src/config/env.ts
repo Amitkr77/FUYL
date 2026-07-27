@@ -73,10 +73,38 @@ export const env = {
     webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET ?? '',
   },
 
+  cashfree: {
+    appId: process.env.CASHFREE_APP_ID ?? '',
+    secretKey: process.env.CASHFREE_SECRET_KEY ?? '',
+    // 'sandbox' → https://sandbox.cashfree.com/pg, else production.
+    mode: (process.env.CASHFREE_ENV ?? 'sandbox') as 'sandbox' | 'production',
+    apiVersion: process.env.CASHFREE_API_VERSION ?? '2023-08-01',
+    // Cashfree signs webhooks with the account's secret key by default; allow
+    // an override in case a dedicated webhook secret is configured.
+    webhookSecret: process.env.CASHFREE_WEBHOOK_SECRET || process.env.CASHFREE_SECRET_KEY || '',
+  },
+
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME ?? '',
     apiKey: process.env.CLOUDINARY_API_KEY ?? '',
     apiSecret: process.env.CLOUDINARY_API_SECRET ?? '',
+  },
+
+  delhivery: {
+    apiToken: process.env.DELHIVERY_API_TOKEN ?? '',
+    // 'production' → https://track.delhivery.com, else the staging host.
+    mode: (process.env.DELHIVERY_ENV ?? 'staging') as 'staging' | 'production',
+    // A pickup location that has been REGISTERED in the Delhivery panel — the
+    // `name` must match a warehouse Delhivery knows, or bookings are rejected.
+    pickup: {
+      name: process.env.DELHIVERY_PICKUP_NAME ?? '',
+      phone: process.env.DELHIVERY_PICKUP_PHONE ?? '',
+      address: process.env.DELHIVERY_PICKUP_ADDRESS ?? '',
+      city: process.env.DELHIVERY_PICKUP_CITY ?? '',
+      state: process.env.DELHIVERY_PICKUP_STATE ?? '',
+      pincode: process.env.DELHIVERY_PICKUP_PINCODE ?? '',
+      country: process.env.DELHIVERY_PICKUP_COUNTRY ?? 'India',
+    },
   },
 
   smtp: {

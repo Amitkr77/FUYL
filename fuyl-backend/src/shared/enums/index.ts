@@ -31,7 +31,8 @@ export const PaymentStatus = {
 } as const;
 
 export const PaymentMethod = {
-  RAZORPAY: 'razorpay',
+  CASHFREE: 'cashfree',
+  RAZORPAY: 'razorpay', // legacy — retained for historical orders
   UPI: 'upi',
   COD: 'cod',
   WALLET: 'wallet',

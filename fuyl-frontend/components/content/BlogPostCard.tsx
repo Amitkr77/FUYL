@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 
 export interface BlogPostPreview {
   id:          string
@@ -50,8 +51,8 @@ export function BlogPostCard({ post, featured }: BlogPostCardProps) {
             <span>·</span>
             <span>{publishedAt}</span>
           </div>
-          <span className="text-body-sm font-semibold group-hover:gap-2 transition-all" style={{ color: 'var(--color-brand-berry)' }}>
-            Read Article →
+          <span className="inline-flex items-center gap-1 text-body-sm font-semibold group-hover:gap-2 transition-all" style={{ color: 'var(--color-brand-berry)' }}>
+            Read Article <ArrowRight size={14} />
           </span>
         </div>
       </Link>

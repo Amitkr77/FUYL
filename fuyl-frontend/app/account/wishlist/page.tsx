@@ -74,7 +74,9 @@ export default function WishlistPage() {
     try {
       await addItem({
         productId: item.productId,
-        variantId: item.variantId ?? product.variants[0]?.id,
+        // '' marks the synthesized "no real variant" case (see
+        // lib/api/products.ts mapProduct) — never forward it as a fake id.
+        variantId: item.variantId ?? (product.variants[0]?.id || undefined),
         quantity: 1,
       })
       useCartStore.getState().openCart()

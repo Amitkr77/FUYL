@@ -47,7 +47,7 @@ export function HeroSlider() {
 
   return (
     <section
-      className="relative w-full max-w-full overflow-hidden h-dvh min-h-[500px] sm:min-h-140"
+      className="relative w-full max-w-full overflow-hidden h-[70dvh] min-h-[460px] sm:h-dvh sm:min-h-140"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       aria-label="Hero"
@@ -79,7 +79,7 @@ export function HeroSlider() {
 
       {/* Content — bottom-center on mobile, pinned to bottom-left from sm up */}
       <div className="absolute inset-0 flex flex-col justify-end overflow-hidden">
-        <div className="w-full max-w-full px-4 pb-28 sm:px-10 sm:pb-32 md:px-16 md:pb-28 lg:px-24 xl:px-32">
+        <div className="w-full max-w-full px-4 pb-20 sm:px-10 sm:pb-32 md:px-16 md:pb-28 lg:px-24 xl:px-32">
           <div className="max-w-5xl text-center sm:text-left">
             {/* Eyebrow */}
             <p
@@ -113,7 +113,7 @@ export function HeroSlider() {
             <div className="flex flex-wrap gap-3 max-w-full justify-center sm:justify-start">
               <Link
                 href={slide.cta.href}
-                className="inline-flex items-center justify-center h-11 sm:h-12 px-6 sm:px-8 text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest bg-white text-brand-forest rounded-sm transition-colors hover:bg-brand-forest hover:text-white whitespace-nowrap"
+                className="inline-flex items-center justify-center h-9 sm:h-12 px-4 sm:px-8 text-[9px] sm:text-[11px] font-semibold uppercase tracking-widest bg-white text-brand-forest rounded-sm transition-colors hover:bg-brand-forest hover:text-white whitespace-nowrap"
               >
                 {slide.cta.label}
               </Link>

@@ -5,7 +5,7 @@ import { generateSEO } from '@/lib/utils/seo'
 import { ScrollReveal } from '@/components/ui/ScrollReveal'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SITE } from '@/lib/constants/site'
-import { Mail, Phone, Clock, MapPin } from 'lucide-react'
+import { Mail, Phone, Clock, MapPin, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { submitContactForm } from '@/lib/api/content'
 
@@ -120,10 +120,10 @@ export default function ContactPage() {
                 </p>
                 <a
                   href="#contact-form"
-                  className="inline-flex items-center text-body-sm font-semibold"
+                  className="inline-flex items-center gap-1 text-body-sm font-semibold"
                   style={{ color: 'rgba(255,255,255,0.9)' }}
                 >
-                  Sign up below →
+                  Sign up below <ArrowRight size={14} />
                 </a>
               </div>
             </ScrollReveal>
@@ -141,9 +141,9 @@ export default function ContactPage() {
                   </p>
                   <button
                     onClick={() => setStatus('idle')}
-                    className="mt-4 text-body-sm font-semibold hover:text-brand-teal transition-colors"
+                    className="mt-4 inline-flex items-center gap-1 text-body-sm font-semibold hover:text-brand-teal transition-colors"
                   >
-                    Send another message →
+                    Send another message <ArrowRight size={14} />
                   </button>
                 </div>
               ) : (

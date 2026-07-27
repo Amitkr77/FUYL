@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Script from 'next/script'
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Spinner } from '@/components/ui/Spinner'
 import { CheckoutStepper } from '@/components/checkout/CheckoutStepper'
-import { CouponInput, type AppliedCoupon } from '@/components/checkout/CouponInput'
+import { OrderSummary } from '@/components/checkout/OrderSummary'
+import { PaymentMethodPicker } from '@/components/checkout/PaymentMethodPicker'
+import { type AppliedCoupon } from '@/components/checkout/CouponInput'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useCartStore } from '@/lib/store/cartStore'
 import { useCart } from '@/lib/hooks/useCart'
@@ -16,17 +18,50 @@ import { previewCheckout, placeOrder, type CheckoutAddressInput, type CheckoutPa
 import { getAddresses, type Address } from '@/lib/api/customer'
 import { checkEmailExists, checkoutIdentify } from '@/lib/api/account'
 import { createPayment, verifyPayment } from '@/lib/api/payment'
-import { openRazorpayCheckout } from '@/lib/utils/razorpay'
+import { getCashfree } from '@/lib/utils/cashfree'
+import { lookupPincode } from '@/lib/utils/pincode'
 import { formatPrice } from '@/lib/utils/formatPrice'
 import { getErrorMessage } from '@/lib/api/client'
 import type { User } from '@/types/user'
 
 type Step = 'address' | 'review' | 'paying' | 'error'
+type AddressField = 'fullName' | 'phone' | 'line1' | 'city' | 'state' | 'pincode'
 
 const STEP_LABELS = ['Details', 'Review', 'Payment']
 
 const EMPTY_ADDRESS: CheckoutAddressInput = {
   fullName: '', phone: '', line1: '', line2: '', city: '', state: '', pincode: '', country: 'IN', type: 'home',
+}
+
+// Declaration order doubles as the on-screen field order (pincode sits
+// before city/state so its autofill can populate them) — used by
+// handleContinueToReview to focus the first invalid field top-to-bottom.
+const FIELD_LABELS: Record<AddressField, string> = {
+  fullName: 'Full name', phone: 'Phone number', line1: 'Address',
+  pincode: 'Pincode', city: 'City', state: 'State',
+}
+
+function validateAddressField(key: AddressField, address: CheckoutAddressInput): string {
+  switch (key) {
+    case 'fullName':
+      return address.fullName.trim() ? '' : 'Full name is required'
+    case 'phone': {
+      const digits = address.phone.replace(/\D/g, '')
+      if (!digits) return 'Phone number is required'
+      if (digits.length !== 10) return 'Enter a valid 10-digit phone number'
+      return ''
+    }
+    case 'line1':
+      return address.line1.trim() ? '' : 'Address is required'
+    case 'city':
+      return address.city.trim() ? '' : 'City is required'
+    case 'state':
+      return address.state.trim() ? '' : 'State is required'
+    case 'pincode':
+      if (!address.pincode.trim()) return 'Pincode is required'
+      if (!/^\d{6}$/.test(address.pincode.trim())) return 'Enter a valid 6-digit pincode'
+      return ''
+  }
 }
 
 // Saved addresses (lib/api/customer.ts's Address) have no name field of their
@@ -75,7 +110,8 @@ export default function CheckoutPage() {
 
   const [step, setStep] = useState<Step>('address')
   const [address, setAddress] = useState<CheckoutAddressInput>(EMPTY_ADDRESS)
-  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('razorpay')
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<AddressField, string>>>({})
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('cashfree')
   const [preview, setPreview] = useState<CheckoutPreview | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [error, setError] = useState('')
@@ -85,12 +121,15 @@ export default function CheckoutPage() {
   // sending the shopper to a separate login/register page (see
   // lib/api/account.ts's checkoutIdentify). Only relevant when !token.
   const [email, setEmail] = useState('')
+  const [emailError, setEmailError] = useState('')
   const [password, setPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
   const [needsPassword, setNeedsPassword] = useState(false)
   const [identifying, setIdentifying] = useState(false)
   const [checkingEmail, setCheckingEmail] = useState(false)
 
   const handleEmailBlur = async () => {
+    setEmailError(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? 'Enter a valid email address' : '')
     if (token || !email || !email.includes('@')) return
     setCheckingEmail(true)
     try {
@@ -103,6 +142,29 @@ export default function CheckoutPage() {
       setCheckingEmail(false)
     }
   }
+
+  // Pincode → city/state autofill (India Post lookup). Debounced so it only
+  // fires once the shopper stops typing a plausible 6-digit code, and never
+  // overwrites fields the shopper is actively editing mid-keystroke.
+  const [pincodeStatus, setPincodeStatus] = useState<'idle' | 'loading' | 'notfound'>('idle')
+  useEffect(() => {
+    if (!/^\d{6}$/.test(address.pincode)) { setPincodeStatus('idle'); return }
+    let cancelled = false
+    setPincodeStatus('loading')
+    const t = setTimeout(async () => {
+      const result = await lookupPincode(address.pincode)
+      if (cancelled) return
+      if (result) {
+        setAddress((a) => ({ ...a, city: result.city, state: result.state }))
+        setFieldErrors((e) => ({ ...e, city: undefined, state: undefined }))
+        setPincodeStatus('idle')
+      } else {
+        setPincodeStatus('notfound')
+      }
+    }, 400)
+    return () => { cancelled = true; clearTimeout(t) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address.pincode])
 
   // Set once placeOrder() succeeds — lets a payment-step retry re-attempt
   // payment for the same order instead of placing a second one.
@@ -131,6 +193,7 @@ export default function CheckoutPage() {
   const selectSavedAddress = (a: Address) => {
     setSelectedAddressId(a.id)
     setAddress(toCheckoutAddress(a, user))
+    setFieldErrors({})
     setStep('address')
   }
 
@@ -202,13 +265,63 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, address, paymentMethod, appliedCoupon?.code])
 
-  const set = (k: keyof CheckoutAddressInput) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const set = (k: keyof CheckoutAddressInput) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setAddress((a) => ({ ...a, [k]: e.target.value }))
+    if (k in FIELD_LABELS) setFieldErrors((errs) => ({ ...errs, [k]: undefined }))
+  }
+  const setDigitsOnly = (k: 'phone' | 'pincode', maxLen: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, maxLen)
+    setAddress((a) => ({ ...a, [k]: digits }))
+    setFieldErrors((errs) => ({ ...errs, [k]: undefined }))
+  }
+  const blurField = (k: AddressField) => () =>
+    setFieldErrors((errs) => ({ ...errs, [k]: validateAddressField(k, address) }))
 
-  const isAddressComplete = addressComplete(address, token, email)
+  const focusFirstError = (keys: string[]) => {
+    const first = keys.find(Boolean)
+    if (first) document.getElementById(`field-${first}`)?.focus()
+  }
 
   const handleContinueToReview = async () => {
     setError('')
+
+    // Validate everything up front and surface exactly what's wrong, rather
+    // than leaving the shopper to guess why a Continue button won't respond.
+    const addrErrors: Partial<Record<AddressField, string>> = {}
+    ;(Object.keys(FIELD_LABELS) as AddressField[]).forEach((k) => {
+      const msg = validateAddressField(k, address)
+      if (msg) addrErrors[k] = msg
+    })
+    setFieldErrors(addrErrors)
+
+    let guestEmailError = ''
+    let guestPasswordError = ''
+    if (!token) {
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) guestEmailError = 'Enter a valid email address'
+      if (needsPassword && !password) guestPasswordError = 'Enter your password'
+    }
+    setEmailError(guestEmailError)
+    setPasswordError(guestPasswordError)
+
+    const invalidKeys = [
+      guestEmailError && 'email',
+      guestPasswordError && 'password',
+      ...Object.keys(addrErrors),
+    ].filter(Boolean) as string[]
+    if (invalidKeys.length > 0) {
+      // A saved address can still be missing a field (e.g. no phone on file).
+      // The manual form — and its "field-*" ids — only renders once we're in
+      // "new"/edit mode, so switch into it first or focusFirstError has
+      // nothing in the DOM to focus and the click silently does nothing.
+      if (selectedAddressId !== 'new') {
+        setSelectedAddressId('new')
+        setTimeout(() => focusFirstError(invalidKeys), 0)
+      } else {
+        focusFirstError(invalidKeys)
+      }
+      return
+    }
+
     if (!token) {
       setIdentifying(true)
       try {
@@ -250,37 +363,28 @@ export default function CheckoutPage() {
         return
       }
 
+      // Cashfree — open the SDK checkout (modal, stays on-page). It resolves
+      // when the modal closes for any reason (paid, failed, dismissed), so we
+      // ALWAYS confirm server-side afterward rather than trusting the client
+      // result. The webhook is the ultimate backstop if this never runs.
       setStep('paying')
-      openRazorpayCheckout({
-        key:      payment.keyId,
-        amount:   payment.amount,
-        currency: payment.currency,
-        orderId:  payment.orderId,
-        name:     'FUYL',
-        description: `Order ${order.orderNumber}`,
-        prefill:  { name: address.fullName, email: user?.email, contact: address.phone },
-        onSuccess: async (response) => {
-          try {
-            await verifyPayment(token!, {
-              razorpayOrderId:   response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-            })
-            await useCartStore.getState().syncCart()
-            router.push(`/checkout/success?orderId=${order.orderId}`)
-          } catch (err) {
-            setError(
-              (getErrorMessage(err, 'Payment verification failed.')) +
-              ` Your order ${order.orderNumber} is saved — contact support if you were charged.`
-            )
-            setStep('error')
-          }
-        },
-        onDismiss: () => {
-          setError(`Payment was not completed. Order ${order.orderNumber} is saved — you can retry payment below.`)
-          setStep('error')
-        },
+      const cashfree = await getCashfree(payment.mode)
+      await cashfree.checkout({
+        paymentSessionId: payment.paymentSessionId,
+        redirectTarget:   '_modal',
       })
+
+      try {
+        await verifyPayment(token!, { cfOrderId: payment.cfOrderId })
+        await useCartStore.getState().syncCart()
+        router.push(`/checkout/success?orderId=${order.orderId}`)
+      } catch {
+        setError(
+          `Payment was not completed. Order ${order.orderNumber} is saved — you can retry payment below. ` +
+          `If you were charged, it will be confirmed automatically or you can contact support.`
+        )
+        setStep('error')
+      }
     } catch (err) {
       setError(getErrorMessage(err, 'Could not start payment for this order.'))
       setStep('error')
@@ -317,11 +421,10 @@ export default function CheckoutPage() {
   const stepIndex = step === 'address' ? 0 : step === 'review' ? 1 : 2
   const displayDiscount = preview?.discountTotal ?? appliedCoupon?.discountAmount ?? 0
   const displayTotal = preview?.grandTotal ?? Math.max(0, subtotal - displayDiscount)
+  const showManualForm = !addressesLoading && (savedAddresses.length === 0 || selectedAddressId === 'new')
 
   return (
-    <div className="container-brand section-py max-w-2xl mx-auto">
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
-
+    <div className="container-brand section-py">
       <h1 className="text-display-xl font-display mb-6">CHECKOUT</h1>
 
       <CheckoutStepper
@@ -330,261 +433,275 @@ export default function CheckoutPage() {
         onStepClick={(i) => { if (i === 0) setStep('address') }}
       />
 
-      {/* Order summary — stays visible across every step, not just one */}
-      <div className="space-y-3 mb-8 p-5 rounded-sm border" style={{ borderColor: 'var(--color-brand-border)' }}>
-        <h2 className="text-display-md font-display">Order Summary</h2>
-        <div className="space-y-2">
-          {items.map((item) => (
-            <div key={item.id} className="flex justify-between text-body-sm">
-              <span>{item.name} × {item.quantity}</span>
-              <span>{formatPrice(item.price * item.quantity)}</span>
+      {/* Mobile: order summary (collapsed accordion) shows first.
+          Desktop: form on the left, summary as a sticky right sidebar. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 lg:gap-10 items-start pb-28 lg:pb-0">
+        <div className="order-2 lg:order-1 min-w-0">
+          {error && (
+            <p className="text-body-xs p-3 rounded-lg mb-4 bg-red-50 text-red-700">{error}</p>
+          )}
+
+          {step === 'address' && (
+            <div ref={stepContentRef} tabIndex={-1} className="animate-fade-in outline-none">
+              {authReady && !token && (
+                <div className="space-y-4 mb-8">
+                  <h2 className="text-display-md font-display">Contact</h2>
+                  <Field
+                    id="email"
+                    label="Email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setEmailError(''); setNeedsPassword(false); setPassword('') }}
+                    onBlur={handleEmailBlur}
+                    type="email"
+                    loading={checkingEmail}
+                    error={emailError}
+                    autoFocus
+                  />
+                  {needsPassword && (
+                    <>
+                      <Field
+                        id="password"
+                        label="Password"
+                        value={password}
+                        onChange={(e) => { setPassword(e.target.value); setPasswordError('') }}
+                        type="password"
+                        error={passwordError}
+                        autoFocus
+                      />
+                      <p className="text-body-xs text-brand-muted">
+                        Looks like you already have an account with this email — enter your password to continue.
+                      </p>
+                    </>
+                  )}
+                  {!needsPassword && email && !emailError && (
+                    <p className="text-body-xs text-brand-muted">
+                      We&apos;ll set up your account automatically — no separate sign-up needed.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-4 mb-8">
+                <h2 className="text-display-md font-display">Shipping Address</h2>
+
+                {addressesLoading && (
+                  <div className="space-y-3" aria-busy="true" aria-label="Loading saved addresses">
+                    {Array.from({ length: 2 }).map((_, i) => (
+                      <div key={i} className="p-4 border rounded-sm border-brand-border">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Skeleton className="h-3.5 w-20" />
+                        </div>
+                        <Skeleton className="h-3 w-3/4 mb-1.5" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {!addressesLoading && savedAddresses.length > 0 && selectedAddressId !== 'new' && (
+                  <div className="space-y-3 animate-fade-in">
+                    {savedAddresses.map((a) => (
+                      <label
+                        key={a.id}
+                        className="flex items-start gap-3 p-4 border rounded-sm cursor-pointer text-body-sm bg-white border-brand-border has-checked:border-brand-teal has-checked:bg-brand-sage/20 transition-colors"
+                      >
+                        <input
+                          type="radio"
+                          name="savedAddress"
+                          className="mt-1 accent-brand-teal"
+                          checked={selectedAddressId === a.id}
+                          onChange={() => selectSavedAddress(a)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 font-semibold text-brand-forest">
+                            {a.label}
+                            {a.isDefault && <Badge variant="muted">Default</Badge>}
+                          </div>
+                          <p className="text-brand-muted mt-0.5">
+                            {a.line1}{a.line2 ? `, ${a.line2}` : ''}, {a.city}, {a.state} {a.postalCode}
+                          </p>
+                          {(a.phone || user?.phone) && (
+                            <p className="text-brand-muted">{a.phone || user?.phone}</p>
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedAddressId('new'); setAddress(EMPTY_ADDRESS); setFieldErrors({}) }}
+                      className="text-body-sm font-semibold text-brand-teal hover:text-brand-forest transition-colors"
+                    >
+                      + Add a new address
+                    </button>
+                  </div>
+                )}
+
+                {showManualForm && (
+                  <>
+                    {savedAddresses.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => selectSavedAddress(savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0])}
+                        className="text-body-sm font-semibold text-brand-teal hover:text-brand-forest transition-colors"
+                      >
+                        Use a saved address instead
+                      </button>
+                    )}
+                    <Field
+                      id="fullName"
+                      label="Full Name"
+                      value={address.fullName}
+                      onChange={set('fullName')}
+                      onBlur={blurField('fullName')}
+                      error={fieldErrors.fullName}
+                      autoFocus={Boolean(token)}
+                    />
+                    <Field
+                      id="phone"
+                      label="Phone"
+                      value={address.phone}
+                      onChange={setDigitsOnly('phone', 10)}
+                      onBlur={blurField('phone')}
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      error={fieldErrors.phone}
+                    />
+                    <Field
+                      id="line1"
+                      label="Address Line 1"
+                      value={address.line1}
+                      onChange={set('line1')}
+                      onBlur={blurField('line1')}
+                      error={fieldErrors.line1}
+                    />
+                    <Field
+                      label="Address Line 2 (optional)"
+                      value={address.line2 ?? ''}
+                      onChange={set('line2')}
+                    />
+                    <Field
+                      id="pincode"
+                      label="Pincode"
+                      value={address.pincode}
+                      onChange={setDigitsOnly('pincode', 6)}
+                      onBlur={blurField('pincode')}
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={6}
+                      loading={pincodeStatus === 'loading'}
+                      error={fieldErrors.pincode}
+                      hint={pincodeStatus === 'notfound' ? "Couldn't find this pincode — enter city/state manually below." : undefined}
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <Field id="city" label="City" value={address.city} onChange={set('city')} onBlur={blurField('city')} error={fieldErrors.city} />
+                      <Field id="state" label="State" value={address.state} onChange={set('state')} onBlur={blurField('state')} error={fieldErrors.state} />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="space-y-3 mb-8">
+                <h2 className="text-display-md font-display">Payment Method</h2>
+                <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
+              </div>
+
+              <StickyActionBar>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  loading={identifying}
+                  disabled={identifying}
+                  onClick={handleContinueToReview}
+                >
+                  Continue to Review
+                </Button>
+              </StickyActionBar>
             </div>
-          ))}
+          )}
+
+          {step === 'review' && (
+            <div ref={stepContentRef} tabIndex={-1} className="animate-fade-in outline-none space-y-4">
+              <div className="p-4 border rounded-sm space-y-1.5 border-brand-border">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-body-sm font-semibold text-brand-forest">Shipping to</h3>
+                  <button type="button" onClick={() => setStep('address')} className="text-body-xs font-semibold text-brand-teal hover:text-brand-forest transition-colors">
+                    Edit
+                  </button>
+                </div>
+                <p className="text-body-sm text-brand-muted">{address.fullName} · {address.phone}</p>
+                <p className="text-body-sm text-brand-muted">
+                  {address.line1}{address.line2 ? `, ${address.line2}` : ''}, {address.city}, {address.state} {address.pincode}
+                </p>
+              </div>
+
+              <div className="p-4 border rounded-sm space-y-1.5 border-brand-border">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-body-sm font-semibold text-brand-forest">Payment Method</h3>
+                  <button type="button" onClick={() => setStep('address')} className="text-body-xs font-semibold text-brand-teal hover:text-brand-forest transition-colors">
+                    Edit
+                  </button>
+                </div>
+                <p className="text-body-sm text-brand-muted">
+                  {paymentMethod === 'cashfree' ? 'Card / UPI / Netbanking / Wallet' : 'Cash on Delivery'}
+                </p>
+              </div>
+
+              <StickyActionBar>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  loading={confirming}
+                  disabled={confirming || previewLoading || !preview}
+                  onClick={handleConfirm}
+                >
+                  Place Order — {formatPrice(displayTotal)}
+                </Button>
+                {!preview && previewLoading && (
+                  <p className="text-body-xs text-brand-muted text-center mt-2">Calculating your total…</p>
+                )}
+              </StickyActionBar>
+            </div>
+          )}
+
+          {step === 'paying' && (
+            <div ref={stepContentRef} tabIndex={-1} className="animate-fade-in outline-none">
+              <div className="flex flex-col items-center gap-3 py-10 text-center">
+                <Loader2 size={28} className="animate-spin text-brand-teal" />
+                <p className="text-body-sm text-brand-muted">Waiting for payment confirmation…</p>
+              </div>
+            </div>
+          )}
+
+          {step === 'error' && (
+            <div ref={stepContentRef} tabIndex={-1} className="animate-fade-in outline-none">
+              <StickyActionBar>
+                <Button variant="primary" size="lg" fullWidth onClick={handleRetry}>
+                  {placedOrder ? 'Retry Payment' : 'Try Again'}
+                </Button>
+              </StickyActionBar>
+            </div>
+          )}
         </div>
 
-        <div className="pt-3 border-t" style={{ borderColor: 'var(--color-brand-border)' }}>
-          <CouponInput
+        {/* Order summary — sticky sidebar on desktop, collapsible on mobile */}
+        <div className="order-1 lg:order-2 lg:sticky lg:top-24">
+          <OrderSummary
             items={items}
+            subtotal={subtotal}
             token={token ?? undefined}
-            applied={appliedCoupon}
-            onApply={setAppliedCoupon}
-            onRemove={() => setAppliedCoupon(null)}
+            appliedCoupon={appliedCoupon}
+            onApplyCoupon={setAppliedCoupon}
+            onRemoveCoupon={() => setAppliedCoupon(null)}
+            preview={preview}
+            previewLoading={previewLoading}
+            displayDiscount={displayDiscount}
+            displayTotal={displayTotal}
           />
         </div>
-
-        <div className="pt-3 space-y-1.5 border-t" style={{ borderColor: 'var(--color-brand-border)' }}>
-          <div className="flex justify-between text-body-sm">
-            <span>Subtotal</span>
-            <span>{formatPrice(subtotal)}</span>
-          </div>
-          {displayDiscount > 0 && (
-            <div className="flex justify-between text-body-sm" style={{ color: 'var(--color-brand-teal)' }}>
-              <span>Discount{appliedCoupon ? ` (${appliedCoupon.code})` : ''}</span>
-              <span>-{formatPrice(displayDiscount)}</span>
-            </div>
-          )}
-          <div className="flex justify-between text-body-sm">
-            <span>Shipping</span>
-            <span>Free</span>
-          </div>
-          <div className="flex justify-between text-body-sm">
-            <span>Tax</span>
-            <span>
-              {preview ? (
-                formatPrice(preview.taxTotal)
-              ) : previewLoading ? (
-                <Spinner size={14} />
-              ) : (
-                <span style={{ color: 'var(--color-brand-muted)' }}>Calculated at review</span>
-              )}
-            </span>
-          </div>
-          <div className="flex justify-between text-body-sm font-semibold pt-2 border-t" style={{ borderColor: 'var(--color-brand-border)' }}>
-            <span>Total</span>
-            <span>{formatPrice(displayTotal)}</span>
-          </div>
-        </div>
       </div>
-
-      {error && (
-        <p className="text-body-xs p-3 rounded-sm mb-4" style={{ background: '#FEE2E2', color: '#B91C1C' }}>{error}</p>
-      )}
-
-      {step === 'address' && (
-        <div ref={stepContentRef} tabIndex={-1} className="animate-fade-in outline-none">
-          {authReady && !token && (
-            <div className="space-y-4 mb-8">
-              <h2 className="text-display-md font-display">Contact</h2>
-              <Field
-                label="Email"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setNeedsPassword(false); setPassword('') }}
-                onBlur={handleEmailBlur}
-                type="email"
-                loading={checkingEmail}
-              />
-              {needsPassword && (
-                <>
-                  <Field label="Password" value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
-                  <p className="text-body-xs" style={{ color: 'var(--color-brand-muted)' }}>
-                    Looks like you already have an account with this email — enter your password to continue.
-                  </p>
-                </>
-              )}
-              {!needsPassword && email && (
-                <p className="text-body-xs" style={{ color: 'var(--color-brand-muted)' }}>
-                  We&apos;ll set up your account automatically — no separate sign-up needed.
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="space-y-4 mb-8">
-            <h2 className="text-display-md font-display">Shipping Address</h2>
-
-            {addressesLoading && (
-              <div className="space-y-3" aria-busy="true" aria-label="Loading saved addresses">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="p-4 border rounded-sm border-brand-border">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Skeleton className="h-3.5 w-20" />
-                    </div>
-                    <Skeleton className="h-3 w-3/4 mb-1.5" />
-                    <Skeleton className="h-3 w-24" />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {!addressesLoading && savedAddresses.length > 0 && selectedAddressId !== 'new' && (
-              <div className="space-y-3 animate-fade-in">
-                {savedAddresses.map((a) => (
-                  <label
-                    key={a.id}
-                    className="flex items-start gap-3 p-4 border rounded-sm cursor-pointer text-body-sm bg-white border-brand-border has-checked:border-brand-teal transition-colors"
-                  >
-                    <input
-                      type="radio"
-                      name="savedAddress"
-                      className="mt-1 accent-brand-teal"
-                      checked={selectedAddressId === a.id}
-                      onChange={() => selectSavedAddress(a)}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 font-semibold text-brand-forest">
-                        {a.label}
-                        {a.isDefault && <Badge variant="muted">Default</Badge>}
-                      </div>
-                      <p className="text-brand-muted mt-0.5">
-                        {a.line1}{a.line2 ? `, ${a.line2}` : ''}, {a.city}, {a.state} {a.postalCode}
-                      </p>
-                      {(a.phone || user?.phone) && (
-                        <p className="text-brand-muted">{a.phone || user?.phone}</p>
-                      )}
-                    </div>
-                  </label>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => { setSelectedAddressId('new'); setAddress(EMPTY_ADDRESS) }}
-                  className="text-body-sm font-semibold text-brand-teal hover:text-brand-forest transition-colors"
-                >
-                  + Add a new address
-                </button>
-              </div>
-            )}
-
-            {!addressesLoading && (savedAddresses.length === 0 || selectedAddressId === 'new') && (
-              <>
-                {savedAddresses.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => selectSavedAddress(savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0])}
-                    className="text-body-sm font-semibold text-brand-teal hover:text-brand-forest transition-colors"
-                  >
-                    ← Use a saved address
-                  </button>
-                )}
-                <Field label="Full Name" value={address.fullName} onChange={set('fullName')} />
-                <Field label="Phone" value={address.phone} onChange={set('phone')} type="tel" />
-                <Field label="Address Line 1" value={address.line1} onChange={set('line1')} />
-                <Field label="Address Line 2 (optional)" value={address.line2 ?? ''} onChange={set('line2')} />
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="City" value={address.city} onChange={set('city')} />
-                  <Field label="State" value={address.state} onChange={set('state')} />
-                </div>
-                <Field label="Pincode" value={address.pincode} onChange={set('pincode')} />
-              </>
-            )}
-          </div>
-
-          <div className="space-y-3 mb-8">
-            <h2 className="text-display-md font-display">Payment Method</h2>
-            {(['razorpay', 'cod'] as CheckoutPaymentMethod[]).map((m) => (
-              <label
-                key={m}
-                className="flex items-center gap-3 p-3 border rounded-sm cursor-pointer text-body-sm"
-                style={{ borderColor: paymentMethod === m ? 'var(--color-brand-berry)' : 'var(--color-brand-border)' }}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  checked={paymentMethod === m}
-                  onChange={() => setPaymentMethod(m)}
-                />
-                {m === 'razorpay' ? 'Card / UPI / Netbanking (Razorpay)' : 'Cash on Delivery'}
-              </label>
-            ))}
-          </div>
-
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            loading={identifying}
-            disabled={!isAddressComplete || (needsPassword && !password)}
-            onClick={handleContinueToReview}
-          >
-            Continue to Review
-          </Button>
-        </div>
-      )}
-
-      {step === 'review' && (
-        <div ref={stepContentRef} tabIndex={-1} className="animate-fade-in outline-none space-y-4">
-          <div className="p-4 border rounded-sm space-y-1.5" style={{ borderColor: 'var(--color-brand-border)' }}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-body-sm font-semibold text-brand-forest">Shipping to</h3>
-              <button type="button" onClick={() => setStep('address')} className="text-body-xs font-semibold text-brand-teal hover:text-brand-forest transition-colors">
-                Edit
-              </button>
-            </div>
-            <p className="text-body-sm" style={{ color: 'var(--color-brand-muted)' }}>{address.fullName} · {address.phone}</p>
-            <p className="text-body-sm" style={{ color: 'var(--color-brand-muted)' }}>
-              {address.line1}{address.line2 ? `, ${address.line2}` : ''}, {address.city}, {address.state} {address.pincode}
-            </p>
-          </div>
-
-          <div className="p-4 border rounded-sm space-y-1.5" style={{ borderColor: 'var(--color-brand-border)' }}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-body-sm font-semibold text-brand-forest">Payment Method</h3>
-              <button type="button" onClick={() => setStep('address')} className="text-body-xs font-semibold text-brand-teal hover:text-brand-forest transition-colors">
-                Edit
-              </button>
-            </div>
-            <p className="text-body-sm" style={{ color: 'var(--color-brand-muted)' }}>
-              {paymentMethod === 'razorpay' ? 'Card / UPI / Netbanking (Razorpay)' : 'Cash on Delivery'}
-            </p>
-          </div>
-
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            loading={confirming}
-            disabled={confirming || previewLoading || !preview}
-            onClick={handleConfirm}
-          >
-            Place Order — {formatPrice(displayTotal)}
-          </Button>
-        </div>
-      )}
-
-      {step === 'paying' && (
-        <div ref={stepContentRef} tabIndex={-1} className="animate-fade-in outline-none">
-          <Button variant="primary" size="lg" fullWidth loading disabled>
-            Waiting for payment…
-          </Button>
-        </div>
-      )}
-
-      {step === 'error' && (
-        <div ref={stepContentRef} tabIndex={-1} className="animate-fade-in outline-none">
-          <Button variant="primary" size="lg" fullWidth onClick={handleRetry}>
-            {placedOrder ? 'Retry Payment' : 'Try Again'}
-          </Button>
-        </div>
-      )}
     </div>
   )
 }
@@ -596,26 +713,50 @@ function addressComplete(address: CheckoutAddressInput, token: string | null, em
   )
 }
 
-function Field({ label, value, onChange, onBlur, type = 'text', loading }: {
+// Pins its children (the step's primary action button) to the bottom of the
+// viewport on mobile, so the CTA is always reachable without scrolling —
+// reverts to a normal inline position once there's room on larger screens.
+function StickyActionBar({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-40 bg-white/95 backdrop-blur-sm border-t border-brand-border p-4 lg:static lg:z-auto lg:bg-transparent lg:backdrop-blur-none lg:border-0 lg:p-0">
+      {children}
+    </div>
+  )
+}
+
+function Field({ id, label, value, onChange, onBlur, type = 'text', inputMode, maxLength, loading, error, hint, autoFocus }: {
+  id?: string
   label: string
   value: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   onBlur?: () => void
   type?: string
+  inputMode?: 'text' | 'numeric' | 'tel' | 'email'
+  maxLength?: number
   loading?: boolean
+  error?: string
+  hint?: string
+  autoFocus?: boolean
 }) {
+  const fieldId = id ? `field-${id}` : undefined
   return (
     <div>
-      <label className="block text-label mb-1.5" style={{ color: 'var(--color-brand-muted)' }}>{label}</label>
+      <label htmlFor={fieldId} className="block text-label mb-1.5 text-brand-muted">{label}</label>
       <div className="relative">
         <input
+          id={fieldId}
           type={type}
+          inputMode={inputMode}
+          maxLength={maxLength}
           value={value}
           onChange={onChange}
-          className="w-full h-11 px-3 text-body-sm border rounded-sm outline-none transition-colors"
-          style={{ borderColor: 'var(--color-brand-border)', paddingRight: loading !== undefined ? '2.25rem' : undefined }}
-          onFocus={(e) => e.currentTarget.style.borderColor = 'var(--color-brand-berry)'}
-          onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--color-brand-border)'; onBlur?.() }}
+          onBlur={onBlur}
+          autoFocus={autoFocus}
+          aria-invalid={Boolean(error)}
+          className={`w-full h-11 px-3 text-body-sm border rounded-sm outline-none transition-colors focus:border-brand-berry ${
+            error ? 'border-red-400' : 'border-brand-border'
+          }`}
+          style={{ paddingRight: loading !== undefined ? '2.25rem' : undefined }}
         />
         {loading && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted">
@@ -623,6 +764,11 @@ function Field({ label, value, onChange, onBlur, type = 'text', loading }: {
           </span>
         )}
       </div>
+      {error ? (
+        <p className="text-body-xs mt-1 text-red-600">{error}</p>
+      ) : hint ? (
+        <p className="text-body-xs mt-1 text-brand-muted">{hint}</p>
+      ) : null}
     </div>
   )
 }

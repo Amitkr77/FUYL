@@ -50,10 +50,7 @@ export function CouponInput({ items, token, applied, onApply, onRemove }: Coupon
 
   if (applied) {
     return (
-      <div
-        className="flex items-center justify-between gap-3 p-3 rounded-sm"
-        style={{ background: 'var(--color-brand-sage)' }}
-      >
+      <div className="flex items-center justify-between gap-3 p-3 rounded-sm bg-brand-sage">
         <div className="flex items-center gap-2 min-w-0">
           <Tag size={15} className="shrink-0 text-brand-forest" />
           <span className="text-body-sm font-semibold text-brand-forest truncate">{applied.code}</span>
@@ -81,8 +78,9 @@ export function CouponInput({ items, token, applied, onApply, onRemove }: Coupon
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleApply() } }}
           placeholder="Promo code"
           aria-label="Promo code"
-          className="min-w-0 flex-1 h-11 sm:h-10 px-3 text-body-sm border rounded-sm outline-none uppercase tracking-wide transition-colors"
-          style={{ borderColor: status === 'error' ? '#B91C1C' : 'var(--color-brand-border)' }}
+          className={`min-w-0 flex-1 h-11 sm:h-10 px-3 text-body-sm border rounded-sm outline-none uppercase tracking-wide transition-colors ${
+            status === 'error' ? 'border-red-400' : 'border-brand-border'
+          }`}
         />
         <button
           type="button"
@@ -94,7 +92,7 @@ export function CouponInput({ items, token, applied, onApply, onRemove }: Coupon
         </button>
       </div>
       {status === 'error' && error && (
-        <p className="text-body-xs mt-1.5" style={{ color: '#B91C1C' }}>{error}</p>
+        <p className="text-body-xs mt-1.5 text-red-600">{error}</p>
       )}
     </div>
   )

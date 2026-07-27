@@ -93,18 +93,18 @@ export default function WhyFuylPage() {
                   href="/products/fuyl-complete"
                   className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest"
                 >
-                  Shop FUYL COMPLETE+
+                  {/* Shop FUYL COMPLETE+ */} Taste Now
                 </Link>
-                <Link
+                {/* <Link
                   href="/pages/ingredients"
                   className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest border  text-brand-forest border-brand-forest rounded-sm transition-colors hover:border-brand-teal hover:text-white hover:bg-brand-forest"
                 >
                   Explore Ingredients
-                </Link>
+                </Link> */}
               </div>
-              <p className="text-brand-olive-light text-xs tracking-wide">
+              {/* <p className="text-brand-olive-light text-xs tracking-wide">
                 30-day money-back guarantee · FSSAI certified · 100% vegetarian
-              </p>
+              </p> */}
             </div>
           </ScrollReveal>
         </div>

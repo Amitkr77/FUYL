@@ -3,13 +3,13 @@ import { PaymentMethod } from '../../../shared/enums';
 
 export const createPaymentSchema = z.object({
   orderId: z.string().length(24),
-  method: z.enum([PaymentMethod.RAZORPAY, PaymentMethod.UPI, PaymentMethod.COD, PaymentMethod.WALLET]),
+  method: z.enum([PaymentMethod.CASHFREE, PaymentMethod.COD, PaymentMethod.WALLET]),
 });
 
+// Cashfree has no client-side signature — the client sends back the Cashfree
+// order id (our payment number) and the server confirms via a status fetch.
 export const verifyPaymentSchema = z.object({
-  razorpayOrderId: z.string().min(1),
-  razorpayPaymentId: z.string().min(1),
-  razorpaySignature: z.string().min(1),
+  cfOrderId: z.string().min(1),
 });
 
 export const refundSchema = z.object({

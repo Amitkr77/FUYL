@@ -193,6 +193,14 @@ export class CatalogController {
     catch (err) { next(err); }
   };
 
+  listCategoriesAdmin = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (_req: AuthedRequest, res: Response, next: NextFunction) => {
+      try { return success(res, await catalogService.listCategoriesAdmin()); }
+      catch (err) { next(err); }
+    },
+  ];
+
   updateCategory = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     validate(updateCategorySchema),

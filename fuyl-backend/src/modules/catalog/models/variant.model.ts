@@ -13,6 +13,8 @@ export interface IVariant extends Document {
   media?: IProductMedia[];
   weight?: number;                   // grams
   weightUnit?: string;
+  // Package dimensions in cm — used for logistics volumetric-weight pricing.
+  dimensionsCm?: { length: number; width: number; height: number };
   barcode?: string;
   isActive: boolean;
   isSubscribable: boolean;
@@ -40,6 +42,11 @@ const VariantSchema = new Schema<IVariant>(
     }],
     weight: { type: Number, min: 0 },
     weightUnit: { type: String, default: 'g' },
+    dimensionsCm: {
+      length: { type: Number, min: 0 },
+      width: { type: Number, min: 0 },
+      height: { type: Number, min: 0 },
+    },
     barcode: { type: String, index: true, sparse: true },
     isActive: { type: Boolean, default: true, index: true },
     isSubscribable: { type: Boolean, default: true },

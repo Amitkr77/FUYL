@@ -36,6 +36,9 @@ export interface IShipment extends Document {
   currency: string;
   estimatedDeliveryDate?: Date;
   deliveredAt?: Date;
+  // NDR (non-delivery report) tracking — failed attempts + last reason.
+  deliveryAttempts: number;
+  lastNdrReason?: string;
   timeline: IShipmentEvent[];
   createdAt: Date;
   updatedAt: Date;
@@ -87,6 +90,8 @@ const ShipmentSchema = new Schema<IShipment>(
     currency: { type: String, default: 'INR' },
     estimatedDeliveryDate: { type: Date },
     deliveredAt: { type: Date },
+    deliveryAttempts: { type: Number, default: 0 },
+    lastNdrReason: { type: String },
     timeline: { type: [ShipmentEventSchema], default: [] },
   },
   { timestamps: true }

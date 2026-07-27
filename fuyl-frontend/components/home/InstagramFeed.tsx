@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { SITE } from "@/lib/constants/site";
 import { getInstagramPosts } from "@/lib/api/content";
@@ -43,9 +44,9 @@ export async function InstagramFeed() {
               href={SITE.instagram}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-body-sm font-semibold shrink-0 text-brand-teal hover:text-brand-teal-dark transition-colors"
+              className="inline-flex items-center gap-1 text-body-sm font-semibold shrink-0 text-brand-teal hover:text-brand-teal-dark transition-colors"
             >
-              Follow on Instagram →
+              Follow on Instagram <ArrowRight size={14} />
             </Link>
           </div>
         </ScrollReveal>

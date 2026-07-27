@@ -2,14 +2,14 @@ import { Router } from 'express';
 import { authRequired } from '../../../shared/middleware/auth.middleware';
 import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
 import { paymentController } from '../controllers';
-import { razorpayPaymentWebhookHandler } from '../controllers/webhook.controller';
+import { cashfreePaymentWebhookHandler } from '../controllers/webhook.controller';
 
 const router = Router();
 
 // Webhook — raw-body capture is registered for this exact path in app.ts,
-// before express.json(), so no auth middleware runs here (Razorpay signs
+// before express.json(), so no auth middleware runs here (Cashfree signs
 // the payload instead; see webhook.controller.ts).
-router.post('/webhooks/razorpay/payment', razorpayPaymentWebhookHandler);
+router.post('/webhooks/cashfree/payment', cashfreePaymentWebhookHandler);
 
 // Customer
 router.post('/payments', authRequired, paymentController.createPayment);

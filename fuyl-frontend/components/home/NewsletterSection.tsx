@@ -54,7 +54,7 @@ export function NewsletterSection() {
   };
 
   return (
-    <section className="py-20  text-brand-forest bg-neutral-100">
+    <section className="py-12 sm:py-16 lg:py-20 text-brand-forest bg-neutral-100">
       <div className="container-brand max-w-2xl mx-auto text-center">
         <ScrollReveal>
           <div className="flex justify-center mb-4">
@@ -99,7 +99,7 @@ export function NewsletterSection() {
               <button
                 type="submit"
                 disabled={status === "loading"}
-                className="h-12 px-7 text-xs font-semibold uppercase tracking-widest rounded-sm bg-brand-forest text-white transition-colors shrink-0 hover:bg-brand-olive disabled:opacity-60"
+                className="h-12 px-7 text-xs font-semibold uppercase tracking-widest rounded-sm bg-brand-forest text-white transition-colors shrink-0 hover:bg-brand-sage hover:text-brand-forest disabled:opacity-60"
               >
                 {status === "loading" ? "Subscribing…" : "Subscribe"}
               </button>

@@ -30,6 +30,27 @@ export interface INutritionalFact {
   additional?: Array<{ label: string; value: string; unit?: string }>;
 }
 
+// Repeatable rich-content block (image + optional title + description) shown
+// in the admin "Product Details" section — lets admins add freeform
+// informational content beyond the fixed benefits/FAQs/certifications lists.
+export interface IProductInfoBlock {
+  image?: string;
+  title?: string;
+  description: string;
+}
+
+// Shipping/customs attributes live on the PRODUCT (not just Variant) because
+// variants are optional — a product with zero variants still needs a weight
+// for logistics (see checkout.service.ts computeCartWeight's fallback).
+export interface IProductShippingInfo {
+  isPhysical: boolean;
+  packageType?: string;
+  weight?: number;
+  weightUnit: 'g' | 'kg' | 'lb' | 'oz';
+  countryOfOrigin?: string;
+  hsCode?: string;           // Harmonized System code, for customs declarations
+}
+
 export interface IProduct extends Document {
   name: string;
   shortDescription?: string;
@@ -66,6 +87,8 @@ export interface IProduct extends Document {
   };
   nutritionalFacts?: INutritionalFact;
   certifications?: { label: string; logoUrl: string }[];
+  infoBlocks?: IProductInfoBlock[];
+  shippingInfo?: IProductShippingInfo;
   // Admin-facing lifecycle state. isPublished/isDeleted below remain the
   // fields actually queried/indexed (unchanged); the repository keeps them
   // in sync with `status` on every write so existing queries keep working.
@@ -157,6 +180,19 @@ const ProductSchema = new Schema<IProduct>(
       label: { type: String, required: true, trim: true, maxlength: 100 },
       logoUrl: { type: String, required: true },
     }],
+    infoBlocks: [{
+      image: { type: String },
+      title: { type: String, trim: true, maxlength: 150 },
+      description: { type: String, required: true, maxlength: 2000 },
+    }],
+    shippingInfo: {
+      isPhysical: { type: Boolean, default: true },
+      packageType: { type: String, trim: true, maxlength: 60 },
+      weight: { type: Number, min: 0 },
+      weightUnit: { type: String, enum: ['g', 'kg', 'lb', 'oz'], default: 'g' },
+      countryOfOrigin: { type: String, trim: true, maxlength: 100 },
+      hsCode: { type: String, trim: true, maxlength: 30 },
+    },
     status: {
       type: String,
       enum: Object.values(ProductStatus),

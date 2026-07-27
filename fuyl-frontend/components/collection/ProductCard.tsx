@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Star } from "lucide-react";
+import { Star, Repeat } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { formatPrice, discountPercent } from "@/lib/utils/formatPrice";
 import { AddToCartButton } from "@/components/product/AddToCartButton";
@@ -50,7 +50,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Wishlist — sits above the image, outside the product link */}
         <div className="absolute top-3 right-3">
-          <WishlistButton productId={product.id} variantId={variant?.id} />
+          <WishlistButton productId={product.id} variantId={variant?.id || undefined} />
         </div>
       </div>
 
@@ -111,6 +111,14 @@ export function ProductCard({ product }: ProductCardProps) {
             </>
           )}
         </div>
+
+        {/* Subscribe & Save hint — full option lives on the product page */}
+        {product.isSubscribable && (
+          <p className="flex items-center gap-1 text-body-xs text-brand-teal">
+            <Repeat size={11} className="shrink-0" />
+            Subscribe &amp; save
+          </p>
+        )}
 
         {/* Add to cart — pinned to the bottom so cards align in the grid */}
         {variant && (

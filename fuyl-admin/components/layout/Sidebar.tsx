@@ -22,6 +22,8 @@ import {
   Undo2,
   Truck,
   Mail,
+  FolderTree,
+  Star,
 } from 'lucide-react'
 import { logout } from '@/app/(admin)/actions'
 
@@ -47,11 +49,13 @@ const navSections: NavSection[] = [
     title: 'Commerce',
     items: [
       { label: 'Products', href: '/products', icon: Package },
+      { label: 'Categories', href: '/categories', icon: FolderTree },
       { label: 'Orders', href: '/orders', icon: ShoppingCart },
       { label: 'Customers', href: '/customers', icon: Users },
       { label: 'Inventory', href: '/inventory', icon: Boxes },
       { label: 'Shipping', href: '/shipping', icon: Truck },
       { label: 'Returns', href: '/returns', icon: Undo2 },
+      { label: 'Reviews', href: '/reviews', icon: Star },
     ],
   },
   {

@@ -5,6 +5,7 @@ import { promotionService } from '../../promotion/services/promotion.service';
 import { pricingService } from '../../pricing/services/pricing.service';
 import { walletService } from '../../wallet/services/wallet.service';
 import { catalogService } from '../../catalog/services/catalog.service';
+import { shippingService } from '../../shipping/services/shipping.service';
 import {
   BadRequestError,
   NotFoundError,
@@ -15,6 +16,14 @@ import { eventBus, Events } from '../../../shared/services/eventBus.service';
 import { logger } from '../../../config/logger';
 import { OrderStatus, PaymentStatus, PaymentMethod } from '../../../shared/enums';
 import { CheckoutDTO } from '../validators';
+
+// Converts a product/variant weight to grams for cart-weight totals — variants
+// are always stored in grams, but a product's own shippingInfo.weight can be
+// entered in any of these units.
+const WEIGHT_TO_GRAMS: Record<string, number> = { g: 1, kg: 1000, lb: 453.592, oz: 28.3495 };
+function toGrams(weight: number, unit = 'g'): number {
+  return weight * (WEIGHT_TO_GRAMS[unit] ?? 1);
+}
 
 class CheckoutService {
   /**
@@ -75,7 +84,14 @@ class CheckoutService {
       walletRedemption = dto.walletRedemptionAmount;
     }
 
-    const grandTotal = quote.grandTotal - couponDiscount;
+    // 4. Shipping charge (Delhivery rate for the destination pincode).
+    const shippingResult = await this.computeShipping(cart, shippingAddress, dto.paymentMethod);
+    if (!shippingResult.serviceable) {
+      throw new BadRequestError("Sorry, we don't deliver to this pincode yet.");
+    }
+    const shippingCharge = shippingResult.cost;
+
+    const grandTotal = quote.grandTotal - couponDiscount + shippingCharge;
     const remainingAfterWallet = Math.max(0, grandTotal - walletRedemption);
 
     return {
@@ -86,10 +102,59 @@ class CheckoutService {
       coupon: couponValidation,
       couponDiscount,
       walletRedemption,
+      shippingTotal: Math.round(shippingCharge * 100) / 100,
       grandTotal: Math.round(grandTotal * 100) / 100,
       remainingToPay: Math.round(remainingAfterWallet * 100) / 100,
       paymentMethod: dto.paymentMethod,
     };
+  }
+
+  /** Delhivery shipping charge for the cart's weight to the destination pincode. */
+  private async computeShipping(
+    cart: { items: Array<{ productId: unknown; variantId?: unknown; quantity: number }> },
+    shippingAddress: unknown,
+    paymentMethod: string,
+  ): Promise<{ serviceable: boolean; cost: number }> {
+    // Saved addresses use `postalCode`, inline checkout addresses use `pincode`.
+    const addr = shippingAddress as { pincode?: string; postalCode?: string };
+    const pincode = addr.pincode ?? addr.postalCode;
+    if (!pincode) return { serviceable: true, cost: 0 };
+
+    const weightGrams = await this.computeCartWeight(cart);
+    const paymentMode = paymentMethod === PaymentMethod.COD ? 'COD' : 'Prepaid';
+    const quote = await shippingService.quoteRate({ pincode, weightGrams, paymentMode });
+    if (quote.serviceable === false) return { serviceable: false, cost: 0 };
+    return { serviceable: true, cost: quote.cost ?? 0 };
+  }
+
+  /**
+   * Total shippable weight in grams — variant weight × qty, falling back to
+   * the product's own shippingInfo.weight when the line has no variant
+   * (variants are optional — see catalog/models/product.model.ts), and a
+   * flat 500g/unit default when neither is set. A product explicitly marked
+   * non-physical (digital) contributes 0g.
+   */
+  private async computeCartWeight(
+    cart: { items: Array<{ productId: unknown; variantId?: unknown; quantity: number }> }
+  ): Promise<number> {
+    let total = 0;
+    for (const item of cart.items) {
+      let unit = 500;
+      if (item.variantId) {
+        try {
+          const v = await catalogService.getVariant(item.variantId.toString());
+          if (v?.weight) unit = v.weight;
+        } catch { /* fall back to default weight */ }
+      } else {
+        try {
+          const p = await catalogService.getProduct(String(item.productId));
+          if (p?.shippingInfo?.isPhysical === false) unit = 0;
+          else if (p?.shippingInfo?.weight) unit = toGrams(p.shippingInfo.weight, p.shippingInfo.weightUnit);
+        } catch { /* fall back to default weight */ }
+      }
+      total += unit * item.quantity;
+    }
+    return Math.max(100, total);
   }
 
   /**
@@ -157,6 +222,7 @@ class CheckoutService {
         paymentMethod: dto.paymentMethod as any,
         shippingAddress: preview.shippingAddress as any,
         billingAddress: preview.billingAddress as any,
+        shippingTotal: preview.shippingTotal,
         notes: dto.notes,
       } as any);
     } catch (err) {
@@ -212,6 +278,7 @@ class CheckoutService {
       pricing: preview.pricing,
       couponDiscount: preview.couponDiscount,
       walletRedemption: preview.walletRedemption,
+      shippingTotal: preview.shippingTotal,
       grandTotal: preview.grandTotal,
     };
   }

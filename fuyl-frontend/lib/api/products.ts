@@ -1,7 +1,7 @@
 import { apiFetch } from './client'
 import type {
   Product, ProductImage, ProductVariant, Collection,
-  AdditionalPrice, ProductFAQ, Certification, SupplementInfo,
+  AdditionalPrice, ProductFAQ, Certification, SupplementInfo, ProductInfoBlock,
 } from '@/types/product'
 
 // ─── Backend raw shapes (subset of fields this file uses) ──────────────────
@@ -20,6 +20,7 @@ interface BackendProduct {
   _id: string
   name: string
   description?: string
+  shortDescription?: string
   media: BackendMedia[]
   seo: { slug: string; metaDescription?: string }
   basePrice: number
@@ -27,6 +28,10 @@ interface BackendProduct {
   compareAtPrice?: number
   additionalPrices?: AdditionalPrice[]
   unitPrice?: { value: number; unit: string }
+  // Physical-product logistics attributes (see catalog/models/product.model.ts
+  // IProductShippingInfo) — doubles as the product-level net-content fallback
+  // when a variant doesn't carry its own weight.
+  shipping?: { weight?: number; weightUnit?: string }
   tagIds?: string[]
   isPublished: boolean
   isSubscribable: boolean
@@ -37,6 +42,7 @@ interface BackendProduct {
   faqs?: ProductFAQ[]
   certifications?: Certification[]
   supplementInfo?: SupplementInfo
+  infoBlocks?: ProductInfoBlock[]
 }
 
 interface BackendVariant {
@@ -47,6 +53,8 @@ interface BackendVariant {
   salePrice?: number
   compareAtPrice?: number
   isActive: boolean
+  weight?: number
+  weightUnit?: string
 }
 
 interface BackendTag {
@@ -121,6 +129,8 @@ function mapVariant(v: BackendVariant): ProductVariant {
     compareAtPrice,
     available: v.isActive,
     sku: v.sku,
+    weight: v.weight,
+    weightUnit: v.weightUnit,
   }
 }
 
@@ -136,19 +146,45 @@ async function getTagNames(tagIds?: string[]): Promise<string[]> {
 
 function mapProduct(raw: BackendProduct, variants: ProductVariant[], tags: string[]): Product {
   const { price, compareAtPrice } = effectivePrice(raw.basePrice, raw.salePrice, raw.compareAtPrice)
+
+  // Variants are optional on the backend (admin/products can be created with
+  // none — see catalog/models/product.model.ts) — every consumer of `Product`
+  // (ProductCard, ProductInfo, AddToCartButton, WishlistButton, etc.) reads
+  // pricing/availability off `variants[0]`, so a product with zero real
+  // variants needs a stand-in "virtual" variant built from its own
+  // price/compareAtPrice/isPublished. Its `id` is deliberately '' (not a real
+  // Variant document) — every call site that forwards a variant id to an API
+  // normalizes falsy ids to `undefined` so this never gets sent as a fake
+  // variantId.
+  const effectiveVariants: ProductVariant[] = variants.length
+    ? variants
+    : [{
+        id: '',
+        title: raw.name,
+        price,
+        compareAtPrice,
+        available: raw.isPublished,
+        sku: '',
+        weight: raw.shipping?.weight,
+        weightUnit: raw.shipping?.weightUnit,
+      }]
+
   return {
     id:             raw._id,
     slug:           raw.seo.slug,
     name:           raw.name,
     title:          raw.name,
     description:    raw.description ?? '',
+    shortDescription: raw.shortDescription,
     seoDescription: raw.seo.metaDescription ?? '',
     price,
     compareAtPrice,
     additionalPrices: raw.additionalPrices ?? [],
     unitPrice:        raw.unitPrice,
+    weight:           raw.shipping?.weight,
+    weightUnit:       raw.shipping?.weightUnit,
     images:         mapImages(raw.media),
-    variants,
+    variants:       effectiveVariants,
     tags,
     available:      raw.isPublished,
     isSubscribable: raw.isSubscribable,
@@ -159,6 +195,7 @@ function mapProduct(raw: BackendProduct, variants: ProductVariant[], tags: strin
     faqs:           raw.faqs ?? [],
     certifications: raw.certifications ?? [],
     supplementInfo: raw.supplementInfo ?? {},
+    infoBlocks:     raw.infoBlocks ?? [],
   }
 }
 

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { generateSEO } from "@/lib/utils/seo";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
@@ -565,9 +566,12 @@ export default function IngredientsPage() {
             <p className="text-body-lg text-brand-muted leading-relaxed max-w-lg">
               Science behind the ingredients that make up the FUYL COMPLETE+
             </p>
-            <button className="mt-10 inline-flex items-center justify-center h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest">
-              Explore Ingredients →
-            </button>
+            <Link
+              href="/collections/all"
+              className="mt-10 inline-flex items-center justify-center h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white! rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest!"
+            >
+              Shop Now
+            </Link>
           </ScrollReveal>
         </div>
       </section>

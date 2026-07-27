@@ -16,6 +16,7 @@ export interface ISubscriptionDelivery extends Document {
   failureReason?: string;
   razorpayPaymentId?: string;
   razorpayInvoiceId?: string;
+  cfPaymentId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +42,7 @@ const SubscriptionDeliverySchema = new Schema<ISubscriptionDelivery>(
     failureReason: { type: String },
     razorpayPaymentId: { type: String },
     razorpayInvoiceId: { type: String },
+    cfPaymentId: { type: String },
   },
   { timestamps: true }
 );

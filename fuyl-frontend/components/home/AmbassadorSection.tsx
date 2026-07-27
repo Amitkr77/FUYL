@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { SITE } from "@/lib/constants/site";
 
@@ -86,9 +87,9 @@ export function AmbassadorSection() {
           <div className="flex flex-col items-center gap-6 text-center">
             <Link
               href="/pages/refer-and-earn"
-              className="inline-flex items-center justify-center h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-lg transition-colors hover:bg-brand-sage hover:text-brand-forest"
+              className="inline-flex items-center justify-center gap-2 h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-lg transition-colors hover:bg-brand-sage hover:text-brand-forest"
             >
-              Join the Programme →
+              Join the Programme <ArrowRight size={16} />
             </Link>
 
             {/* Perks row */}

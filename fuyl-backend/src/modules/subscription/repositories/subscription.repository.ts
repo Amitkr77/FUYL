@@ -16,6 +16,10 @@ export class SubscriptionRepository {
     return SubscriptionModel.findOne({ razorpaySubscriptionId: id });
   }
 
+  async findByCfSubscriptionId(id: string): Promise<ISubscription | null> {
+    return SubscriptionModel.findOne({ cfSubscriptionId: id });
+  }
+
   async findByCustomer(customerId: string | Types.ObjectId, filter: FilterQuery<ISubscription> = {}) {
     return SubscriptionModel.find({ customerId, ...filter }).sort({ createdAt: -1 });
   }

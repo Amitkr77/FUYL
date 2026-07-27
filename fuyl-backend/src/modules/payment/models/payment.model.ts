@@ -13,7 +13,13 @@ export interface IPayment extends Document {
   razorpayPaymentId?: string;
   razorpaySignature?: string;
   razorpayRefundId?: string;
-  gateway: string;                  // 'razorpay' | 'wallet' | 'cod' | 'upi_direct'
+  // Cashfree identifiers (current gateway). cfOrderId is our order_id sent to
+  // Cashfree; paymentSessionId is handed to the client SDK to render checkout.
+  cfOrderId?: string;
+  cfPaymentId?: string;
+  cfRefundId?: string;
+  paymentSessionId?: string;
+  gateway: string;                  // 'cashfree' | 'razorpay' | 'wallet' | 'cod'
   gatewayResponse?: Record<string, unknown>;
   failureReason?: string;
   attemptedAt: Date;
@@ -39,7 +45,11 @@ const PaymentSchema = new Schema<IPayment>(
     razorpayPaymentId: { type: String, index: true, sparse: true },
     razorpaySignature: { type: String },
     razorpayRefundId: { type: String, index: true, sparse: true },
-    gateway: { type: String, required: true, default: 'razorpay' },
+    cfOrderId: { type: String, index: true, sparse: true },
+    cfPaymentId: { type: String, index: true, sparse: true },
+    cfRefundId: { type: String, index: true, sparse: true },
+    paymentSessionId: { type: String },
+    gateway: { type: String, required: true, default: 'cashfree' },
     gatewayResponse: { type: Schema.Types.Mixed },
     failureReason: { type: String },
     attemptedAt: { type: Date, default: Date.now },

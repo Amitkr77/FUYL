@@ -30,7 +30,10 @@ export const createOrderSchema = z.object({
     country: z.string().min(2).max(2),
     type: z.enum(['home', 'office', 'other']).default('home'),
   }),
-  paymentMethod: z.enum([PaymentMethod.RAZORPAY, PaymentMethod.UPI, PaymentMethod.COD, PaymentMethod.WALLET, PaymentMethod.SPLIT]),
+  paymentMethod: z.enum([PaymentMethod.CASHFREE, PaymentMethod.RAZORPAY, PaymentMethod.UPI, PaymentMethod.COD, PaymentMethod.WALLET, PaymentMethod.SPLIT]),
+  // Shipping charge computed by the checkout service (Delhivery rate). Optional
+  // so direct order creation without a rate still works (defaults to 0).
+  shippingTotal: z.number().min(0).optional(),
   notes: z.string().max(500).optional(),
 });
 

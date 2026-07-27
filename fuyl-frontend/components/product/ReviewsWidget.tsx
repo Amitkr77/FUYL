@@ -1,4 +1,8 @@
+'use client'
+
+import { useState } from 'react'
 import { Star } from 'lucide-react'
+import { WriteReviewForm } from './WriteReviewForm'
 
 interface Review {
   id:        string
@@ -10,6 +14,7 @@ interface Review {
 }
 
 interface ReviewsWidgetProps {
+  productId:    string
   reviews:      Review[]
   averageRating: number
   totalCount:   number
@@ -29,11 +34,13 @@ function Stars({ rating }: { rating: number }) {
   )
 }
 
-export function ReviewsWidget({ reviews, averageRating, totalCount }: ReviewsWidgetProps) {
+export function ReviewsWidget({ productId, reviews, averageRating, totalCount }: ReviewsWidgetProps) {
+  const [showForm, setShowForm] = useState(false)
+
   return (
     <section className="mt-12 border-t pt-10" style={{ borderColor: 'var(--color-brand-border)' }}>
       {/* Header */}
-      <div className="flex flex-col gap-1 mb-8 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 mb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-display-md font-display">WHAT THEY'RE SAYING</h2>
           <div className="flex items-center gap-3 mt-2">
@@ -42,7 +49,22 @@ export function ReviewsWidget({ reviews, averageRating, totalCount }: ReviewsWid
             <span className="text-body-xs" style={{ color: 'var(--color-brand-muted)' }}>({totalCount} reviews)</span>
           </div>
         </div>
+        {!showForm && (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="h-11 px-6 text-xs font-semibold uppercase tracking-widest border border-brand-forest text-brand-forest rounded-sm transition-colors hover:bg-brand-forest hover:text-white shrink-0"
+          >
+            Write a Review
+          </button>
+        )}
       </div>
+
+      {showForm && (
+        <div className="mb-8">
+          <WriteReviewForm productId={productId} onCancel={() => setShowForm(false)} />
+        </div>
+      )}
 
       {/* Review cards */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

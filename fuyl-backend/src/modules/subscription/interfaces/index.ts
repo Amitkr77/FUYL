@@ -50,26 +50,28 @@ export interface BillingCycleResult {
   failureReason?: string;
 }
 
-export interface RazorpayWebhookPayload {
-  event: string;
-  payload: {
-    subscription: {
-      entity: {
-        id: string;
-        status: string;
-        customer_id: string;
-        plan_id: string;
-        current_start: number;
-        current_end: number;
-        charge_at: number;
-        notes?: Record<string, string>;
-      };
+/**
+ * Cashfree subscription webhook. Field locations vary by API version, so the
+ * handler extracts defensively — VERIFY the exact shape against your account's
+ * webhook payloads in sandbox.
+ */
+export interface CashfreeSubscriptionWebhookPayload {
+  type: string;
+  data?: {
+    subscription_details?: {
+      subscription_id?: string;
+      subscription_status?: string;
+      next_scheduled_time?: string;
+      current_cycle?: number;
     };
-    payment?: {
-      entity: { id: string; status: string; amount: number; method: string };
+    subscription_payment_details?: {
+      cf_payment_id?: string;
+      payment_amount?: number;
+      payment_status?: string;
+      next_scheduled_time?: string;
+      cycle?: number;
     };
-    invoice?: {
-      entity: { id: string; status: string; order_id?: string; payment_id?: string };
-    };
+    cf_subscription_id?: string;
+    subscription_id?: string;
   };
 }

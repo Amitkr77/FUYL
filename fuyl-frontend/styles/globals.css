@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* ─── Tailwind v4 Theme ─────────────────────────────────────────────── */
 @theme {
@@ -217,21 +218,20 @@
   }
 }
 
+/* Smaller on phones — with ~13 sections stacked on the homepage alone, a
+   flat 3rem (96px total per gap) reads as excessive dead space on a short
+   mobile viewport. Unchanged from 640px up, so tablet/desktop look the same
+   as before. */
 .section-py {
-  padding-block: 3.5rem;
+  padding-block: 2rem;
 }
 
 @media (min-width: 640px) {
   .section-py {
-    padding-block: 5rem;
+    padding-block: 3rem;
   }
 }
 
-@media (min-width: 1024px) {
-  .section-py {
-    padding-block: 7rem;
-  }
-}
 
 /* ─── Skeleton loading ──────────────────────────────────────────────── */
 /* Base tint is brand-cream with a brand-sage-tinted shimmer sweeping
@@ -241,12 +241,10 @@
   position: relative;
   overflow: hidden;
   background-color: var(--color-brand-cream);
-  background-image: linear-gradient(
-    100deg,
-    transparent 20%,
-    var(--color-brand-sage-mid) 50%,
-    transparent 80%
-  );
+  background-image: linear-gradient(100deg,
+      transparent 20%,
+      var(--color-brand-sage-mid) 50%,
+      transparent 80%);
   background-size: 250% 100%;
   background-repeat: no-repeat;
   animation: var(--animate-shimmer);

@@ -3,13 +3,29 @@ import { DeliveryRepository } from '../repositories/delivery.repository';
 import { EventRepository } from '../repositories/event.repository';
 import { PlanRepository } from '../repositories/plan.repository';
 import { CreateSubscriptionInput, CancelSubscriptionDTO, UpdateFrequencyDTO } from '../interfaces';
-import { SubscriptionStatus, SubscriptionInterval } from '../../../shared/enums';
+import { SubscriptionStatus, SubscriptionInterval, PaymentMethod } from '../../../shared/enums';
 import { NotFoundError, ConflictError, BadRequestError } from '../../../shared/errors';
 import { calcNextDeliveryDate, calcCycleWindow, applySubscriptionPricing } from '../utils/billingCycle';
-import { razorpayService } from '../utils/razorpay.service';
+import { cashfreeSubscriptionService, type CfPlanIntervalType } from '../utils/cashfreeSubscription.service';
 import { eventBus, Events } from '../../../shared/services/eventBus.service';
+import { env } from '../../../config/env';
 import { logger } from '../../../config/logger';
 import mongoose from 'mongoose';
+
+// Maps our subscription interval to a Cashfree plan interval type + count.
+function toCashfreeInterval(
+  interval: typeof SubscriptionInterval[keyof typeof SubscriptionInterval],
+  intervalCount: number,
+): { intervalType: CfPlanIntervalType; intervals: number } {
+  switch (interval) {
+    case SubscriptionInterval.DAILY: return { intervalType: 'DAY', intervals: intervalCount };
+    case SubscriptionInterval.WEEKLY: return { intervalType: 'WEEK', intervals: intervalCount };
+    case SubscriptionInterval.BIWEEKLY: return { intervalType: 'WEEK', intervals: 2 * intervalCount };
+    case SubscriptionInterval.QUARTERLY: return { intervalType: 'MONTH', intervals: 3 * intervalCount };
+    case SubscriptionInterval.MONTHLY:
+    default: return { intervalType: 'MONTH', intervals: intervalCount };
+  }
+}
 
 const subRepo = new SubscriptionRepository();
 const deliveryRepo = new DeliveryRepository();
@@ -33,46 +49,54 @@ export class SubscriptionService {
     const nextDeliveryDate = calcNextDeliveryDate(now, plan.interval, intervalCount);
     const cycleWindow = calcCycleWindow(now, plan.interval, intervalCount);
 
-    // Create Razorpay subscription (skip in COD mode)
-    let razorpaySubId: string | undefined;
-    let razorpayCustomerId: string | undefined;
-    if (input.paymentMethod === 'razorpay') {
-      try {
-        // Note: a Razorpay plan needs to exist; in production we'd cache a map of our plan_id -> razorpay plan_id
-        // Here we just attempt creation and tolerate failure for the scaffold.
-        const rzpPlan = await razorpayService.createPlan({
-          period: plan.interval === SubscriptionInterval.DAILY ? 'daily' :
-                  plan.interval === SubscriptionInterval.WEEKLY || plan.interval === SubscriptionInterval.BIWEEKLY ? 'weekly' :
-                  plan.interval === SubscriptionInterval.QUARTERLY ? 'monthly' : 'monthly',
-          interval: intervalCount,
-          item: {
-            name: plan.name,
-            amount: Math.round(finalPrice * 100),
-            currency: 'INR',
-            description: plan.description,
-          },
-          notes: { productId: input.productId, planId: plan.id },
-        }).catch((err) => {
-          logger.warn('[subscription] razorpay plan create failed, continuing in pending state', err);
-          return null;
-        });
+    // Create the Cashfree plan + subscription (skip for COD). The subscription
+    // stays PENDING until the customer authorizes the mandate (via the returned
+    // session) and Cashfree fires the ACTIVE webhook.
+    let cfSubscriptionId: string | undefined;
+    let cfPlanId: string | undefined;
+    let cashfreeAuth: { subscriptionSessionId?: string; authLink?: string; mode: 'sandbox' | 'production' } | undefined;
 
-        if (rzpPlan) {
-          const rzpSub = await razorpayService.createSubscription({
-            plan_id: rzpPlan.id,
-            quantity,
-            customer_notify: 1,
-            total_count: 120, // ~10 years of monthly — sane ceiling
-            notes: {
-              customerId,
-              productId: input.productId,
-              planId: plan.id,
-            },
-          });
-          razorpaySubId = rzpSub.id;
-        }
+    if (input.paymentMethod === PaymentMethod.CASHFREE) {
+      try {
+        const contact = await this.resolveCustomerContact(customerId, input.addressId);
+        // Deterministic plan id so the same plan/price/interval is reused
+        // across subscribers; createPlan tolerates an "already exists" error.
+        const planId = `plan_${plan.id}_${intervalCount}`;
+        const cf = toCashfreeInterval(plan.interval, intervalCount);
+        await cashfreeSubscriptionService
+          .createPlan({
+            planId,
+            planName: plan.name,
+            amount: finalPrice,
+            intervals: cf.intervals,
+            intervalType: cf.intervalType,
+            maxCycles: 120, // ~10y of monthly — sane ceiling
+          })
+          .catch((err) => logger.warn('[subscription] cashfree plan create (may already exist)', err));
+        cfPlanId = planId;
+
+        const subId = `sub_${new mongoose.Types.ObjectId().toString()}`;
+        const cfSub = await cashfreeSubscriptionService.createSubscription({
+          subscriptionId: subId,
+          planId,
+          customer: {
+            id: customerId,
+            phone: contact.phone,
+            name: contact.name,
+            email: `cust-${customerId}@checkout.fuyl.in`,
+          },
+          authAmount: finalPrice,
+          returnUrl: `${env.clientUrl}/account/subscriptions`,
+          notes: { customerId, productId: input.productId, planId: plan.id },
+        });
+        cfSubscriptionId = cfSub.subscription_id;
+        cashfreeAuth = {
+          subscriptionSessionId: cfSub.subscription_session_id,
+          authLink: cfSub.auth_link,
+          mode: env.cashfree.mode,
+        };
       } catch (err) {
-        logger.warn('[subscription] razorpay subscription create failed; creating in pending state', err);
+        logger.warn('[subscription] cashfree subscription create failed; creating in pending state', err);
       }
     }
 
@@ -90,8 +114,8 @@ export class SubscriptionService {
       finalPrice,
       currency: 'INR',
       paymentMethod: input.paymentMethod,
-      razorpaySubscriptionId: razorpaySubId,
-      razorpayCustomerId,
+      cfSubscriptionId,
+      cfPlanId,
       nextDeliveryDate,
       currentCycleStart: cycleWindow.start,
       currentCycleEnd: cycleWindow.end,
@@ -105,12 +129,28 @@ export class SubscriptionService {
       customerId: subscription.customerId,
       type: 'created',
       message: `Subscription created for plan "${plan.name}"`,
-      metadata: { planId: plan.id, razorpaySubscriptionId: razorpaySubId },
+      metadata: { planId: plan.id, cfSubscriptionId },
     });
 
     eventBus.publish(Events.SUBSCRIPTION_CREATED, { subscriptionId: subscription.id, customerId });
 
-    return subscription;
+    // `cashfree` carries the mandate-authorization session the client SDK needs
+    // (cashfree.subscriptionsCheckout) or a hosted authLink fallback.
+    return { subscription, cashfree: cashfreeAuth };
+  }
+
+  /** Resolve a customer's phone + name for the Cashfree mandate from their profile. */
+  private async resolveCustomerContact(customerId: string, addressId?: string) {
+    try {
+      const { customerService } = await import('../../customer/services/customer.service');
+      const profile = await customerService.getOrCreateProfile(customerId);
+      const addr = addressId
+        ? profile.addresses.find((a: any) => a._id?.toString() === addressId)
+        : (profile.addresses.find((a: any) => a.isDefault) ?? profile.addresses[0]);
+      return { phone: addr?.phone ?? '', name: profile.displayName || 'Customer' };
+    } catch {
+      return { phone: '', name: 'Customer' };
+    }
   }
 
   async listMine(customerId: string, status?: string) {
@@ -129,9 +169,9 @@ export class SubscriptionService {
     if (sub.status !== SubscriptionStatus.ACTIVE) {
       throw new ConflictError(`Cannot pause subscription in status ${sub.status}`);
     }
-    if (sub.razorpaySubscriptionId) {
-      try { await razorpayService.pauseSubscription(sub.razorpaySubscriptionId); }
-      catch (err) { logger.warn('[subscription] razorpay pause failed', err); }
+    if (sub.cfSubscriptionId) {
+      try { await cashfreeSubscriptionService.pauseSubscription(sub.cfSubscriptionId); }
+      catch (err) { logger.warn('[subscription] cashfree pause failed', err); }
     }
     const updated = await subRepo.updateStatus(id, SubscriptionStatus.PAUSED);
     await eventRepo.log({
@@ -147,9 +187,9 @@ export class SubscriptionService {
     if (sub.status !== SubscriptionStatus.PAUSED) {
       throw new ConflictError(`Cannot resume subscription in status ${sub.status}`);
     }
-    if (sub.razorpaySubscriptionId) {
-      try { await razorpayService.resumeSubscription(sub.razorpaySubscriptionId); }
-      catch (err) { logger.warn('[subscription] razorpay resume failed', err); }
+    if (sub.cfSubscriptionId) {
+      try { await cashfreeSubscriptionService.resumeSubscription(sub.cfSubscriptionId); }
+      catch (err) { logger.warn('[subscription] cashfree resume failed', err); }
     }
     const next = calcNextDeliveryDate(new Date(), sub.interval, sub.intervalCount);
     const updated = await subRepo.update(id, {
@@ -220,9 +260,9 @@ export class SubscriptionService {
     if (sub.status === SubscriptionStatus.CANCELLED) {
       throw new ConflictError('Subscription already cancelled');
     }
-    if (sub.razorpaySubscriptionId) {
-      try { await razorpayService.cancelSubscription(sub.razorpaySubscriptionId, dto.cancelAtCycle); }
-      catch (err) { logger.warn('[subscription] razorpay cancel failed', err); }
+    if (sub.cfSubscriptionId) {
+      try { await cashfreeSubscriptionService.cancelSubscription(sub.cfSubscriptionId); }
+      catch (err) { logger.warn('[subscription] cashfree cancel failed', err); }
     }
     const updated = await subRepo.update(id, {
       status: SubscriptionStatus.CANCELLED,

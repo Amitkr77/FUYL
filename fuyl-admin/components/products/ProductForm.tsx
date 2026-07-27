@@ -3,18 +3,23 @@
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, Trash2, CheckCircle2, ImagePlus, AlertCircle, Star, X, Plus } from 'lucide-react'
+import { ArrowLeft, Save, Trash2, CheckCircle2, ImagePlus, AlertCircle, Star, X, Plus, Truck } from 'lucide-react'
 import type {
   AdminProduct, Category, AttributeDef, ProductStatus, AdminVariant,
-  AdditionalPrice, FAQEntry, CertificationEntry,
+  AdditionalPrice, FAQEntry, CertificationEntry, ProductInfoBlock, ShippingInfo, WeightUnit, SeoInfo,
 } from '@/lib/products'
+import type { AdminTag } from '@/lib/tags'
 import { createProductAction, updateProductAction, archiveProductAction, getProductImageUploadSignature } from '@/app/(admin)/products/actions'
 import { uploadImage } from '@/lib/upload'
+import { Collapsible } from '@/components/ui/Collapsible'
+import { Toggle } from '@/components/ui/Toggle'
+import { SearchableSelect } from '@/components/ui/SearchableSelect'
 
 interface Props {
   product?: AdminProduct
   categories: Category[]
   attributes: AttributeDef[]
+  tags: AdminTag[]
   isNew?: boolean
 }
 
@@ -23,13 +28,31 @@ const inputCls =
 const smallInputCls =
   'w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent'
 const labelCls = 'block text-sm font-medium text-slate-700 mb-1.5'
+const helpCls = 'text-xs text-slate-400 mt-1.5'
 const cardCls = 'bg-white border border-slate-200 rounded-xl shadow-sm p-6'
+
+const PACKAGE_SUGGESTIONS = ['Custom Package', 'Poly Mailer', 'Padded Mailer', 'Box', 'Envelope']
+const WEIGHT_UNITS: { value: WeightUnit; label: string }[] = [
+  { value: 'g', label: 'g' },
+  { value: 'kg', label: 'kg' },
+  { value: 'lb', label: 'lb' },
+  { value: 'oz', label: 'oz' },
+]
 
 function emptyVariant(defaultPrice: number): AdminVariant {
   return { id: '', sku: '', name: '', attributes: {}, price: defaultPrice, compareAtPrice: undefined, stock: 0, images: [], weight: undefined }
 }
 
-export function ProductForm({ product, categories, attributes, isNew = false }: Props) {
+// Duplicated (not imported) from lib/products.ts — that module also pulls in
+// getSession()/next/headers for its server-side calls, which can't be
+// bundled into this client component. Kept in sync manually; it's a single
+// pure one-liner.
+function slugify(name: string): string {
+  const base = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+  return base || 'product'
+}
+
+export function ProductForm({ product, categories, attributes, tags, isNew = false }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
@@ -39,7 +62,10 @@ export function ProductForm({ product, categories, attributes, isNew = false }: 
 
   const [form, setForm] = useState({
     name:        product?.name ?? '',
-    categoryId:  product?.categoryId ?? categories[0]?.id ?? '',
+    categoryId:  product?.categoryId ?? '',
+    brand:       product?.brand ?? '',
+    tags:        product?.tags ?? [],
+    shortDescription: product?.shortDescription ?? '',
     description: product?.description ?? '',
     status:      product?.status ?? ('draft' as ProductStatus),
     isPublished:    product?.isPublished ?? true,
@@ -47,21 +73,44 @@ export function ProductForm({ product, categories, attributes, isNew = false }: 
     images:      product?.images ?? [],
     price:            product?.price ?? 1499,
     compareAtPrice:   product?.compareAtPrice,
+    // Only used/shown when there are no variants — stock is tracked
+    // per-variant instead once you add one.
+    stock:            product?.stock ?? 0,
     additionalPrices: product?.additionalPrices ?? [],
     unitPriceValue:   product?.unitPriceValue,
     unitPriceUnit:    product?.unitPriceUnit ?? '',
     isTaxable:        product?.isTaxable ?? true,
     costPerItem:      product?.costPerItem,
+    ingredients:      product?.ingredients ?? [],
     benefits:         product?.benefits ?? [],
     faqs:             product?.faqs ?? [],
     certifications:   product?.certifications ?? [],
     supplementInfo:   product?.supplementInfo ?? {},
+    infoBlocks:       product?.infoBlocks ?? [],
+    shipping:         product?.shipping ?? ({ isPhysical: true, weightUnit: 'g' } as ShippingInfo),
+    seo:              product?.seo ?? ({ slug: '' } as SeoInfo),
   })
   const set = (k: Partial<typeof form>) => setForm((f) => ({ ...f, ...k }))
+  const setShipping = (k: Partial<ShippingInfo>) => set({ shipping: { ...form.shipping, ...k } })
+  const setSeo = (k: Partial<SeoInfo>) => set({ seo: { ...form.seo, ...k } })
 
-  const [variants, setVariants] = useState<AdminVariant[]>(
-    product?.variants.length ? product.variants : [emptyVariant(form.price)]
-  )
+  // On a brand-new product, auto-suggest the slug from the name until the
+  // admin edits the Slug field directly — once they do, stop overwriting it.
+  // Existing products never auto-sync (editing the title shouldn't silently
+  // change a live product's URL).
+  const [slugTouched, setSlugTouched] = useState(!isNew)
+  const handleNameChange = (name: string) => {
+    if (isNew && !slugTouched) {
+      set({ name, seo: { ...form.seo, slug: slugify(name) } })
+    } else {
+      set({ name })
+    }
+  }
+
+  // Variants are optional — a product with none is sold using the price set
+  // in the Pricing card above, so the initial list is whatever the product
+  // already has (possibly empty), never force-seeded.
+  const [variants, setVariants] = useState<AdminVariant[]>(product?.variants ?? [])
   const updateVariant = (i: number, patch: Partial<AdminVariant>) =>
     setVariants((vs) => vs.map((v, idx) => (idx === i ? { ...v, ...patch } : v)))
   const addVariant = () => setVariants((vs) => [...vs, emptyVariant(form.price)])
@@ -69,6 +118,20 @@ export function ProductForm({ product, categories, attributes, isNew = false }: 
 
   const profit = form.costPerItem != null ? form.price - form.costPerItem : null
   const margin = profit != null && form.price > 0 ? (profit / form.price) * 100 : null
+
+  const categoryOptions = categories.map((c) => ({ value: c.id, label: c.name }))
+
+  // ─── Tags ────────────────────────────────────────────────────────
+  // Free-typed names, chip-style (mirrors EditBlogPostForm.tsx) — resolved to
+  // Tag document ids (creating new ones as needed) on save, see lib/tags.ts.
+  const [tagInput, setTagInput] = useState('')
+  const addTag = () => {
+    const value = tagInput.trim()
+    if (!value || form.tags.includes(value)) { setTagInput(''); return }
+    set({ tags: [...form.tags, value] })
+    setTagInput('')
+  }
+  const removeTag = (tag: string) => set({ tags: form.tags.filter((t) => t !== tag) })
 
   // ─── Product image gallery ──────────────────────────────────────
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,6 +195,11 @@ export function ProductForm({ product, categories, attributes, isNew = false }: 
     set({ additionalPrices: form.additionalPrices.map((p, idx) => (idx === i ? { ...p, ...patch } : p)) })
   const removePrice = (i: number) => set({ additionalPrices: form.additionalPrices.filter((_, idx) => idx !== i) })
 
+  // ─── Ingredients ─────────────────────────────────────────────────
+  const addIngredient = () => set({ ingredients: [...form.ingredients, ''] })
+  const updateIngredient = (i: number, value: string) => set({ ingredients: form.ingredients.map((v, idx) => (idx === i ? value : v)) })
+  const removeIngredient = (i: number) => set({ ingredients: form.ingredients.filter((_, idx) => idx !== i) })
+
   // ─── Benefits ────────────────────────────────────────────────────
   const addBenefit = () => set({ benefits: [...form.benefits, ''] })
   const updateBenefit = (i: number, value: string) => set({ benefits: form.benefits.map((b, idx) => (idx === i ? value : b)) })
@@ -155,10 +223,26 @@ export function ProductForm({ product, categories, attributes, isNew = false }: 
     updateCertification(i, { logoUrl: result.url })
   }
 
+  // ─── Product Information blocks (image + optional title + description) ──
+  const addInfoBlock = () => set({ infoBlocks: [...form.infoBlocks, { image: undefined, title: '', description: '' }] })
+  const updateInfoBlock = (i: number, patch: Partial<ProductInfoBlock>) =>
+    set({ infoBlocks: form.infoBlocks.map((b, idx) => (idx === i ? { ...b, ...patch } : b)) })
+  const removeInfoBlock = (i: number) => set({ infoBlocks: form.infoBlocks.filter((_, idx) => idx !== i) })
+  const uploadInfoBlockImage = async (i: number, file: File) => {
+    setError('')
+    const result = await uploadImage(file, getProductImageUploadSignature)
+    if ('error' in result) { setError(result.error); return }
+    updateInfoBlock(i, { image: result.url })
+  }
+
   const handleSave = () => {
     setError('')
     if (variants.some((v) => !v.sku.trim())) {
       setError('Every variant needs a SKU.')
+      return
+    }
+    if (form.infoBlocks.some((b) => !b.description.trim())) {
+      setError('Each product information block needs a description.')
       return
     }
     const input = { ...form, variants }
@@ -228,23 +312,73 @@ export function ProductForm({ product, categories, attributes, isNew = false }: 
             <h3 className="text-sm font-semibold text-slate-900">Product Information</h3>
             <div>
               <label className={labelCls}>Product Name</label>
-              <input type="text" value={form.name} onChange={(e) => set({ name: e.target.value })}
+              <input type="text" value={form.name} onChange={(e) => handleNameChange(e.target.value)}
                 placeholder="e.g. FUYL COMPLETE+" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Brand</label>
+              <input type="text" value={form.brand} onChange={(e) => set({ brand: e.target.value })}
+                placeholder="e.g. FUYL" className={inputCls} />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className={labelCls + ' mb-0'}>Short Description</label>
+                <span className="text-xs text-slate-400">{form.shortDescription.length}/280</span>
+              </div>
+              <textarea value={form.shortDescription} onChange={(e) => set({ shortDescription: e.target.value.slice(0, 280) })} rows={2}
+                placeholder="A short summary shown on product cards, listings, and previews..." maxLength={280} className={`${inputCls} resize-none`} />
             </div>
             <div>
               <label className={labelCls}>Category</label>
               {categories.length === 0 ? (
                 <p className="text-xs text-slate-400 py-2.5">No categories yet</p>
               ) : (
-                <select value={form.categoryId} onChange={(e) => set({ categoryId: e.target.value })} className={inputCls}>
-                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <SearchableSelect
+                  options={categoryOptions}
+                  value={form.categoryId}
+                  onChange={(v) => set({ categoryId: v })}
+                  placeholder="Select a category..."
+                  emptyText="No matching categories"
+                />
               )}
             </div>
             <div>
               <label className={labelCls}>Description</label>
               <textarea value={form.description} onChange={(e) => set({ description: e.target.value })} rows={4}
-                placeholder="Describe the product..." className={`${inputCls} resize-none`} />
+                placeholder="Describe the product in full..." className={`${inputCls} resize-none`} />
+            </div>
+            <div>
+              <label className={labelCls}>Tags</label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {form.tags.map((tag) => (
+                  <span key={tag} className="flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full bg-[#558476]/10 text-[#558476] text-xs font-medium">
+                    {tag}
+                    <button type="button" onClick={() => removeTag(tag)} className="p-0.5 hover:text-red-500"><X className="w-3 h-3" /></button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  list="tag-suggestions"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag() }
+                  }}
+                  placeholder="e.g. vegetarian, free-shipping"
+                  className={smallInputCls}
+                />
+                <datalist id="tag-suggestions">
+                  {tags.map((t) => <option key={t.id} value={t.name} />)}
+                </datalist>
+                <button type="button" onClick={addTag} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline whitespace-nowrap">
+                  <Plus className="w-3.5 h-3.5" /> Add
+                </button>
+              </div>
+              <p className={helpCls}>
+                Press Enter to add. <span className="font-medium">vegetarian</span>, <span className="font-medium">free-shipping</span>, <span className="font-medium">made-in-india</span>, and <span className="font-medium">no-artificial-colour</span> show as badges on the product page.
+              </p>
             </div>
           </div>
 
@@ -283,12 +417,17 @@ export function ProductForm({ product, categories, attributes, isNew = false }: 
                 <span className="text-xs text-slate-500 font-medium px-2">{isUploading ? 'Uploading…' : 'Add images'}</span>
               </button>
             </div>
-            <p className="text-xs text-slate-400 mt-3">PNG, JPG, WEBP · first image is the cover shown in listings</p>
+            <p className={helpCls}>PNG, JPG, WEBP · first image is the cover shown in listings</p>
           </div>
 
           {/* Pricing */}
           <div className={`${cardCls} space-y-4`}>
-            <h3 className="text-sm font-semibold text-slate-900">Pricing</h3>
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">Pricing</h3>
+              <p className={helpCls + ' mt-0.5'}>
+                Used as the product&apos;s base price. If you add variants below, each variant can set its own price and stock instead.
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Price (₹)</label>
@@ -300,6 +439,14 @@ export function ProductForm({ product, categories, attributes, isNew = false }: 
                   placeholder="Optional" className={inputCls} />
               </div>
             </div>
+
+            {variants.length === 0 && (
+              <div>
+                <label className={labelCls}>Stock</label>
+                <input type="number" min={0} value={form.stock} onChange={(e) => set({ stock: Number(e.target.value) })} className={inputCls} />
+                <p className={helpCls}>How many units you have on hand. Once you add a variant below, stock is tracked per variant instead.</p>
+              </div>
+            )}
 
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -336,17 +483,18 @@ export function ProductForm({ product, categories, attributes, isNew = false }: 
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 items-end">
+            <div className="grid grid-cols-2 gap-4 items-center pt-1">
               <div>
                 <label className={labelCls}>Cost per Item (₹)</label>
                 <input type="number" value={form.costPerItem ?? ''} onChange={(e) => set({ costPerItem: e.target.value ? Number(e.target.value) : undefined })}
                   placeholder="Admin only" className={inputCls} />
               </div>
-              <label className="flex items-center gap-2.5 pb-2.5 cursor-pointer">
-                <input type="checkbox" checked={form.isTaxable} onChange={(e) => set({ isTaxable: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-300 text-[#558476] focus:ring-[#558476]" />
-                <span className="text-sm font-medium text-slate-900">Charge tax on this product</span>
-              </label>
+              <Toggle
+                checked={form.isTaxable}
+                onChange={(v) => set({ isTaxable: v })}
+                label="Charge tax"
+                description="Apply tax rules to this product at checkout"
+              />
             </div>
 
             {profit != null && (
@@ -363,138 +511,278 @@ export function ProductForm({ product, categories, attributes, isNew = false }: 
             )}
           </div>
 
-          {/* Variants */}
+          {/* Variants — optional */}
           <div className={`${cardCls} space-y-4`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900">Variants</h3>
-                <p className="text-xs text-slate-400 mt-0.5">e.g. Size, Flavor, Pack Size, Color — each variant has its own price, SKU, stock and images</p>
-              </div>
-              <button type="button" onClick={addVariant} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
-                <Plus className="w-3.5 h-3.5" /> Add variant
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {variants.map((v, i) => (
-                <VariantRow
-                  key={v.id || `new-${i}`}
-                  variant={v}
-                  index={i}
-                  attributes={attributes}
-                  isOnlyVariant={variants.length === 1}
-                  isUploading={isUploading}
-                  onUpdate={(patch) => updateVariant(i, patch)}
-                  onRemove={() => removeVariant(i)}
-                  onFileChange={(e) => handleVariantFileChange(i, e)}
-                  onRemoveImage={(imgIdx) => removeVariantImage(i, imgIdx)}
-                  onAddAttribute={(key) => addVariantAttribute(i, key)}
-                  onSetAttributeValue={(key, value) => setVariantAttributeValue(i, key, value)}
-                  onRemoveAttribute={(key) => removeVariantAttribute(i, key)}
-                />
-              ))}
-            </div>
+            <Collapsible
+              title="Variants"
+              description="Optional — e.g. Size, Flavor, Pack Size, Color. Leave empty to sell this as a single item at the price above."
+              defaultOpen={variants.length > 0}
+              headerRight={
+                <button type="button" onClick={addVariant} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline whitespace-nowrap">
+                  <Plus className="w-3.5 h-3.5" /> Add variant
+                </button>
+              }
+            >
+              {variants.length === 0 ? (
+                <p className="text-xs text-slate-400 border border-dashed border-slate-200 rounded-lg py-6 text-center">
+                  No variants — this product will be sold as a single item using the price above.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {variants.map((v, i) => (
+                    <VariantRow
+                      key={v.id || `new-${i}`}
+                      variant={v}
+                      index={i}
+                      attributes={attributes}
+                      isUploading={isUploading}
+                      onUpdate={(patch) => updateVariant(i, patch)}
+                      onRemove={() => removeVariant(i)}
+                      onFileChange={(e) => handleVariantFileChange(i, e)}
+                      onRemoveImage={(imgIdx) => removeVariantImage(i, imgIdx)}
+                      onAddAttribute={(key) => addVariantAttribute(i, key)}
+                      onSetAttributeValue={(key, value) => setVariantAttributeValue(i, key, value)}
+                      onRemoveAttribute={(key) => removeVariantAttribute(i, key)}
+                    />
+                  ))}
+                </div>
+              )}
+            </Collapsible>
           </div>
 
           {/* Metafields */}
           <div className={`${cardCls} space-y-5`}>
-            <h3 className="text-sm font-semibold text-slate-900">Product Details</h3>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className={labelCls + ' mb-0'}>Benefits</label>
-                <button type="button" onClick={addBenefit} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
-                  <Plus className="w-3.5 h-3.5" /> Add
-                </button>
-              </div>
-              <div className="space-y-2">
-                {form.benefits.map((b, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input type="text" value={b} onChange={(e) => updateBenefit(i, e.target.value)} placeholder="e.g. Improves digestion" className={smallInputCls} />
-                    <button type="button" onClick={() => removeBenefit(i)} className="p-2 text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+            <Collapsible title="Product Details" description="Ingredients, benefits, FAQs, certifications, and other informational content." defaultOpen>
+              <div className="space-y-5">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className={labelCls + ' mb-0'}>Ingredients</label>
+                    <button type="button" onClick={addIngredient} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
+                      <Plus className="w-3.5 h-3.5" /> Add
+                    </button>
                   </div>
-                ))}
-              </div>
-            </div>
+                  {form.ingredients.length === 0 && (
+                    <p className="text-xs text-slate-400 mb-2">Shown in the Ingredients tab on the product page.</p>
+                  )}
+                  <div className="space-y-2">
+                    {form.ingredients.map((ing, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input type="text" value={ing} onChange={(e) => updateIngredient(i, e.target.value)} placeholder="e.g. Ashwagandha (KSM-66)" className={smallInputCls} />
+                        <button type="button" onClick={() => removeIngredient(i)} className="p-2 text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className={labelCls + ' mb-0'}>FAQs</label>
-                <button type="button" onClick={addFaq} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
-                  <Plus className="w-3.5 h-3.5" /> Add
-                </button>
-              </div>
-              <div className="space-y-3">
-                {form.faqs.map((f, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <div className="flex-1 space-y-2">
-                      <input type="text" value={f.question} onChange={(e) => updateFaq(i, { question: e.target.value })} placeholder="Question" className={smallInputCls} />
-                      <textarea value={f.answer} onChange={(e) => updateFaq(i, { answer: e.target.value })} placeholder="Answer" rows={2} className={`${smallInputCls} resize-none`} />
+                <div className="pt-4 border-t border-slate-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className={labelCls + ' mb-0'}>Benefits</label>
+                    <button type="button" onClick={addBenefit} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
+                      <Plus className="w-3.5 h-3.5" /> Add
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {form.benefits.map((b, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input type="text" value={b} onChange={(e) => updateBenefit(i, e.target.value)} placeholder="e.g. Improves digestion" className={smallInputCls} />
+                        <button type="button" onClick={() => removeBenefit(i)} className="p-2 text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className={labelCls + ' mb-0'}>FAQs</label>
+                    <button type="button" onClick={addFaq} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
+                      <Plus className="w-3.5 h-3.5" /> Add
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {form.faqs.map((f, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <div className="flex-1 space-y-2">
+                          <input type="text" value={f.question} onChange={(e) => updateFaq(i, { question: e.target.value })} placeholder="Question" className={smallInputCls} />
+                          <textarea value={f.answer} onChange={(e) => updateFaq(i, { answer: e.target.value })} placeholder="Answer" rows={2} className={`${smallInputCls} resize-none`} />
+                        </div>
+                        <button type="button" onClick={() => removeFaq(i)} className="p-2 text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className={labelCls + ' mb-0'}>Certifications</label>
+                    <button type="button" onClick={addCertification} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
+                      <Plus className="w-3.5 h-3.5" /> Add
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {form.certifications.map((c, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        {c.logoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={c.logoUrl} alt="" className="w-9 h-9 rounded object-contain border border-slate-200 bg-white flex-shrink-0" />
+                        ) : (
+                          <label className="w-9 h-9 rounded border border-dashed border-slate-300 flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-[#558476]/50">
+                            <ImagePlus className="w-4 h-4 text-slate-300" />
+                            <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+                              onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; if (file) uploadCertLogo(i, file) }} />
+                          </label>
+                        )}
+                        <input type="text" value={c.label} onChange={(e) => updateCertification(i, { label: e.target.value })} placeholder="e.g. FSSAI" className={smallInputCls} />
+                        <button type="button" onClick={() => removeCertification(i)} className="p-2 text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Product Information — repeatable image + optional title + description blocks */}
+                <div className="pt-4 border-t border-slate-100">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={labelCls + ' mb-0'}>Product Information</label>
+                    <button type="button" onClick={addInfoBlock} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
+                      <Plus className="w-3.5 h-3.5" /> Add block
+                    </button>
+                  </div>
+                  <p className={helpCls + ' mb-2.5'}>Rich informational content blocks — an image, an optional title, and a description.</p>
+                  <div className="space-y-3">
+                    {form.infoBlocks.map((b, i) => (
+                      <div key={i} className="flex items-start gap-3 border border-slate-200 rounded-lg p-3">
+                        {b.image ? (
+                          <div className="relative w-16 h-16 flex-shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={b.image} alt="" className="w-full h-full rounded-lg object-cover border border-slate-200" />
+                            <button type="button" onClick={() => updateInfoBlock(i, { image: undefined })}
+                              className="absolute -top-1.5 -right-1.5 p-0.5 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-red-500">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="w-16 h-16 flex-shrink-0 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center cursor-pointer hover:border-[#558476]/40">
+                            <ImagePlus className="w-5 h-5 text-slate-300" />
+                            <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+                              onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; if (file) uploadInfoBlockImage(i, file) }} />
+                          </label>
+                        )}
+                        <div className="flex-1 space-y-2">
+                          <input type="text" value={b.title ?? ''} onChange={(e) => updateInfoBlock(i, { title: e.target.value })}
+                            placeholder="Title (optional)" className={smallInputCls} />
+                          <textarea value={b.description} onChange={(e) => updateInfoBlock(i, { description: e.target.value })}
+                            placeholder="Description" rows={2} className={`${smallInputCls} resize-none`} />
+                        </div>
+                        <button type="button" onClick={() => removeInfoBlock(i)} className="p-2 text-slate-400 hover:text-red-500 flex-shrink-0"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Supplement Info</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelCls}>Age Group</label>
+                      <input type="text" value={form.supplementInfo.ageGroup ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, ageGroup: e.target.value } })} className={inputCls} />
                     </div>
-                    <button type="button" onClick={() => removeFaq(i)} className="p-2 text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                    <div>
+                      <label className={labelCls}>Dietary Use</label>
+                      <input type="text" value={form.supplementInfo.dietaryUse ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, dietaryUse: e.target.value } })} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Flavor</label>
+                      <input type="text" value={form.supplementInfo.flavor ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, flavor: e.target.value } })} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Ingredient Category</label>
+                      <input type="text" value={form.supplementInfo.ingredientCategory ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, ingredientCategory: e.target.value } })} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Route of Administration</label>
+                      <input type="text" value={form.supplementInfo.routeOfAdministration ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, routeOfAdministration: e.target.value } })} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Health Focus (comma-separated)</label>
+                      <input type="text" value={(form.supplementInfo.healthFocus ?? []).join(', ')}
+                        onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, healthFocus: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) } })}
+                        className={inputCls} />
+                    </div>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
+            </Collapsible>
+          </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className={labelCls + ' mb-0'}>Certifications</label>
-                <button type="button" onClick={addCertification} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
-                  <Plus className="w-3.5 h-3.5" /> Add
-                </button>
-              </div>
-              <div className="space-y-2">
-                {form.certifications.map((c, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    {c.logoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={c.logoUrl} alt="" className="w-9 h-9 rounded object-contain border border-slate-200 bg-white flex-shrink-0" />
-                    ) : (
-                      <label className="w-9 h-9 rounded border border-dashed border-slate-300 flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-[#558476]/50">
-                        <ImagePlus className="w-4 h-4 text-slate-300" />
-                        <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
-                          onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; if (file) uploadCertLogo(i, file) }} />
-                      </label>
-                    )}
-                    <input type="text" value={c.label} onChange={(e) => updateCertification(i, { label: e.target.value })} placeholder="e.g. FSSAI" className={smallInputCls} />
-                    <button type="button" onClick={() => removeCertification(i)} className="p-2 text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {/* Shipping */}
+          <div className={`${cardCls} space-y-4`}>
+            <Collapsible
+              title="Shipping"
+              description="Weight, packaging, and customs details used for delivery."
+              defaultOpen
+            >
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-1">
+                  <Truck className="w-4 h-4 text-slate-400" />
+                  <Toggle
+                    checked={form.shipping.isPhysical}
+                    onChange={(v) => setShipping({ isPhysical: v })}
+                    label="This is a physical product"
+                    description="Digital products skip weight, packaging, and customs"
+                  />
+                </div>
 
-            <div className="pt-3 border-t border-slate-100">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Supplement Info</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Age Group</label>
-                  <input type="text" value={form.supplementInfo.ageGroup ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, ageGroup: e.target.value } })} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Dietary Use</label>
-                  <input type="text" value={form.supplementInfo.dietaryUse ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, dietaryUse: e.target.value } })} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Flavor</label>
-                  <input type="text" value={form.supplementInfo.flavor ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, flavor: e.target.value } })} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Ingredient Category</label>
-                  <input type="text" value={form.supplementInfo.ingredientCategory ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, ingredientCategory: e.target.value } })} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Route of Administration</label>
-                  <input type="text" value={form.supplementInfo.routeOfAdministration ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, routeOfAdministration: e.target.value } })} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Health Focus (comma-separated)</label>
-                  <input type="text" value={(form.supplementInfo.healthFocus ?? []).join(', ')}
-                    onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, healthFocus: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) } })}
-                    className={inputCls} />
-                </div>
+                {form.shipping.isPhysical && (
+                  <>
+                    <div>
+                      <label className={labelCls}>Package</label>
+                      <input
+                        type="text"
+                        list="package-suggestions"
+                        value={form.shipping.packageType ?? ''}
+                        onChange={(e) => setShipping({ packageType: e.target.value })}
+                        placeholder="e.g. Poly Mailer, Box, Custom Package"
+                        className={inputCls}
+                      />
+                      <datalist id="package-suggestions">
+                        {PACKAGE_SUGGESTIONS.map((p) => <option key={p} value={p} />)}
+                      </datalist>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelCls}>Weight</label>
+                        <input type="number" min={0} value={form.shipping.weight ?? ''}
+                          onChange={(e) => setShipping({ weight: e.target.value ? Number(e.target.value) : undefined })}
+                          placeholder="e.g. 250" className={inputCls} />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Unit</label>
+                        <select value={form.shipping.weightUnit} onChange={(e) => setShipping({ weightUnit: e.target.value as WeightUnit })} className={inputCls}>
+                          {WEIGHT_UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100">
+                      <Collapsible title="Customs Information" defaultOpen={false}>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className={labelCls}>Country/Region of Origin</label>
+                            <input type="text" value={form.shipping.countryOfOrigin ?? ''} onChange={(e) => setShipping({ countryOfOrigin: e.target.value })}
+                              placeholder="e.g. India" className={inputCls} />
+                          </div>
+                          <div>
+                            <label className={labelCls}>Harmonized System (HS) Code</label>
+                            <input type="text" value={form.shipping.hsCode ?? ''} onChange={(e) => setShipping({ hsCode: e.target.value })}
+                              placeholder="e.g. 2106.90" className={inputCls} />
+                          </div>
+                        </div>
+                      </Collapsible>
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
+            </Collapsible>
           </div>
         </div>
 
@@ -508,26 +796,66 @@ export function ProductForm({ product, categories, attributes, isNew = false }: 
                 <option value="draft">Draft</option>
                 <option value="archived">Archived</option>
               </select>
-              <p className="text-xs text-slate-400 mt-2">
+              <p className={helpCls}>
                 {form.status === 'active' ? 'Available for sale' : form.status === 'draft' ? 'Work in progress' : 'Removed from store'}
               </p>
             </div>
-            <label className="flex items-start gap-2.5 pt-3 border-t border-slate-100 cursor-pointer">
-              <input type="checkbox" checked={form.isPublished} onChange={(e) => set({ isPublished: e.target.checked })}
-                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-[#558476] focus:ring-[#558476]" />
-              <span>
-                <span className="block text-sm font-medium text-slate-900">Published</span>
-                <span className="block text-xs text-slate-400">{form.isPublished ? 'Visible on the storefront' : 'Hidden from customers, regardless of status'}</span>
-              </span>
-            </label>
-            <label className="flex items-start gap-2.5 pt-3 border-t border-slate-100 cursor-pointer">
-              <input type="checkbox" checked={form.isSubscribable} onChange={(e) => set({ isSubscribable: e.target.checked })}
-                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-[#558476] focus:ring-[#558476]" />
-              <span>
-                <span className="block text-sm font-medium text-slate-900">Available for Subscription</span>
-                <span className="block text-xs text-slate-400">Shows the Subscribe &amp; Save purchase option on the product page</span>
-              </span>
-            </label>
+            <div className="pt-3 border-t border-slate-100">
+              <Toggle
+                checked={form.isPublished}
+                onChange={(v) => set({ isPublished: v })}
+                label="Published"
+                description={form.isPublished ? 'Visible on the storefront' : 'Hidden from customers, regardless of status'}
+              />
+            </div>
+            <div className="pt-3 border-t border-slate-100">
+              <Toggle
+                checked={form.isSubscribable}
+                onChange={(v) => set({ isSubscribable: v })}
+                label="Available for Subscription"
+                description="Shows the Subscribe & Save purchase option on the product page"
+              />
+            </div>
+          </div>
+
+          {/* SEO / URL */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
+            <h3 className="text-sm font-semibold text-slate-900">Search Engine Listing</h3>
+            <div>
+              <label className={labelCls}>Slug</label>
+              <div className="flex items-center gap-1 px-3 rounded-lg border border-slate-200 bg-slate-50 focus-within:ring-2 focus-within:ring-[#558476]">
+                <span className="text-sm text-slate-400 whitespace-nowrap">/products/</span>
+                <input
+                  type="text"
+                  value={form.seo.slug}
+                  onChange={(e) => {
+                    setSlugTouched(true)
+                    setSeo({ slug: slugify(e.target.value) })
+                  }}
+                  placeholder="fuyl-complete"
+                  className="w-full py-2.5 bg-transparent text-slate-900 text-sm focus:outline-none"
+                />
+              </div>
+              <p className={helpCls}>
+                {isNew ? 'Auto-filled from the name — edit to customize.' : "Changing this changes the product's live URL."}
+              </p>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className={labelCls + ' mb-0'}>Meta Title</label>
+                <span className="text-xs text-slate-400">{(form.seo.metaTitle ?? '').length}/200</span>
+              </div>
+              <input type="text" value={form.seo.metaTitle ?? ''} onChange={(e) => setSeo({ metaTitle: e.target.value.slice(0, 200) })}
+                placeholder="Defaults to the product name" maxLength={200} className={inputCls} />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className={labelCls + ' mb-0'}>Meta Description</label>
+                <span className="text-xs text-slate-400">{(form.seo.metaDescription ?? '').length}/500</span>
+              </div>
+              <textarea value={form.seo.metaDescription ?? ''} onChange={(e) => setSeo({ metaDescription: e.target.value.slice(0, 500) })} rows={3}
+                placeholder="Shown in search engine results" maxLength={500} className={`${inputCls} resize-none`} />
+            </div>
           </div>
         </div>
       </div>
@@ -536,13 +864,12 @@ export function ProductForm({ product, categories, attributes, isNew = false }: 
 }
 
 function VariantRow({
-  variant, index, attributes, isOnlyVariant, isUploading,
+  variant, index, attributes, isUploading,
   onUpdate, onRemove, onFileChange, onRemoveImage, onAddAttribute, onSetAttributeValue, onRemoveAttribute,
 }: {
   variant: AdminVariant
   index: number
   attributes: AttributeDef[]
-  isOnlyVariant: boolean
   isUploading: boolean
   onUpdate: (patch: Partial<AdminVariant>) => void
   onRemove: () => void
@@ -559,11 +886,9 @@ function VariantRow({
     <div className="border border-slate-200 rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Variant {index + 1}</p>
-        {!isOnlyVariant && (
-          <button type="button" onClick={onRemove} className="p-1.5 text-slate-400 hover:text-red-500" title="Remove variant">
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
+        <button type="button" onClick={onRemove} className="p-1.5 text-slate-400 hover:text-red-500" title="Remove variant">
+          <Trash2 className="w-4 h-4" />
+        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

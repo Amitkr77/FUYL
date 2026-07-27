@@ -9,11 +9,11 @@ const subRepo = new SubscriptionRepository();
 /**
  * Dunning safety net — runs hourly via cron.
  *
- * Razorpay Subscriptions (UPI Autopay/e-mandate) retries failed charges on
+ * Cashfree Subscriptions (UPI Autopay/e-mandate) retries failed charges on
  * its own schedule and reports outcomes via webhook
- * (subscription.charged / subscription.payment_failed / subscription.halted
- * — see razorpayWebhook.service.ts, which is the real recovery/cancellation
- * path). There is no Razorpay API to force a retry on demand, so this
+ * (SUBSCRIPTION_NEW_PAYMENT / PAYMENT_DECLINED / STATUS_CHANGE — see
+ * cashfreeSubscriptionWebhook.service.ts, which is the real recovery/
+ * cancellation path). There is no gateway API to force a retry on demand, so this
  * service previously simulated one with `Math.random() > 0.5` — a coin
  * flip deciding whether a real customer's subscription lived or died,
  * unrelated to whether they were actually charged. That has been removed.
@@ -36,7 +36,7 @@ export class DunningService {
       try {
         await subRepo.updateStatus(sub._id, SubscriptionStatus.CANCELLED, {
           cancelledAt: new Date(),
-          cancelledReason: 'Payment retry window exhausted with no recovery signal from Razorpay',
+          cancelledReason: 'Payment retry window exhausted with no recovery signal from Cashfree',
         });
         cancelled++;
         eventBus.publish(Events.SUBSCRIPTION_FAILED, {

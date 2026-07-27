@@ -40,6 +40,45 @@ function mapSub(s: BackendSubscription): Subscription {
   }
 }
 
+export interface CreateSubscriptionInput {
+  planId:     string
+  productId:  string
+  variantId?: string
+  quantity?:  number
+  addressId?: string
+}
+
+// The new subscription is created PENDING; `mode` + one of
+// subscriptionSessionId/authLink is used (via lib/utils/cashfree
+// authorizeSubscription) to run the mandate-authorization step. Cashfree then
+// fires the ACTIVE webhook once the customer authorizes.
+export interface CreateSubscriptionResult {
+  subscriptionId:        string
+  mode:                  'sandbox' | 'production'
+  subscriptionSessionId?: string
+  authLink?:             string
+}
+
+export async function createSubscription(
+  token: string,
+  input: CreateSubscriptionInput,
+): Promise<CreateSubscriptionResult> {
+  const raw = await apiFetch<{
+    subscription: { _id: string }
+    cashfree?: { subscriptionSessionId?: string; authLink?: string; mode?: 'sandbox' | 'production' }
+  }>('/subscriptions', {
+    method: 'POST',
+    body:   { ...input, paymentMethod: 'cashfree' },
+    token,
+  })
+  return {
+    subscriptionId:        raw.subscription._id,
+    mode:                  raw.cashfree?.mode ?? 'sandbox',
+    subscriptionSessionId: raw.cashfree?.subscriptionSessionId,
+    authLink:              raw.cashfree?.authLink,
+  }
+}
+
 export async function getMySubscriptions(token: string): Promise<Subscription[]> {
   const raw = await apiFetch<BackendSubscription[]>('/subscriptions/me', { token })
   return raw.map(mapSub)

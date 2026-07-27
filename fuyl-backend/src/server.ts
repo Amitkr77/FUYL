@@ -16,6 +16,7 @@ import {
   notificationService,
 } from './modules/notification';
 import { registerCartSchedulers } from './modules/cart';
+import { registerShippingSchedulers } from './modules/shipping';
 import { registerInventorySchedulers, registerInventoryEventSubscribers } from './modules/inventory';
 import {
   registerAnalyticsEventSubscribers,
@@ -72,6 +73,7 @@ async function bootstrap() {
   registerIdentitySchedulers();
   registerSubscriptionSchedulers();
   registerReferralSchedulers();
+  registerShippingSchedulers();
   registerCartSchedulers();
   registerInventorySchedulers();
   registerAnalyticsSchedulers();
@@ -85,7 +87,7 @@ async function bootstrap() {
     logger.info(`[boot] HTTP server listening on http://localhost:${env.port}`);
     logger.info(`[boot] API base:        /${env.apiPrefix}`);
     logger.info(`[boot] Swagger docs:    /docs`);
-    logger.info(`[boot] Razorpay webhooks: /${env.apiPrefix}/webhooks/razorpay/subscription, /webhooks/razorpay/payment`);
+    logger.info(`[boot] Payment webhooks:  /${env.apiPrefix}/webhooks/cashfree/payment, /webhooks/cashfree/subscription`);
   });
 
   // 9. Graceful shutdown

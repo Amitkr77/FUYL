@@ -2,6 +2,7 @@
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 
 const WEEKS = [
   {
@@ -163,9 +164,9 @@ export function ThirtyDayPath() {
             <div className="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
               <Link
                 href="/products/fuyl-complete"
-                className="inline-flex w-full sm:w-auto min-h-11 items-center justify-center rounded-sm border bg-brand-forest px-4 sm:px-8 py-3 text-[10px] sm:text-xs font-semibold uppercase tracking-wide sm:tracking-widest text-center text-white! transition-colors hover:bg-brand-sage hover:text-brand-forest! whitespace-normal sm:whitespace-nowrap hover:border-none"
+                className="inline-flex w-full sm:w-auto min-h-11 items-center justify-center gap-2 rounded-sm border bg-brand-forest px-4 sm:px-8 py-3 text-[10px] sm:text-xs font-semibold uppercase tracking-wide sm:tracking-widest text-center text-white! transition-colors hover:bg-brand-sage hover:text-brand-forest! whitespace-normal sm:whitespace-nowrap hover:border-none"
               >
-                START YOUR 30 DAYS - SHOP FUYL COMPLETE+ →
+                START YOUR 30 DAYS - SHOP FUYL COMPLETE+ <ArrowRight size={16} />
               </Link>
 
               {/*

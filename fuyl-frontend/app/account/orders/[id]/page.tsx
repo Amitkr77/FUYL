@@ -8,6 +8,7 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { formatPrice } from '@/lib/utils/formatPrice'
 import { getOrder } from '@/lib/api/account'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { WriteReviewForm } from '@/components/product/WriteReviewForm'
 import type { Order, OrderAddress } from '@/types/user'
 import { getErrorMessage } from '@/lib/api/client'
 
@@ -131,6 +132,7 @@ export default function OrderDetailPage() {
   const [order, setOrder]     = useState<Order | null>(null)
   const [isLoading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
+  const [reviewingItemId, setReviewingItemId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token || !params.id) return
@@ -214,19 +216,42 @@ export default function OrderDetailPage() {
           <div>
             <p className="text-label text-brand-muted mb-4">Items</p>
             <div className="flex flex-col gap-4">
-              {order.items.map((item) => (
-                <div key={item.id} className="flex items-center gap-4">
-                  {item.image && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-sm" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-body-sm font-semibold truncate">{item.name}</p>
-                    <p className="text-body-xs text-brand-muted">Qty {item.quantity}</p>
+              {order.items.map((item) => {
+                const canReview = order.status === 'delivered' || order.status === 'completed'
+                const isReviewing = reviewingItemId === item.id
+                return (
+                  <div key={item.id} className="flex flex-col gap-3">
+                    <div className="flex items-center gap-4">
+                      {item.image && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-sm" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-body-sm font-semibold truncate">{item.name}</p>
+                        <p className="text-body-xs text-brand-muted">Qty {item.quantity}</p>
+                        {canReview && !isReviewing && (
+                          <button
+                            type="button"
+                            onClick={() => setReviewingItemId(item.id)}
+                            className="text-body-xs font-semibold text-brand-teal underline mt-1"
+                          >
+                            Write a Review
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-body-sm">{formatPrice(item.price * item.quantity)}</p>
+                    </div>
+                    {isReviewing && (
+                      <WriteReviewForm
+                        productId={item.productId}
+                        variantId={item.variantId}
+                        orderId={order.id}
+                        onCancel={() => setReviewingItemId(null)}
+                      />
+                    )}
                   </div>
-                  <p className="text-body-sm">{formatPrice(item.price * item.quantity)}</p>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 

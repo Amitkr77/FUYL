@@ -18,6 +18,16 @@ export class ShipmentRepository {
     return ShipmentModel.findOne({ trackingNumber });
   }
 
+  /** Non-terminal shipments that have a real tracking number — for tracking sync. */
+  async findActiveTracked(limit = 200): Promise<IShipment[]> {
+    return ShipmentModel.find({
+      status: { $nin: ['delivered', 'returned_to_origin', 'cancelled'] },
+      trackingNumber: { $exists: true, $nin: [null, ''] },
+    })
+      .sort({ updatedAt: 1 })
+      .limit(limit);
+  }
+
   async paginate(filter: FilterQuery<IShipment> = {}, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
@@ -25,6 +35,10 @@ export class ShipmentRepository {
       ShipmentModel.countDocuments(filter),
     ]);
     return { items, total, page, limit };
+  }
+
+  async update(id: string | Types.ObjectId, patch: Partial<IShipment>): Promise<IShipment | null> {
+    return ShipmentModel.findByIdAndUpdate(id, { $set: patch }, { new: true });
   }
 
   async addTimelineEvent(

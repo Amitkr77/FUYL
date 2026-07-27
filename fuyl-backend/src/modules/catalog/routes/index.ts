@@ -37,6 +37,7 @@ router.patch('/admin/catalog/variants/:id', authRequired, catalogController.upda
 router.delete('/admin/catalog/variants/:id', authRequired, catalogController.deactivateVariant);
 
 // ─── Admin: categories, tags, attributes, collections ────────────
+router.get('/admin/catalog/categories', authRequired, catalogController.listCategoriesAdmin);
 router.post('/admin/catalog/categories', authRequired, catalogController.createCategory);
 router.patch('/admin/catalog/categories/:id', authRequired, catalogController.updateCategory);
 

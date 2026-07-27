@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, ShoppingBag, IndianRupee, TrendingUp, Mail } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ShoppingBag, IndianRupee, TrendingUp, Mail } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import { getCustomer } from '@/lib/customers'
 import type { OrderStatus } from '@/lib/orders'
@@ -130,8 +130,8 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                       </Badge>
                     </td>
                     <td className="px-5 py-4">
-                      <Link href={`/orders/${order.id}`} className="text-xs text-[#558476] hover:underline font-medium">
-                        View →
+                      <Link href={`/orders/${order.id}`} className="inline-flex items-center gap-1 text-xs text-[#558476] hover:underline font-medium">
+                        View <ArrowRight className="w-3 h-3" />
                       </Link>
                     </td>
                   </tr>

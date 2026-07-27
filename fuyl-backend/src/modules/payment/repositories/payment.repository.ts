@@ -21,6 +21,9 @@ export class PaymentRepository {
   async findByRazorpayPaymentId(id: string): Promise<IPayment | null> {
     return PaymentModel.findOne({ razorpayPaymentId: id });
   }
+  async findByCfOrderId(id: string): Promise<IPayment | null> {
+    return PaymentModel.findOne({ cfOrderId: id });
+  }
   async update(id: string | Types.ObjectId, patch: Partial<IPayment>): Promise<IPayment | null> {
     return PaymentModel.findByIdAndUpdate(id, { $set: patch }, { new: true });
   }

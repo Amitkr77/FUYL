@@ -14,6 +14,7 @@
     "test:e2e": "jest tests/e2e",
     "seed": "tsx src/database/seed/index.ts",
     "create-admin": "tsx scripts/create-admin.ts",
+  "cashfree-check": "tsx scripts/cashfree-sandbox-check.ts",
     "migrate-certifications": "tsx scripts/migrate-certifications.ts",
     "typecheck": "tsc --noEmit"
   },

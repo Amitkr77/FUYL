@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 export function JoinOurTeam() {
@@ -23,9 +24,9 @@ export function JoinOurTeam() {
           </p>
           <Link
             href="/pages/contact"
-            className="inline-flex items-center justify-center h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest"
+            className="inline-flex items-center justify-center gap-2 h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest"
           >
-            Join Our Team →
+            Join Our Team <ArrowRight size={16} />
           </Link>
         </ScrollReveal>
       </div>

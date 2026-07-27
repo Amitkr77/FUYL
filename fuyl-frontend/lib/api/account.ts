@@ -76,6 +76,8 @@ function mapOrder(o: BackendOrder): Order {
     status: o.status,
     items: o.items.map((i): OrderLineItem => ({
       id: i.variantId ? `${i.productId}-${i.variantId}` : i.productId,
+      productId: i.productId,
+      variantId: i.variantId,
       name: i.name,
       quantity: i.quantity,
       price: i.unitPrice,

@@ -81,6 +81,14 @@ export class CatalogService {
     return updated;
   }
 
+  // Called by the review module whenever a review's approved-status changes
+  // (moderate/update/delete) — keeps the product's own cached rating fields
+  // (read by product listings and the PDP) in sync with the live,
+  // approved-only aggregate reviewService computes.
+  async updateProductRating(productId: string, average: number, count: number) {
+    await productRepo.updateRating(productId, average, count);
+  }
+
   async listProducts(page = 1, limit = 20, filter: Record<string, unknown> = {}) {
     return productRepo.paginate({ isDeleted: false, ...filter }, page, limit);
   }
@@ -198,6 +206,11 @@ export class CatalogService {
   }
 
   async listCategories() { return categoryRepo.findAll({ isActive: true }); }
+
+  // Admin management view — includes inactive categories so they can be
+  // found and re-activated (the public listCategories() above only ever
+  // shows active ones, which is right for the storefront/product picker).
+  async listCategoriesAdmin() { return categoryRepo.findAll({}); }
 
   async updateCategory(id: string, dto: UpdateCategoryDTO) {
     const updated = await categoryRepo.update(id, dto as any);

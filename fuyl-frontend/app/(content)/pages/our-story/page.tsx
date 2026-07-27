@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 import { generateSEO } from "@/lib/utils/seo";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
@@ -247,9 +248,9 @@ export default function OurStoryPage() {
             <div className="mb-6 flex flex-wrap justify-center gap-4">
               <Link
                 href="/products/fuyl-complete"
-                className="inline-flex h-12 items-center justify-center rounded-sm bg-brand-forest px-6 sm:px-10 text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:bg-brand-sage hover:text-brand-forest"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-sm bg-brand-forest px-6 sm:px-10 text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:bg-brand-sage hover:text-brand-forest"
               >
-                Try FUYL Complete+ — ₹1,499 for 15 sachets →
+                Try FUYL Complete+ — ₹1,499 for 15 sachets <ArrowRight size={16} />
               </Link>
               {/* <Link
                 href="/pages/contact"

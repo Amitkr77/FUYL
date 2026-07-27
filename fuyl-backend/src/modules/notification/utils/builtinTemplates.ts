@@ -133,6 +133,22 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     description: 'Sent on order.shipped event',
   },
   {
+    name: 'shipment_update',
+    channel: 'email',
+    subject: 'Update on order {{orderNumber}}',
+    body: emailWrap(`
+      <p style="margin:0 0 16px;">Hi {{name}},</p>
+      <p style="margin:0 0 8px;">There's an update on your order <strong>{{orderNumber}}</strong>:</p>
+      <p style="margin:16px 0 8px;">${emailBadge('{{statusLabel}}', 'success')}</p>
+      ${emailDetailsTable(
+        emailDetailRow('Carrier', '{{carrier}}') +
+        emailDetailRow('Tracking No.', '{{trackingNumber}}')
+      )}
+      ${emailButton('{{trackingUrl}}', 'Track Shipment')}
+    `),
+    description: 'Sent on intermediate shipment status changes (picked up / in transit / out for delivery)',
+  },
+  {
     name: 'order_delivered',
     channel: 'email',
     subject: 'Order {{orderNumber}} delivered',

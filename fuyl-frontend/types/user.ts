@@ -21,6 +21,8 @@ export interface Address {
 
 export interface OrderLineItem {
   id: string
+  productId: string
+  variantId?: string
   name: string
   quantity: number
   price: number

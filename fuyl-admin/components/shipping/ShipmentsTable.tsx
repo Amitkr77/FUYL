@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Search, ExternalLink } from 'lucide-react'
+import { Search, ExternalLink, RefreshCw } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import { formatDate } from '@/lib/utils'
 import type { Shipment, ShipmentStatus } from '@/lib/shipping'
-import { updateShipmentStatusAction } from '@/app/(admin)/shipping/actions'
+import { updateShipmentStatusAction, syncShipmentTrackingAction, reattemptShipmentAction } from '@/app/(admin)/shipping/actions'
+
+const TERMINAL_STATUSES: ShipmentStatus[] = ['delivered', 'returned_to_origin', 'cancelled']
 
 const STATUS_VARIANT: Record<ShipmentStatus, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
   pending: 'default', label_created: 'info', picked_up: 'info', in_transit: 'info',
@@ -38,8 +40,37 @@ function RowActions({ s }: { s: Shipment }) {
     })
   }
 
+  const sync = () => {
+    setError('')
+    startTransition(async () => {
+      const result = await syncShipmentTrackingAction(s.id)
+      if ('error' in result) setError(result.error)
+    })
+  }
+
+  const reattempt = () => {
+    setError('')
+    startTransition(async () => {
+      const result = await reattemptShipmentAction(s.id)
+      if ('error' in result) setError(result.error)
+    })
+  }
+
+  const isTerminal = TERMINAL_STATUSES.includes(s.status)
+
   return (
     <div className="flex items-center gap-2">
+      {!isTerminal && (
+        <button
+          onClick={sync}
+          disabled={isPending}
+          title="Sync latest tracking status from the carrier"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isPending ? 'animate-spin' : ''}`} />
+          Sync
+        </button>
+      )}
       {action && (
         <button
           onClick={() => run(action.next)}
@@ -57,6 +88,24 @@ function RowActions({ s }: { s: Shipment }) {
         >
           Mark Failed
         </button>
+      )}
+      {s.status === 'failed' && (
+        <>
+          <button
+            onClick={reattempt}
+            disabled={isPending}
+            className="px-3 py-1.5 text-xs font-medium text-white bg-[#558476] hover:bg-[#457366] rounded-lg transition-colors disabled:opacity-50"
+          >
+            {isPending ? 'Working…' : 'Re-attempt'}
+          </button>
+          <button
+            onClick={() => run('returned_to_origin')}
+            disabled={isPending}
+            className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+          >
+            Mark RTO
+          </button>
+        </>
       )}
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>

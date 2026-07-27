@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { Badge } from '@/components/ui/Badge'
+import { DeliveryInfo } from './DeliveryInfo'
 import type { Product } from '@/types/product'
 
 interface ProductTabsProps {
@@ -12,12 +13,20 @@ interface ProductTabsProps {
   descriptionHtml: string
 }
 
+// Formula-level groupings + claims — same across every FUYL COMPLETE+ sachet,
+// not per-product data, so kept static here rather than modeled as a field.
+const INGREDIENT_CATEGORIES = [
+  'Greens', 'Berries', 'Fruits', 'Superfoods', 'Botanicals', 'Detox Blend',
+  'Adaptogens', 'Prebiotic', 'Probiotic', 'Digestive Enzymes', 'Omega Source',
+  'Vitamins', 'Minerals', 'Antioxidants',
+]
+
+const FORMULA_HIGHLIGHTS = [
+  'Sweetened with monk fruit', '100% vegetarian', 'No artificial colours & flavours',
+]
+
 export function ProductTabs({ product, descriptionHtml }: ProductTabsProps) {
-  const tabs = [
-    'Description',
-    ...(product.ingredients.length ? ['Ingredients'] : []),
-    ...(product.benefits.length ? ['Benefits'] : []),
-  ] as const
+  const tabs = ['Description', 'Ingredients', 'Delivery'] as const
   const [active, setActive] = useState<string>(tabs[0])
 
   return (
@@ -50,26 +59,41 @@ export function ProductTabs({ product, descriptionHtml }: ProductTabsProps) {
         )}
 
         {active === 'Ingredients' && (
-          <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            {product.ingredients.map((ingredient) => (
-              <li key={ingredient} className="flex items-start gap-2.5 text-body-sm">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-teal" />
-                <span className="text-brand-forest">{ingredient}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="flex flex-col gap-6">
+            <div>
+              <p className="text-label mb-2.5 text-brand-muted">Formula Categories</p>
+              <div className="flex flex-wrap gap-2">
+                {INGREDIENT_CATEGORIES.map((c) => (
+                  <Badge key={c} variant="muted">{c}</Badge>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-label mb-2.5 text-brand-muted">Highlights</p>
+              <div className="flex flex-wrap gap-2">
+                {FORMULA_HIGHLIGHTS.map((h) => (
+                  <Badge key={h} variant="success">{h}</Badge>
+                ))}
+              </div>
+            </div>
+
+            {product.ingredients.length ? (
+              <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                {product.ingredients.map((ingredient) => (
+                  <li key={ingredient} className="flex items-start gap-2.5 text-body-sm">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-teal" />
+                    <span className="text-brand-forest">{ingredient}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-body-sm text-brand-muted">No ingredient list available.</p>
+            )}
+          </div>
         )}
 
-        {active === 'Benefits' && (
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {product.benefits.map((benefit) => (
-              <li key={benefit} className="flex items-start gap-2.5 text-body-sm">
-                <Check size={16} className="mt-0.5 shrink-0 text-brand-teal" />
-                <span className="text-brand-forest">{benefit}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        {active === 'Delivery' && <DeliveryInfo />}
       </div>
     </div>
   )

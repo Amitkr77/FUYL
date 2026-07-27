@@ -1,5 +1,6 @@
 import { PaymentRepository, TransactionRepository } from '../repositories/payment.repository';
 import { razorpayGateway } from '../utils/razorpay';
+import { cashfreeGateway } from '../utils/cashfree';
 import { OrderService } from '../../order/services/order.service';
 import {
   NotFoundError,
@@ -8,9 +9,11 @@ import {
 } from '../../../shared/errors';
 import { PaymentStatus, PaymentMethod } from '../../../shared/enums';
 import { eventBus, Events } from '../../../shared/services/eventBus.service';
+import { env } from '../../../config/env';
 import { logger } from '../../../config/logger';
 import { nextNumber } from '../../order/utils/counter';
-import mongoose, { Types } from 'mongoose';
+import type { IPayment } from '../models/payment.model';
+import { Types } from 'mongoose';
 
 const paymentRepo = new PaymentRepository();
 const txRepo = new TransactionRepository();
@@ -27,7 +30,6 @@ export class PaymentService {
     if (order.paymentStatus === PaymentStatus.SUCCESS) throw new ConflictError('Order already paid');
 
     const paymentNumber = await nextNumber('PAY');
-    const amountInPaise = Math.round(order.grandTotal * 100);
 
     if (method === PaymentMethod.COD) {
       // COD: no Razorpay order, mark as pending until delivery
@@ -104,11 +106,23 @@ export class PaymentService {
       }
     }
 
-    // Razorpay flow
-    const rzpOrder = await razorpayGateway.createOrder({
-      amount: amountInPaise,
+    // Cashfree flow — create a Cashfree order and hand the session id to the
+    // client SDK. `cfOrderId` (our unique payment number) is how we later
+    // reconcile the payment on verify + webhook.
+    const cfOrderId = paymentNumber;
+    const cfOrder = await cashfreeGateway.createOrder({
+      orderId: cfOrderId,
+      amount: order.grandTotal, // rupees — Cashfree does NOT use paise
       currency: order.currency,
-      receipt: order.orderNumber,
+      customer: {
+        id: customerId,
+        phone: order.shippingAddress?.phone ?? '',
+        name: order.shippingAddress?.fullName,
+        // No email stored on the order; a valid-format placeholder keeps
+        // Cashfree happy — our own notification module sends order emails.
+        email: `cust-${customerId}@checkout.fuyl.in`,
+      },
+      returnUrl: `${env.clientUrl}/checkout/success?orderId=${orderId}`,
       notes: { orderId, customerId },
     });
 
@@ -120,8 +134,9 @@ export class PaymentService {
       currency: order.currency,
       method,
       status: PaymentStatus.PENDING,
-      gateway: 'razorpay',
-      razorpayOrderId: rzpOrder.id,
+      gateway: 'cashfree',
+      cfOrderId,
+      paymentSessionId: cfOrder.payment_session_id,
       attemptedAt: new Date(),
     });
 
@@ -135,41 +150,50 @@ export class PaymentService {
       currency: payment.currency,
       method,
       status: PaymentStatus.PENDING,
-      gateway: 'razorpay',
-      gatewayTransactionId: rzpOrder.id,
-      description: `Razorpay order created for ${order.orderNumber}`,
+      gateway: 'cashfree',
+      gatewayTransactionId: cfOrderId,
+      description: `Cashfree order created for ${order.orderNumber}`,
     });
 
     return {
       payment,
-      razorpay: {
-        orderId: rzpOrder.id,
-        amount: rzpOrder.amount,
-        currency: rzpOrder.currency,
-        keyId: process.env.RAZORPAY_KEY_ID,
+      cashfree: {
+        orderId: cfOrderId,
+        paymentSessionId: cfOrder.payment_session_id,
+        amount: order.grandTotal,
+        currency: order.currency,
+        mode: env.cashfree.mode,
       },
     };
   }
 
   /**
-   * Step 2: Verify the Razorpay payment signature after customer pays on the client.
+   * Step 2: after the shopper completes payment in the Cashfree SDK, confirm
+   * by fetching the order status server-side (Cashfree has no client-side
+   * signature to verify). The webhook is the backstop if this never fires.
    */
-  async verifyPayment(customerId: string, opts: { razorpayOrderId: string; razorpayPaymentId: string; razorpaySignature: string }) {
-    const payment = await paymentRepo.findByRazorpayOrderId(opts.razorpayOrderId);
-    if (!payment) throw new NotFoundError('Payment for Razorpay order');
+  async verifyPayment(customerId: string, opts: { cfOrderId: string }) {
+    const payment = await paymentRepo.findByCfOrderId(opts.cfOrderId);
+    if (!payment) throw new NotFoundError('Payment');
     if (payment.customerId.toString() !== customerId) throw new BadRequestError('Not your payment');
+    if (payment.status === PaymentStatus.SUCCESS) return payment; // idempotent
 
-    const valid = razorpayGateway.verifyPaymentSignature({
-      orderId: opts.razorpayOrderId,
-      paymentId: opts.razorpayPaymentId,
-      signature: opts.razorpaySignature,
-    });
-    if (!valid) throw new BadRequestError('Invalid payment signature');
+    const cfOrder = await cashfreeGateway.getOrder(opts.cfOrderId);
+    if (cfOrder.order_status !== 'PAID') {
+      throw new BadRequestError('Payment not completed');
+    }
 
+    const payments = await cashfreeGateway.getOrderPayments(opts.cfOrderId);
+    const successful = payments.find((p) => p.payment_status === 'SUCCESS');
+    return this.markPaymentSuccess(payment, successful?.cf_payment_id);
+  }
+
+  /** Shared success path used by both verify and the webhook (idempotent). */
+  private async markPaymentSuccess(payment: IPayment, cfPaymentId?: string): Promise<IPayment | null> {
+    if (payment.status === PaymentStatus.SUCCESS) return payment;
     const updated = await paymentRepo.update(payment._id, {
       status: PaymentStatus.SUCCESS,
-      razorpayPaymentId: opts.razorpayPaymentId,
-      razorpaySignature: opts.razorpaySignature,
+      cfPaymentId,
       capturedAt: new Date(),
     });
 
@@ -183,9 +207,9 @@ export class PaymentService {
       currency: payment.currency,
       method: payment.method,
       status: PaymentStatus.SUCCESS,
-      gateway: 'razorpay',
-      gatewayTransactionId: opts.razorpayPaymentId,
-      description: `Razorpay payment captured`,
+      gateway: payment.gateway,
+      gatewayTransactionId: cfPaymentId,
+      description: `Cashfree payment captured`,
     });
 
     await orderService.updatePaymentStatus(payment.orderId.toString(), PaymentStatus.SUCCESS);
@@ -193,7 +217,7 @@ export class PaymentService {
     eventBus.publish(Events.PAYMENT_SUCCESS, {
       orderId: payment.orderId.toString(),
       paymentId: payment.id,
-      userId: customerId,
+      userId: payment.customerId.toString(),
       amount: payment.amount,
     });
 
@@ -210,8 +234,22 @@ export class PaymentService {
       throw new BadRequestError('Refund amount exceeds refundable balance');
     }
 
+    let cfRefundId: string | undefined;
     let razorpayRefundId: string | undefined;
-    if (payment.gateway === 'razorpay' && payment.razorpayPaymentId) {
+    if (payment.gateway === 'cashfree' && payment.cfOrderId) {
+      try {
+        const refund = await cashfreeGateway.refund(payment.cfOrderId, {
+          amount: refundAmount, // rupees
+          refundId: await nextNumber('RFND'),
+          note: opts.reason,
+        });
+        cfRefundId = refund.cf_refund_id;
+      } catch (err) {
+        logger.error('[payment] cashfree refund failed', err);
+        throw new BadRequestError('Cashfree refund failed');
+      }
+    } else if (payment.gateway === 'razorpay' && payment.razorpayPaymentId) {
+      // Legacy: orders paid via Razorpay before the Cashfree migration.
       try {
         const refund = await razorpayGateway.refund(payment.razorpayPaymentId, {
           amount: Math.round(refundAmount * 100),
@@ -249,6 +287,7 @@ export class PaymentService {
       status: newStatus,
       refundedAmount: newRefundedAmount,
       refundedAt: newRefundedAmount >= payment.amount ? new Date() : undefined,
+      cfRefundId,
       razorpayRefundId,
     });
 
@@ -280,54 +319,43 @@ export class PaymentService {
   }
 
   /**
-   * Razorpay webhook handler — called by the subscription webhook controller for payment events
-   * that aren't subscription-specific (e.g. one-time order payments).
+   * Cashfree webhook handler. `type` is Cashfree's webhook event type and
+   * `payload.data` carries `{ order, payment }`. This is the server-side
+   * backstop that reconciles a payment if the client never calls verify.
    */
-  async handleWebhookEvent(event: string, payload: any): Promise<void> {
-    logger.info(`[payment.webhook] received event: ${event}`);
+  async handleWebhookEvent(type: string, payload: any): Promise<void> {
+    logger.info(`[payment.webhook] received event: ${type}`);
+    const data = payload?.data ?? {};
+    const cfOrderId: string | undefined = data.order?.order_id;
 
-    if (event === 'payment.captured' || event === 'payment.authorized') {
-      const paymentEntity = payload.payload?.payment?.entity;
-      if (!paymentEntity) return;
-      const payment = await paymentRepo.findByRazorpayPaymentId(paymentEntity.id);
-      if (!payment) return;
-      if (payment.status === PaymentStatus.SUCCESS) return;
-      await paymentRepo.update(payment._id, {
-        status: PaymentStatus.SUCCESS,
-        razorpayPaymentId: paymentEntity.id,
-        capturedAt: new Date(),
-        gatewayResponse: paymentEntity,
-      });
-      await orderService.updatePaymentStatus(payment.orderId.toString(), PaymentStatus.SUCCESS);
-      eventBus.publish(Events.PAYMENT_SUCCESS, {
-        orderId: payment.orderId.toString(),
-        paymentId: payment.id,
-        userId: payment.customerId.toString(),
-        amount: payment.amount,
-      });
+    if (type === 'PAYMENT_SUCCESS_WEBHOOK') {
+      if (!cfOrderId) return;
+      const payment = await paymentRepo.findByCfOrderId(cfOrderId);
+      if (!payment || payment.status === PaymentStatus.SUCCESS) return;
+      await this.markPaymentSuccess(payment, data.payment?.cf_payment_id);
       return;
     }
 
-    if (event === 'payment.failed') {
-      const paymentEntity = payload.payload?.payment?.entity;
-      if (!paymentEntity) return;
-      const payment = await paymentRepo.findByRazorpayOrderId(paymentEntity.order_id);
-      if (!payment) return;
+    if (type === 'PAYMENT_FAILED_WEBHOOK' || type === 'PAYMENT_USER_DROPPED_WEBHOOK') {
+      if (!cfOrderId) return;
+      const payment = await paymentRepo.findByCfOrderId(cfOrderId);
+      if (!payment || payment.status === PaymentStatus.SUCCESS) return;
       await paymentRepo.update(payment._id, {
         status: PaymentStatus.FAILED,
-        failureReason: paymentEntity.error_description ?? 'Payment failed',
+        failureReason: data.payment?.payment_message ?? 'Payment failed',
+        gatewayResponse: data,
       });
       await orderService.updatePaymentStatus(payment.orderId.toString(), PaymentStatus.FAILED);
       eventBus.publish(Events.PAYMENT_FAILED, {
         orderId: payment.orderId.toString(),
         paymentId: payment.id,
         userId: payment.customerId.toString(),
-        reason: paymentEntity.error_description,
+        reason: data.payment?.payment_message,
       });
       return;
     }
 
-    logger.warn(`[payment.webhook] unhandled event: ${event}`);
+    logger.warn(`[payment.webhook] unhandled event: ${type}`);
   }
 
   async listMine(customerId: string) {

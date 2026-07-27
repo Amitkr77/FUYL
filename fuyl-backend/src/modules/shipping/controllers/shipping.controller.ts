@@ -18,6 +18,22 @@ export class ShippingController {
     },
   ];
 
+  // Public — checkout serviceability + rate lookups.
+  serviceability = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      return success(res, await shippingService.checkServiceability(req.params.pincode));
+    } catch (err) { next(err); }
+  };
+
+  rate = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const pincode = req.query.pincode as string;
+      const weightGrams = req.query.weight ? Number(req.query.weight) : undefined;
+      const paymentMode = req.query.paymentMode === 'COD' ? 'COD' : 'Prepaid';
+      return success(res, await shippingService.quoteRate({ pincode, weightGrams, paymentMode }));
+    } catch (err) { next(err); }
+  };
+
   getById = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
       return success(res, await shippingService.getById(req.params.id));
@@ -74,6 +90,36 @@ export class ShippingController {
     async (_req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         return success(res, await shippingService.statsForAdmin());
+      } catch (err) { next(err); }
+    },
+  ];
+
+  // Pull the latest carrier scan and advance the shipment if it moved forward.
+  syncTracking = [
+    requirePermission(Permissions.SHIPPING_MANAGE),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        return success(res, await shippingService.syncTracking(req.params.id));
+      } catch (err) { next(err); }
+    },
+  ];
+
+  // Re-attempt delivery for a failed (NDR) shipment.
+  reattempt = [
+    requirePermission(Permissions.SHIPPING_MANAGE),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        return success(res, await shippingService.requestReattempt(req.params.id, req.user!.userId));
+      } catch (err) { next(err); }
+    },
+  ];
+
+  // Shipping-label / packing-slip URL for a shipment.
+  label = [
+    requirePermission(Permissions.SHIPPING_MANAGE),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        return success(res, await shippingService.getLabelUrl(req.params.id));
       } catch (err) { next(err); }
     },
   ];

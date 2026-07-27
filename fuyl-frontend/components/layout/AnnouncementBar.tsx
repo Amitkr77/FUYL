@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { X, ArrowRight } from "lucide-react";
 import { ANNOUNCEMENT, ANNOUNCEMENT_LINK } from "@/lib/constants/site";
 
 export function AnnouncementBar() {
@@ -17,8 +17,8 @@ export function AnnouncementBar() {
         className="text-body-xs font-semibold tracking-widest uppercase hover:text-brand-sage transition-colors inline-block leading-snug"
       >
         {ANNOUNCEMENT}
-        <span className="ml-1" aria-hidden="true">
-          →
+        <span className="ml-1 inline-flex align-middle" aria-hidden="true">
+          <ArrowRight size={14} />
         </span>
       </Link>
       <button

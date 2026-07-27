@@ -32,7 +32,7 @@ export const checkoutSchema = z.object({
   shippingAddress: checkoutAddressSchema.optional(),
   billingAddressId: z.string().length(24).optional(),
   billingAddress: checkoutAddressSchema.optional(),
-  paymentMethod: z.enum(['razorpay', 'upi', 'cod', 'wallet', 'split']),
+  paymentMethod: z.enum(['cashfree', 'razorpay', 'upi', 'cod', 'wallet', 'split']),
   couponCode: z.string().max(30).optional(),
   referralCode: z.string().max(50).optional(),
   razorpayPaymentId: z.string().optional(),

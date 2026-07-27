@@ -1,6 +1,7 @@
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 
 const PROBLEMS = [
   {
@@ -71,9 +72,9 @@ export function ProblemSection() {
 
             <Link
               href="/pages/why-fuyl"
-              className="mt-10 inline-flex h-11 items-center justify-center rounded-sm bg-brand-forest px-8 text-xs font-semibold uppercase tracking-widest text-white! transition-colors hover:bg-brand-sage hover:text-brand-forest!"
+              className="mt-10 inline-flex h-11 items-center justify-center gap-2 rounded-sm bg-brand-forest px-8 text-xs font-semibold uppercase tracking-widest text-white! transition-colors hover:bg-brand-sage hover:text-brand-forest!"
             >
-              See what makes it different →
+              See what makes it different <ArrowRight size={16} />
             </Link>
           </div>
         </ScrollReveal>

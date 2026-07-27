@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import { ScrollReveal } from '@/components/ui/ScrollReveal'
 
 interface SciencePillarProps {
@@ -50,7 +51,7 @@ export function SciencePillar({ n, title, body, ingredients, study, accent, bg, 
               className="inline-flex items-center gap-1 mt-5 text-body-sm font-semibold transition-colors hover:gap-2"
               style={{ color: accent }}
             >
-              {study.label} →
+              {study.label} <ArrowRight size={14} />
             </Link>
           )}
         </div>

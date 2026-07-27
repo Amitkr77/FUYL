@@ -29,7 +29,9 @@ export function AddToCartButton({ product, variant, quantity, subscriptionInterv
       // cart mutation — the caller only needs to identify what to add.
       await addItem({
         productId: product.id,
-        variantId: variant.id,
+        // '' marks the synthesized "no real variant" case (see
+        // lib/api/products.ts mapProduct) — never forward it as a fake id.
+        variantId: variant.id || undefined,
         quantity,
         subscriptionInterval,
         subscriptionDiscountPercent,

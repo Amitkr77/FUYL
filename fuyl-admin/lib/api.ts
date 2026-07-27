@@ -43,6 +43,13 @@ export function getErrorMessage(err: unknown, fallback: string): string {
       .map((d) => (d.path ? `${humanizeFieldPath(d.path)}: ${d.message}` : d.message))
       .join('; ')
   }
+  // The backend's duplicate-key handler (error.middleware.ts) reports a Mongo
+  // E11000 as generic "Duplicate key" — the one place admins actually hit
+  // this now that the product Slug field is directly editable, so give it a
+  // specific, actionable message instead of the raw Mongo-ish wording.
+  if (err instanceof AdminApiError && err.code === 'CONFLICT' && err.details && 'seo.slug' in (err.details as unknown as Record<string, unknown>)) {
+    return 'This URL slug is already in use by another product — please choose a different one.'
+  }
   if (err instanceof Error && err.message) return err.message
   return fallback
 }

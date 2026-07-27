@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { ArrowLeft, Package, Truck, MapPin, User, ClipboardList, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Package, Truck, MapPin, User, ClipboardList, CheckCircle2 } from 'lucide-react'
 import { getAdminOrder } from '@/lib/orders'
 import { OrderStatusPanel } from '@/components/orders/OrderStatusPanel'
+import { BookShipmentPanel } from '@/components/shipping/BookShipmentPanel'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -78,6 +79,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
         {/* Right: Customer + Address + Timeline */}
         <div className="space-y-5">
+          {/* Book shipment — only renders for confirmed/packed orders */}
+          <BookShipmentPanel orderId={order.id} orderStatus={order.status} />
+
           {/* Customer — name/phone is what the order itself captured at
               checkout (shippingAddress), not a live-linked field on the
               order; the profile link below does resolve to a real user now
@@ -96,8 +100,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <p className="text-xs text-slate-400">{order.phone}</p>
               </div>
             </div>
-            <Link href={`/customers/${order.customerId}`} className="text-xs text-[#558476] hover:underline">
-              View customer profile →
+            <Link href={`/customers/${order.customerId}`} className="inline-flex items-center gap-1 text-xs text-[#558476] hover:underline">
+              View customer profile <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
 

@@ -13,6 +13,8 @@ export interface ProductVariant {
   compareAtPrice?: number
   available: boolean
   sku: string
+  weight?: number
+  weightUnit?: string
 }
 
 export interface AdditionalPrice {
@@ -35,6 +37,15 @@ export interface Certification {
   logoUrl: string
 }
 
+// Repeatable rich-content block (image + optional title + description) an
+// admin can attach to a product — see catalog/models/product.model.ts
+// IProductInfoBlock.
+export interface ProductInfoBlock {
+  image?: string
+  title?: string
+  description: string
+}
+
 export interface SupplementInfo {
   ageGroup?: string
   dietaryUse?: string
@@ -50,11 +61,14 @@ export interface Product {
   name: string
   title: string
   description: string
+  shortDescription?: string
   seoDescription: string
   price: number
   compareAtPrice?: number
   additionalPrices: AdditionalPrice[]
   unitPrice?: UnitPrice
+  weight?: number
+  weightUnit?: string
   images: ProductImage[]
   variants: ProductVariant[]
   tags: string[]
@@ -68,6 +82,7 @@ export interface Product {
   faqs: ProductFAQ[]
   certifications: Certification[]
   supplementInfo: SupplementInfo
+  infoBlocks: ProductInfoBlock[]
 }
 
 export interface Collection {

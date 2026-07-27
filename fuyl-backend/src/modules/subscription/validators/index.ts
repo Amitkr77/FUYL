@@ -28,7 +28,7 @@ export const createSubscriptionSchema = z.object({
   planId: z.string().length(24),
   quantity: z.number().int().min(1).max(99).default(1),
   paymentMethod: z.enum([
-    PaymentMethod.RAZORPAY,
+    PaymentMethod.CASHFREE,
     PaymentMethod.UPI,
     PaymentMethod.COD,
     PaymentMethod.WALLET,

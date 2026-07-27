@@ -129,7 +129,7 @@ const OrderSchema = new Schema<IOrder>(
     shippingTotal: { type: Number, default: 0, min: 0 },
     grandTotal: { type: Number, default: 0, min: 0 },
     paymentStatus: { type: String, enum: Object.values(PaymentStatus), default: PaymentStatus.PENDING, index: true },
-    paymentMethod: { type: String, enum: Object.values(PaymentMethod), default: PaymentMethod.RAZORPAY },
+    paymentMethod: { type: String, enum: Object.values(PaymentMethod), default: PaymentMethod.CASHFREE },
     paymentId: { type: Schema.Types.ObjectId, ref: 'Payment' },
     razorpayOrderId: { type: String, index: true, sparse: true },
     razorpayPaymentId: { type: String, index: true, sparse: true },

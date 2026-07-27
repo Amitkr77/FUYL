@@ -63,4 +63,31 @@ export async function updateShipmentStatus(id: string, status: ShipmentStatus, n
   await adminApiFetch(`/shipping/shipments/${id}/status`, { method: 'PATCH', body: { status, note } })
 }
 
+export interface CreateShipmentInput {
+  orderId: string
+  carrier: string
+  weightGrams?: number
+  dimensionsCm?: { length: number; width: number; height: number }
+}
+
+// Book a shipment for an order (seller id is derived on the backend).
+export async function createShipment(input: CreateShipmentInput): Promise<void> {
+  await adminApiFetch('/shipping/shipments', { method: 'POST', body: input })
+}
+
+// Pull the latest carrier scan from Delhivery and advance the shipment.
+export async function syncShipmentTracking(id: string): Promise<{ status: ShipmentStatus }> {
+  return adminApiFetch<{ status: ShipmentStatus }>(`/admin/shipping/${id}/sync`, { method: 'POST' })
+}
+
+// Fetch the shipping-label / packing-slip URL (null if not available).
+export async function getShipmentLabel(id: string): Promise<{ url: string | null }> {
+  return adminApiFetch<{ url: string | null }>(`/admin/shipping/${id}/label`)
+}
+
+// Re-attempt delivery for a failed (NDR) shipment.
+export async function reattemptShipment(id: string): Promise<void> {
+  await adminApiFetch(`/admin/shipping/${id}/reattempt`, { method: 'POST' })
+}
+
 export { AdminApiError }

@@ -36,11 +36,11 @@ export function ProductSpotlight() {
             className="object-cover object-center rounded-2xl"
             sizes="(max-width: 1024px) 100vw, 50vw"
           />
-          <div className="absolute bottom-4 left-4 rounded-sm bg-brand-forest px-3 py-1.5">
+          {/* <div className="absolute bottom-4 left-4 rounded-sm bg-brand-forest px-3 py-1.5">
             <p className="text-label text-white">
               Only {formatPrice(1499)} / 15 sachets
             </p>
-          </div>
+          </div> */}
         </ScrollReveal>
 
         {/* Copy column — sets the section height */}
@@ -85,7 +85,7 @@ export function ProductSpotlight() {
           <ScrollReveal delay={200}>
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 items-center lg:items-start">
               <Link
-                href="/products/fuyl-complete"
+                href="/collections/all"
                 className="inline-flex items-center justify-center w-full sm:w-auto h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest border border-brand-sage"
               >
                 Get started

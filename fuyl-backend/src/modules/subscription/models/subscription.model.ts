@@ -18,6 +18,9 @@ export interface ISubscription extends Document {
   razorpaySubscriptionId?: string;
   razorpayCustomerId?: string;
   razorpayPaymentMethodId?: string;
+  // Cashfree recurring identifiers (current gateway).
+  cfSubscriptionId?: string;
+  cfPlanId?: string;
   nextDeliveryDate: Date;
   currentCycleStart: Date;
   currentCycleEnd: Date;
@@ -50,10 +53,12 @@ const SubscriptionSchema = new Schema<ISubscription>(
     discountPercent: { type: Number, default: 0, min: 0, max: 100 },
     finalPrice: { type: Number, required: true },
     currency: { type: String, default: 'INR' },
-    paymentMethod: { type: String, enum: Object.values(PaymentMethod), default: PaymentMethod.RAZORPAY },
+    paymentMethod: { type: String, enum: Object.values(PaymentMethod), default: PaymentMethod.CASHFREE },
     razorpaySubscriptionId: { type: String, index: true, sparse: true },
     razorpayCustomerId: { type: String },
     razorpayPaymentMethodId: { type: String },
+    cfSubscriptionId: { type: String, index: true, sparse: true },
+    cfPlanId: { type: String },
     nextDeliveryDate: { type: Date, index: true },
     currentCycleStart: { type: Date },
     currentCycleEnd: { type: Date },

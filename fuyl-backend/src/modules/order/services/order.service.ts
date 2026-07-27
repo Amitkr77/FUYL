@@ -34,6 +34,7 @@ export interface CreateFromSubscriptionInput {
   cycleNumber: number;
   paymentMethod: typeof PaymentMethod[keyof typeof PaymentMethod];
   razorpayPaymentId?: string;
+  cfPaymentId?: string;
 }
 
 export class OrderService {
@@ -84,7 +85,9 @@ export class OrderService {
     }
 
     const orderNumber = await nextNumber('FUL');
-    const shipping = 0; // TODO: wire to shipping module once it exists
+    // Shipping charge is computed upstream by the checkout service (Delhivery
+    // rate for the destination pincode) and passed in; defaults to 0.
+    const shipping = dto.shippingTotal ?? 0;
     const grandTotal = subtotal + shipping + tax;
 
     const order = await orderRepo.create({
@@ -185,7 +188,7 @@ export class OrderService {
       taxTotal: tax,
       shippingTotal: shipping,
       grandTotal,
-      paymentStatus: input.razorpayPaymentId ? PaymentStatus.SUCCESS : PaymentStatus.PENDING,
+      paymentStatus: (input.cfPaymentId || input.razorpayPaymentId) ? PaymentStatus.SUCCESS : PaymentStatus.PENDING,
       paymentMethod: input.paymentMethod,
       razorpayPaymentId: input.razorpayPaymentId,
       shippingAddress: shippingAddr,
@@ -306,6 +309,46 @@ export class OrderService {
       });
     }
 
+    return updated;
+  }
+
+  /**
+   * Reconcile an order whose shipment was returned to origin (undelivered).
+   * Marks the order RETURNED and, for a prepaid paid order, auto-initiates a
+   * full refund (COD orders were never charged, so nothing to refund). Called
+   * from the shipping module when a shipment hits returned_to_origin.
+   */
+  async handleRtoReturn(orderId: string) {
+    const order = await this.getById(orderId);
+    if (order.status === OrderStatus.RETURNED || order.status === OrderStatus.CANCELLED) return order;
+
+    if (order.paymentStatus === PaymentStatus.SUCCESS || order.paymentStatus === PaymentStatus.PARTIALLY_REFUNDED) {
+      try {
+        const { paymentService } = await import('../../payment/services/payment.service');
+        const { PaymentRepository } = await import('../../payment/repositories/payment.repository');
+        const payments = await new PaymentRepository().findByOrder(orderId);
+        const refundable = payments.find(
+          (p) => p.status === PaymentStatus.SUCCESS || p.status === PaymentStatus.PARTIALLY_REFUNDED
+        );
+        if (refundable) {
+          await paymentService.refund('system', {
+            paymentId: refundable.id,
+            reason: 'Shipment returned to origin (undelivered)',
+          });
+        }
+      } catch (err) {
+        // Refund failure must not block marking the order returned — surface
+        // for manual reconciliation instead.
+        logger.error(`[order] RTO refund failed for order ${orderId} — needs manual review`, err);
+      }
+    }
+
+    const updated = await orderRepo.update(orderId, { status: OrderStatus.RETURNED });
+    await orderRepo.appendTimeline(orderId, {
+      status: OrderStatus.RETURNED,
+      note: 'Shipment returned to origin (undelivered)',
+    });
+    eventBus.publish(Events.ORDER_RETURNED, { orderId, userId: order.customerId.toString() });
     return updated;
   }
 

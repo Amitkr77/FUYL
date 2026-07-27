@@ -3,7 +3,9 @@ import { ShipmentStatus } from '../../../shared/enums';
 
 export const createShipmentSchema = z.object({
   orderId: z.string().length(24),
-  sellerId: z.string().length(24),
+  // Optional — derived from the order's seller (or the actor) when omitted, so
+  // an admin can book without knowing the seller id.
+  sellerId: z.string().length(24).optional(),
   carrier: z.string().min(1).max(100),
   weightGrams: z.number().min(0).optional(),
   dimensionsCm: z.object({

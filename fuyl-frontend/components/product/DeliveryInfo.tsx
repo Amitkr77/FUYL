@@ -13,7 +13,7 @@ export function DeliveryInfo() {
   ]
 
   return (
-    <div className="flex flex-col gap-3 border-t pt-5" style={{ borderColor: 'var(--color-brand-border)' }}>
+    <div className="flex flex-col gap-4">
       {rows.map(({ icon: Icon, title, body }) => (
         <div key={title} className="flex items-start gap-3">
           <Icon size={16} className="mt-0.5 shrink-0 text-brand-teal" />

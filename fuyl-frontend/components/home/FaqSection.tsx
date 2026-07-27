@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { ArrowRight } from "lucide-react";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 const FAQS = [
@@ -60,7 +61,7 @@ export function FaqSection() {
   const [open, setOpen] = useState("01");
 
   return (
-    <section id="faq" className="bg-brand-cream py-24 lg:py-32 overflow-hidden scroll-mt-24">
+    <section id="faq" className="bg-brand-cream py-14 sm:py-20 lg:py-32 overflow-hidden scroll-mt-24">
       <div className="container-brand">
         <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:gap-14 items-stretch">
           {/* ── LEFT — label, heading, image, CTA ── */}
@@ -117,7 +118,7 @@ export function FaqSection() {
                 </span>
 
                 <span className="flex items-center gap-1.5 text-sm font-semibold transition-all group-hover/link:gap-2.5">
-                  Contact us →
+                  Contact us <ArrowRight size={14} />
                 </span>
               </Link>
             </div>

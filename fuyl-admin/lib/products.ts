@@ -1,5 +1,7 @@
 import { adminApiFetch, AdminApiError } from './api'
 import { getSession } from './auth'
+import { getCategories } from './categories'
+import { getTags, resolveTagIds } from './tags'
 
 // ─── Backend raw shapes (subset of fields this file uses) ──────────────────
 // Mirrors fuyl-backend's catalog/inventory models. The backend splits what
@@ -24,6 +26,33 @@ export interface CertificationEntry {
   label: string
   logoUrl: string
 }
+
+export interface ProductInfoBlock {
+  image?: string
+  title?: string
+  description: string
+}
+
+export type WeightUnit = 'g' | 'kg' | 'lb' | 'oz'
+
+export interface ShippingInfo {
+  isPhysical: boolean
+  packageType?: string
+  weight?: number
+  weightUnit: WeightUnit
+  countryOfOrigin?: string
+  hsCode?: string
+}
+
+const DEFAULT_SHIPPING: ShippingInfo = { isPhysical: true, weightUnit: 'g' }
+
+export interface SeoInfo {
+  slug: string
+  metaTitle?: string
+  metaDescription?: string
+}
+
+const DEFAULT_SEO: SeoInfo = { slug: '' }
 
 export interface SupplementInfo {
   ageGroup?: string
@@ -63,7 +92,14 @@ export interface AdminProduct {
   // subscribable through the admin.
   isSubscribable: boolean
   category:    string   // name, for display
-  categoryId:  string   // id, for the form's <select>
+  categoryId:  string   // id, for the form's category picker
+  brand?:      string
+  // Tag names (resolved from tagIds) — see lib/tags.ts. The form edits these
+  // as free-typed names; saving resolves/creates Tag documents from them.
+  tags:        string[]
+  // Short summary shown on product cards/listings/previews — distinct from
+  // the full `description` below.
+  shortDescription: string
   description: string
   imageUrl:    string   // first image, '' if none — kept for list/table thumbnails
   images:      string[] // full gallery, in display order; images[0] is the cover/primary image
@@ -78,11 +114,19 @@ export interface AdminProduct {
   profit?:          number   // computed by the backend, only present for a privileged (admin) requester
   margin?:          number
   // Metafields
+  ingredients:    string[]
   benefits:       string[]
   faqs:           FAQEntry[]
   certifications: CertificationEntry[]
   supplementInfo: SupplementInfo
-  // Variants
+  // URL slug + meta title/description — editable so a new product's slug
+  // isn't stuck with the auto-generated suggestion forever.
+  seo: SeoInfo
+  // Repeatable image+title+description content blocks (Product Details section).
+  infoBlocks: ProductInfoBlock[]
+  // Shipping/customs — lives on the product itself since variants are optional.
+  shipping: ShippingInfo
+  // Variants — optional; a product with none is sold at the price above.
   variants: AdminVariant[]
 }
 
@@ -99,6 +143,9 @@ export interface AttributeDef {
 export interface AdminProductInput {
   name:        string
   categoryId:  string
+  brand?:      string
+  tags:        string[]
+  shortDescription: string
   description: string
   status:      ProductStatus
   isPublished:    boolean
@@ -111,10 +158,17 @@ export interface AdminProductInput {
   unitPriceUnit?:   string
   isTaxable:        boolean
   costPerItem?:     number
+  ingredients:    string[]
   benefits:       string[]
   faqs:           FAQEntry[]
   certifications: CertificationEntry[]
   supplementInfo: SupplementInfo
+  infoBlocks: ProductInfoBlock[]
+  shipping: ShippingInfo
+  seo: SeoInfo
+  // Only used when `variants` is empty — stock tracked directly against the
+  // product itself (InventoryStock with no variantId) instead of per-variant.
+  stock: number
   variants: AdminVariant[]
 }
 
@@ -122,6 +176,8 @@ interface BackendMedia { url: string; position?: number }
 interface BackendProduct {
   _id: string
   name: string
+  brand?: string
+  shortDescription?: string
   description?: string
   basePrice: number
   compareAtPrice?: number
@@ -131,11 +187,16 @@ interface BackendProduct {
   costPerItem?: number
   profit?: number
   margin?: number
+  ingredients?: string[]
   benefits?: string[]
   faqs?: FAQEntry[]
   certifications?: CertificationEntry[]
   supplementInfo?: SupplementInfo
+  infoBlocks?: ProductInfoBlock[]
+  shippingInfo?: ShippingInfo
+  seo?: SeoInfo
   categoryIds?: string[]
+  tagIds?: string[]
   status: ProductStatus
   isPublished: boolean
   isSubscribable: boolean
@@ -151,10 +212,6 @@ interface BackendVariant {
   weight?: number
   media?: BackendMedia[]
   isActive: boolean
-}
-interface BackendCategory {
-  _id: string
-  name: string
 }
 interface BackendStock {
   productId: string
@@ -192,10 +249,14 @@ function mapVariant(v: BackendVariant, stockByVariant: Map<string, number>): Adm
   }
 }
 
-function slugify(name: string): string {
+// A clean, human-readable slug from the product name — no random/timestamp
+// suffix. seo.slug is unique on the backend, so a genuine name collision
+// surfaces as a 409 the admin resolves by editing the Slug field directly
+// (see the SEO section in ProductForm), rather than being papered over with
+// an ugly auto-appended suffix on every product.
+export function slugify(name: string): string {
   const base = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-  // seo.slug is unique on the backend — a name collision would otherwise 409.
-  return `${base || 'product'}-${Date.now().toString(36)}`
+  return base || 'product'
 }
 
 async function requireSellerId(): Promise<string> {
@@ -204,17 +265,26 @@ async function requireSellerId(): Promise<string> {
   return session.userId
 }
 
-// Reconciles a variant's stock to an absolute target quantity — the form
-// collects "how many do we have," but the backend's /inventory/adjust only
-// accepts a relative delta.
-async function reconcileStock(productId: string, variantId: string, sellerId: string, targetStock: number) {
-  const stockRows = await adminApiFetch<BackendStock[]>(`/inventory/stock/${productId}?variantId=${variantId}`).catch(() => [] as BackendStock[])
-  const currentOnHand = stockRows.reduce((sum, r) => sum + r.onHand, 0)
+// Reconciles a variant's (or, when variantId is omitted, the product's own —
+// see catalog/models/product.model.ts on why variants are optional) stock to
+// an absolute target quantity. The form collects "how many do we have," but
+// the backend's /inventory/adjust only accepts a relative delta.
+//
+// Omitting variantId here (no key sent, not `variantId: undefined`) matters:
+// the backend's stockRepo.findOrCreate() distinguishes "no variant" via
+// `{ $exists: false }` — sending the literal string "undefined" would break
+// that lookup and silently create/adjust the wrong stock row.
+async function reconcileStock(productId: string, variantId: string | undefined, sellerId: string, targetStock: number) {
+  const qs = variantId ? `?variantId=${variantId}` : ''
+  const stockRows = await adminApiFetch<BackendStock[]>(`/inventory/stock/${productId}${qs}`).catch(() => [] as BackendStock[])
+  const currentOnHand = stockRows
+    .filter((r) => (variantId ? r.variantId === variantId : !r.variantId))
+    .reduce((sum, r) => sum + r.onHand, 0)
   const delta = targetStock - currentOnHand
   if (delta !== 0) {
     await adminApiFetch('/inventory/adjust', {
       method: 'POST',
-      body: { productId, variantId, sellerId, delta, type: delta > 0 ? 'adjustment_in' : 'adjustment_out' },
+      body: { productId, ...(variantId ? { variantId } : {}), sellerId, delta, type: delta > 0 ? 'adjustment_in' : 'adjustment_out' },
     })
   }
 }
@@ -222,6 +292,8 @@ async function reconcileStock(productId: string, variantId: string, sellerId: st
 function productBody(input: AdminProductInput) {
   return {
     name:              input.name,
+    brand:             input.brand || undefined,
+    shortDescription:  input.shortDescription || undefined,
     description:       input.description,
     categoryIds:       input.categoryId ? [input.categoryId] : [],
     basePrice:         input.price,
@@ -232,10 +304,20 @@ function productBody(input: AdminProductInput) {
       : undefined,
     isTaxable:         input.isTaxable,
     costPerItem:       input.costPerItem,
+    ingredients:       input.ingredients,
     benefits:          input.benefits,
     faqs:              input.faqs,
     certifications:    input.certifications,
     supplementInfo:    input.supplementInfo,
+    infoBlocks:        input.infoBlocks,
+    shippingInfo:       input.shipping,
+    seo: {
+      // Fall back to a fresh slug if the admin cleared the field entirely —
+      // the backend rejects an empty seo.slug outright.
+      slug:            input.seo.slug.trim() || slugify(input.name),
+      metaTitle:       input.seo.metaTitle || undefined,
+      metaDescription: input.seo.metaDescription || undefined,
+    },
     status:            input.status,
     isPublished:       input.isPublished,
     isSubscribable:    input.isSubscribable,
@@ -243,14 +325,11 @@ function productBody(input: AdminProductInput) {
   }
 }
 
-export async function getCategories(): Promise<Category[]> {
-  try {
-    const raw = await adminApiFetch<BackendCategory[]>('/catalog/categories')
-    return raw.map((c) => ({ id: c._id, name: c.name }))
-  } catch {
-    return []
-  }
-}
+// Canonical implementation now lives in lib/categories.ts (which also powers
+// the admin's Categories management page) — imported above (used internally
+// by this file too) and re-exported here so existing imports from
+// '@/lib/products' keep working unchanged.
+export { getCategories }
 
 // Powers the variant-attribute editor's suggestions (Size/Flavor/Pack
 // Size/Color/etc) — admins can still type a new attribute key freely, this
@@ -271,16 +350,26 @@ export async function getAttributes(): Promise<AttributeDef[]> {
 export async function listAdminProducts(): Promise<AdminProduct[]> {
   const sellerId = await requireSellerId()
 
-  const [products, stockRows, categories] = await Promise.all([
+  const [products, stockRows, categories, tags] = await Promise.all([
     adminApiFetch<BackendProduct[]>('/admin/catalog/products?limit=50'),
     adminApiFetch<BackendStock[]>(`/inventory/mine?sellerId=${sellerId}&limit=200`).catch(() => [] as BackendStock[]),
     getCategories(),
+    getTags(),
   ])
+  const tagNameById = new Map(tags.map((t) => [t.id, t.name]))
 
   const stockByVariant = new Map<string, number>()
+  // Rows with no variantId are stock tracked directly against a product that
+  // has no variants (see reconcileStock) — previously skipped entirely here,
+  // which is why a variant-less product always showed 0/"Out of stock"
+  // regardless of what was actually adjusted for it.
+  const stockByProduct = new Map<string, number>()
   for (const s of stockRows) {
-    if (!s.variantId) continue
-    stockByVariant.set(s.variantId, (stockByVariant.get(s.variantId) ?? 0) + s.onHand)
+    if (s.variantId) {
+      stockByVariant.set(s.variantId, (stockByVariant.get(s.variantId) ?? 0) + s.onHand)
+    } else {
+      stockByProduct.set(s.productId, (stockByProduct.get(s.productId) ?? 0) + s.onHand)
+    }
   }
   const categoryName = new Map(categories.map((c) => [c.id, c.name]))
 
@@ -292,16 +381,22 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
     const variants = variantsByProduct[i].map((v) => mapVariant(v, stockByVariant))
     const categoryId = p.categoryIds?.[0] ?? ''
     const images = sortMedia(p.media).map((m) => m.url)
+    const stock = variants.length > 0
+      ? variants.reduce((sum, v) => sum + v.stock, 0)
+      : (stockByProduct.get(p._id) ?? 0)
     return {
       id:          p._id,
       name:        p.name,
       sku:         variants[0]?.sku ?? '—',
-      stock:       variants.reduce((sum, v) => sum + v.stock, 0),
+      stock,
       status:      p.status,
       isPublished:    p.isPublished,
       isSubscribable: p.isSubscribable,
       category:    categoryId ? (categoryName.get(categoryId) ?? '—') : '—',
       categoryId,
+      brand:       p.brand,
+      tags:        (p.tagIds ?? []).map((id) => tagNameById.get(id)).filter((n): n is string => Boolean(n)),
+      shortDescription: p.shortDescription ?? '',
       description: p.description ?? '',
       imageUrl:    images[0] ?? '',
       images,
@@ -314,10 +409,14 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
       costPerItem:      p.costPerItem,
       profit:           p.profit,
       margin:           p.margin,
+      ingredients:      p.ingredients ?? [],
       benefits:         p.benefits ?? [],
       faqs:             p.faqs ?? [],
       certifications:   p.certifications ?? [],
       supplementInfo:   p.supplementInfo ?? {},
+      infoBlocks:       p.infoBlocks ?? [],
+      shipping:         p.shippingInfo ?? DEFAULT_SHIPPING,
+      seo:              p.seo ?? DEFAULT_SEO,
       variants,
     }
   })
@@ -325,34 +424,48 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
 
 export async function getAdminProduct(id: string): Promise<AdminProduct | null> {
   try {
-    const [product, rawVariants, categories] = await Promise.all([
+    const [product, rawVariants, categories, tags] = await Promise.all([
       adminApiFetch<BackendProduct>(`/catalog/products/${id}`),
       adminApiFetch<BackendVariant[]>(`/catalog/products/${id}/variants`).catch(() => [] as BackendVariant[]),
       getCategories(),
+      getTags(),
     ])
+    const tagNameById = new Map(tags.map((t) => [t.id, t.name]))
 
     const stockRows = await adminApiFetch<BackendStock[]>(`/inventory/stock/${id}`).catch(() => [] as BackendStock[])
     const stockByVariant = new Map<string, number>()
+    // Rows with no variantId are stock tracked directly against a product
+    // that has no variants — see reconcileStock / listAdminProducts.
+    let productLevelStock = 0
     for (const s of stockRows) {
-      if (!s.variantId) continue
-      stockByVariant.set(s.variantId, (stockByVariant.get(s.variantId) ?? 0) + s.onHand)
+      if (s.variantId) {
+        stockByVariant.set(s.variantId, (stockByVariant.get(s.variantId) ?? 0) + s.onHand)
+      } else {
+        productLevelStock += s.onHand
+      }
     }
 
     const variants = rawVariants.map((v) => mapVariant(v, stockByVariant))
     const categoryName = new Map(categories.map((c) => [c.id, c.name]))
     const categoryId = product.categoryIds?.[0] ?? ''
     const images = sortMedia(product.media).map((m) => m.url)
+    const stock = variants.length > 0
+      ? variants.reduce((sum, v) => sum + v.stock, 0)
+      : productLevelStock
 
     return {
       id:          product._id,
       name:        product.name,
       sku:         variants[0]?.sku ?? '',
-      stock:       variants.reduce((sum, v) => sum + v.stock, 0),
+      stock,
       status:      product.status,
       isPublished:    product.isPublished,
       isSubscribable: product.isSubscribable,
       category:    categoryId ? (categoryName.get(categoryId) ?? '') : '',
       categoryId,
+      brand:       product.brand,
+      tags:        (product.tagIds ?? []).map((id) => tagNameById.get(id)).filter((n): n is string => Boolean(n)),
+      shortDescription: product.shortDescription ?? '',
       description: product.description ?? '',
       imageUrl:    images[0] ?? '',
       images,
@@ -365,10 +478,14 @@ export async function getAdminProduct(id: string): Promise<AdminProduct | null> 
       costPerItem:      product.costPerItem,
       profit:           product.profit,
       margin:           product.margin,
+      ingredients:      product.ingredients ?? [],
       benefits:         product.benefits ?? [],
       faqs:             product.faqs ?? [],
       certifications:   product.certifications ?? [],
       supplementInfo:   product.supplementInfo ?? {},
+      infoBlocks:       product.infoBlocks ?? [],
+      shipping:         product.shippingInfo ?? DEFAULT_SHIPPING,
+      seo:              product.seo ?? DEFAULT_SEO,
       variants,
     }
   } catch {
@@ -378,10 +495,11 @@ export async function getAdminProduct(id: string): Promise<AdminProduct | null> 
 
 export async function createAdminProduct(input: AdminProductInput): Promise<string> {
   const sellerId = await requireSellerId()
+  const tagIds = await resolveTagIds(input.tags)
 
   const product = await adminApiFetch<{ _id: string }>('/admin/catalog/products', {
     method: 'POST',
-    body: { ...productBody(input), sellerId, seo: { slug: slugify(input.name) } },
+    body: { ...productBody(input), sellerId, tagIds },
   })
 
   for (const variant of input.variants) {
@@ -403,15 +521,21 @@ export async function createAdminProduct(input: AdminProductInput): Promise<stri
     }
   }
 
+  // No variants — stock is tracked directly against the product itself.
+  if (input.variants.length === 0 && input.stock > 0) {
+    await reconcileStock(product._id, undefined, sellerId, input.stock)
+  }
+
   return product._id
 }
 
 export async function updateAdminProduct(id: string, input: AdminProductInput): Promise<void> {
   const sellerId = await requireSellerId()
+  const tagIds = await resolveTagIds(input.tags)
 
   await adminApiFetch(`/admin/catalog/products/${id}`, {
     method: 'PATCH',
-    body: productBody(input),
+    body: { ...productBody(input), tagIds },
   })
 
   // Reconcile variants: rows with an id get updated, rows without one are
@@ -460,6 +584,14 @@ export async function updateAdminProduct(id: string, input: AdminProductInput): 
     if (!keptIds.has(old._id)) {
       await adminApiFetch(`/admin/catalog/variants/${old._id}`, { method: 'DELETE' })
     }
+  }
+
+  // No variants — reconcile stock directly against the product itself.
+  // Unconditional (unlike the create path) so lowering stock back down,
+  // including to 0, is also reflected — matching how an existing variant's
+  // stock is always reconciled above.
+  if (input.variants.length === 0) {
+    await reconcileStock(id, undefined, sellerId, input.stock)
   }
 }
 

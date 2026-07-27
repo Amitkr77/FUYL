@@ -2,13 +2,13 @@ import { Router } from 'express';
 import { authRequired, authOptional } from '../../../shared/middleware/auth.middleware';
 import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
 import { planController, subscriptionController, adminSubscriptionController } from '../controllers';
-import { razorpayWebhookHandler } from '../controllers';
+import { cashfreeSubscriptionWebhookHandler } from '../controllers';
 
 const router = Router();
 
 // ─── Public webhook (raw body) ─────────────────────────────────────
 // NOTE: must be mounted BEFORE express.json() in app.ts
-router.post('/webhooks/razorpay/subscription', razorpayWebhookHandler as any);
+router.post('/webhooks/cashfree/subscription', cashfreeSubscriptionWebhookHandler as any);
 
 // ─── Customer-facing ───────────────────────────────────────────────
 router.get('/subscriptions/plans', authOptional, planController.listActive);

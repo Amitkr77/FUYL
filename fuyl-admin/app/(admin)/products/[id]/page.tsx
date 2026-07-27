@@ -1,12 +1,14 @@
 import { getAdminProduct, getCategories, getAttributes } from '@/lib/products'
+import { getTags } from '@/lib/tags'
 import { ProductForm } from '@/components/products/ProductForm'
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [product, categories, attributes] = await Promise.all([
+  const [product, categories, attributes, tags] = await Promise.all([
     getAdminProduct(id),
     getCategories(),
     getAttributes(),
+    getTags(),
   ])
 
   if (!product) {
@@ -18,5 +20,5 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     )
   }
 
-  return <ProductForm product={product} categories={categories} attributes={attributes} />
+  return <ProductForm product={product} categories={categories} attributes={attributes} tags={tags} />
 }

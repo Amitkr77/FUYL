@@ -43,7 +43,8 @@ export function createApp() {
   app.use(compression());
 
   // ─────────────────────────────────────────────────────────────
-  // RAW BODY capture for Razorpay webhook routes
+  // RAW BODY capture for payment-gateway webhook routes (signature
+  // verification needs the exact bytes, before express.json() parses them).
   // ─────────────────────────────────────────────────────────────
   const captureRawBody = (req: Request, _res: Response, next: NextFunction) => {
     if (Buffer.isBuffer(req.body)) {
@@ -53,8 +54,9 @@ export function createApp() {
     }
     next();
   };
-  app.use(`/${env.apiPrefix}/webhooks/razorpay/subscription`, express.raw({ type: 'application/json' }), captureRawBody);
-  app.use(`/${env.apiPrefix}/webhooks/razorpay/payment`, express.raw({ type: 'application/json' }), captureRawBody);
+  // Cashfree — one-time order payments + recurring subscriptions.
+  app.use(`/${env.apiPrefix}/webhooks/cashfree/payment`, express.raw({ type: 'application/json' }), captureRawBody);
+  app.use(`/${env.apiPrefix}/webhooks/cashfree/subscription`, express.raw({ type: 'application/json' }), captureRawBody);
 
   // Body parsers
   app.use(express.json({ limit: '10mb' }));

@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Star, Shield, Truck, Leaf } from "lucide-react";
+import { useState } from "react";
+import { Star, Check } from "lucide-react";
 import { QuantitySelector } from "./QuantitySelector";
 import { AddToCartButton } from "./AddToCartButton";
 import { BuyNowButton } from "./BuyNowButton";
 import { WishlistButton } from "./WishlistButton";
+import { PincodeCheck } from "./PincodeCheck";
 import { ProductBadges } from "./ProductBadges";
 import { formatPrice, discountPercent } from "@/lib/utils/formatPrice";
 import { Badge } from "@/components/ui/Badge";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { getActivePlans, type SubscriptionPlan } from "@/lib/api/subscriptionPlans";
 import type { Product } from "@/types/product";
 
 interface ProductInfoProps {
@@ -19,39 +18,21 @@ interface ProductInfoProps {
 
 export function ProductInfo({ product }: ProductInfoProps) {
   const [quantity, setQuantity] = useState(1);
-  const [purchaseType, setPurchaseType] = useState<"one-time" | "subscribe">("one-time");
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
-  const [plansLoading, setPlansLoading] = useState(product.isSubscribable);
 
   const variant = product.variants[0];
-
-  useEffect(() => {
-    if (!product.isSubscribable) return;
-    setPlansLoading(true);
-    getActivePlans()
-      .then((p) => {
-        setPlans(p);
-        if (p[0]) setSelectedPlanId(p[0].id);
-      })
-      .catch(() => {})
-      .finally(() => setPlansLoading(false));
-  }, [product.isSubscribable]);
 
   if (!variant) return null;
 
   const compareAtPrice = variant.compareAtPrice ?? product.compareAtPrice;
   const savings = discountPercent(variant.price, compareAtPrice ?? 0);
-  const selectedPlan = plans.find((p) => p.id === selectedPlanId);
-  const subscribedPrice = selectedPlan
-    ? Math.round(variant.price * (1 - selectedPlan.discountPercent / 100) * 100) / 100
-    : variant.price;
-
-  const usps = [
-    { icon: Shield, text: "60+ Research-Backed Ingredients" },
-    { icon: Leaf, text: "No Artificial Colours or Flavours" },
-    { icon: Truck, text: "Free Shipping on All Orders" },
-  ];
+  // Prefer the chosen variant's own weight; fall back to the product-level
+  // shipping weight (see catalog/models/product.model.ts) for products with
+  // no per-variant weight set.
+  const netWeight = variant.weight ?? product.weight;
+  const netWeightUnit = variant.weight
+    ? variant.weightUnit
+    : product.weightUnit;
+  const netContent = netWeight ? `${netWeight} ${netWeightUnit ?? "g"}` : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -63,8 +44,10 @@ export function ProductInfo({ product }: ProductInfoProps) {
         {product.name}
       </h1>
 
-      {/* Rating */}
-      {product.rating && (
+      {/* Rating — guard on > 0, not just truthy: a rating of 0 (no reviews
+          yet) is truthy-falsy in JS terms but `0 && (...)` still evaluates to
+          0, and React renders that literal 0 instead of nothing. */}
+      {product.rating != null && product.rating > 0 && (
         <div className="flex items-center gap-2">
           <div className="flex">
             {[1, 2, 3, 4, 5].map((n) => (
@@ -82,7 +65,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
           <span className="text-body-sm font-semibold text-brand-forest">
             {product.rating}
           </span>
-          {product.reviewCount && (
+          {product.reviewCount != null && product.reviewCount > 0 && (
             <span className="text-body-xs text-brand-muted">
               ({product.reviewCount} reviews)
             </span>
@@ -90,90 +73,65 @@ export function ProductInfo({ product }: ProductInfoProps) {
         </div>
       )}
 
-      {/* Price — Forest Green featured pricing */}
-      <div className="flex items-baseline gap-3">
-        <span className="text-display-md font-display text-brand-forest">
-          {formatPrice(purchaseType === "subscribe" ? subscribedPrice : variant.price)}
-        </span>
-        {compareAtPrice && (
-          <>
-            <span className="text-body-md line-through text-brand-muted">
-              {formatPrice(compareAtPrice)}
-            </span>
-            {/* Forest Green savings badge — premium pricing highlight */}
-            {savings && <Badge variant="berry">{savings}</Badge>}
-          </>
+      <div>
+        {/* Price — Forest Green featured pricing */}
+        <div className="flex items-baseline gap-3">
+          <span className="text-display-md font-display text-brand-forest">
+            {formatPrice(variant.price)}
+          </span>
+          {compareAtPrice && (
+            <>
+              <span className="text-body-md line-through text-brand-muted">
+                {formatPrice(compareAtPrice)}
+              </span>
+              {/* Forest Green savings badge — premium pricing highlight */}
+              {savings && <Badge variant="berry">{savings}</Badge>}
+            </>
+          )}
+        </div>
+
+        {product.unitPrice && (
+          <p className="text-body-xs text-brand-muted">
+            {formatPrice(product.unitPrice.value)} {product.unitPrice.unit}
+          </p>
+        )}
+
+        {product.additionalPrices.length > 0 && (
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {product.additionalPrices.map((p) => (
+              <p key={p.label} className="text-body-xs text-brand-muted">
+                {p.label}:{" "}
+                <span className="font-medium text-brand-forest">
+                  {formatPrice(p.price)}
+                </span>
+              </p>
+            ))}
+          </div>
+        )}
+
+        <p className="text-body-xs text-brand-muted">
+          M.R.P. (Inclusive of all taxes)
+        </p>
+
+        {netContent && (
+          <p className="text-body-xs text-brand-muted">Net Qty: {netContent}</p>
         )}
       </div>
-
-      {product.unitPrice && (
-        <p className="text-body-xs text-brand-muted">
-          {formatPrice(product.unitPrice.value)} {product.unitPrice.unit}
+      {product.shortDescription && (
+        <p className="text-body-md text-brand-forest">
+          {product.shortDescription}
         </p>
       )}
 
-      {product.additionalPrices.length > 0 && (
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          {product.additionalPrices.map((p) => (
-            <p key={p.label} className="text-body-xs text-brand-muted">
-              {p.label}: <span className="font-medium text-brand-forest">{formatPrice(p.price)}</span>
-            </p>
-          ))}
-        </div>
-      )}
-
-      {/* Flavour / variant label */}
-      <p className="text-body-sm text-brand-muted">
-        Mixed Berry · 15 Sachets · 150g
-      </p>
+      {/* Flavour label — real per-product data, not a fixed placeholder */}
+      {/* {product.supplementInfo?.flavor && (
+        <p className="text-body-sm text-brand-muted">
+          {product.supplementInfo.flavor}
+        </p>
+      )} */}
 
       {/* Badges */}
       <ProductBadges tags={product.tags} badge={product.badge} />
-
-      {/* Purchase options — one-time vs subscribe & save */}
-      {product.isSubscribable && plansLoading && (
-        <div className="flex flex-col gap-2 pt-2" aria-busy="true" aria-label="Loading purchase options">
-          <Skeleton className="h-3 w-32" />
-          <Skeleton className="h-11 w-full" />
-          <Skeleton className="h-11 w-full" />
-        </div>
-      )}
-      {product.isSubscribable && !plansLoading && plans.length > 0 && (
-        <div className="flex flex-col gap-2 pt-2 animate-fade-in">
-          <span className="text-label text-brand-muted">Purchase Options</span>
-          <div className="flex flex-col gap-2">
-            <label
-              className="flex items-center gap-3 p-3 border rounded-sm cursor-pointer text-body-sm"
-              style={{ borderColor: purchaseType === "one-time" ? "var(--color-brand-berry)" : "var(--color-brand-border)" }}
-            >
-              <input type="radio" name="purchaseType" checked={purchaseType === "one-time"} onChange={() => setPurchaseType("one-time")} />
-              One-time purchase
-            </label>
-            <label
-              className="flex items-center gap-3 p-3 border rounded-sm cursor-pointer text-body-sm"
-              style={{ borderColor: purchaseType === "subscribe" ? "var(--color-brand-berry)" : "var(--color-brand-border)" }}
-            >
-              <input type="radio" name="purchaseType" checked={purchaseType === "subscribe"} onChange={() => setPurchaseType("subscribe")} />
-              Subscribe &amp; Save
-            </label>
-          </div>
-          {purchaseType === "subscribe" && (
-            <select
-              value={selectedPlanId}
-              onChange={(e) => setSelectedPlanId(e.target.value)}
-              className="h-10 px-3 text-body-sm border rounded-sm"
-              style={{ borderColor: "var(--color-brand-border)" }}
-            >
-              {plans.map((p) => (
-                <option key={p.id} value={p.id}>
-                  Every {p.intervalCount > 1 ? `${p.intervalCount} ` : ""}{p.interval}
-                  {p.discountPercent > 0 ? ` — ${p.discountPercent}% off` : ""}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-      )}
 
       {/* Qty + ATC */}
       <div className="flex flex-col gap-3 pt-2">
@@ -187,36 +145,41 @@ export function ProductInfo({ product }: ProductInfoProps) {
               product={product}
               variant={variant}
               quantity={quantity}
-              subscriptionInterval={purchaseType === "subscribe" ? selectedPlan?.interval : undefined}
-              subscriptionDiscountPercent={purchaseType === "subscribe" ? selectedPlan?.discountPercent : undefined}
             />
           </div>
-          <WishlistButton productId={product.id} variantId={variant.id} />
+          <WishlistButton
+            productId={product.id}
+            variantId={variant.id || undefined}
+          />
         </div>
-        <BuyNowButton
-          product={product}
-          variant={variant}
-          quantity={quantity}
-          subscriptionInterval={purchaseType === "subscribe" ? selectedPlan?.interval : undefined}
-          subscriptionDiscountPercent={purchaseType === "subscribe" ? selectedPlan?.discountPercent : undefined}
-        />
+        <BuyNowButton product={product} variant={variant} quantity={quantity} />
+        <PincodeCheck />
       </div>
 
-      {/* USP row — Teal icons */}
-      <div className="pt-2 space-y-2.5 border-t border-brand-border">
-        {usps.map(({ icon: Icon, text }) => (
-          <div key={text} className="flex items-center gap-3">
-            <Icon size={15} className="text-brand-teal shrink-0" />
-            <span className="text-body-sm text-brand-forest">{text}</span>
-          </div>
-        ))}
-      </div>
+      {/* Benefits grid — premium 2x2 trust tiles, sourced from real product data */}
+      {product.benefits.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 border-t border-brand-border pt-5">
+          {product.benefits.map((benefit) => (
+            <div
+              key={benefit}
+              className="flex items-center gap-3 rounded-2xl border border-brand-border bg-brand-cream/50 p-4 transition-shadow duration-300 hover:shadow-md"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-sage/70">
+                <Check size={17} className="text-brand-forest" />
+              </span>
+              <span className="text-body-sm font-medium leading-snug text-brand-forest">
+                {benefit}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Money-back guarantee */}
-      <p className="text-body-xs p-3 rounded-sm text-center font-medium bg-brand-cream text-brand-muted">
+      {/* <p className="text-body-xs p-3 rounded-sm text-center font-medium bg-brand-cream text-brand-muted">
         30-Day Money-Back Guarantee · If you don't feel the difference, we'll
         refund you.
-      </p>
+      </p> */}
     </div>
   );
 }

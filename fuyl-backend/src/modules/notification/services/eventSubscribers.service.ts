@@ -90,6 +90,30 @@ export function registerNotificationEventSubscribers(): void {
     }
   );
 
+  // SHIPMENT_STATUS_UPDATED → shipment_update email (intermediate scans)
+  eventBus.on<{
+    orderId: string; userId: string; status: string; statusLabel?: string;
+    trackingNumber?: string; trackingUrl?: string; carrier?: string; orderNumber?: string;
+  }>(
+    Events.SHIPMENT_STATUS_UPDATED,
+    async (payload) => {
+      await notificationService.dispatch({
+        channel: 'email',
+        to: { userId: payload.userId },
+        template: 'shipment_update',
+        data: {
+          orderNumber: payload.orderNumber ?? payload.orderId,
+          statusLabel: payload.statusLabel ?? payload.status,
+          carrier: payload.carrier ?? 'N/A',
+          trackingNumber: payload.trackingNumber ?? 'N/A',
+          trackingUrl: payload.trackingUrl ?? `${env.clientUrl}/account/orders/${payload.orderId}`,
+        },
+        userId: payload.userId,
+        category: 'transactional',
+      });
+    }
+  );
+
   // SUBSCRIPTION_ACTIVATED → subscription_activated email
   eventBus.on<{ subscriptionId: string; userId: string; planName: string; amount: number; interval: string; nextDeliveryDate: string }>(
     Events.SUBSCRIPTION_ACTIVATED,

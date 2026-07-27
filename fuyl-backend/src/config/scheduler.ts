@@ -46,4 +46,5 @@ export const Schedules = {
   REFERRAL_EXPIRY_SWEEPER: '0 5 * * *',     // daily 05:00
   CART_ABANDONED: '*/30 * * * *',           // every 30 min
   ANALYTICS_FLUSH: '*/5 * * * *',           // every 5 min
+  SHIPPING_TRACKING: '0 */3 * * *',         // every 3 hours — poll carrier scans
 } as const;

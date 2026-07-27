@@ -16,8 +16,8 @@ export class SubscriptionController {
     validate(createSubscriptionSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        const sub = await subscriptionService.create(req.user!.userId, req.body);
-        return created(res, sub);
+        const result = await subscriptionService.create(req.user!.userId, req.body);
+        return created(res, result);
       } catch (err) { next(err); }
     },
   ];
