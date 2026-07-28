@@ -28,6 +28,14 @@ export function OrderStatusPanel({ order }: { order: AdminOrderDetail }) {
   const isTerminal = order.status === 'cancelled' || order.status === 'completed'
   const currentIdx = STATUS_FLOW.indexOf(status)
 
+  // The status/note/tracking inputs only stage a change locally — nothing is
+  // saved until "Update Status" is clicked. Gate the button on an actual change
+  // so selecting a value in the dropdown can never look like (or become) a save.
+  const hasChanges =
+    status !== order.status ||
+    note.trim().length > 0 ||
+    trackingNumber !== (order.trackingNumber ?? '')
+
   const handleUpdate = () => {
     setError('')
     startTransition(async () => {
@@ -81,8 +89,9 @@ export function OrderStatusPanel({ order }: { order: AdminOrderDetail }) {
               ))}
             </select>
             <button
+              type="button"
               onClick={handleUpdate}
-              disabled={isPending}
+              disabled={isPending || !hasChanges}
               className="flex items-center gap-2 px-4 py-2 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
             >
               {saved ? <CheckCircle2 className="w-4 h-4" /> : null}

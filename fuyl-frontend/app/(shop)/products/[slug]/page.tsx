@@ -83,8 +83,6 @@ export default async function ProductPage({ params }: Props) {
     // No reviews yet, or the reviews service hiccuped — not fatal to the page.
   }
 
-  console.log(product);
-
   return (
     <>
       <div className="container-brand mx-auto mt-10 ">
