@@ -120,7 +120,12 @@ export default async function ProductPage({ params }: Props) {
           </div>
         </div>
 
-        <CertificationMarquee certifications={product.certifications} />
+        {/* Full-bleed: break out of container-brand's max-width so the marquee
+            spans the entire viewport width, without changing its position in
+            the flow. */}
+        <div className="w-screen ml-[calc(50%-50vw)] mr-[calc(50%-50vw)]">
+          <CertificationMarquee certifications={product.certifications} />
+        </div>
 
         {/* Tabs */}
         <ProductTabs
