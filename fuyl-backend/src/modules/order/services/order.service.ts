@@ -374,14 +374,25 @@ export class OrderService {
         const { PaymentRepository } = await import('../../payment/repositories/payment.repository');
         const paymentRepo2 = new PaymentRepository();
         const payments = await paymentRepo2.findByOrder(orderId);
-        const refundablePayment = payments.find(
+        // Refund EVERY refundable payment, not just the first — a split order
+        // (e.g. wallet + gateway) has multiple payment records and each must be
+        // returned. Isolate failures per-payment so one gateway hiccup doesn't
+        // skip the others; a failure is logged for manual reconciliation.
+        const refundable = payments.filter(
           (p) => p.status === PaymentStatus.SUCCESS || p.status === PaymentStatus.PARTIALLY_REFUNDED
         );
-        if (refundablePayment) {
-          await paymentService.refund(actorId, {
-            paymentId: refundablePayment.id,
-            reason: `Order cancelled: ${reason}`,
-          });
+        for (const p of refundable) {
+          try {
+            await paymentService.refund(actorId, {
+              paymentId: p.id,
+              reason: `Order cancelled: ${reason}`,
+            });
+          } catch (perPaymentErr) {
+            logger.error(
+              `[order] REFUND FAILED for payment ${p.id} on cancelled order ${orderId} — needs manual reconciliation`,
+              perPaymentErr
+            );
+          }
         }
       } catch (err) {
         logger.error(`[order] failed to refund payment for cancelled order ${orderId}`, err);
@@ -414,6 +425,16 @@ export class OrderService {
     if (order.customerId.toString() !== customerId) throw new ForbiddenError('Not your order');
     if (order.status !== OrderStatus.DELIVERED && order.status !== OrderStatus.COMPLETED) {
       throw new BadRequestError('Returns only allowed for delivered/completed orders');
+    }
+
+    // Refund requests are accepted ONLY for seal-damaged products, and every
+    // returned item must carry photo proof of the damaged seal (the validator
+    // requires at least one image per item; this enforces the condition).
+    if (dto.items.some((i) => i.condition !== 'damaged')) {
+      throw new BadRequestError('Refunds can only be requested for seal-damaged products — select the damaged condition and attach a photo of the damaged seal.');
+    }
+    if (dto.items.some((i) => !i.images || i.images.length === 0)) {
+      throw new BadRequestError('A photo of the seal-damaged product is required for each item in a refund request.');
     }
 
     const returnNumber = await nextNumber('RET');

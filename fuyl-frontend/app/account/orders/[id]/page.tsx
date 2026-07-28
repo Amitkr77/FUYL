@@ -7,6 +7,9 @@ import { MapPin, Truck, CreditCard } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { formatPrice } from '@/lib/utils/formatPrice'
 import { getOrder } from '@/lib/api/account'
+import { getOrderPayments, type OrderPayment } from '@/lib/api/payment'
+import { CancelOrderPanel } from '@/components/orders/CancelOrderPanel'
+import { RefundRequestPanel } from '@/components/orders/RefundRequestPanel'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { WriteReviewForm } from '@/components/product/WriteReviewForm'
 import type { Order, OrderAddress } from '@/types/user'
@@ -24,6 +27,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  cashfree: 'Card / UPI / Netbanking',
   razorpay: 'Card / UPI / Netbanking',
   upi: 'UPI',
   cod: 'Cash on Delivery',
@@ -130,18 +134,23 @@ export default function OrderDetailPage() {
   const params = useParams<{ id: string }>()
   const { token, user } = useAuthStore()
   const [order, setOrder]     = useState<Order | null>(null)
+  const [payments, setPayments] = useState<OrderPayment[]>([])
   const [isLoading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
   const [reviewingItemId, setReviewingItemId] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     if (!token || !params.id) return
     setLoading(true)
+    // Payment records carry the gateway amount/reference/date — non-fatal if
+    // they can't be loaded (the order's own method/status still render).
+    getOrderPayments(token, params.id).then(setPayments).catch(() => {})
     getOrder(token, params.id)
       .then(setOrder)
       .catch((err) => setError(getErrorMessage(err, 'Failed to load order')))
       .finally(() => setLoading(false))
-  }, [token, params.id])
+  }, [token, params.id, reloadKey])
 
   if (!user) {
     return (
@@ -188,6 +197,21 @@ export default function OrderDetailPage() {
             <p className="text-body-sm p-3 rounded-sm" style={{ background: '#FEE2E2', color: '#B91C1C' }}>
               Order cancelled{order.cancelledAt ? ` on ${formatDateTime(order.cancelledAt)}` : ''}: {order.cancelledReason}
             </p>
+          )}
+
+          {/* Cancel — only before the order ships */}
+          {token && ['pending', 'confirmed', 'packed'].includes(order.status) && (
+            <CancelOrderPanel token={token} orderId={order.id} onDone={() => setReloadKey((k) => k + 1)} />
+          )}
+
+          {/* Seal-damaged refund request — only after delivery */}
+          {token && ['delivered', 'completed'].includes(order.status) && (
+            <RefundRequestPanel
+              token={token}
+              orderId={order.id}
+              items={order.items}
+              onDone={() => setReloadKey((k) => k + 1)}
+            />
           )}
 
           {/* Timeline */}
@@ -322,8 +346,17 @@ export default function OrderDetailPage() {
               <p className="text-body-sm text-brand-forest mb-1">
                 Status: <span className="font-semibold">{PAYMENT_STATUS_LABEL[order.paymentStatus] ?? order.paymentStatus}</span>
               </p>
-              {order.razorpayPaymentId && (
-                <p className="text-body-xs text-brand-muted mt-2">Transaction ID: {order.razorpayPaymentId}</p>
+              <p className="text-body-sm text-brand-forest mb-1">
+                Amount Paid: <span className="font-semibold">{formatPrice(payments[0]?.amount ?? order.total)}</span>
+              </p>
+              {(payments[0]?.reference ?? order.razorpayPaymentId) && (
+                <p className="text-body-xs text-brand-muted mt-2">Transaction ID: {payments[0]?.reference ?? order.razorpayPaymentId}</p>
+              )}
+              {payments[0]?.capturedAt && (
+                <p className="text-body-xs text-brand-muted">Paid on {formatDateTime(payments[0].capturedAt)}</p>
+              )}
+              {payments[0] && payments[0].refundedAmount > 0 && (
+                <p className="text-body-xs text-brand-muted">Refunded: {formatPrice(payments[0].refundedAmount)}</p>
               )}
             </div>
           </div>

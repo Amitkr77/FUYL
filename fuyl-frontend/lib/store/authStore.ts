@@ -88,12 +88,19 @@ export const useAuthStore = create<AuthState>()(
     {
       name:       'fuyl_auth',
       storage:    createJSONStorage(() => localStorage),
-      // Token is deliberately NOT persisted — only the user profile. See
-      // rehydrate() above for how the access token is restored on load.
-      partialize: (state) => ({ user: state.user }),
-      // After the persisted user loads on the client, restore the access token.
+      // Persist BOTH the access token and the user. Keeping the token out of
+      // localStorage (memory-only) made session continuity depend entirely on
+      // the /auth/refresh cookie, which isn't reliably sent across the payment
+      // gateway return (refresh cookie is sameSite=strict) — that logged users
+      // out after completing checkout. Persisting the token restores continuity
+      // across reloads/redirects. (XSS exposure is mitigated by the storefront
+      // HTML sanitizer + CSP.) rehydrate() below stays as a no-op safety net:
+      // it only acts when a user is present but the token is somehow missing.
+      partialize: (state) => ({ token: state.token, user: state.user }),
+      // If the token didn't come back from storage but the user did, restore it
+      // from the refresh cookie (defensive; normally the token is persisted).
       onRehydrateStorage: () => (state) => {
-        if (state?.user) void state.rehydrate()
+        if (state?.user && !state.token) void state.rehydrate()
       },
     }
   )

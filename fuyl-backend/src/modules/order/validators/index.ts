@@ -60,8 +60,11 @@ export const createReturnSchema = z.object({
     quantity: z.number().int().min(1),
     reason: z.string().min(1).max(500),
     reasonDetails: z.string().max(2000).optional(),
-    images: z.array(z.string().url()).max(5).optional(),
-    condition: z.enum(['unopened', 'opened', 'damaged']).default('unopened'),
+    // At least one photo of the seal-damaged product is required as proof of
+    // the refund claim (enforced here; the seal-damaged condition itself is
+    // enforced in order.service.createReturn).
+    images: z.array(z.string().url()).min(1).max(5),
+    condition: z.enum(['unopened', 'opened', 'damaged']).default('damaged'),
   })).min(1),
   refundMethod: z.enum(['wallet', 'original', 'split']).default('wallet'),
 });

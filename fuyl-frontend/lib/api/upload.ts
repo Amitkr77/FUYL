@@ -1,6 +1,6 @@
 import { apiFetch } from './client'
 
-export type UploadFolder = 'products' | 'blog' | 'avatars' | 'reviews'
+export type UploadFolder = 'products' | 'blog' | 'avatars' | 'reviews' | 'returns'
 
 export interface UploadSignature {
   timestamp: number

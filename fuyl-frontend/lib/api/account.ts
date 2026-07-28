@@ -178,6 +178,49 @@ export async function getOrder(token: string, orderId: string): Promise<Order> {
   return mapOrder(res)
 }
 
+// Cancel an order (only permitted by the backend while not yet shipped — the
+// UI only offers this on pending/confirmed/packed orders).
+export async function cancelOrder(token: string, orderId: string, reason: string): Promise<Order> {
+  const res = await apiFetch<BackendOrder>(`/orders/${orderId}/cancel`, {
+    method: 'POST',
+    token,
+    body: { reason },
+  })
+  return mapOrder(res)
+}
+
+// Refund request — accepted ONLY for seal-damaged products, with at least one
+// photo per item (both enforced server-side in order.service.createReturn).
+export interface RefundRequestItem {
+  productId: string
+  variantId?: string
+  quantity: number
+  reason: string
+  images: string[]
+}
+
+export async function requestRefund(
+  token: string,
+  payload: { orderId: string; items: RefundRequestItem[]; refundMethod?: 'wallet' | 'original' | 'split' }
+): Promise<void> {
+  await apiFetch('/orders/returns', {
+    method: 'POST',
+    token,
+    body: {
+      orderId: payload.orderId,
+      refundMethod: payload.refundMethod ?? 'wallet',
+      items: payload.items.map((i) => ({
+        productId: i.productId,
+        variantId: i.variantId,
+        quantity: i.quantity,
+        reason: i.reason,
+        images: i.images,
+        condition: 'damaged', // seal-damaged — the only condition the backend accepts for refunds
+      })),
+    },
+  })
+}
+
 export async function forgotPassword(email: string): Promise<void> {
   return apiFetch('/auth/forgot-password', { method: 'POST', body: { email } })
 }

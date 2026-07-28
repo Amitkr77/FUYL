@@ -5,7 +5,8 @@ import { success, created, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
 import { createOrderSchema, updateStatusSchema, cancelOrderSchema, createReturnSchema, updateReturnSchema } from '../validators';
 import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
-import { ForbiddenError } from '../../../shared/errors';
+import { ForbiddenError, BadRequestError } from '../../../shared/errors';
+import { OrderStatus } from '../../../shared/enums';
 
 export class OrderController {
   create = [
@@ -55,8 +56,23 @@ export class OrderController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const order = await orderService.getById(req.params.id);
-        if (req.user!.role === Roles.CUSTOMER && order.customerId.toString() !== req.user!.userId) {
-          return next(new ForbiddenError('Not your order'));
+        if (req.user!.role === Roles.CUSTOMER) {
+          if (order.customerId.toString() !== req.user!.userId) {
+            return next(new ForbiddenError('Not your order'));
+          }
+          // Customers may cancel only BEFORE the order ships. Once shipped (or
+          // beyond) they can't cancel — a delivered order goes through the
+          // seal-damaged refund request instead. Admins/super-admins retain the
+          // ability to cancel a shipped-but-not-delivered order (with a reason);
+          // the service still blocks delivered/completed for everyone.
+          if (
+            order.status === OrderStatus.SHIPPED ||
+            order.status === OrderStatus.DELIVERED ||
+            order.status === OrderStatus.COMPLETED ||
+            order.status === OrderStatus.RETURNED
+          ) {
+            return next(new BadRequestError('This order has already shipped and can no longer be cancelled.'));
+          }
         }
         return success(res, await orderService.cancel(req.params.id, req.body.reason, req.user!.userId));
       } catch (err) { next(err); }

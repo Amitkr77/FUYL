@@ -48,6 +48,44 @@ export async function createPayment(token: string, orderId: string, method: Paym
   return { method: 'cod' }
 }
 
+// ─── Payment records for an order (shown on the order detail page) ──────────
+interface BackendOrderPayment {
+  _id: string
+  amount: number
+  currency: string
+  status: string
+  gateway: string
+  cfPaymentId?: string
+  razorpayPaymentId?: string
+  capturedAt?: string
+  refundedAmount?: number
+}
+
+export interface OrderPayment {
+  id: string
+  amount: number
+  currency: string
+  status: string
+  gateway: string
+  reference?: string
+  capturedAt?: string
+  refundedAmount: number
+}
+
+export async function getOrderPayments(token: string, orderId: string): Promise<OrderPayment[]> {
+  const raw = await apiFetch<BackendOrderPayment[]>(`/orders/${orderId}/payments`, { token })
+  return (raw ?? []).map((p) => ({
+    id:             p._id,
+    amount:         p.amount,
+    currency:       p.currency,
+    status:         p.status,
+    gateway:        p.gateway,
+    reference:      p.cfPaymentId ?? p.razorpayPaymentId,
+    capturedAt:     p.capturedAt,
+    refundedAmount: p.refundedAmount ?? 0,
+  }))
+}
+
 // Step 3 (Cashfree only): after the shopper completes the SDK checkout, confirm
 // server-side. Cashfree has no client-side signature — the server fetches the
 // order status. Throws if the payment isn't completed (the webhook is the

@@ -1,9 +1,25 @@
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, Package, Truck, MapPin, User, ClipboardList, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Package, Truck, MapPin, User, ClipboardList, CheckCircle2, CreditCard } from 'lucide-react'
 import { getAdminOrder } from '@/lib/orders'
 import { OrderStatusPanel } from '@/components/orders/OrderStatusPanel'
 import { BookShipmentPanel } from '@/components/shipping/BookShipmentPanel'
 import { formatCurrency, formatDate } from '@/lib/utils'
+
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  cashfree: 'Card / UPI / Netbanking',
+  razorpay: 'Card / UPI / Netbanking',
+  upi: 'UPI',
+  cod: 'Cash on Delivery',
+  wallet: 'Wallet',
+  split: 'Split Payment',
+}
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  pending: 'Pending',
+  success: 'Paid',
+  failed: 'Failed',
+  refunded: 'Refunded',
+  partially_refunded: 'Partially Refunded',
+}
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -74,6 +90,34 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <span>{formatCurrency(order.total)}</span>
               </div>
             </div>
+          </div>
+
+          {/* Payment */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <CreditCard className="w-4 h-4 text-slate-400" />
+              <h3 className="text-sm font-semibold text-slate-900">Payment</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-y-2 text-sm">
+              <span className="text-slate-500">Method</span>
+              <span className="text-slate-900 font-medium text-right">{PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}</span>
+              <span className="text-slate-500">Status</span>
+              <span className="text-slate-900 font-medium text-right">{PAYMENT_STATUS_LABEL[order.paymentStatus] ?? order.paymentStatus}</span>
+              <span className="text-slate-500">Amount</span>
+              <span className="text-slate-900 font-medium text-right">{formatCurrency(order.payments[0]?.amount ?? order.total)}</span>
+            </div>
+            {order.payments.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5">
+                {order.payments.map((p, i) => (
+                  <p key={i} className="text-xs text-slate-500">
+                    <span className="capitalize">{p.gateway}</span> · {formatCurrency(p.amount)} · <span className="capitalize">{p.status}</span>
+                    {p.reference ? ` · Ref: ${p.reference}` : ''}
+                    {p.capturedAt ? ` · ${formatDate(p.capturedAt)}` : ''}
+                    {p.refundedAmount > 0 ? ` · Refunded ${formatCurrency(p.refundedAmount)}` : ''}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

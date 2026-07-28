@@ -59,6 +59,30 @@ interface BackendOrder {
   trackingNumber?: string
   trackingUrl?: string
   carrier?: string
+  paymentMethod?: string
+  paymentStatus?: string
+}
+
+interface BackendOrderPayment {
+  _id: string
+  amount: number
+  currency: string
+  status: string
+  gateway: string
+  cfPaymentId?: string
+  razorpayPaymentId?: string
+  capturedAt?: string
+  refundedAmount?: number
+}
+
+export interface AdminOrderPayment {
+  amount: number
+  currency: string
+  status: string
+  gateway: string
+  reference?: string
+  capturedAt?: string
+  refundedAmount: number
 }
 
 export interface AdminOrder {
@@ -83,6 +107,9 @@ export interface AdminOrderDetail extends AdminOrder {
   trackingNumber?: string
   trackingUrl?: string
   carrier?: string
+  paymentMethod: string
+  paymentStatus: string
+  payments: AdminOrderPayment[]
 }
 
 function mapOrder(o: BackendOrder): AdminOrder {
@@ -110,6 +137,21 @@ export async function getAdminOrder(id: string): Promise<AdminOrderDetail | null
     // enforces its ownership check for the 'customer' role, so it works for
     // admin/seller/super_admin too (verified in order.controller.ts).
     const o = await adminApiFetch<BackendOrder>(`/orders/${id}`)
+    // Payment records (amount/gateway/reference/date) — non-fatal if missing.
+    let payments: AdminOrderPayment[] = []
+    try {
+      const raw = await adminApiFetch<BackendOrderPayment[]>(`/orders/${id}/payments`)
+      payments = (raw ?? []).map((p) => ({
+        amount:         p.amount,
+        currency:       p.currency,
+        status:         p.status,
+        gateway:        p.gateway,
+        reference:      p.cfPaymentId ?? p.razorpayPaymentId,
+        capturedAt:     p.capturedAt,
+        refundedAmount: p.refundedAmount ?? 0,
+      }))
+    } catch { /* leave empty — order-level method/status still render */ }
+
     return {
       ...mapOrder(o),
       items: o.items.map((i) => ({
@@ -123,6 +165,9 @@ export async function getAdminOrder(id: string): Promise<AdminOrderDetail | null
       trackingNumber: o.trackingNumber,
       trackingUrl:    o.trackingUrl,
       carrier:        o.carrier,
+      paymentMethod: o.paymentMethod ?? 'unknown',
+      paymentStatus: o.paymentStatus ?? 'pending',
+      payments,
     }
   } catch {
     return null
