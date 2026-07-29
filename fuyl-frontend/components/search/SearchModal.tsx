@@ -7,6 +7,7 @@ import { Search, X, ArrowRight, FileText, Package, Newspaper, Leaf, HelpCircle }
 import { globalSearch, type GlobalSearchResults } from "@/lib/api/search";
 import { formatPrice } from "@/lib/utils/formatPrice";
 import { Spinner } from "@/components/ui/Spinner";
+import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
 
 const QUICK_LINKS = ["FUYL COMPLETE+", "Ashwagandha", "Probiotics", "Vitamin D3"];
 const DEBOUNCE_MS = 220;
@@ -19,6 +20,8 @@ interface SearchModalProps {
 export function SearchModal({ open, onClose }: SearchModalProps) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, open);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GlobalSearchResults | null>(null);
   const [loading, setLoading] = useState(false);
@@ -85,6 +88,11 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
       onClick={onClose}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search"
+        tabIndex={-1}
         className="w-full max-w-xl mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
         onClick={(e) => e.stopPropagation()}
       >

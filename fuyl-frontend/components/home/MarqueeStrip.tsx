@@ -14,7 +14,7 @@ const ITEMS = [
   { icon: Brain, text: "100% Vegetarian · Nothing Hidden · No Shortcuts" },
   {
     icon: Sun,
-    text: "Free ShippingTastes Like A Berry Drink · Works Like A Formula",
+    text: "Tastes Like A Berry Drink · Works Like A Formula",
   },
   {
     icon: Sun,

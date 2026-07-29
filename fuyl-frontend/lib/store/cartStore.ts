@@ -95,24 +95,38 @@ export const useCartStore = create<CartState>()(
           // show what really happened.
         },
 
+        // Optimistic: update the line locally right away so the UI feels
+        // instant, then reconcile with the authoritative server cart. On
+        // failure, roll back to the pre-change items and re-sync from the
+        // server so we never leave the UI in a lie.
         updateQty: async (productId, variantId, quantity) => {
           if (quantity < 1) return get().removeItem(productId, variantId)
-          set({ isLoading: true })
+          const previous = get().items
+          const matches = (i: CartItem) =>
+            i.productId === productId && (i.variantId || '') === (variantId || '')
+          set({ items: previous.map((i) => (matches(i) ? { ...i, quantity } : i)) })
           try {
             const cart = await updateCartItem(currentAuth(), productId, variantId, quantity)
             set({ items: cart.items })
-          } finally {
-            set({ isLoading: false })
+          } catch (err) {
+            console.error('updateQty failed — reverting', err)
+            set({ items: previous })
+            void get().syncCart()
           }
         },
 
         removeItem: async (productId, variantId) => {
-          set({ isLoading: true })
+          const previous = get().items
+          const matches = (i: CartItem) =>
+            i.productId === productId && (i.variantId || '') === (variantId || '')
+          set({ items: previous.filter((i) => !matches(i)) })
           try {
             const cart = await removeCartItem(currentAuth(), productId, variantId)
             set({ items: cart.items })
-          } finally {
-            set({ isLoading: false })
+          } catch (err) {
+            console.error('removeItem failed — reverting', err)
+            set({ items: previous })
+            void get().syncCart()
           }
         },
 

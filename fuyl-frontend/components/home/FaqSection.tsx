@@ -33,25 +33,25 @@ const FAQS = [
   },
   {
     id: "05",
-    question: "can i have more than 1 sachet in a day?",
+    question: "Can I have more than 1 sachet in a day?",
     answer:
-      "It is recommended to not consume more than 1 sachet a day. One sachet has some nutrients that meet your RDA (Recommended Dietary Allowance). Having more than 1 sachet a day exceeds this allowance. ",
+      "It is recommended to not consume more than 1 sachet a day. One sachet has some nutrients that meet your RDA (Recommended Dietary Allowance). Having more than 1 sachet a day exceeds this allowance.",
   },
   {
     id: "06",
-    question: "when will i start noticing a difference?",
+    question: "When will I start noticing a difference?",
     answer:
       "Most people notice changes in gut comfort and energy by week 2. The adaptogen stack from KSM-66 reaches meaningful cortisol modulation at approximately 10-14 days. The full foundation builds over 30 days of consistent daily use. Nutrition is not an event. It is a practice.",
   },
   {
     id: "07",
-    question: "what is KSM-66 and why does it matter?",
+    question: "What is KSM-66 and why does it matter?",
     answer:
-      "KSM-66 is a specific branded ashwagandha root extract by Ixoreal Biomed with 22+ gold-standard clinical trials. Generic ashwagandha may be root, leaf, or a mix with no specified extraction process. KSM-66 is full-spectrum root with defined with anolide content and documented clinical evidence. The difference in quality is meaningful and verifiable.",
+      "KSM-66 is a specific branded ashwagandha root extract by Ixoreal Biomed with 22+ gold-standard clinical trials. Generic ashwagandha may be root, leaf, or a mix with no specified extraction process. KSM-66 is full-spectrum root with defined withanolide content and documented clinical evidence. The difference in quality is meaningful and verifiable.",
   },
   {
     id: "08",
-    question: "Can i take it with existing medicines?",
+    question: "Can I take it with existing medicines?",
     answer:
       "If you are on prescription medication or have a diagnosed medical condition, consult your doctor before starting any new supplement. Complete+ is a food supplement, not a medicine, but some ingredients including KSM-66 may interact with thyroid medications at therapeutic doses.",
   },
@@ -142,6 +142,8 @@ export function FaqSection() {
                     >
                       <button
                         onClick={() => setOpen(active ? "" : item.id)}
+                        aria-expanded={active}
+                        aria-controls={`faq-panel-${item.id}`}
                         className="flex w-full items-center justify-between gap-8 py-6! text-left group/btn"
                       >
                         <div className="flex items-center gap-5">
@@ -176,6 +178,8 @@ export function FaqSection() {
 
                       {/* Answer */}
                       <div
+                        id={`faq-panel-${item.id}`}
+                        role="region"
                         className={`grid transition-all duration-300 ease-in-out ${active ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
                       >
                         <div className="overflow-hidden">

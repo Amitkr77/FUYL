@@ -4,26 +4,19 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { SITE } from "@/lib/constants/site";
 import { getInstagramPosts } from "@/lib/api/content";
 
-const PLACEHOLDERS = Array.from({ length: 3 }, (_, i) => ({
-  id: `ig-${i}`,
-  src: `https://fuyl.in/cdn/shop/files/FUYL_Complete_Product_Shot.jpg`,
-  alt: `FUYL Instagram post ${i + 1}`,
-  href: SITE.instagram,
-}));
-
 export async function InstagramFeed() {
   const posts = await getInstagramPosts(6);
-  // Falls back to static placeholders whenever the feed isn't configured
-  // (no INSTAGRAM_ACCESS_TOKEN) or the API call fails for any reason —
-  // getInstagramPosts() already swallows errors down to [] for this.
-  const tiles = posts.length > 0
-    ? posts.map((p) => ({
-        id: p.id,
-        src: p.mediaUrl,
-        alt: p.caption ? p.caption.slice(0, 140) : "FUYL on Instagram",
-        href: p.permalink,
-      }))
-    : PLACEHOLDERS;
+  // Only render a genuine feed. When Instagram isn't configured
+  // (no INSTAGRAM_ACCESS_TOKEN) or the API returns nothing, hide the section
+  // entirely rather than showing duplicate placeholder tiles that look broken
+  // and undercut trust. It reappears automatically once a real feed exists.
+  if (posts.length === 0) return null;
+  const tiles = posts.map((p) => ({
+    id: p.id,
+    src: p.mediaUrl,
+    alt: p.caption ? p.caption.slice(0, 140) : "FUYL on Instagram",
+    href: p.permalink,
+  }));
 
   return (
     <section className="section-py bg-white">

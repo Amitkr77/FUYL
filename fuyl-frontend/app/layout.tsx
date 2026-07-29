@@ -54,6 +54,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
+        {/* Skip link — first focusable element; visually hidden until focused,
+            lets keyboard users jump past the header/nav to the page content. */}
+        <a
+          href="#MainContent"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-100 focus:rounded-sm focus:bg-brand-forest focus:px-4 focus:py-2 focus:text-white focus:text-body-sm"
+        >
+          Skip to content
+        </a>
         <AnnouncementBar />
         <Header shopItems={shopItems} />
         <main id="MainContent" tabIndex={-1}>

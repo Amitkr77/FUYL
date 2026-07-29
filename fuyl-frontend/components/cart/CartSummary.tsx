@@ -42,7 +42,7 @@ export function CartSummary() {
         Proceed to Checkout
       </Button>
       <p className="text-body-xs text-center text-brand-muted">
-        Taxes calculated at checkout · Secure payment via Razorpay
+        Taxes calculated at checkout · Secure, encrypted payment
       </p>
     </div>
   )

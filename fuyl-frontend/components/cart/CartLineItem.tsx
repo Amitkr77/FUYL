@@ -44,12 +44,14 @@ export function CartLineItem({ item }: CartLineItemProps) {
         <div className="flex items-center justify-between">
           {/* Qty controls */}
           <div className="inline-flex items-center border rounded-sm" style={{ borderColor: 'var(--color-brand-border)' }}>
-            <button onClick={() => updateQty(item.productId, item.variantId || undefined, item.quantity - 1)} disabled={isLoading} className="w-8 h-8 flex items-center justify-center hover:bg-[#F5EDE8] transition-colors disabled:opacity-50" aria-label="Decrease">
-              <Minus size={12} />
+            {/* Disabled at qty 1 so a stray tap can't silently delete the line —
+                removal is the explicit trash button above. */}
+            <button onClick={() => updateQty(item.productId, item.variantId || undefined, item.quantity - 1)} disabled={isLoading || item.quantity <= 1} className="w-10 h-10 flex items-center justify-center hover:bg-[#F5EDE8] transition-colors disabled:opacity-40 disabled:cursor-not-allowed" aria-label="Decrease quantity">
+              <Minus size={14} />
             </button>
             <span className="w-8 text-center text-body-sm font-semibold tabular-nums">{item.quantity}</span>
-            <button onClick={() => updateQty(item.productId, item.variantId || undefined, item.quantity + 1)} disabled={isLoading} className="w-8 h-8 flex items-center justify-center hover:bg-[#F5EDE8] transition-colors disabled:opacity-50" aria-label="Increase">
-              <Plus size={12} />
+            <button onClick={() => updateQty(item.productId, item.variantId || undefined, item.quantity + 1)} disabled={isLoading} className="w-10 h-10 flex items-center justify-center hover:bg-[#F5EDE8] transition-colors disabled:opacity-50" aria-label="Increase quantity">
+              <Plus size={14} />
             </button>
           </div>
           <span className="text-body-sm font-semibold">{formatPrice(item.price * item.quantity)}</span>

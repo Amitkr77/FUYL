@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useId, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Pencil, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -380,12 +380,14 @@ function AccountPageContent() {
                 required
                 value={form.firstName}
                 onChange={set("firstName")}
+                autoComplete="given-name"
               />
               <Field
                 label="Last Name"
                 required
                 value={form.lastName}
                 onChange={set("lastName")}
+                autoComplete="family-name"
               />
             </div>
           )}
@@ -395,6 +397,7 @@ function AccountPageContent() {
             value={form.email}
             onChange={set("email")}
             type="email"
+            autoComplete="email"
           />
           <Field
             label="Password"
@@ -402,6 +405,7 @@ function AccountPageContent() {
             value={form.password}
             onChange={set("password")}
             type="password"
+            autoComplete={mode === "register" ? "new-password" : "current-password"}
           />
           {mode === "login" && (
             <button
@@ -424,6 +428,7 @@ function AccountPageContent() {
               value={form.phone}
               onChange={set("phone")}
               type="tel"
+              autoComplete="tel"
             />
           )}
 
@@ -455,29 +460,34 @@ function Field({
   onChange,
   type = "text",
   required,
+  autoComplete,
 }: {
   label: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   type?: string;
   required?: boolean;
+  autoComplete?: string;
 }) {
+  const fieldId = `field-${useId()}`;
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
 
   return (
     <div>
-      <label className="block text-label mb-1.5 text-brand-muted">
+      <label htmlFor={fieldId} className="block text-label mb-1.5 text-brand-muted">
         {label}
         {required && <span className="text-brand-teal"> *</span>}
       </label>
       <div className="relative">
         <input
+          id={fieldId}
           type={isPassword ? (showPassword ? "text" : "password") : type}
           value={value}
           onChange={onChange}
           required={required}
-          className={`w-full h-11 px-3 text-body-sm border border-brand-border rounded-sm outline-none transition-colors focus:border-brand-teal ${
+          autoComplete={autoComplete}
+          className={`w-full h-11 px-3 text-body-sm border border-brand-border rounded-sm outline-none transition-colors focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/30 ${
             isPassword ? "pr-10" : ""
           }`}
         />

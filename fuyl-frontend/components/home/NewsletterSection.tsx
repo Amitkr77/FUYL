@@ -67,7 +67,7 @@ export function NewsletterSection() {
           </h2>
           <p className="text-body-md mb-8 text-brand-olive-light max-w-4xl mx-auto">
             Ingredient science, formulation insights, and early access to new
-            products. Straight to your inbox. One useful email per week. No spam
+            products. Straight to your inbox — one useful email per week.
           </p>
 
           {status === "success" ? (
@@ -84,8 +84,11 @@ export function NewsletterSection() {
               onSubmit={handleSubmit}
               className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
             >
+              <label htmlFor="newsletter-email" className="sr-only">Email address</label>
               <input
+                id="newsletter-email"
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -93,7 +96,7 @@ export function NewsletterSection() {
                 }}
                 placeholder="your@email.com"
                 required
-                className="flex-1 h-12 px-4 py-4 text-body-sm rounded-sm outline-none bg-white/15 border border-brand-berry-light text-brand-muted placeholder:text-brand-muted focus:border-brand-teal transition-colors"
+                className="flex-1 h-12 px-4 py-4 text-body-sm rounded-sm outline-none bg-white border border-brand-border text-brand-forest placeholder:text-brand-muted focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/30 transition-colors"
               />
               {/* Forest Green subscribe button — strong secondary action */}
               <button
@@ -107,7 +110,7 @@ export function NewsletterSection() {
           )}
 
           {status === "error" && (
-            <p className="mt-3 text-body-xs text-red-300">{errorMsg}</p>
+            <p role="alert" className="mt-3 text-body-xs text-red-600">{errorMsg}</p>
           )}
 
           <p className="mt-4 text-body-xs text-brand-berry-light">

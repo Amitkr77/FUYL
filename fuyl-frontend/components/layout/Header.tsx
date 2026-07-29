@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { ShoppingBag, User, Search, Menu, X, ChevronDown } from "lucide-react";
@@ -104,6 +105,15 @@ export function Header({ shopItems }: HeaderProps = {}) {
   const [searchOpen, setSearchOpen] = useState(false);
   const { itemCount, openCart } = useCart();
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pathname = usePathname();
+
+  // Current-section match: exact for "/", prefix for everything else, so
+  // e.g. /pages/why-fuyl highlights "Why FUYL". External links never match.
+  const isActive = (item: NavItem) =>
+    !item.external &&
+    (item.href === "/"
+      ? pathname === "/"
+      : pathname === item.href || pathname.startsWith(item.href + "/"));
 
   const navItems = shopItems?.length
     ? NAV_ITEMS.map((item) =>
@@ -160,11 +170,15 @@ export function Header({ shopItems }: HeaderProps = {}) {
                   href={item.href}
                   target={item.external ? "_blank" : undefined}
                   rel={item.external ? "noopener noreferrer" : undefined}
+                  aria-current={isActive(item) ? "page" : undefined}
                   className={cn(
-                    "px-4 py-2 text-label transition-colors duration-150",
-                    activeMenu === item.label
+                    "relative px-4 py-2 text-label transition-colors duration-150",
+                    activeMenu === item.label || isActive(item)
                       ? "text-brand-teal"
                       : "text-brand-forest hover:text-brand-teal",
+                    // Persistent underline marks the current section (not just color).
+                    isActive(item) &&
+                      "after:absolute after:left-4 after:right-4 after:-bottom-0.5 after:h-0.5 after:bg-brand-teal after:rounded-full",
                   )}
                 >
                   {item.label}

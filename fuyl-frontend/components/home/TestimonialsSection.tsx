@@ -95,6 +95,7 @@ export function TestimonialsSection() {
                 <button
                   key={item}
                   onClick={() => setTab(item)}
+                  aria-pressed={tab === item}
                   className={cn(
                     `
           relative

@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useId, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
@@ -131,15 +131,18 @@ function PasswordField({ label, value, onChange, show, onToggleShow }: {
   show: boolean
   onToggleShow: () => void
 }) {
+  const fieldId = `pw-${useId()}`
   return (
     <div>
-      <label className="block text-label mb-1.5 text-brand-muted">{label}</label>
+      <label htmlFor={fieldId} className="block text-label mb-1.5 text-brand-muted">{label}</label>
       <div className="relative">
         <input
+          id={fieldId}
           type={show ? 'text' : 'password'}
           value={value}
           onChange={onChange}
-          className="w-full h-11 px-3 pr-10 text-body-sm border border-brand-border rounded-sm outline-none transition-colors focus:border-brand-teal"
+          autoComplete="new-password"
+          className="w-full h-11 px-3 pr-10 text-body-sm border border-brand-border rounded-sm outline-none transition-colors focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/30"
         />
         <button
           type="button"

@@ -26,7 +26,7 @@ That realization became deeply personal after my wife and I moved to the Gulf in
 
 As I spoke to friends, founders, and professionals around me, I realized our story wasn't unique. So many people who cared about their health still felt something was missing low energy, restless sleep, an unsettled gut, and a sense of never quite feeling their best. Most had tried supplements. Few had found one they truly trusted.
 
-That gap became the founding insight behind <strong>FUYL</strong>L. Together with Anupam, we spent months building <strong>FUYL Complete+</strong>, a daily wellness powder designed around four pillars: complete micronutrition, gut health, cellular recovery, and calm, sustained energy. Not because we wanted to create another supplement, but because we wanted to build the product we wished had existed years earlier.
+That gap became the founding insight behind <strong>FUYL</strong>. Together with Anupam, we spent months building <strong>FUYL Complete+</strong>, a daily wellness powder designed around four pillars: complete micronutrition, gut health, cellular recovery, and calm, sustained energy. Not because we wanted to create another supplement, but because we wanted to build the product we wished had existed years earlier.
 
 <strong>LONGER . STRONGER . YOU</strong>`,
   },

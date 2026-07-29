@@ -1,12 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { X, ArrowRight } from "lucide-react";
 import { ANNOUNCEMENT, ANNOUNCEMENT_LINK } from "@/lib/constants/site";
 
+const DISMISS_KEY = "fuyl_announcement_dismissed";
+
 export function AnnouncementBar() {
   const [dismissed, setDismissed] = useState(false);
+
+  // Persist dismissal so it doesn't reappear on every navigation/reload. Keyed
+  // to the announcement text, so changing the copy re-shows the bar.
+  useEffect(() => {
+    if (localStorage.getItem(DISMISS_KEY) === ANNOUNCEMENT) setDismissed(true);
+  }, []);
+
+  const dismiss = () => {
+    localStorage.setItem(DISMISS_KEY, ANNOUNCEMENT);
+    setDismissed(true);
+  };
 
   if (dismissed) return null;
 
@@ -22,7 +35,7 @@ export function AnnouncementBar() {
         </span>
       </Link>
       <button
-        onClick={() => setDismissed(true)}
+        onClick={dismiss}
         aria-label="Dismiss announcement"
         className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-1.5 hover:opacity-70 transition-opacity"
       >

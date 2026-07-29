@@ -59,30 +59,32 @@ export function CartDrawer() {
                     {formatPrice(item.price)}
                   </p>
                   <div className="flex items-center gap-2 mt-2">
+                    {/* Disabled at qty 1 so a stray tap can't silently delete
+                        the line — removal is the explicit trash button. */}
                     <button
                       onClick={() => updateQty(item.productId, item.variantId || undefined, item.quantity - 1)}
-                      disabled={isLoading}
+                      disabled={isLoading || item.quantity <= 1}
                       aria-label="Decrease quantity"
-                      className="p-1 rounded-sm border border-brand-border text-brand-olive hover:text-brand-teal hover:border-brand-teal transition-colors disabled:opacity-50"
+                      className="w-9 h-9 flex items-center justify-center rounded-sm border border-brand-border text-brand-olive hover:text-brand-teal hover:border-brand-teal transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      <Minus size={12} />
+                      <Minus size={14} />
                     </button>
                     <span className="text-body-sm w-6 text-center tabular-nums">{item.quantity}</span>
                     <button
                       onClick={() => updateQty(item.productId, item.variantId || undefined, item.quantity + 1)}
                       disabled={isLoading}
                       aria-label="Increase quantity"
-                      className="p-1 rounded-sm border border-brand-border text-brand-olive hover:text-brand-teal hover:border-brand-teal transition-colors disabled:opacity-50"
+                      className="w-9 h-9 flex items-center justify-center rounded-sm border border-brand-border text-brand-olive hover:text-brand-teal hover:border-brand-teal transition-colors disabled:opacity-50"
                     >
-                      <Plus size={12} />
+                      <Plus size={14} />
                     </button>
                     <button
                       onClick={() => removeItem(item.productId, item.variantId || undefined)}
                       disabled={isLoading}
                       aria-label="Remove item"
-                      className="ml-auto p-1 text-brand-muted hover:text-brand-forest transition-colors disabled:opacity-50"
+                      className="ml-auto w-9 h-9 flex items-center justify-center text-brand-muted hover:text-brand-forest transition-colors disabled:opacity-50"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={15} />
                     </button>
                   </div>
                 </div>

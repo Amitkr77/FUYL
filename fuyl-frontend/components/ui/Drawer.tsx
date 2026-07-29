@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap'
 
 interface DrawerProps {
   open:       boolean
@@ -15,6 +16,7 @@ interface DrawerProps {
 
 export function Drawer({ open, onClose, side = 'right', title, children, className }: DrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(drawerRef, open)
 
   useEffect(() => {
     if (!open) return
@@ -47,6 +49,7 @@ export function Drawer({ open, onClose, side = 'right', title, children, classNa
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        tabIndex={-1}
         className={cn(
           'fixed top-0 bottom-0 z-50 w-full max-w-md bg-white flex flex-col',
           'shadow-2xl',
