@@ -90,21 +90,18 @@ export const env = {
     apiSecret: process.env.CLOUDINARY_API_SECRET ?? '',
   },
 
-  delhivery: {
-    apiToken: process.env.DELHIVERY_API_TOKEN ?? '',
-    // 'production' → https://track.delhivery.com, else the staging host.
-    mode: (process.env.DELHIVERY_ENV ?? 'staging') as 'staging' | 'production',
-    // A pickup location that has been REGISTERED in the Delhivery panel — the
-    // `name` must match a warehouse Delhivery knows, or bookings are rejected.
-    pickup: {
-      name: process.env.DELHIVERY_PICKUP_NAME ?? '',
-      phone: process.env.DELHIVERY_PICKUP_PHONE ?? '',
-      address: process.env.DELHIVERY_PICKUP_ADDRESS ?? '',
-      city: process.env.DELHIVERY_PICKUP_CITY ?? '',
-      state: process.env.DELHIVERY_PICKUP_STATE ?? '',
-      pincode: process.env.DELHIVERY_PICKUP_PINCODE ?? '',
-      country: process.env.DELHIVERY_PICKUP_COUNTRY ?? 'India',
-    },
+  shiprocket: {
+    email: process.env.SHIPROCKET_EMAIL ?? '',
+    password: process.env.SHIPROCKET_PASSWORD ?? '',
+    // Nickname of a pickup address already REGISTERED in the Shiprocket panel
+    // (Settings → Pickup Addresses) — bookings reference it by this name, not
+    // by sending the address itself.
+    pickupLocationName: process.env.SHIPROCKET_PICKUP_LOCATION ?? '',
+    pickupPincode: process.env.SHIPROCKET_PICKUP_PINCODE ?? '',
+    // Static secret you set under Settings → API → Webhooks in the Shiprocket
+    // panel — echoed back on every webhook call so we can verify it's really
+    // Shiprocket calling, not a spoofed request.
+    webhookSecret: process.env.SHIPROCKET_WEBHOOK_SECRET ?? '',
   },
 
   smtp: {

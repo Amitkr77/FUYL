@@ -4,7 +4,7 @@ import { logger } from '../../../config/logger';
 
 /**
  * Registers shipping cron jobs. Called once from src/server.ts at boot.
- * The tracking poll is a no-op when Delhivery isn't configured.
+ * The tracking poll is a no-op when Shiprocket isn't configured.
  */
 export function registerShippingSchedulers(): void {
   schedule('shipping.tracking', Schedules.SHIPPING_TRACKING, async () => {

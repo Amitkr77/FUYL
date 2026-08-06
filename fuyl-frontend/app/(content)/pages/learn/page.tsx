@@ -30,19 +30,21 @@ export default async function LearnPage() {
       {/* Hero */}
       <section className="grid grid-cols-1 lg:grid-cols-2 min-h-[60vh]">
         {/* Left — Content */}
-        <div className="bg-brand-cream flex items-center px-6 py-20 sm:px-10 lg:px-16 xl:px-24 lg:py-28">
-          <ScrollReveal>
-            <Breadcrumbs className="mb-5" items={[{ label: "Learn" }]} />
-            {/* <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label mb-5">
-              The FUYL Editorial
-            </span> */}
-            <h1 className="text-display-2xl font-display text-brand-forest mb-6">
-              Our Journal
-            </h1>
-            <p className="text-body-lg text-brand-muted leading-relaxed max-w-lg">
-              Redefining what matters
-            </p>
-          </ScrollReveal>
+        <div className="bg-brand-cream flex flex-col px-6 py-10 sm:px-10 lg:px-16 xl:px-24">
+          <Breadcrumbs className="mb-5" items={[{ label: "Learn" }]} />
+          <div className="flex flex-1 items-center py-10 lg:py-20">
+            <ScrollReveal>
+              {/* <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label mb-5">
+                The FUYL Editorial
+              </span> */}
+              <h1 className="text-display-2xl font-display text-brand-forest mb-6">
+                Our Journal
+              </h1>
+              <p className="text-body-lg text-brand-muted leading-relaxed max-w-lg">
+                Redefining what matters
+              </p>
+            </ScrollReveal>
+          </div>
         </div>
 
         {/* Right — Image */}

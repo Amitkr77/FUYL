@@ -85,7 +85,7 @@ export class OrderService {
     }
 
     const orderNumber = await nextNumber('FUL');
-    // Shipping charge is computed upstream by the checkout service (Delhivery
+    // Shipping charge is computed upstream by the checkout service (Shiprocket
     // rate for the destination pincode) and passed in; defaults to 0.
     const shipping = dto.shippingTotal ?? 0;
     const grandTotal = subtotal + shipping + tax;

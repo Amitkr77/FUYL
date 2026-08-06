@@ -554,25 +554,27 @@ export default function IngredientsPage() {
         </div>
 
         {/* Left — Content */}
-        <div className="bg-brand-cream flex items-center px-6 py-20 sm:px-10 lg:px-16 xl:px-24 lg:py-28">
-          <ScrollReveal>
-            <Breadcrumbs className="mb-5" items={[{ label: "Ingredients" }]} />
-            {/* <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label mb-5">
-              Full Transparency
-            </span> */}
-            <h1 className="text-display-xl font-display text-brand-forest mb-6">
-              INGREDIENTS
-            </h1>
-            <p className="text-body-lg text-brand-muted leading-relaxed max-w-lg">
-              Science behind the ingredients that make up the FUYL COMPLETE+
-            </p>
-            <Link
-              href="/collections/all"
-              className="mt-10 inline-flex items-center justify-center h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white! rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest!"
-            >
-              Shop Now
-            </Link>
-          </ScrollReveal>
+        <div className="bg-brand-cream flex flex-col px-6 py-10 sm:px-10 lg:px-16 xl:px-24">
+          <Breadcrumbs className="mb-5" items={[{ label: "Ingredients" }]} />
+          <div className="flex flex-1 items-center py-10 lg:py-20">
+            <ScrollReveal>
+              {/* <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label mb-5">
+                Full Transparency
+              </span> */}
+              <h1 className="text-display-xl font-display text-brand-forest mb-6">
+                INGREDIENTS
+              </h1>
+              <p className="text-body-lg text-brand-muted leading-relaxed max-w-lg">
+                Science behind the ingredients that make up the FUYL COMPLETE+
+              </p>
+              <Link
+                href="/collections/all"
+                className="mt-10 inline-flex items-center justify-center h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white! rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest!"
+              >
+                Shop Now
+              </Link>
+            </ScrollReveal>
+          </div>
         </div>
       </section>
 

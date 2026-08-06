@@ -24,7 +24,7 @@ export default function ShippingPolicyPage() {
         },
         {
           heading: 'Delivery Areas',
-          body: 'We ship to all pin codes across India via our logistics partners (Shiprocket, Delhivery, Blue Dart). For remote areas, delivery may take up to 10 business days. Please ensure your delivery address is correct and complete at the time of ordering.',
+          body: 'We ship to all pin codes across India via Shiprocket and its network of courier partners. For remote areas, delivery may take up to 10 business days. Please ensure your delivery address is correct and complete at the time of ordering.',
         },
         {
           heading: 'Order Tracking',

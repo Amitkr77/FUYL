@@ -84,7 +84,7 @@ class CheckoutService {
       walletRedemption = dto.walletRedemptionAmount;
     }
 
-    // 4. Shipping charge (Delhivery rate for the destination pincode).
+    // 4. Shipping charge (Shiprocket rate for the destination pincode).
     const shippingResult = await this.computeShipping(cart, shippingAddress, dto.paymentMethod);
     if (!shippingResult.serviceable) {
       throw new BadRequestError("Sorry, we don't deliver to this pincode yet.");
@@ -109,7 +109,7 @@ class CheckoutService {
     };
   }
 
-  /** Delhivery shipping charge for the cart's weight to the destination pincode. */
+  /** Shiprocket shipping charge for the cart's weight to the destination pincode. */
   private async computeShipping(
     cart: { items: Array<{ productId: unknown; variantId?: unknown; quantity: number }> },
     shippingAddress: unknown,

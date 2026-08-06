@@ -18,30 +18,32 @@ export default function WhyFuylPage() {
       {/* Hero */}
       <section className="grid grid-cols-1 lg:grid-cols-2 min-h-[60vh]">
         {/* Left — Content */}
-        <div className="order-2 lg:order-1 bg-brand-cream flex items-center px-6 py-20 sm:px-10 lg:px-16 xl:px-24 lg:py-28">
-          <ScrollReveal>
-            <Breadcrumbs className="mb-5" items={[{ label: "Why FUYL" }]} />
-            {/* <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label mb-5">
-              Our Philosophy
-            </span> */}
-            <h1 className="text-display-xl font-display text-brand-forest mb-6">
-              WHY FUYL COMPLETE+ IS DIFFERENT
-            </h1>
-            <p className="text-body-md text-brand-muted leading-relaxed max-w-xl text-justify">
-              We built COMPLETE+ because the daily nutritional supplement
-              industry has failed the health-conscious consumer through token
-              doses, cheap ingredient forms, claims that do not hold up, and
-              products too unpleasant to take consistently. Here is exactly how
-              we think about every decision in this formulation.
-            </p>
-            {/* cta button "shop now" */}
-            <Link
-              href="/collections/all"
-              className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest mt-6"
-            >
-              Shop Now
-            </Link>
-          </ScrollReveal>
+        <div className="order-2 lg:order-1 bg-brand-cream flex flex-col px-6 py-10 sm:px-10 lg:px-16 xl:px-24">
+          <Breadcrumbs className="mb-5" items={[{ label: "Why FUYL" }]} />
+          <div className="flex flex-1 items-center py-10 lg:py-20">
+            <ScrollReveal>
+              {/* <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label mb-5">
+                Our Philosophy
+              </span> */}
+              <h1 className="text-display-xl font-display text-brand-forest mb-6">
+                WHY FUYL COMPLETE+ IS DIFFERENT
+              </h1>
+              <p className="text-body-md text-brand-muted leading-relaxed max-w-xl text-justify">
+                We built COMPLETE+ because the daily nutritional supplement
+                industry has failed the health-conscious consumer through token
+                doses, cheap ingredient forms, claims that do not hold up, and
+                products too unpleasant to take consistently. Here is exactly how
+                we think about every decision in this formulation.
+              </p>
+              {/* cta button "shop now" */}
+              <Link
+                href="/collections/all"
+                className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest mt-6"
+              >
+                Shop Now
+              </Link>
+            </ScrollReveal>
+          </div>
         </div>
 
         {/* Right — Image */}

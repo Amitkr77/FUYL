@@ -35,7 +35,7 @@ interface BackendPreview {
   // order total was correctly discounted but the "Discount" line always
   // silently showed ₹0 even when a coupon had genuinely been applied.
   couponDiscount: number
-  // Real shipping charge (Delhivery rate) — lives at the top level of the
+  // Real shipping charge (Shiprocket rate) — lives at the top level of the
   // preview, not inside `pricing` (which the pricing engine leaves at 0).
   shippingTotal: number
   pricing: { subtotal: number; discountTotal: number; taxTotal: number; shippingTotal: number }

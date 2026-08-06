@@ -1,6 +1,6 @@
 import { ShipmentRepository } from '../repositories/shipment.repository';
 import { createShipmentWithCarrier } from '../utils/carrierProvider';
-import { delhiveryService } from '../utils/delhivery.service';
+import { shiprocketService } from '../utils/shiprocket.service';
 import { nextNumber } from '../../order/utils/counter';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../../shared/errors';
 import { OrderStatus, ShipmentStatus } from '../../../shared/enums';
@@ -25,8 +25,8 @@ const STATUS_LABELS: Record<string, string> = {
   delivered: 'Delivered', failed: 'Delivery failed', returned_to_origin: 'Returned to origin', cancelled: 'Cancelled',
 };
 
-/** Map a Delhivery scan status string to our ShipmentStatus (null if unknown). */
-function mapDelhiveryStatus(raw: string): typeof ShipmentStatus[keyof typeof ShipmentStatus] | null {
+/** Map a Shiprocket scan status string to our ShipmentStatus (null if unknown). */
+function mapShiprocketStatus(raw: string): typeof ShipmentStatus[keyof typeof ShipmentStatus] | null {
   const s = raw.toLowerCase();
   if (s.includes('deliver') && s.includes('out')) return ShipmentStatus.OUT_FOR_DELIVERY;
   if (s.includes('delivered')) return ShipmentStatus.DELIVERED;
@@ -137,10 +137,10 @@ class ShippingService {
    * serviceable so checkout isn't blocked locally.
    */
   async checkServiceability(pincode: string) {
-    if (!delhiveryService.isConfigured()) {
+    if (!shiprocketService.isConfigured()) {
       return { serviceable: true, prepaid: true, cod: true };
     }
-    return delhiveryService.checkServiceability(pincode);
+    return shiprocketService.checkServiceability(pincode);
   }
 
   /**
@@ -148,12 +148,12 @@ class ShippingService {
    * carrier is configured, and serviceable:false when the pincode isn't covered.
    */
   async quoteRate(params: { pincode: string; weightGrams?: number; paymentMode?: 'Prepaid' | 'COD' }) {
-    if (!delhiveryService.isConfigured()) {
+    if (!shiprocketService.isConfigured()) {
       return { serviceable: true, cost: 0 as number | null };
     }
-    const serv = await delhiveryService.checkServiceability(params.pincode);
+    const serv = await shiprocketService.checkServiceability(params.pincode, params.weightGrams ?? 500, params.paymentMode === 'COD');
     if (!serv.serviceable) return { serviceable: false, cost: null as number | null };
-    const cost = await delhiveryService.getRate({
+    const cost = await shiprocketService.getRate({
       destPin: params.pincode,
       weightGrams: params.weightGrams ?? 500,
       paymentMode: params.paymentMode ?? 'Prepaid',
@@ -267,26 +267,62 @@ class ShippingService {
   }
 
   /**
-   * Pull the latest scan status from Delhivery and advance the shipment if the
-   * carrier reports a forward move. No-op when Delhivery isn't configured, the
-   * shipment is terminal, or the reported status isn't a forward transition.
+   * Pull the latest scan status from Shiprocket and advance the shipment if
+   * the carrier reports a forward move. No-op when Shiprocket isn't
+   * configured, the shipment is terminal, or the reported status isn't a
+   * forward transition.
    */
   async syncTracking(id: string): Promise<any> {
     const shipment = await this.getById(id);
-    if (!shipment.trackingNumber || !delhiveryService.isConfigured()) return shipment;
+    if (!shipment.trackingNumber || !shiprocketService.isConfigured()) return shipment;
     if (TERMINAL.includes(shipment.status)) return shipment;
 
-    const t = await delhiveryService.track(shipment.trackingNumber);
-    const mapped = t?.status ? mapDelhiveryStatus(t.status) : null;
+    const t = await shiprocketService.track(shipment.trackingNumber);
+    const mapped = t?.status ? mapShiprocketStatus(t.status) : null;
     if (!mapped || mapped === shipment.status) return shipment;
     if (!this.canAdvanceTo(shipment.status, mapped)) return shipment;
 
-    return this.applyStatus(shipment, mapped, 'system', `Auto-synced from Delhivery: ${t?.status}`, t?.location);
+    return this.applyStatus(shipment, mapped, 'system', `Auto-synced from Shiprocket: ${t?.status}`, t?.location);
+  }
+
+  /**
+   * Push-based counterpart to syncTracking() — advances a shipment the
+   * instant Shiprocket calls our webhook, instead of waiting for the next
+   * scheduled poll. Same forward-only guard (canAdvanceTo) either way, so a
+   * webhook and a poll landing for the same shipment can never conflict or
+   * double-apply.
+   *
+   * ⚠️ VERIFY the payload field names below against what your Shiprocket
+   * webhook actually sends — `awb` and `current_status` are the commonly
+   * documented ones, but Shiprocket has varied this across API versions.
+   */
+  async handleShiprocketWebhook(payload: Record<string, any>): Promise<any> {
+    const awb = payload?.awb ?? payload?.awb_code;
+    const rawStatus = payload?.current_status ?? payload?.shipment_status;
+    if (!awb || !rawStatus) {
+      logger.warn('[shipping] shiprocket webhook missing awb/status', payload);
+      return null;
+    }
+
+    const shipment = await shipmentRepo.findByTrackingNumber(String(awb));
+    if (!shipment) {
+      // Not necessarily an error — could be a shipment booked/managed
+      // outside this app, or a stale test webhook. Nothing to update.
+      logger.info(`[shipping] shiprocket webhook for unknown AWB ${awb}`);
+      return null;
+    }
+    if (TERMINAL.includes(shipment.status)) return shipment;
+
+    const mapped = mapShiprocketStatus(String(rawStatus));
+    if (!mapped || mapped === shipment.status) return shipment;
+    if (!this.canAdvanceTo(shipment.status, mapped)) return shipment;
+
+    return this.applyStatus(shipment, mapped, 'system', `Webhook from Shiprocket: ${rawStatus}`, payload?.current_status_location ?? payload?.location);
   }
 
   /** Batch tracking sync for all non-terminal shipments (scheduler-driven). */
   async syncActiveShipments(limit = 200): Promise<{ synced: number }> {
-    if (!delhiveryService.isConfigured()) return { synced: 0 };
+    if (!shiprocketService.isConfigured()) return { synced: 0 };
     const active = await shipmentRepo.findActiveTracked(limit);
     let synced = 0;
     for (const s of active) {
@@ -297,7 +333,7 @@ class ShippingService {
   }
 
   /**
-   * Re-attempt delivery for a failed (NDR) shipment: ask Delhivery to retry
+   * Re-attempt delivery for a failed (NDR) shipment: ask Shiprocket to retry
    * (best-effort) and move the shipment back to in_transit so it re-enters the
    * tracking flow.
    */
@@ -306,18 +342,18 @@ class ShippingService {
     if (shipment.status !== ShipmentStatus.FAILED) {
       throw new BadRequestError('Only a failed shipment can be re-attempted');
     }
-    if (delhiveryService.isConfigured() && shipment.trackingNumber) {
-      await delhiveryService.requestReattempt(shipment.trackingNumber);
+    if (shiprocketService.isConfigured() && shipment.trackingNumber) {
+      await shiprocketService.requestReattempt(shipment.trackingNumber);
     }
     return this.applyStatus(shipment, ShipmentStatus.IN_TRANSIT, actorId, 'Delivery re-attempt requested');
   }
 
-  /** Shipping-label URL for a shipment (Delhivery packing slip), if available. */
+  /** Shipping-label URL for a shipment (Shiprocket packing slip), if available. */
   async getLabelUrl(id: string): Promise<{ url: string | null }> {
     const shipment = await this.getById(id);
     if (shipment.labelUrl) return { url: shipment.labelUrl };
-    if (!shipment.trackingNumber || !delhiveryService.isConfigured()) return { url: null };
-    const url = await delhiveryService.getPackingSlipUrl(shipment.trackingNumber);
+    if (!shipment.trackingNumber || !shiprocketService.isConfigured()) return { url: null };
+    const url = await shiprocketService.getPackingSlipUrl(shipment.trackingNumber);
     if (url) await shipmentRepo.update(id, { labelUrl: url } as any);
     return { url };
   }

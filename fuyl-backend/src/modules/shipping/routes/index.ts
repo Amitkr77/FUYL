@@ -17,6 +17,13 @@ router.get('/shipping/health', (_req, res) => {
 router.get('/shipping/serviceability/:pincode', shippingController.serviceability);
 router.get('/shipping/rate', shippingController.rate);
 
+// Public — Shiprocket calls this directly (no user session); authenticity is
+// verified via the shared secret header inside the controller, not a route
+// middleware. Doesn't need the raw-body treatment app.ts gives Cashfree's
+// webhooks — Shiprocket's verification is a static secret match, not an
+// HMAC over the raw request bytes, so regular express.json() parsing is fine.
+router.post('/webhooks/shiprocket/tracking', shippingController.shiprocketWebhook);
+
 // Seller/admin: book + manage shipments
 router.post('/shipping/shipments', authRequired, shippingController.create);
 router.get('/shipping/shipments/mine', authRequired, shippingController.listMine);

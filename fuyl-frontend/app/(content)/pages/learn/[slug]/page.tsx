@@ -41,16 +41,24 @@ export default async function BlogPostPage({ params }: Props) {
     <div className="container-brand section-py max-w-3xl mx-auto">
       <ScrollReveal>
         <Breadcrumbs
-          className="mb-6"
+          className="mb-4"
           items={[
             { label: "Learn", href: "/pages/learn" },
             { label: post.title },
           ]}
         />
 
+        <Link
+          href="/pages/learn"
+          className="text-body-xs font-semibold uppercase tracking-wider hover:text-brand-teal transition-colors"
+          style={{ color: "var(--color-brand-muted)" }}
+        >
+          ← Back to Learn
+        </Link>
+
         {post.image && (
           <div
-            className="relative aspect-video overflow-hidden rounded-sm mb-8"
+            className="relative aspect-video overflow-hidden rounded-sm mt-6 mb-8"
             style={{ background: "var(--color-brand-cream)" }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -61,13 +69,6 @@ export default async function BlogPostPage({ params }: Props) {
             />
           </div>
         )}
-        <Link
-          href="/pages/learn"
-          className="text-body-xs font-semibold uppercase tracking-wider hover:text-brand-teal transition-colors"
-          style={{ color: "var(--color-brand-muted)" }}
-        >
-          ← Back to Learn
-        </Link>
         <h1 className="text-display-xl font-display mt-6 mb-4">{post.title}</h1>
         <div
           className="flex items-center gap-2 text-body-xs mb-6"

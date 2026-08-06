@@ -1,10 +1,13 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { AuthedRequest } from '../../../shared/middleware/auth.middleware';
 import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
 import { shippingService } from '../services';
 import { success, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
 import { createShipmentSchema, updateShipmentStatusSchema } from '../validators';
+import { env } from '../../../config/env';
+import { UnauthorizedError } from '../../../shared/errors';
+import { logger } from '../../../config/logger';
 
 export class ShippingController {
   create = [
@@ -123,6 +126,31 @@ export class ShippingController {
       } catch (err) { next(err); }
     },
   ];
+
+  /**
+   * Public webhook receiver for Shiprocket tracking events — push-based
+   * counterpart to the scheduled poll (syncTracking/syncActiveShipments).
+   * No user session involved, so authenticity rests entirely on the shared
+   * secret Shiprocket echoes back per request.
+   *
+   * ⚠️ VERIFY the header name against your Shiprocket webhook config —
+   * `x-api-key` is what their panel commonly documents, but confirm it
+   * matches what your account actually sends before relying on this.
+   */
+  shiprocketWebhook = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const secret = req.headers['x-api-key'] as string | undefined;
+      if (!env.shiprocket.webhookSecret || secret !== env.shiprocket.webhookSecret) {
+        logger.warn('[webhook] shiprocket secret mismatch');
+        return next(new UnauthorizedError('Invalid Shiprocket webhook secret'));
+      }
+      await shippingService.handleShiprocketWebhook(req.body ?? {});
+      return res.status(200).json({ received: true });
+    } catch (err) {
+      logger.error('[webhook] shiprocket handler error', err);
+      return res.status(500).json({ received: false });
+    }
+  };
 }
 
 export const shippingController = new ShippingController();

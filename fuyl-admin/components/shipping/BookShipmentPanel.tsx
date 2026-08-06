@@ -9,7 +9,7 @@ import { createShipmentAction } from '@/app/(admin)/shipping/actions'
 const SHIPPABLE = ['confirmed', 'packed']
 
 export function BookShipmentPanel({ orderId, orderStatus }: { orderId: string; orderStatus: string }) {
-  const [carrier, setCarrier] = useState('Delhivery')
+  const [carrier, setCarrier] = useState('Shiprocket')
   const [weight, setWeight] = useState('')
   const [length, setLength] = useState('')
   const [width, setWidth] = useState('')
@@ -29,7 +29,7 @@ export function BookShipmentPanel({ orderId, orderStatus }: { orderId: string; o
     startTransition(async () => {
       const result = await createShipmentAction({
         orderId,
-        carrier: carrier.trim() || 'Delhivery',
+        carrier: carrier.trim() || 'Shiprocket',
         weightGrams: weight ? Number(weight) : undefined,
         dimensionsCm: dims,
       })

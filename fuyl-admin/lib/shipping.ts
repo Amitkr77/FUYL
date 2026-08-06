@@ -75,7 +75,7 @@ export async function createShipment(input: CreateShipmentInput): Promise<void> 
   await adminApiFetch('/shipping/shipments', { method: 'POST', body: input })
 }
 
-// Pull the latest carrier scan from Delhivery and advance the shipment.
+// Pull the latest carrier scan from Shiprocket and advance the shipment.
 export async function syncShipmentTracking(id: string): Promise<{ status: ShipmentStatus }> {
   return adminApiFetch<{ status: ShipmentStatus }>(`/admin/shipping/${id}/sync`, { method: 'POST' })
 }

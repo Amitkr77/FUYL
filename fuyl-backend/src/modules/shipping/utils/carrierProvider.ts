@@ -1,17 +1,18 @@
 import { logger } from '../../../config/logger';
-import { delhiveryService, type DelhiveryConsignee } from './delhivery.service';
+import { shiprocketService, type ShiprocketConsignee } from './shiprocket.service';
 
 /**
- * Carrier abstraction. Routes bookings to Delhivery when it's configured
- * (token + registered pickup location); otherwise falls back to a synthetic
- * tracking number so dev/test environments keep working without a real courier
- * account — the same stub-when-unconfigured pattern the notification providers use.
+ * Carrier abstraction. Routes bookings to Shiprocket when it's configured
+ * (login credentials + registered pickup location); otherwise falls back to
+ * a synthetic tracking number so dev/test environments keep working without
+ * a real courier account — the same stub-when-unconfigured pattern the
+ * notification providers use.
  */
 export interface CarrierBookingInput {
   carrier: string;
   shipmentNumber: string;
   orderNumber: string;
-  consignee: DelhiveryConsignee;
+  consignee: ShiprocketConsignee;
   paymentMode: 'Prepaid' | 'COD';
   codAmount?: number;
   declaredValue: number;
@@ -27,8 +28,8 @@ export interface CarrierBookingResult {
 }
 
 export async function createShipmentWithCarrier(input: CarrierBookingInput): Promise<CarrierBookingResult> {
-  if (delhiveryService.isConfigured()) {
-    const result = await delhiveryService.createShipment({
+  if (shiprocketService.isConfigured()) {
+    const result = await shiprocketService.createShipment({
       orderNumber: input.orderNumber,
       consignee: input.consignee,
       paymentMode: input.paymentMode,
@@ -38,7 +39,7 @@ export async function createShipmentWithCarrier(input: CarrierBookingInput): Pro
       dimensionsCm: input.dimensionsCm,
       productsDesc: input.productsDesc,
     });
-    logger.info(`[shipping][delhivery] booked ${input.shipmentNumber} -> waybill ${result.waybill}`);
+    logger.info(`[shipping][shiprocket] booked ${input.shipmentNumber} -> AWB ${result.waybill}`);
     return { trackingNumber: result.waybill, trackingUrl: result.trackingUrl };
   }
 
