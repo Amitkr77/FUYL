@@ -37,7 +37,9 @@ function MobileNavItem({
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            aria-label={open ? `Collapse ${item.label} menu` : `Expand ${item.label} menu`}
+            aria-label={
+              open ? `Collapse ${item.label} menu` : `Expand ${item.label} menu`
+            }
             aria-expanded={open}
             className="shrink-0 p-3.5 -mr-3.5 text-brand-muted transition-colors hover:text-brand-teal"
           >
@@ -178,7 +180,7 @@ export function Header({ shopItems }: HeaderProps = {}) {
                       : "text-brand-forest hover:text-brand-teal",
                     // Persistent underline marks the current section (not just color).
                     isActive(item) &&
-                      "after:absolute after:left-4 after:right-4 after:-bottom-0.5 after:h-0.5 after:bg-brand-teal after:rounded-full",
+                      "after:absolute after:left-4 after:right-4 after:-bottom-0.5 after:h-px after:bg-brand-teal after:rounded-full",
                   )}
                 >
                   {item.label}

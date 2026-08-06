@@ -1,6 +1,8 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
+import { LayoutGrid, List } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 import { ProductCard } from "./ProductCard";
 import type { Product } from "@/types/product";
 
@@ -9,6 +11,7 @@ interface CollectionGridProps {
 }
 
 type SortKey = "featured" | "price-asc" | "price-desc" | "rating-desc" | "name-asc";
+type ViewMode = "grid" | "list";
 
 const SORT_LABEL: Record<SortKey, string> = {
   featured: "Featured",
@@ -21,7 +24,10 @@ const SORT_LABEL: Record<SortKey, string> = {
 export function CollectionGrid({ products }: CollectionGridProps) {
   const sortId = useId();
   const [sort, setSort] = useState<SortKey>("featured");
-  const [inStockOnly, setInStockOnly] = useState(false);
+  // Desktop-only choice — mobile/tablet always render the grid regardless of
+  // this (see the render section below), so it defaults to "grid" and the
+  // toggle itself is hidden below lg: since there's nothing to choose there.
+  const [view, setView] = useState<ViewMode>("grid");
   const [activeTags, setActiveTags] = useState<string[]>([]);
 
   // Every tag present across the set, in first-seen order — becomes the
@@ -37,7 +43,6 @@ export function CollectionGrid({ products }: CollectionGridProps) {
 
   const filtered = useMemo(() => {
     let list = products;
-    if (inStockOnly) list = list.filter((p) => p.available);
     if (activeTags.length) list = list.filter((p) => activeTags.every((t) => p.tags.includes(t)));
 
     // "featured" keeps the server's original order (newest-first from the
@@ -51,7 +56,7 @@ export function CollectionGrid({ products }: CollectionGridProps) {
       case "name-asc": sorted.sort((a, b) => a.name.localeCompare(b.name)); break;
     }
     return sorted;
-  }, [products, sort, inStockOnly, activeTags]);
+  }, [products, sort, activeTags]);
 
   if (!products.length) {
     return (
@@ -66,11 +71,51 @@ export function CollectionGrid({ products }: CollectionGridProps) {
   return (
     <div>
       {/* Controls */}
-      <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          {allTags.length > 1 && (
-            <>
-              {allTags.map((tag) => {
+      <div className="flex flex-col gap-3 mb-8">
+        {/* Tag filter chips (left) + sort (right), always one line — tags
+            wrap within their own flex-wrap container so a long tag list
+            can never push sort onto a second line. */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Grid / list toggle — desktop only, mobile/tablet has no choice */}
+            <div
+              className="hidden shrink-0 items-center gap-0.5 rounded-full border p-0.5 lg:flex"
+              style={{ borderColor: "var(--color-brand-border)" }}
+              role="group"
+              aria-label="Layout"
+            >
+              <button
+                type="button"
+                onClick={() => setView("grid")}
+                aria-pressed={view === "grid"}
+                aria-label="Grid view"
+                className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                style={
+                  view === "grid"
+                    ? { background: "var(--color-brand-forest)", color: "#fff" }
+                    : { color: "var(--color-brand-muted)" }
+                }
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setView("list")}
+                aria-pressed={view === "list"}
+                aria-label="List view"
+                className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                style={
+                  view === "list"
+                    ? { background: "var(--color-brand-forest)", color: "#fff" }
+                    : { color: "var(--color-brand-muted)" }
+                }
+              >
+                <List size={15} />
+              </button>
+            </div>
+
+            {allTags.length > 1 &&
+              allTags.map((tag) => {
                 const active = activeTags.includes(tag);
                 return (
                   <button
@@ -89,36 +134,24 @@ export function CollectionGrid({ products }: CollectionGridProps) {
                   </button>
                 );
               })}
-            </>
-          )}
-          <label className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full text-body-xs font-semibold uppercase tracking-wide border cursor-pointer"
-            style={{ color: "var(--color-brand-muted)", borderColor: "var(--color-brand-border)" }}
-          >
-            <input
-              type="checkbox"
-              checked={inStockOnly}
-              onChange={(e) => setInStockOnly(e.target.checked)}
-              className="h-3.5 w-3.5"
-            />
-            In stock only
-          </label>
-        </div>
+          </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <label htmlFor={sortId} className="text-body-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-brand-muted)" }}>
-            Sort
-          </label>
-          <select
-            id={sortId}
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortKey)}
-            className="h-9 pl-3 pr-8 rounded-sm text-body-sm border bg-white focus:outline-none focus:ring-2 focus:ring-brand-teal/30"
-            style={{ borderColor: "var(--color-brand-border)", color: "var(--color-brand-forest)" }}
-          >
-            {(Object.keys(SORT_LABEL) as SortKey[]).map((key) => (
-              <option key={key} value={key}>{SORT_LABEL[key]}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2 shrink-0">
+            <label htmlFor={sortId} className="hidden sm:inline text-body-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-brand-muted)" }}>
+              Sort
+            </label>
+            <select
+              id={sortId}
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="h-9 pl-3 pr-8 rounded-sm text-body-sm border bg-white focus:outline-none focus:ring-2 focus:ring-brand-teal/30"
+              style={{ borderColor: "var(--color-brand-border)", color: "var(--color-brand-forest)" }}
+            >
+              {(Object.keys(SORT_LABEL) as SortKey[]).map((key) => (
+                <option key={key} value={key}>{SORT_LABEL[key]}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -129,18 +162,41 @@ export function CollectionGrid({ products }: CollectionGridProps) {
           </p>
           <button
             type="button"
-            onClick={() => { setInStockOnly(false); setActiveTags([]); }}
+            onClick={() => setActiveTags([])}
             className="mt-3 text-body-sm font-semibold text-brand-teal hover:underline"
           >
             Clear filters
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        <>
+          {/* Mobile/tablet always render this — regardless of `view` —
+              since the toggle itself is hidden below lg:. On desktop it
+              only shows when view is "grid" (view "list" hides it here and
+              shows the list block below instead). */}
+          <div
+            className={cn(
+              "grid grid-cols-1 gap-8 sm:grid-cols-2",
+              view === "list" ? "lg:hidden" : "lg:grid-cols-3 lg:gap-8",
+            )}
+          >
+            {filtered.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+
+          {/* Desktop list rows — only when the toggle is set to "list"; the
+              "hidden lg:flex" (not just "flex") also guarantees this never
+              shows on mobile/tablet even if `view` happens to be "list"
+              (e.g. after resizing down from a desktop list-view session). */}
+          {view === "list" && (
+            <div className="hidden flex-col gap-4 lg:flex">
+              {filtered.map((product) => (
+                <ProductCard key={product.id} product={product} layout="list" />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

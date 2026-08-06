@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -16,6 +17,14 @@ const GRID_LIMIT = 6
 export function ProductGallery({ images, productName }: ProductGalleryProps) {
   const [active, setActive] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  // Portal target only exists client-side — rendering the lightbox through
+  // document.body (rather than in place) is what actually fixes the
+  // overlap: the gallery's "lg:sticky" wrapper on the PDP establishes its
+  // own stacking context (position:sticky always does, per spec), which
+  // trapped the lightbox's z-50 inside it — so it lost to the header and
+  // even to later-in-DOM page content instead of covering everything.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   const prev = () => setActive((i) => (i === 0 ? images.length - 1 : i - 1))
   const next = () => setActive((i) => (i === images.length - 1 ? 0 : i + 1))
@@ -30,6 +39,15 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [lightboxOpen, images.length])
+
+  // Lock background scroll while the lightbox is open — same pattern every
+  // other overlay in this app uses (see Drawer.tsx). Without this, the rest
+  // of the page keeps scrolling underneath the "fixed" lightbox, which is
+  // exactly what caused the header/other sections to visually overlap it.
+  useEffect(() => {
+    document.body.style.overflow = lightboxOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [lightboxOpen])
 
   if (!images.length) return null
 
@@ -74,9 +92,13 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
         })}
       </div>
 
-      {/* Lightbox */}
-      {lightboxOpen && (
+      {/* Lightbox — portaled to <body> so it escapes the sticky gallery
+          wrapper's stacking context (see the note by `mounted` above). */}
+      {lightboxOpen && mounted && createPortal(
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${productName} image ${active + 1}`}
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setLightboxOpen(false)}
         >
@@ -143,7 +165,8 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
               ))}
             </div>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   )
