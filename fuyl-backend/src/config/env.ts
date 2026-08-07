@@ -139,6 +139,9 @@ export const env = {
     // https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login
     // — no token means the homepage feed just falls back to placeholders.
     accessToken: process.env.INSTAGRAM_ACCESS_TOKEN ?? '',
+    // Any string you choose — set the same value in Meta Developer Console
+    // under Webhooks > Verify Token when registering the webhook URL.
+    webhookVerifyToken: process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN ?? '',
   },
 
   subscription: {

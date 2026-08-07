@@ -328,6 +328,10 @@ class ContentService {
       return [];
     }
   }
+
+  async bustInstagramCache(): Promise<void> {
+    await cacheService.del("content:instagram:posts");
+  }
 }
 
 interface InstagramMediaRaw {

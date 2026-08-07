@@ -1,9 +1,11 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { AuthedRequest } from '../../../shared/middleware/auth.middleware';
 import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
 import { validate } from '../../../shared/middleware/validate.middleware';
 import { success, created, paginate } from '../../../shared/responses';
 import { contentService } from '../services';
+import { env } from '../../../config/env';
+import { logger } from '../../../config/logger';
 import {
   createPostSchema, updatePostSchema,
   createCMSPageSchema, updateCMSPageSchema,
@@ -305,6 +307,35 @@ export class ContentController {
       const limit = parseInt(req.query.limit as string) || 6;
       return success(res, await contentService.getInstagramFeed(limit));
     } catch (err) { next(err); }
+  };
+
+  // ─── Instagram webhook — Meta Developer verification + events ─
+  // GET: Meta sends hub.challenge when you register the webhook URL — echo it
+  //      back to confirm ownership. Fails silently (403) on token mismatch.
+  // POST: Receive new-media events and bust the feed cache so the next
+  //       GET /instagram call fetches fresh posts instead of serving stale ones.
+  instagramWebhookVerify = (req: Request, res: Response) => {
+    const mode      = req.query['hub.mode']         as string | undefined;
+    const token     = req.query['hub.verify_token'] as string | undefined;
+    const challenge = req.query['hub.challenge']    as string | undefined;
+
+    if (mode === 'subscribe' && token === env.instagram.webhookVerifyToken) {
+      logger.info('[webhook] instagram verification OK');
+      return res.status(200).send(challenge);
+    }
+    logger.warn('[webhook] instagram verification failed — token mismatch');
+    return res.sendStatus(403);
+  };
+
+  instagramWebhookEvent = async (req: Request, res: Response) => {
+    // Acknowledge immediately — Meta retries if it doesn't get a 200 fast.
+    res.sendStatus(200);
+    try {
+      await contentService.bustInstagramCache();
+      logger.info('[webhook] instagram cache busted on new-media event');
+    } catch (err) {
+      logger.error('[webhook] instagram cache bust failed', err);
+    }
   };
 }
 

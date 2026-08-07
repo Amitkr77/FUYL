@@ -21,6 +21,13 @@ router.get('/testimonials', contentController.listTestimonials);
 router.get('/faqs', contentController.listFAQs);
 router.get('/instagram', contentController.instagramFeed);
 
+// Instagram webhook — Meta Developer platform.
+// GET: ownership verification challenge (must be public, no auth).
+// POST: new-media event — busts the Redis feed cache so the next
+//       GET /instagram fetch returns the latest posts.
+router.get('/webhooks/instagram', contentController.instagramWebhookVerify);
+router.post('/webhooks/instagram', contentController.instagramWebhookEvent);
+
 // Admin
 router.get('/admin/content/posts', authRequired, contentController.listAdmin);
 router.get('/admin/content/posts/:id', authRequired, contentController.getById);
