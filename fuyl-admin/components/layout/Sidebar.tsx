@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -11,7 +12,6 @@ import {
   Newspaper,
   BarChart3,
   Settings,
-  Leaf,
   LogOut,
   X,
   Boxes,
@@ -101,13 +101,19 @@ export default function Sidebar({ onClose }: SidebarProps) {
   return (
     <div className="flex flex-col h-full bg-[#12291F] w-60">
       {/* Logo */}
-      <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#558476] rounded-lg flex items-center justify-center flex-shrink-0">
-            <Leaf className="w-5 h-5 text-white" />
+          <div className="relative w-8 h-8 shrink-0">
+            <Image
+              src="/FAVICON_WHITE_430x.webp"
+              alt="FUYL"
+              fill
+              className="object-contain"
+              priority
+            />
           </div>
           <div>
-            <div className="text-lg font-bold text-white tracking-widest leading-none">FUYL</div>
+            <div className="text-base font-bold text-white tracking-widest leading-none">FUYL</div>
             <div className="text-[10px] font-semibold text-[#558476] tracking-[0.25em] uppercase mt-0.5">Admin</div>
           </div>
         </div>
@@ -115,6 +121,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
         <button
           onClick={onClose}
           className="lg:hidden text-white/50 hover:text-white transition-colors"
+          aria-label="Close menu"
         >
           <X className="w-5 h-5" />
         </button>
