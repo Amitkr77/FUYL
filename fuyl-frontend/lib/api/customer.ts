@@ -6,6 +6,7 @@ import { apiFetch } from './client'
 // — that type was never wired to anything real).
 export interface Address {
   id: string
+  name: string
   label: string
   line1: string
   line2?: string
@@ -22,6 +23,7 @@ export interface Address {
 
 interface BackendAddress {
   _id: string
+  name: string
   label: string
   line1: string
   line2?: string
@@ -38,7 +40,7 @@ interface BackendAddress {
 
 function mapAddress(a: BackendAddress): Address {
   return {
-    id: a._id, label: a.label, line1: a.line1, line2: a.line2, city: a.city, state: a.state,
+    id: a._id, name: a.name, label: a.label, line1: a.line1, line2: a.line2, city: a.city, state: a.state,
     postalCode: a.postalCode, country: a.country, phone: a.phone,
     isDefault: a.isDefault, isBilling: a.isBilling, isShipping: a.isShipping,
     deliveryInstructions: a.deliveryInstructions,

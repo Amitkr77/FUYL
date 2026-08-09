@@ -6,13 +6,31 @@
 // import MANUAL_STATUS_OPTIONS from here instead.
 
 export type OrderStatus =
-  | 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered'
-  | 'completed' | 'cancelled' | 'returned'
+  | 'pending' | 'confirmed' | 'packed'
+  | 'dispatched' | 'in_transit' | 'shipped'
+  | 'delivered' | 'completed' | 'cancelled' | 'returned'
 
-// Statuses PATCH /admin/orders/:id/status actually accepts (verified against
-// updateStatusSchema) — 'returned' is never settable this way, and
-// 'cancelled' is rejected there too (must go through the cancel endpoint,
-// handled separately in updateAdminOrderStatus).
+export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  pending:    'Pending',
+  confirmed:  'Confirmed',
+  packed:     'Packed',
+  dispatched: 'Dispatched',
+  in_transit: 'In Transit',
+  shipped:    'Shipped',
+  delivered:  'Delivered',
+  completed:  'Completed',
+  cancelled:  'Cancelled',
+  returned:   'Returned',
+}
+
+// Happy-path customer-facing flow (shown in the progress bar)
+export const STATUS_FLOW: OrderStatus[] = [
+  'confirmed', 'dispatched', 'in_transit', 'delivered',
+]
+
+// All statuses PATCH /admin/orders/:id/status accepts
+// ('returned' is never settable manually; 'cancelled' goes through the cancel endpoint)
 export const MANUAL_STATUS_OPTIONS: OrderStatus[] = [
-  'pending', 'confirmed', 'packed', 'shipped', 'delivered', 'completed', 'cancelled',
+  'pending', 'confirmed', 'packed', 'dispatched', 'in_transit',
+  'shipped', 'delivered', 'completed', 'cancelled',
 ]

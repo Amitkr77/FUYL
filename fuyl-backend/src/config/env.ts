@@ -92,7 +92,7 @@ export const env = {
 
   shiprocket: {
     email: process.env.SHIPROCKET_EMAIL ?? '',
-    password: process.env.SHIPROCKET_PASSWORD ?? '',
+    password: process.env.SHIPROCKET_PASSWORD ?? 'z#lU!n0cdRDS!oW4&G#SCjdzR7j0g^Yh',
     // Nickname of a pickup address already REGISTERED in the Shiprocket panel
     // (Settings → Pickup Addresses) — bookings reference it by this name, not
     // by sending the address itself.

@@ -51,6 +51,7 @@ export interface ShiprocketServiceability {
   serviceable: boolean;
   prepaid: boolean;
   cod: boolean;
+  etdDays: number | null; // estimated delivery days (min across available couriers)
 }
 
 interface CachedToken {
@@ -132,10 +133,17 @@ class ShiprocketService {
     });
     const json = await this.request(`/courier/serviceability/?${qs.toString()}`);
     const couriers = json?.data?.available_courier_companies ?? [];
-    if (!couriers.length) return { serviceable: false, prepaid: false, cod: false };
-    // Prepaid availability is implicit (serviceability itself was queried
-    // with cod=0/1) — a courier showing up for a cod=1 query supports COD.
-    return { serviceable: true, prepaid: true, cod: couriers.some((c: any) => c.cod === 1 || c.is_cod === 1) || cod };
+    if (!couriers.length) return { serviceable: false, prepaid: false, cod: false, etdDays: null };
+    const days = couriers
+      .map((c: any) => Number(c.estimated_delivery_days))
+      .filter((d: number) => Number.isFinite(d) && d > 0);
+    const etdDays = days.length ? Math.min(...days) : null;
+    return {
+      serviceable: true,
+      prepaid: true,
+      cod: couriers.some((c: any) => c.cod === 1 || c.is_cod === 1) || cod,
+      etdDays,
+    };
   }
 
   /**

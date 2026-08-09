@@ -13,7 +13,7 @@ const PINCODE_RE = /^[1-9][0-9]{5}$/
 export function PincodeCheck() {
   const [pincode, setPincode] = useState('')
   const [status, setStatus] = useState<Status>('idle')
-  const [result, setResult] = useState<{ serviceable: boolean; cod: boolean } | null>(null)
+  const [result, setResult] = useState<{ serviceable: boolean; cod: boolean; etdDays: number | null } | null>(null)
   const [error, setError] = useState('')
 
   const handleCheck = async () => {
@@ -74,7 +74,10 @@ export function PincodeCheck() {
             <>
               <Check size={14} />
               Delivery available to {pincode}
-              {result.cod ? ' · Cash on Delivery available' : ' · Prepaid only'}
+              {result.etdDays != null
+                ? ` · Arrives in ${result.etdDays}–${result.etdDays + 1} day${result.etdDays > 1 ? 's' : ''}`
+                : ''}
+              {result.cod ? ' · COD available' : ' · Prepaid only'}
             </>
           ) : (
             <>

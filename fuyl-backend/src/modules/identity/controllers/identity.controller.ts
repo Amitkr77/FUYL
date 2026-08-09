@@ -15,6 +15,8 @@ import {
   setPermissionsSchema,
   emailExistsSchema,
   checkoutIdentifySchema,
+  otpRequestSchema,
+  otpVerifySchema,
 } from '../validators';
 import { env } from '../../../config/env';
 import { BadRequestError } from '../../../shared/errors';
@@ -203,6 +205,35 @@ export class IdentityController {
       return success(res, await identityService.listSessions(req.user!.userId));
     } catch (err) { next(err); }
   };
+
+  // ─── OTP login ─────────────────────────────────────────────────────────────
+
+  requestOtp = [
+    validate(otpRequestSchema),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        const result = await identityService.requestOtp(req.body);
+        return success(res, result);
+      } catch (err) { next(err); }
+    },
+  ];
+
+  verifyOtp = [
+    validate(otpVerifySchema),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        const meta = IdentityService.extractMeta(req);
+        const result = await identityService.verifyOtp(req.body, meta);
+        res.cookie(env.jwt.cookieName, result.refreshToken, {
+          httpOnly: true,
+          secure: env.isProd,
+          sameSite: 'strict',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+        return success(res, { user: result.user, accessToken: result.accessToken });
+      } catch (err) { next(err); }
+    },
+  ];
 }
 
 export const identityController = new IdentityController();

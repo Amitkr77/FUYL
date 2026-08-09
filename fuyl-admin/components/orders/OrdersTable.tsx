@@ -27,10 +27,13 @@ const statusVariant = (status: OrderStatus): 'success' | 'warning' | 'danger' | 
     case 'delivered': return 'success'
     case 'shipped': return 'info'
     case 'confirmed': return 'info'
+    case 'dispatched': return 'info'
+    case 'in_transit': return 'info'
     case 'packed': return 'warning'
     case 'pending': return 'default'
     case 'cancelled': return 'danger'
     case 'returned': return 'danger'
+    default: return 'default'
   }
 }
 

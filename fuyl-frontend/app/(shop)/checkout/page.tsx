@@ -10,7 +10,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { CheckoutStepper } from '@/components/checkout/CheckoutStepper'
 import { OrderSummary } from '@/components/checkout/OrderSummary'
 import { PaymentMethodPicker } from '@/components/checkout/PaymentMethodPicker'
-import { type AppliedCoupon } from '@/components/checkout/CouponInput'
+import { CouponInput, type AppliedCoupon } from '@/components/checkout/CouponInput'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useCartStore } from '@/lib/store/cartStore'
 import { useCart } from '@/lib/hooks/useCart'
@@ -227,9 +227,11 @@ export default function CheckoutPage() {
     if (!items.length && !orderPlacedRef.current) router.replace('/cart')
   }, [items.length, router])
 
-  // Focus the new step's content on every transition — makes the multi-step
-  // flow legible to keyboard/screen-reader users, not just visually obvious.
+  // On every step transition: scroll to top so the new step's heading is
+  // immediately visible (especially important on mobile where the form column
+  // is below the order summary), then shift keyboard focus to the new section.
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
     stepContentRef.current?.focus()
   }, [step])
 
@@ -547,6 +549,23 @@ export default function CheckoutPage() {
                         Use a saved address instead
                       </button>
                     )}
+                    {/* Address type — Home / Work / Other */}
+                    <div className="flex gap-2">
+                      {(['home', 'office', 'other'] as const).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setAddress((a) => ({ ...a, type: t }))}
+                          className={`px-3 py-1.5 text-body-xs font-semibold rounded-full border transition-colors capitalize ${
+                            address.type === t
+                              ? 'bg-brand-forest text-white border-brand-forest'
+                              : 'border-brand-border text-brand-muted hover:border-brand-forest hover:text-brand-forest'
+                          }`}
+                        >
+                          {t === 'office' ? 'Work' : t.charAt(0).toUpperCase() + t.slice(1)}
+                        </button>
+                      ))}
+                    </div>
                     <Field
                       id="fullName"
                       label="Full Name"
@@ -601,6 +620,18 @@ export default function CheckoutPage() {
                 )}
               </div>
 
+              {/* Coupon — shown inline on mobile since the order summary is collapsed.
+                  Desktop users see it in the always-visible sidebar instead. */}
+              <div className="mb-8 lg:hidden">
+                <CouponInput
+                  items={items}
+                  token={token ?? undefined}
+                  applied={appliedCoupon}
+                  onApply={setAppliedCoupon}
+                  onRemove={() => setAppliedCoupon(null)}
+                />
+              </div>
+
               <div className="space-y-3 mb-8">
                 <h2 className="text-display-md font-display">Payment Method</h2>
                 <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
@@ -623,6 +654,33 @@ export default function CheckoutPage() {
 
           {step === 'review' && (
             <div ref={stepContentRef} tabIndex={-1} className="animate-fade-in outline-none space-y-4">
+              {/* Items — visible in this column on mobile where the sidebar is collapsed */}
+              <div className="lg:hidden p-4 border rounded-sm border-brand-border space-y-3">
+                <h3 className="text-body-sm font-semibold text-brand-forest">
+                  Your Items ({items.reduce((s, i) => s + i.quantity, 0)})
+                </h3>
+                <div className="space-y-3 max-h-52 overflow-y-auto">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3">
+                      <div className="relative w-12 h-12 shrink-0 rounded-sm overflow-hidden bg-brand-sage">
+                        {item.image && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.image} alt="" className="w-full h-full object-cover" />
+                        )}
+                        <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center rounded-full bg-brand-forest text-[9px] font-bold text-white">
+                          {item.quantity}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-body-xs font-medium text-brand-forest truncate">{item.name}</p>
+                        {item.variantTitle && <p className="text-body-xs text-brand-muted">{item.variantTitle}</p>}
+                      </div>
+                      <p className="text-body-xs font-semibold text-brand-forest shrink-0">{formatPrice(item.price * item.quantity)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="p-4 border rounded-sm space-y-1.5 border-brand-border">
                 <div className="flex items-center justify-between">
                   <h3 className="text-body-sm font-semibold text-brand-forest">Shipping to</h3>
@@ -654,13 +712,15 @@ export default function CheckoutPage() {
                   size="lg"
                   fullWidth
                   loading={confirming}
-                  disabled={confirming || previewLoading || !preview}
+                  disabled={confirming}
                   onClick={handleConfirm}
                 >
                   Place Order — {formatPrice(displayTotal)}
                 </Button>
-                {!preview && previewLoading && (
-                  <p className="text-body-xs text-brand-muted text-center mt-2">Calculating your total…</p>
+                {previewLoading && !confirming && (
+                  <p className="text-body-xs text-brand-muted text-center mt-1.5 flex items-center justify-center gap-1">
+                    <Spinner size={12} /> Calculating exact total…
+                  </p>
                 )}
               </StickyActionBar>
             </div>
@@ -668,25 +728,53 @@ export default function CheckoutPage() {
 
           {step === 'paying' && (
             <div ref={stepContentRef} tabIndex={-1} className="animate-fade-in outline-none">
-              <div className="flex flex-col items-center gap-3 py-10 text-center">
-                <Loader2 size={28} className="animate-spin text-brand-teal" />
-                <p className="text-body-sm text-brand-muted">Waiting for payment confirmation…</p>
+              <div className="flex flex-col items-center gap-4 py-14 text-center">
+                <div className="w-16 h-16 rounded-full bg-brand-sage/60 flex items-center justify-center">
+                  <Loader2 size={28} className="animate-spin text-brand-teal" />
+                </div>
+                <div>
+                  <p className="text-body-md font-semibold text-brand-forest mb-1">Processing payment…</p>
+                  {placedOrder && (
+                    <p className="text-body-xs text-brand-muted">Order {placedOrder.orderNumber}</p>
+                  )}
+                </div>
+                <p className="text-body-xs text-brand-muted max-w-xs">
+                  Please don&apos;t close or refresh this page. We&apos;re confirming your payment.
+                </p>
               </div>
             </div>
           )}
 
           {step === 'error' && (
-            <div ref={stepContentRef} tabIndex={-1} className="animate-fade-in outline-none">
+            <div ref={stepContentRef} tabIndex={-1} className="animate-fade-in outline-none space-y-4">
+              {placedOrder && (
+                <div className="p-4 border border-amber-200 bg-amber-50 rounded-lg">
+                  <p className="text-body-xs font-semibold text-amber-800 mb-0.5">
+                    Order {placedOrder.orderNumber} has been saved
+                  </p>
+                  <p className="text-body-xs text-amber-700">
+                    Your order is secure. You can retry payment below — if you were charged,
+                    it will be confirmed automatically within a few minutes.
+                  </p>
+                </div>
+              )}
               <StickyActionBar>
                 <Button variant="primary" size="lg" fullWidth onClick={handleRetry}>
                   {placedOrder ? 'Retry Payment' : 'Try Again'}
                 </Button>
+                {placedOrder && (
+                  <p className="text-body-xs text-brand-muted text-center mt-1.5">
+                    Need help? Contact support with order ID:{' '}
+                    <span className="font-semibold text-brand-forest">{placedOrder.orderNumber}</span>
+                  </p>
+                )}
               </StickyActionBar>
             </div>
           )}
         </div>
 
-        {/* Order summary — sticky sidebar on desktop, collapsible on mobile */}
+        {/* Order summary — sticky sidebar on desktop, collapsible on mobile.
+            Auto-expand on the Review step so shoppers can verify items before placing. */}
         <div className="order-1 lg:order-2 lg:sticky lg:top-24">
           <OrderSummary
             items={items}
@@ -699,6 +787,7 @@ export default function CheckoutPage() {
             previewLoading={previewLoading}
             displayDiscount={displayDiscount}
             displayTotal={displayTotal}
+            defaultExpanded={step === 'review'}
           />
         </div>
       </div>

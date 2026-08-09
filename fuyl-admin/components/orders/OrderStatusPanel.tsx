@@ -1,20 +1,20 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CheckCircle2, AlertCircle } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Circle } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import type { AdminOrderDetail } from '@/lib/orders'
-import { type OrderStatus, MANUAL_STATUS_OPTIONS } from '@/lib/orderStatus'
+import { type OrderStatus, MANUAL_STATUS_OPTIONS, STATUS_FLOW, ORDER_STATUS_LABEL } from '@/lib/orderStatus'
 import { updateOrderStatusAction } from '@/app/(admin)/orders/actions'
-
-const STATUS_FLOW: OrderStatus[] = ['pending', 'confirmed', 'packed', 'shipped', 'delivered', 'completed']
 
 const statusVariant = (s: OrderStatus): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
   const map: Record<OrderStatus, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
-    completed: 'success', delivered: 'success', shipped: 'info', confirmed: 'info',
-    packed: 'warning', pending: 'default', cancelled: 'danger', returned: 'danger',
+    completed: 'success',  delivered: 'success',
+    dispatched: 'info',    in_transit: 'info',  shipped: 'info', confirmed: 'info',
+    packed: 'warning',     pending: 'default',
+    cancelled: 'danger',   returned: 'danger',
   }
-  return map[s]
+  return map[s] ?? 'default'
 }
 
 export function OrderStatusPanel({ order }: { order: AdminOrderDetail }) {
@@ -26,11 +26,7 @@ export function OrderStatusPanel({ order }: { order: AdminOrderDetail }) {
   const [error, setError] = useState('')
 
   const isTerminal = order.status === 'cancelled' || order.status === 'completed'
-  const currentIdx = STATUS_FLOW.indexOf(status)
 
-  // The status/note/tracking inputs only stage a change locally — nothing is
-  // saved until "Update Status" is clicked. Gate the button on an actual change
-  // so selecting a value in the dropdown can never look like (or become) a save.
   const hasChanges =
     status !== order.status ||
     note.trim().length > 0 ||
@@ -40,28 +36,33 @@ export function OrderStatusPanel({ order }: { order: AdminOrderDetail }) {
     setError('')
     startTransition(async () => {
       const result = await updateOrderStatusAction(order.id, { status, note, trackingNumber })
-      if ('error' in result) {
-        setError(result.error)
-        return
-      }
+      if ('error' in result) { setError(result.error); return }
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     })
   }
 
+  // Find where the current order status sits in the customer-facing flow
+  const flowIdx = STATUS_FLOW.indexOf(
+    // Map legacy/extra statuses to their nearest flow step
+    order.status === 'shipped' ? 'dispatched'
+    : order.status === 'packed' ? 'confirmed'
+    : order.status
+  )
+
   return (
     <>
-      {/* Header status + controls */}
+      {/* Header: current badge + controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Badge variant={statusVariant(order.status)}>
-            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+            {ORDER_STATUS_LABEL[order.status] ?? order.status}
           </Badge>
         </div>
 
         {isTerminal ? (
           <p className="text-sm text-slate-400">
-            Order is {order.status} — status can no longer be changed.
+            Order is {ORDER_STATUS_LABEL[order.status]} — status can no longer be changed.
           </p>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
@@ -85,7 +86,7 @@ export function OrderStatusPanel({ order }: { order: AdminOrderDetail }) {
               className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#558476]"
             >
               {MANUAL_STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                <option key={s} value={s}>{ORDER_STATUS_LABEL[s]}</option>
               ))}
             </select>
             <button
@@ -108,28 +109,27 @@ export function OrderStatusPanel({ order }: { order: AdminOrderDetail }) {
         </div>
       )}
 
-      {/* Progress bar — only meaningful for the linear happy-path flow */}
+      {/* Customer-facing progress: Confirmed → Dispatched → In Transit → Delivered */}
       {order.status !== 'cancelled' && order.status !== 'returned' && (
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
           <div className="flex items-center justify-between relative">
+            {/* Track line */}
             <div className="absolute left-0 right-0 top-4 h-0.5 bg-slate-100 mx-8" />
             <div
               className="absolute left-0 top-4 h-0.5 bg-[#558476] mx-8 transition-all duration-500"
-              style={{ width: `${(STATUS_FLOW.indexOf(order.status) / (STATUS_FLOW.length - 1)) * 100}%` }}
+              style={{ width: flowIdx >= 0 ? `${(flowIdx / (STATUS_FLOW.length - 1)) * 100}%` : '0%' }}
             />
             {STATUS_FLOW.map((s, i) => {
-              const done = STATUS_FLOW.indexOf(order.status) >= i
+              const done = flowIdx >= i
               return (
                 <div key={s} className="flex flex-col items-center gap-2 relative z-10">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${
-                      done ? 'bg-[#558476] border-[#558476] text-white' : 'bg-white border-slate-200 text-slate-300'
-                    }`}
-                  >
-                    {done ? <CheckCircle2 className="w-4 h-4" /> : <span className="text-xs">{i + 1}</span>}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${
+                    done ? 'bg-[#558476] border-[#558476] text-white' : 'bg-white border-slate-200 text-slate-300'
+                  }`}>
+                    {done ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
                   </div>
-                  <span className={`text-xs font-medium capitalize hidden sm:block ${done ? 'text-[#558476]' : 'text-slate-400'}`}>
-                    {s}
+                  <span className={`text-xs font-medium hidden sm:block text-center ${done ? 'text-[#558476]' : 'text-slate-400'}`}>
+                    {ORDER_STATUS_LABEL[s]}
                   </span>
                 </div>
               )

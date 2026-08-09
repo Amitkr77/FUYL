@@ -2,6 +2,7 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface ICustomerAddress {
   _id?: Types.ObjectId;
+  name: string;                     // Recipient full name (required)
   label: string;                    // 'Home', 'Work', etc.
   line1: string;
   line2?: string;
@@ -63,6 +64,7 @@ export interface ICustomerProfile extends Document {
 
 const AddressSchema = new Schema<ICustomerAddress>(
   {
+    name: { type: String, required: true, trim: true, maxlength: 100 },
     label: { type: String, required: true, trim: true, maxlength: 40 },
     line1: { type: String, required: true, maxlength: 200 },
     line2: { type: String, maxlength: 200 },

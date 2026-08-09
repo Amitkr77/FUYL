@@ -9,6 +9,8 @@ export const OrderStatus = {
   PENDING: 'pending',
   CONFIRMED: 'confirmed',
   PACKED: 'packed',
+  DISPATCHED: 'dispatched',
+  IN_TRANSIT: 'in_transit',
   SHIPPED: 'shipped',
   DELIVERED: 'delivered',
   COMPLETED: 'completed',

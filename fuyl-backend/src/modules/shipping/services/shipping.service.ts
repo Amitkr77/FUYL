@@ -138,7 +138,7 @@ class ShippingService {
    */
   async checkServiceability(pincode: string) {
     if (!shiprocketService.isConfigured()) {
-      return { serviceable: true, prepaid: true, cod: true };
+      return { serviceable: true, prepaid: true, cod: true, etdDays: null };
     }
     return shiprocketService.checkServiceability(pincode);
   }

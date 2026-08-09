@@ -9,7 +9,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { getErrorMessage } from '@/lib/api/client'
 
 const emptyForm: AddressInput = {
-  label: '', line1: '', line2: '', city: '', state: '', postalCode: '', country: 'IN',
+  name: '', label: '', line1: '', line2: '', city: '', state: '', postalCode: '', country: 'IN',
   phone: '', isDefault: false, isBilling: false, isShipping: true,
 }
 
@@ -54,7 +54,7 @@ export default function AddressesPage() {
   const startNew = () => { setForm(emptyForm); setEditing('new'); setFormError(null) }
   const startEdit = (a: Address) => {
     setForm({
-      label: a.label, line1: a.line1, line2: a.line2 ?? '', city: a.city, state: a.state,
+      name: a.name, label: a.label, line1: a.line1, line2: a.line2 ?? '', city: a.city, state: a.state,
       postalCode: a.postalCode, country: a.country, phone: a.phone ?? '',
       isDefault: a.isDefault, isBilling: a.isBilling, isShipping: a.isShipping,
       deliveryInstructions: a.deliveryInstructions,
@@ -64,7 +64,7 @@ export default function AddressesPage() {
   }
 
   const addressComplete = Boolean(
-    form.label.trim() && form.line1.trim() && form.city.trim() && form.state.trim() && form.postalCode.trim(),
+    form.name.trim() && form.label.trim() && form.line1.trim() && form.city.trim() && form.state.trim() && form.postalCode.trim(),
   )
 
   const handleSave = async () => {
@@ -138,6 +138,7 @@ export default function AddressesPage() {
           <p className="text-label mb-1" style={{ color: 'var(--color-brand-muted)' }}>
             {isEditing === 'new' ? 'New Address' : 'Edit Address'}
           </p>
+          <Field label="Name" required value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} />
           <div className="grid grid-cols-2 gap-3">
             <Field label="Label (e.g. Home)" required value={form.label} onChange={(v) => setForm((f) => ({ ...f, label: v }))} />
             <Field label="Phone" value={form.phone ?? ''} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />

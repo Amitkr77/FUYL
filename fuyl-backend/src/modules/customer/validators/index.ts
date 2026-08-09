@@ -14,6 +14,7 @@ export const updateProfileSchema = z.object({
 });
 
 export const addressSchema = z.object({
+  name: z.string().min(1).max(100),
   label: z.string().min(1).max(40),
   line1: z.string().min(1).max(200),
   line2: z.string().max(200).optional(),

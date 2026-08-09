@@ -78,6 +78,20 @@ export const checkoutIdentifySchema = z.object({
   phone: phoneSchema.optional(),
 });
 
+// ─── OTP login ───────────────────────────────────────────────────────────────
+export const otpRequestSchema = z.object({
+  // Email address or phone number (E.164 or local format)
+  identifier: z.string().min(3).max(256),
+});
+
+export const otpVerifySchema = z.object({
+  identifier: z.string().min(3).max(256),
+  code: z.string().length(6).regex(/^\d{6}$/, 'OTP must be 6 digits'),
+});
+
+export type OtpRequestDTO = z.infer<typeof otpRequestSchema>;
+export type OtpVerifyDTO = z.infer<typeof otpVerifySchema>;
+
 export type RegisterDTO = z.infer<typeof registerSchema>;
 export type LoginDTO = z.infer<typeof loginSchema>;
 export type RefreshDTO = z.infer<typeof refreshSchema>;

@@ -1,14 +1,16 @@
 "use client";
 
-import { Suspense, useEffect, useId, useState } from "react";
+import { Suspense, useEffect, useId, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Pencil, Eye, EyeOff } from "lucide-react";
+import { Pencil, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/lib/store/authStore";
-import { updateProfile, forgotPassword } from "@/lib/api/account";
+import { updateProfile, forgotPassword, requestOtp, verifyOtp } from "@/lib/api/account";
 import { getErrorMessage } from "@/lib/api/client";
 
 type Mode = "login" | "register" | "forgot";
+type LoginMethod = "otp" | "password";
+type OtpStep = "request" | "verify";
 
 export default function AccountPage() {
   return (
@@ -34,8 +36,10 @@ function AccountPageContent() {
     user,
     token,
     setUser,
+    setSession,
   } = useAuthStore();
 
+  // ─── Profile editing ───────────────────────────────────────────────────────
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -81,17 +85,100 @@ function AccountPageContent() {
       setSaving(false);
     }
   };
+
   const set =
     (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
       clearError();
       setForm((f) => ({ ...f, [k]: e.target.value }));
     };
 
-  // Bounce back to wherever the user came from (e.g. checkout) once signed in.
+  // Bounce back to wherever the user came from once signed in.
   useEffect(() => {
     if (token && user && redirectTo) router.replace(redirectTo);
   }, [token, user, redirectTo, router]);
 
+  // ─── OTP state ─────────────────────────────────────────────────────────────
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>("otp");
+  const [otpStep, setOtpStep] = useState<OtpStep>("request");
+  const [otpIdentifier, setOtpIdentifier] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpResendCountdown, setOtpResendCountdown] = useState(0);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startCountdown = () => {
+    setOtpResendCountdown(60);
+    countdownRef.current = setInterval(() => {
+      setOtpResendCountdown((n) => {
+        if (n <= 1) {
+          clearInterval(countdownRef.current!);
+          return 0;
+        }
+        return n - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
+
+  const resetOtpFlow = () => {
+    setOtpStep("request");
+    setOtpCode("");
+    setOtpError(null);
+  };
+
+  const handleSwitchLoginMethod = (method: LoginMethod) => {
+    setLoginMethod(method);
+    resetOtpFlow();
+    clearError();
+  };
+
+  const handleOtpRequest = async () => {
+    if (!otpIdentifier.trim()) return;
+    setOtpLoading(true);
+    setOtpError(null);
+    try {
+      await requestOtp(otpIdentifier.trim());
+      setOtpStep("verify");
+      startCountdown();
+    } catch (err: unknown) {
+      setOtpError(getErrorMessage(err, "Failed to send OTP. Please try again."));
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleOtpVerify = async () => {
+    if (otpCode.length !== 6) return;
+    setOtpLoading(true);
+    setOtpError(null);
+    try {
+      const result = await verifyOtp(otpIdentifier.trim(), otpCode);
+      setSession(result.accessToken, result.user);
+    } catch (err: unknown) {
+      setOtpError(getErrorMessage(err, "Invalid OTP. Please try again."));
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleOtpResend = async () => {
+    if (otpResendCountdown > 0) return;
+    setOtpCode("");
+    setOtpError(null);
+    setOtpLoading(true);
+    try {
+      await requestOtp(otpIdentifier.trim());
+      startCountdown();
+    } catch (err: unknown) {
+      setOtpError(getErrorMessage(err, "Failed to resend OTP."));
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // ─── Password login ────────────────────────────────────────────────────────
   const loginComplete = Boolean(form.email.trim() && form.password);
   const registerComplete = Boolean(
     form.firstName.trim() &&
@@ -106,11 +193,6 @@ function AccountPageContent() {
     if (mode === "login") {
       await login(form.email, form.password);
     } else {
-      // BUG FIXED (found live-testing): the backend's phone field is
-      // `z.string().regex(...).optional()` — `.optional()` only permits
-      // `undefined`, not an empty string, so leaving phone blank (the
-      // common case, since it's optional in this form) always failed
-      // registration with "Validation failed". Omit it entirely when empty.
       await register({
         firstName: form.firstName,
         lastName: form.lastName,
@@ -122,6 +204,7 @@ function AccountPageContent() {
     }
   };
 
+  // ─── Forgot password ───────────────────────────────────────────────────────
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotStatus, setForgotStatus] = useState<
     "idle" | "loading" | "sent" | "error"
@@ -144,11 +227,9 @@ function AccountPageContent() {
     }
   };
 
-  // Logged in state — keyed on `user` (persisted), not the access token, which
-  // is re-minted from the refresh cookie shortly after a reload. Gating on
-  // token here would briefly show the login form to an already-signed-in user.
+  // ─── Logged-in view ────────────────────────────────────────────────────────
   if (user) {
-    if (redirectTo) return null; // effect above navigates away
+    if (redirectTo) return null;
 
     if (isEditing) {
       return (
@@ -256,6 +337,7 @@ function AccountPageContent() {
     );
   }
 
+  // ─── Forgot password view ──────────────────────────────────────────────────
   if (mode === "forgot") {
     return (
       <div className="container-brand section-py max-w-md mx-auto">
@@ -332,14 +414,15 @@ function AccountPageContent() {
     );
   }
 
+  // ─── Login / Register view ─────────────────────────────────────────────────
   return (
-    <div className=" section-py max-w-xl mx-auto">
+    <div className="section-py max-w-xl mx-auto">
       <h1 className="text-display-lg font-display mb-8 text-center text-brand-forest">
         {mode === "login" ? "WELCOME BACK" : "CREATE ACCOUNT"}
       </h1>
 
       <div className="bg-white border border-brand-border rounded-2xl shadow-sm p-6 sm:p-8">
-        {/* Toggle */}
+        {/* Sign In / Create Account toggle */}
         <div className="flex bg-brand-cream rounded-full p-1 mb-6">
           {(["login", "register"] as Mode[]).map((m) => (
             <button
@@ -348,6 +431,7 @@ function AccountPageContent() {
               onClick={() => {
                 setMode(m);
                 clearError();
+                resetOtpFlow();
               }}
               className={`flex-1 py-2.5 rounded-full text-label transition-colors ${
                 mode === m
@@ -360,100 +444,304 @@ function AccountPageContent() {
           ))}
         </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSubmit();
-          }}
-          className="space-y-4"
-        >
-          {mode === "register" && referralCode && (
-            <p className="text-body-xs p-3 rounded-sm bg-brand-cream text-brand-forest">
-              Referral code <strong>{referralCode}</strong> will be applied when
-              you create your account.
-            </p>
-          )}
-          {mode === "register" && (
-            <div className="grid grid-cols-2 gap-4">
-              <Field
-                label="First Name"
-                required
-                value={form.firstName}
-                onChange={set("firstName")}
-                autoComplete="given-name"
-              />
-              <Field
-                label="Last Name"
-                required
-                value={form.lastName}
-                onChange={set("lastName")}
-                autoComplete="family-name"
-              />
+        {/* OTP / Password method toggle — only on Sign In */}
+        {mode === "login" && (
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex bg-slate-100 rounded-lg p-0.5 text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => handleSwitchLoginMethod("otp")}
+                className={`px-3 py-1.5 rounded-md transition-colors ${
+                  loginMethod === "otp"
+                    ? "bg-white text-brand-forest shadow-sm"
+                    : "text-brand-muted hover:text-brand-forest"
+                }`}
+              >
+                OTP Login
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSwitchLoginMethod("password")}
+                className={`px-3 py-1.5 rounded-md transition-colors ${
+                  loginMethod === "password"
+                    ? "bg-white text-brand-forest shadow-sm"
+                    : "text-brand-muted hover:text-brand-forest"
+                }`}
+              >
+                Password
+              </button>
             </div>
-          )}
-          <Field
-            label="Email"
-            required
-            value={form.email}
-            onChange={set("email")}
-            type="email"
-            autoComplete="email"
-          />
-          <Field
-            label="Password"
-            required
-            value={form.password}
-            onChange={set("password")}
-            type="password"
-            autoComplete={mode === "register" ? "new-password" : "current-password"}
-          />
-          {mode === "login" && (
-            <button
-              type="button"
-              onClick={() => {
-                setForgotEmail(form.email);
-                setForgotStatus("idle");
-                setForgotError(null);
-                clearError();
-                setMode("forgot");
-              }}
-              className="block ml-auto text-body-xs font-semibold text-brand-teal hover:text-brand-forest transition-colors -mt-2"
-            >
-              Forgot password?
-            </button>
-          )}
-          {mode === "register" && (
-            <Field
-              label="Phone (optional)"
-              value={form.phone}
-              onChange={set("phone")}
-              type="tel"
-              autoComplete="tel"
-            />
-          )}
-
-          {error && (
-            <p className="text-body-xs p-3 rounded-sm bg-red-50 text-red-700">
-              {error}
+            <p className="text-body-xs text-brand-muted">
+              {loginMethod === "otp"
+                ? "We'll send a code to your email or phone"
+                : "Sign in with your password"}
             </p>
-          )}
+          </div>
+        )}
 
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            fullWidth
-            loading={isLoading}
-            disabled={!submitComplete}
+        {/* ── OTP login flow ── */}
+        {mode === "login" && loginMethod === "otp" && (
+          <>
+            {otpStep === "request" ? (
+              <form
+                onSubmit={(e) => { e.preventDefault(); handleOtpRequest(); }}
+                className="space-y-4"
+              >
+                <Field
+                  label="Email or Phone"
+                  required
+                  value={otpIdentifier}
+                  onChange={(e) => {
+                    setOtpIdentifier(e.target.value);
+                    setOtpError(null);
+                  }}
+                  type="text"
+                  autoComplete="email"
+                />
+                {otpError && (
+                  <p className="text-body-xs p-3 rounded-sm bg-red-50 text-red-700">
+                    {otpError}
+                  </p>
+                )}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  loading={otpLoading}
+                  disabled={!otpIdentifier.trim()}
+                >
+                  Send OTP
+                </Button>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                {/* Back to identifier step */}
+                <button
+                  type="button"
+                  onClick={resetOtpFlow}
+                  className="flex items-center gap-1.5 text-body-xs text-brand-muted hover:text-brand-forest transition-colors"
+                >
+                  <ArrowLeft size={13} />
+                  {otpIdentifier}
+                </button>
+
+                <p className="text-body-sm text-brand-muted">
+                  Enter the 6-digit code sent to{" "}
+                  <span className="font-semibold text-brand-forest">
+                    {otpIdentifier}
+                  </span>
+                </p>
+
+                <OtpCodeInput
+                  value={otpCode}
+                  onChange={setOtpCode}
+                  onComplete={handleOtpVerify}
+                  disabled={otpLoading}
+                />
+
+                {otpError && (
+                  <p className="text-body-xs p-3 rounded-sm bg-red-50 text-red-700">
+                    {otpError}
+                  </p>
+                )}
+
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  loading={otpLoading}
+                  disabled={otpCode.length !== 6}
+                  onClick={handleOtpVerify}
+                >
+                  Verify OTP
+                </Button>
+
+                <div className="text-center">
+                  {otpResendCountdown > 0 ? (
+                    <p className="text-body-xs text-brand-muted">
+                      Resend in {otpResendCountdown}s
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleOtpResend}
+                      disabled={otpLoading}
+                      className="text-body-xs font-semibold text-brand-teal hover:text-brand-forest transition-colors"
+                    >
+                      Resend OTP
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Password login / Register form ── */}
+        {(mode === "register" || (mode === "login" && loginMethod === "password")) && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit();
+            }}
+            className="space-y-4"
           >
-            {mode === "login" ? "Sign In" : "Create Account"}
-          </Button>
-        </form>
+            {mode === "register" && referralCode && (
+              <p className="text-body-xs p-3 rounded-sm bg-brand-cream text-brand-forest">
+                Referral code <strong>{referralCode}</strong> will be applied
+                when you create your account.
+              </p>
+            )}
+            {mode === "register" && (
+              <div className="grid grid-cols-2 gap-4">
+                <Field
+                  label="First Name"
+                  required
+                  value={form.firstName}
+                  onChange={set("firstName")}
+                  autoComplete="given-name"
+                />
+                <Field
+                  label="Last Name"
+                  required
+                  value={form.lastName}
+                  onChange={set("lastName")}
+                  autoComplete="family-name"
+                />
+              </div>
+            )}
+            <Field
+              label="Email"
+              required
+              value={form.email}
+              onChange={set("email")}
+              type="email"
+              autoComplete="email"
+            />
+            <Field
+              label="Password"
+              required
+              value={form.password}
+              onChange={set("password")}
+              type="password"
+              autoComplete={
+                mode === "register" ? "new-password" : "current-password"
+              }
+            />
+            {mode === "login" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotEmail(form.email);
+                  setForgotStatus("idle");
+                  setForgotError(null);
+                  clearError();
+                  setMode("forgot");
+                }}
+                className="block ml-auto text-body-xs font-semibold text-brand-teal hover:text-brand-forest transition-colors -mt-2"
+              >
+                Forgot password?
+              </button>
+            )}
+            {mode === "register" && (
+              <Field
+                label="Phone (optional)"
+                value={form.phone}
+                onChange={set("phone")}
+                type="tel"
+                autoComplete="tel"
+              />
+            )}
+
+            {error && (
+              <p className="text-body-xs p-3 rounded-sm bg-red-50 text-red-700">
+                {error}
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              fullWidth
+              loading={isLoading}
+              disabled={!submitComplete}
+            >
+              {mode === "login" ? "Sign In" : "Create Account"}
+            </Button>
+          </form>
+        )}
       </div>
     </div>
   );
 }
 
+// ─── 6-digit OTP input ─────────────────────────────────────────────────────
+function OtpCodeInput({
+  value,
+  onChange,
+  onComplete,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onComplete: () => void;
+  disabled?: boolean;
+}) {
+  const boxes = Array.from({ length: 6 });
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleChange = (i: number, char: string) => {
+    const digit = char.replace(/\D/, "").slice(-1);
+    const next = value.split("");
+    next[i] = digit;
+    const updated = next.join("").padEnd(6, " ").slice(0, 6).trimEnd();
+    onChange(updated.replace(/ /g, ""));
+    if (digit && i < 5) refs.current[i + 1]?.focus();
+  };
+
+  const handleKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (!value[i] && i > 0) {
+        refs.current[i - 1]?.focus();
+        const next = value.split("");
+        next[i - 1] = "";
+        onChange(next.join(""));
+      }
+    } else if (e.key === "Enter" && value.length === 6) {
+      onComplete();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    onChange(pasted);
+    refs.current[Math.min(pasted.length, 5)]?.focus();
+  };
+
+  return (
+    <div className="flex gap-2 justify-center" onPaste={handlePaste}>
+      {boxes.map((_, i) => (
+        <input
+          key={i}
+          ref={(el) => { refs.current[i] = el; }}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={value[i] ?? ""}
+          onChange={(e) => handleChange(i, e.target.value)}
+          onKeyDown={(e) => handleKeyDown(i, e)}
+          disabled={disabled}
+          className="w-11 h-12 text-center text-body-md font-semibold border border-brand-border rounded-sm outline-none transition-colors focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/30 disabled:opacity-50"
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── Shared field component ────────────────────────────────────────────────
 function Field({
   label,
   value,
@@ -475,7 +763,10 @@ function Field({
 
   return (
     <div>
-      <label htmlFor={fieldId} className="block text-label mb-1.5 text-brand-muted">
+      <label
+        htmlFor={fieldId}
+        className="block text-label mb-1.5 text-brand-muted"
+      >
         {label}
         {required && <span className="text-brand-teal"> *</span>}
       </label>

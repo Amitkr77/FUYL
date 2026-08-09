@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { UserRepository } from '../repositories/user.repository';
 import { RefreshTokenRepository } from '../repositories/refreshToken.repository';
 import {
@@ -26,10 +27,11 @@ import { eventBus, Events } from '../../../shared/services/eventBus.service';
 import { queueService } from '../../../shared/services/queue.service';
 import { logger } from '../../../config/logger';
 import { env } from '../../../config/env';
-import { RegisterDTO, LoginDTO, ResetPasswordDTO, ChangePasswordDTO, CheckoutIdentifyDTO } from '../validators';
+import { RegisterDTO, LoginDTO, ResetPasswordDTO, ChangePasswordDTO, CheckoutIdentifyDTO, OtpRequestDTO, OtpVerifyDTO } from '../validators';
 import { addDays } from '../../../shared/utils';
 import { Request } from 'express';
 import mongoose from 'mongoose';
+import { OtpModel } from '../models/otp.model';
 
 const userRepo = new UserRepository();
 const refreshRepo = new RefreshTokenRepository();
@@ -351,6 +353,138 @@ export class IdentityService {
       refreshToken: registerResult.refreshToken,
       isNewAccount: true,
     };
+  }
+
+  // ─── OTP login ─────────────────────────────────────────────────────────────
+
+  /**
+   * Generate and send a 6-digit OTP to the given email or phone.
+   * The identifier must belong to an existing, active account.
+   */
+  async requestOtp(dto: OtpRequestDTO): Promise<{ sent: true; _devCode?: string }> {
+    const isEmail = dto.identifier.includes('@');
+    const identifier = isEmail
+      ? dto.identifier.toLowerCase().trim()
+      : dto.identifier.trim();
+
+    // Verify account exists before sending
+    const user = isEmail
+      ? await userRepo.findByEmail(identifier)
+      : await userRepo.findByPhone(identifier);
+
+    if (!user || user.isDeleted) {
+      throw new NotFoundError(
+        isEmail
+          ? 'No account found for this email. Please register first.'
+          : 'No account linked to this phone number.'
+      );
+    }
+    if (!user.isActive) throw new ForbiddenError('Account disabled');
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      throw new ForbiddenError('Account temporarily locked. Try again later.');
+    }
+
+    // Invalidate any prior unused OTPs for this identifier
+    await OtpModel.updateMany(
+      { identifier, isUsed: false },
+      { $set: { isUsed: true } }
+    );
+
+    // 6-digit cryptographically-random code
+    const code = String(crypto.randomInt(100000, 1000000));
+    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+
+    await OtpModel.create({
+      identifier,
+      type: isEmail ? 'email' : 'phone',
+      codeHash,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+      attempts: 0,
+      isUsed: false,
+    });
+
+    if (isEmail) {
+      queueService.notificationDispatch({
+        channel: 'email',
+        to: { email: identifier, userId: user.id },
+        template: 'otp_login',
+        data: {
+          code,
+          name: user.displayName ?? user.firstName ?? user.email,
+          expiresInMinutes: 10,
+        },
+      });
+    } else {
+      queueService.notificationDispatch({
+        channel: 'sms',
+        to: { phone: identifier },
+        template: 'otp_login',
+        data: { code, expiresInMinutes: 10 },
+      });
+    }
+
+    logger.info(`OTP requested for ${isEmail ? 'email' : 'phone'}: ${identifier}`);
+
+    // Expose the code in dev so the team can test without an email server
+    return { sent: true, ...(env.isDev ? { _devCode: code } : {}) };
+  }
+
+  /**
+   * Verify a 6-digit OTP and, on success, issue the same access+refresh tokens
+   * that the normal password-based login produces.
+   */
+  async verifyOtp(
+    dto: OtpVerifyDTO,
+    meta: { ip?: string; userAgent?: string }
+  ) {
+    const isEmail = dto.identifier.includes('@');
+    const identifier = isEmail
+      ? dto.identifier.toLowerCase().trim()
+      : dto.identifier.trim();
+
+    const otp = await OtpModel.findOne({
+      identifier,
+      isUsed: false,
+      expiresAt: { $gt: new Date() },
+    }).sort({ createdAt: -1 });
+
+    if (!otp) throw new UnauthorizedError('OTP expired or not found. Request a new one.');
+
+    const MAX_ATTEMPTS = 5;
+    if (otp.attempts >= MAX_ATTEMPTS) {
+      await OtpModel.findByIdAndUpdate(otp._id, { $set: { isUsed: true } });
+      throw new UnauthorizedError('Too many failed attempts. Request a new OTP.');
+    }
+
+    const codeHash = crypto.createHash('sha256').update(dto.code).digest('hex');
+    if (codeHash !== otp.codeHash) {
+      await OtpModel.findByIdAndUpdate(otp._id, { $inc: { attempts: 1 } });
+      const remaining = MAX_ATTEMPTS - otp.attempts - 1;
+      throw new UnauthorizedError(
+        remaining > 0
+          ? `Incorrect OTP. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`
+          : 'Too many failed attempts. Request a new OTP.'
+      );
+    }
+
+    // Mark used — single-use
+    await OtpModel.findByIdAndUpdate(otp._id, { $set: { isUsed: true } });
+
+    const user = isEmail
+      ? await userRepo.findByEmail(identifier)
+      : await userRepo.findByPhone(identifier);
+
+    if (!user || !user.isActive || user.isDeleted) {
+      throw new ForbiddenError('Account not found or disabled.');
+    }
+
+    await userRepo.resetFailedLogin(user.id);
+    await userRepo.update(user.id, { lastLoginAt: new Date(), lastLoginIp: meta.ip });
+
+    const tokens = await this.issueTokens(user, meta);
+    eventBus.publish(Events.USER_LOGIN, { userId: user.id, ip: meta.ip });
+
+    return { user, ...tokens };
   }
 
   async getMe(userId: string) {

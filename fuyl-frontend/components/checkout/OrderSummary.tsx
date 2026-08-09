@@ -19,6 +19,8 @@ interface OrderSummaryProps {
   previewLoading: boolean
   displayDiscount: number
   displayTotal: number
+  /** Auto-expand the mobile accordion — used on the Review step so items are visible before placing the order */
+  defaultExpanded?: boolean
 }
 
 const TRUST_BADGES = [
@@ -34,9 +36,9 @@ const TRUST_BADGES = [
 // `order` class — see app/(shop)/checkout/page.tsx.
 export function OrderSummary({
   items, subtotal, token, appliedCoupon, onApplyCoupon, onRemoveCoupon,
-  preview, previewLoading, displayDiscount, displayTotal,
+  preview, previewLoading, displayDiscount, displayTotal, defaultExpanded = false,
 }: OrderSummaryProps) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(defaultExpanded)
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0)
 
   return (
@@ -88,7 +90,8 @@ export function OrderSummary({
           ))}
         </div>
 
-        <div className="pt-1">
+        {/* Coupon — hidden on mobile (shown in the main form instead, above the payment picker) */}
+        <div className="pt-1 hidden lg:block">
           <CouponInput items={items} token={token} applied={appliedCoupon} onApply={onApplyCoupon} onRemove={onRemoveCoupon} />
         </div>
 

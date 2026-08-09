@@ -8,6 +8,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 const statusVariant = (s: OrderStatus): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
   const map: Record<OrderStatus, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
     completed: 'success', delivered: 'success', shipped: 'info', confirmed: 'info',
+    dispatched: 'info', in_transit: 'info',
     packed: 'warning', pending: 'default', cancelled: 'danger', returned: 'danger',
   }
   return map[s]

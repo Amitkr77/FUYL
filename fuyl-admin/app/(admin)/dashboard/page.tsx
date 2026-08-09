@@ -54,7 +54,7 @@ export default async function DashboardPage() {
 
   let chartData: ChartPoint[] = []
   try {
-    chartData = await getRevenueChartData(7)
+    chartData = await getRevenueChartData({ preset: '7d' })
   } catch {
     // Non-fatal — chart just renders empty.
   }

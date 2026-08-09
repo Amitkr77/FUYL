@@ -5,39 +5,31 @@ import { analyticsController } from '../controllers';
 
 const router = Router();
 
-// Admin-only
-router.get(
-  '/admin/analytics/summary',
-  authRequired,
-  authorize(Roles.ADMIN, Roles.SUPER_ADMIN),
-  analyticsController.summary
-);
-router.get(
-  '/admin/analytics/timeseries/:event',
-  authRequired,
-  authorize(Roles.ADMIN, Roles.SUPER_ADMIN),
-  analyticsController.timeseries
-);
-router.get(
-  '/admin/analytics/events/recent',
-  authRequired,
-  authorize(Roles.ADMIN, Roles.SUPER_ADMIN),
-  analyticsController.recentEvents
-);
-router.get(
-  '/admin/analytics/metrics',
-  authRequired,
-  authorize(Roles.ADMIN, Roles.SUPER_ADMIN),
-  analyticsController.metrics
-);
-router.post(
-  '/admin/analytics/rollup',
-  authRequired,
-  authorize(Roles.SUPER_ADMIN),
-  analyticsController.forceRollup
-);
+// ── Public ────────────────────────────────────────────────────────────────────
+// Storefront sends page-view / interaction events here (no auth required).
+router.post('/analytics/track', analyticsController.track);
 
-// Health
+// ── Admin-only ────────────────────────────────────────────────────────────────
+const adminGuard = [authRequired, authorize(Roles.ADMIN, Roles.SUPER_ADMIN)];
+
+router.get('/admin/analytics/summary',              ...adminGuard, analyticsController.summary);
+router.get('/admin/analytics/timeseries/:event',    ...adminGuard, analyticsController.timeseries);
+router.get('/admin/analytics/revenue',              ...adminGuard, analyticsController.revenueTimeseries);
+router.get('/admin/analytics/cart-abandonment',     ...adminGuard, analyticsController.cartAbandonment);
+router.get('/admin/analytics/funnel',               ...adminGuard, analyticsController.funnel);
+router.get('/admin/analytics/heatmap',              ...adminGuard, analyticsController.heatmap);
+router.get('/admin/analytics/devices',              ...adminGuard, analyticsController.deviceBreakdown);
+router.get('/admin/analytics/user-activity',        ...adminGuard, analyticsController.userActivity);
+router.get('/admin/analytics/geography',            ...adminGuard, analyticsController.geography);
+router.get('/admin/analytics/category-sales',       ...adminGuard, analyticsController.categorySales);
+router.get('/admin/analytics/customer-segments',    ...adminGuard, analyticsController.customerSegments);
+router.get('/admin/analytics/orders-by-status',     ...adminGuard, analyticsController.ordersByStatus);
+router.get('/admin/analytics/top-products',         ...adminGuard, analyticsController.topProducts);
+router.get('/admin/analytics/events/recent',        ...adminGuard, analyticsController.recentEvents);
+router.get('/admin/analytics/metrics',              ...adminGuard, analyticsController.metrics);
+router.post('/admin/analytics/rollup', authRequired, authorize(Roles.SUPER_ADMIN), analyticsController.forceRollup);
+
+// ── Health ────────────────────────────────────────────────────────────────────
 router.get('/analytics/health', (_req, res) => {
   res.json({ success: true, module: 'analytics', status: 'active' });
 });

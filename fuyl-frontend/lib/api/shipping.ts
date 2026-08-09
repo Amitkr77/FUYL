@@ -4,6 +4,7 @@ export interface PincodeServiceability {
   serviceable: boolean
   prepaid: boolean
   cod: boolean
+  etdDays: number | null
 }
 
 // Public — GET /shipping/serviceability/:pincode (see fuyl-backend

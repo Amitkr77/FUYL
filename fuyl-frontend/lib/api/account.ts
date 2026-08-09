@@ -221,6 +221,23 @@ export async function requestRefund(
   })
 }
 
+// ─── OTP login ───────────────────────────────────────────────────────────────
+
+export async function requestOtp(identifier: string): Promise<{ sent: true }> {
+  return apiFetch('/auth/otp/request', { method: 'POST', body: { identifier } })
+}
+
+export async function verifyOtp(
+  identifier: string,
+  code: string
+): Promise<{ accessToken: string; user: User }> {
+  const res = await apiFetch<{ accessToken: string; user: BackendUser }>(
+    '/auth/otp/verify',
+    { method: 'POST', body: { identifier, code } }
+  )
+  return { accessToken: res.accessToken, user: mapUser(res.user) }
+}
+
 export async function forgotPassword(email: string): Promise<void> {
   return apiFetch('/auth/forgot-password', { method: 'POST', body: { email } })
 }

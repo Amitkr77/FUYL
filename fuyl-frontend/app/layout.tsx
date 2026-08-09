@@ -8,6 +8,7 @@ import { generateSEO, orgSchema } from '@/lib/utils/seo'
 import { serializeJsonLd } from '@/lib/utils/jsonLd'
 import { getProducts } from '@/lib/api/products'
 import type { NavItem } from '@/lib/constants/nav'
+import { PageTracker } from '@/components/analytics/PageTracker'
 import '@/styles/globals.css'
 
 const inter = Inter({
@@ -69,6 +70,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </main>
         <Footer />
         <CartDrawer />
+        <PageTracker />
       </body>
     </html>
   )
