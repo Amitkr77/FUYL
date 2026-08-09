@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Package,
@@ -24,79 +24,74 @@ import {
   Mail,
   FolderTree,
   Star,
-} from 'lucide-react'
-import { logout } from '@/app/(admin)/actions'
+} from "lucide-react";
+import { logout } from "@/app/(admin)/actions";
 
 interface NavItem {
-  label: string
-  href: string
-  icon: React.ComponentType<{ className?: string }>
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 interface NavSection {
-  title: string
-  items: NavItem[]
+  title: string;
+  items: NavItem[];
 }
 
 const navSections: NavSection[] = [
   {
-    title: 'Overview',
+    title: "Overview",
+    items: [{ label: "Dashboard", href: "/dashboard", icon: LayoutDashboard }],
+  },
+  {
+    title: "Commerce",
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+      { label: "Products", href: "/products", icon: Package },
+      { label: "Categories", href: "/categories", icon: FolderTree },
+      { label: "Orders", href: "/orders", icon: ShoppingCart },
+      { label: "Customers", href: "/customers", icon: Users },
+      { label: "Inventory", href: "/inventory", icon: Boxes },
+      { label: "Shipping", href: "/shipping", icon: Truck },
+      { label: "Returns", href: "/returns", icon: Undo2 },
+      { label: "Reviews", href: "/reviews", icon: Star },
     ],
   },
   {
-    title: 'Commerce',
+    title: "Growth",
     items: [
-      { label: 'Products', href: '/products', icon: Package },
-      { label: 'Categories', href: '/categories', icon: FolderTree },
-      { label: 'Orders', href: '/orders', icon: ShoppingCart },
-      { label: 'Customers', href: '/customers', icon: Users },
-      { label: 'Inventory', href: '/inventory', icon: Boxes },
-      { label: 'Shipping', href: '/shipping', icon: Truck },
-      { label: 'Returns', href: '/returns', icon: Undo2 },
-      { label: 'Reviews', href: '/reviews', icon: Star },
+      { label: "Subscriptions", href: "/subscriptions", icon: Repeat },
+      { label: "Promotions", href: "/promotions", icon: Tag },
+      { label: "Referrals", href: "/referrals", icon: Gift },
+      { label: "Wallet", href: "/wallet", icon: Wallet },
+      { label: "Newsletter", href: "/newsletter", icon: Mail },
     ],
   },
   {
-    title: 'Growth',
+    title: "Content",
     items: [
-      { label: 'Subscriptions', href: '/subscriptions', icon: Repeat },
-      { label: 'Promotions', href: '/promotions', icon: Tag },
-      { label: 'Referrals', href: '/referrals', icon: Gift },
-      { label: 'Wallet', href: '/wallet', icon: Wallet },
-      { label: 'Newsletter', href: '/newsletter', icon: Mail },
+      { label: "Website Pages", href: "/content", icon: FileText },
+      { label: "Blog", href: "/blog", icon: Newspaper },
     ],
   },
   {
-    title: 'Content',
-    items: [
-      { label: 'Website Pages', href: '/content', icon: FileText },
-      { label: 'Blog', href: '/blog', icon: Newspaper },
-    ],
+    title: "Reports",
+    items: [{ label: "Analytics", href: "/analytics", icon: BarChart3 }],
   },
   {
-    title: 'Reports',
-    items: [
-      { label: 'Analytics', href: '/analytics', icon: BarChart3 },
-    ],
+    title: "System",
+    items: [{ label: "Settings", href: "/settings", icon: Settings }],
   },
-  {
-    title: 'System',
-    items: [
-      { label: 'Settings', href: '/settings', icon: Settings },
-    ],
-  },
-]
+];
 
 interface SidebarProps {
-  onClose?: () => void
+  onClose?: () => void;
 }
 
 export default function Sidebar({ onClose }: SidebarProps) {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(href + "/");
 
   return (
     <div className="flex flex-col h-full bg-[#12291F] w-60">
@@ -105,7 +100,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
         <div className="flex items-center gap-3">
           <div className="relative w-8 h-8 shrink-0">
             <Image
-              src="/FAVICON_WHITE_430x.webp"
+              src="/logo.webp"
+              onError={(e) => {
+                e.currentTarget.src =
+                  "https://fuyl.vercel.app/_next/image?url=%2Flogo.webp&w=256&q=75";
+              }}
               alt="FUYL"
               fill
               className="object-contain"
@@ -113,8 +112,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
             />
           </div>
           <div>
-            <div className="text-base font-bold text-white tracking-widest leading-none">FUYL</div>
-            <div className="text-[10px] font-semibold text-[#558476] tracking-[0.25em] uppercase mt-0.5">Admin</div>
+            <div className="text-base font-bold text-white tracking-widest leading-none">
+              FUYL
+            </div>
+            <div className="text-[10px] font-semibold text-[#558476] tracking-[0.25em] uppercase mt-0.5">
+              Admin
+            </div>
           </div>
         </div>
         {/* Mobile close */}
@@ -136,8 +139,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </p>
             <ul className="space-y-0.5">
               {section.items.map((item) => {
-                const active = isActive(item.href)
-                const Icon = item.icon
+                const active = isActive(item.href);
+                const Icon = item.icon;
                 return (
                   <li key={item.href}>
                     <Link
@@ -145,15 +148,17 @@ export default function Sidebar({ onClose }: SidebarProps) {
                       onClick={onClose}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 relative ${
                         active
-                          ? 'bg-white/10 text-white border-l-2 border-[#558476] pl-[10px]'
-                          : 'text-white/60 hover:bg-white/5 hover:text-white'
+                          ? "bg-white/10 text-white border-l-2 border-[#558476] pl-[10px]"
+                          : "text-white/60 hover:bg-white/5 hover:text-white"
                       }`}
                     >
-                      <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-[#558476]' : ''}`} />
+                      <Icon
+                        className={`w-4 h-4 flex-shrink-0 ${active ? "text-[#558476]" : ""}`}
+                      />
                       {item.label}
                     </Link>
                   </li>
-                )
+                );
               })}
             </ul>
           </div>
@@ -167,7 +172,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <span className="text-white text-xs font-bold">A</span>
           </div>
           <div className="min-w-0">
-            <p className="text-white text-xs font-medium truncate">admin@fuyl.in</p>
+            <p className="text-white text-xs font-medium truncate">
+              admin@fuyl.in
+            </p>
             <p className="text-white/40 text-[11px]">Administrator</p>
           </div>
         </div>
@@ -182,5 +189,5 @@ export default function Sidebar({ onClose }: SidebarProps) {
         </form>
       </div>
     </div>
-  )
+  );
 }
