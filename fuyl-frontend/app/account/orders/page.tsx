@@ -15,7 +15,7 @@ type FilterKey = 'all' | 'active' | 'delivered' | 'cancelled'
 
 const FILTERS: { key: FilterKey; label: string; match: (s: string) => boolean }[] = [
   { key: 'all',       label: 'All',       match: () => true },
-  { key: 'active',    label: 'Active',    match: (s) => ['pending', 'confirmed', 'packed', 'shipped'].includes(s) },
+  { key: 'active',    label: 'Active',    match: (s) => ['pending', 'confirmed', 'packed', 'shipped', 'dispatched', 'in_transit'].includes(s) },
   { key: 'delivered', label: 'Delivered', match: (s) => ['delivered', 'completed'].includes(s) },
   { key: 'cancelled', label: 'Cancelled', match: (s) => ['cancelled', 'returned'].includes(s) },
 ]

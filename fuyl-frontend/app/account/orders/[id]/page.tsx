@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { MapPin, Truck, CreditCard, ClipboardList, ArrowLeft, Package, XCircle } from 'lucide-react'
+import { MapPin, Truck, CreditCard, ClipboardList, ArrowLeft, Package, XCircle, Clock } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { formatPrice } from '@/lib/utils/formatPrice'
 import { getOrder } from '@/lib/api/account'
@@ -182,7 +182,7 @@ export default function OrderDetailPage() {
                 </Card>
               )}
 
-              {/* Actions */}
+              {/* Cancel — only while the order hasn't left the warehouse */}
               {token && ['pending', 'confirmed', 'packed'].includes(order.status) && (
                 <CancelOrderPanel token={token} orderId={order.id} onDone={() => setReloadKey((k) => k + 1)} />
               )}
@@ -283,20 +283,33 @@ export default function OrderDetailPage() {
               {order.timeline.length > 0 && (
                 <Card>
                   <CardHeading icon={ClipboardList}>Order History</CardHeading>
-                  <div className="flex flex-col gap-4">
-                    {order.timeline.map((event, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <span
-                          className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0"
-                          style={{ background: ORDER_STATUS_META[event.status]?.color ?? '#6B7280' }}
-                        />
-                        <div>
-                          <p className="text-body-sm font-semibold text-brand-forest capitalize">{event.status}</p>
-                          <p className="text-body-xs text-brand-muted">{formatDateTime(event.at)}</p>
-                          {event.note && <p className="text-body-xs text-brand-muted mt-0.5">{event.note}</p>}
+                  <div className="relative flex flex-col gap-0">
+                    {/* Vertical track */}
+                    <div className="absolute left-[9px] top-3 bottom-3 w-px bg-brand-border" />
+                    {order.timeline.map((event, i) => {
+                      const m = ORDER_STATUS_META[event.status]
+                      const isFirst = i === 0
+                      return (
+                        <div key={i} className={`relative flex items-start gap-3.5 ${isFirst ? '' : 'pt-4'}`}>
+                          <span
+                            className="relative z-10 w-[18px] h-[18px] rounded-full border-2 border-white flex items-center justify-center shrink-0 mt-0.5"
+                            style={{ background: m?.dot ?? '#9CA3AF', boxShadow: '0 0 0 2px ' + (m?.bg ?? '#F3F4F6') }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-body-sm font-semibold text-brand-forest">
+                              {m?.label ?? event.status}
+                            </p>
+                            {event.note && <p className="text-body-xs text-brand-muted mt-0.5">{event.note}</p>}
+                            <p className="text-body-xs text-brand-muted/60 mt-0.5 flex items-center gap-1">
+                              <Clock size={11} />
+                              {formatDateTime(event.at)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </Card>
               )}

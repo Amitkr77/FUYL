@@ -257,6 +257,18 @@ export class OrderService {
    * at every point a payment's status actually changes.
    */
   async updatePaymentStatus(orderId: string, paymentStatus: typeof PaymentStatus[keyof typeof PaymentStatus]) {
+    // When a pending order's payment succeeds, auto-confirm it — a paid order
+    // should never show as "Pending" to the customer.
+    if (paymentStatus === PaymentStatus.SUCCESS) {
+      const order = await orderRepo.findById(orderId);
+      if (order && order.status === OrderStatus.PENDING) {
+        return orderRepo.appendTimeline(
+          orderId,
+          { status: OrderStatus.CONFIRMED, note: 'Payment confirmed' },
+          { paymentStatus, confirmedAt: new Date() }
+        );
+      }
+    }
     return orderRepo.update(orderId, { paymentStatus });
   }
 

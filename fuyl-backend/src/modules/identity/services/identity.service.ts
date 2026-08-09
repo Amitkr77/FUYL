@@ -418,7 +418,7 @@ export class IdentityService {
       queueService.notificationDispatch({
         channel: 'sms',
         to: { phone: identifier },
-        template: 'otp_login',
+        template: 'otp_login_sms',
         data: { code, expiresInMinutes: 10 },
       });
     }

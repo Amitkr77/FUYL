@@ -32,7 +32,8 @@ export class PaymentService {
     const paymentNumber = await nextNumber('PAY');
 
     if (method === PaymentMethod.COD) {
-      // COD: no Razorpay order, mark as pending until delivery
+      // COD: no upfront payment — confirm the order immediately so the customer
+      // never sees "Pending" status on a successfully placed COD order.
       const payment = await paymentRepo.create({
         paymentNumber,
         orderId: new Types.ObjectId(orderId),
@@ -57,6 +58,8 @@ export class PaymentService {
         gateway: 'cod',
         description: `COD payment for order ${order.orderNumber}`,
       });
+      // Auto-confirm — no prepayment needed for COD
+      await orderService.updateStatus(orderId, { status: 'confirmed' as any, note: 'Order confirmed (Cash on Delivery)' });
       return { payment, cod: true };
     }
 

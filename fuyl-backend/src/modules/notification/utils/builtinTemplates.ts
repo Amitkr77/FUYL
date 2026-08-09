@@ -286,6 +286,29 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     description: "Sent when a customer shares their referral code via email (referral module's share action)",
   },
   {
+    name: 'otp_login',
+    channel: 'email',
+    subject: 'Your FUYL login code: {{code}}',
+    body: emailWrap(`
+      <p style="margin:0 0 16px;">Hi {{name}},</p>
+      <p style="margin:0 0 8px;">Use the code below to sign in to your FUYL account. It expires in <strong>{{expiresInMinutes}} minutes</strong>.</p>
+      <div style="margin:28px 0;text-align:center;">
+        <div style="display:inline-block;padding:18px 36px;background:#12291F;border-radius:12px;">
+          <span style="font-size:36px;font-weight:700;letter-spacing:10px;color:#ffffff;font-family:monospace;">{{code}}</span>
+        </div>
+      </div>
+      <p style="margin:0 0 8px;font-size:13px;color:#4A5A3A;">Never share this code with anyone — FUYL will never ask for it.</p>
+      <p style="margin:8px 0 0;font-size:13px;color:#4A5A3A;">If you didn't request this, you can safely ignore this email.</p>
+    `),
+    description: 'OTP code for passwordless email login',
+  },
+  {
+    name: 'otp_login_sms',
+    channel: 'sms',
+    body: 'Your FUYL login OTP is {{code}}. Valid for {{expiresInMinutes}} minutes. Do not share.',
+    description: 'OTP code for passwordless SMS login',
+  },
+  {
     name: 'order_otp',
     channel: 'sms',
     body: 'Your Fuyl order OTP is {{otp}}. Valid for 10 minutes. Do not share.',
