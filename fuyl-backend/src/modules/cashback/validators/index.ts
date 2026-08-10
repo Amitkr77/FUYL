@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 const objectId = z.string().regex(/^[0-9a-f]{24}$/i, 'Invalid ObjectId');
 
-export const createPolicySchema = z.object({
+// Base object — used for both create (with refinements) and update (partial, no mode change)
+const policyBaseSchema = z.object({
   name:            z.string().min(1).max(120),
   description:     z.string().max(500).optional(),
   mode:            z.enum(['standalone', 'attached']),
@@ -21,21 +22,29 @@ export const createPolicySchema = z.object({
   endDate:         z.coerce.date().optional(),
   maxUsesPerUser:  z.number().int().min(0).default(0),
   totalBudget:     z.number().min(0).default(0),
-}).refine(
-  (d) => d.mode !== 'attached' || !!d.couponCode,
-  { message: 'couponCode is required for attached mode', path: ['couponCode'] }
-).refine(
-  (d) => d.creditTiming !== 'after_days' || (d.creditAfterDays !== undefined && d.creditAfterDays > 0),
-  { message: 'creditAfterDays is required when creditTiming is after_days', path: ['creditAfterDays'] }
-).refine(
-  (d) => !d.startDate || !d.endDate || d.endDate > d.startDate,
-  { message: 'endDate must be after startDate', path: ['endDate'] }
-).refine(
-  (d) => d.type !== 'percentage' || d.value <= 100,
-  { message: 'Percentage value cannot exceed 100', path: ['value'] }
-);
+});
 
-export const updatePolicySchema = createPolicySchema.partial().omit({ mode: true });
+// Create: full validation with cross-field refinements
+export const createPolicySchema = policyBaseSchema
+  .refine(
+    (d) => d.mode !== 'attached' || !!d.couponCode,
+    { message: 'couponCode is required for attached mode', path: ['couponCode'] }
+  )
+  .refine(
+    (d) => d.creditTiming !== 'after_days' || (d.creditAfterDays !== undefined && d.creditAfterDays > 0),
+    { message: 'creditAfterDays is required when creditTiming is after_days', path: ['creditAfterDays'] }
+  )
+  .refine(
+    (d) => !d.startDate || !d.endDate || d.endDate > d.startDate,
+    { message: 'endDate must be after startDate', path: ['endDate'] }
+  )
+  .refine(
+    (d) => d.type !== 'percentage' || d.value <= 100,
+    { message: 'Percentage value cannot exceed 100', path: ['value'] }
+  );
+
+// Update: partial on the base object (mode cannot be changed after creation)
+export const updatePolicySchema = policyBaseSchema.partial().omit({ mode: true });
 
 export const listPoliciesSchema = z.object({
   page:     z.coerce.number().int().positive().default(1),

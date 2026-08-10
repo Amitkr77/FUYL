@@ -13,6 +13,7 @@
     "test:integration": "jest tests/integration",
     "test:e2e": "jest tests/e2e",
     "seed": "tsx src/database/seed/index.ts",
+    "seed:affiliate": "tsx scripts/seed-affiliate.ts",
     "create-admin": "tsx scripts/create-admin.ts",
   "cashfree-check": "tsx scripts/cashfree-sandbox-check.ts",
     "migrate-certifications": "tsx scripts/migrate-certifications.ts",
