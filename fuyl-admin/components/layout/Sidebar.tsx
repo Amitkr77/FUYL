@@ -24,6 +24,8 @@ import {
   Mail,
   FolderTree,
   Star,
+  Coins,
+  Link2,
 } from "lucide-react";
 import { logout } from "@/app/(admin)/actions";
 
@@ -61,6 +63,8 @@ const navSections: NavSection[] = [
     items: [
       { label: "Subscriptions", href: "/subscriptions", icon: Repeat },
       { label: "Promotions", href: "/promotions", icon: Tag },
+      { label: "Cashback", href: "/cashback", icon: Coins },
+      { label: "Affiliates", href: "/affiliates", icon: Link2 },
       { label: "Referrals", href: "/referrals", icon: Gift },
       { label: "Wallet", href: "/wallet", icon: Wallet },
       { label: "Newsletter", href: "/newsletter", icon: Mail },

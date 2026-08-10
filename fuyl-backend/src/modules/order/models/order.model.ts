@@ -39,6 +39,10 @@ export interface IOrderTimelineEvent {
 export interface IOrder extends Document {
   orderNumber: string;           // human-readable e.g. FUL-2024-00001
   customerId: mongoose.Types.ObjectId;
+  // Affiliate attribution — set at checkout when a valid attribution token is present
+  affiliateId?: mongoose.Types.ObjectId;
+  affiliateAttributionId?: mongoose.Types.ObjectId;
+  affiliateAttributionMethod?: 'link' | 'coupon';
   sellerIds: mongoose.Types.ObjectId[];
   items: IOrderItem[];
   status: typeof OrderStatus[keyof typeof OrderStatus];
@@ -119,6 +123,9 @@ const OrderSchema = new Schema<IOrder>(
   {
     orderNumber: { type: String, required: true, unique: true, index: true },
     customerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    affiliateId:              { type: Schema.Types.ObjectId, ref: 'Affiliate', index: true, sparse: true },
+    affiliateAttributionId:   { type: Schema.Types.ObjectId, ref: 'AffiliateAttribution', sparse: true },
+    affiliateAttributionMethod: { type: String, enum: ['link', 'coupon'] },
     sellerIds: [{ type: Schema.Types.ObjectId, ref: 'User', index: true }],
     items: [OrderItemSchema],
     status: { type: String, enum: Object.values(OrderStatus), default: OrderStatus.PENDING, index: true },

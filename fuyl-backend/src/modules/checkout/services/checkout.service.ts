@@ -6,6 +6,8 @@ import { pricingService } from '../../pricing/services/pricing.service';
 import { walletService } from '../../wallet/services/wallet.service';
 import { catalogService } from '../../catalog/services/catalog.service';
 import { shippingService } from '../../shipping/services/shipping.service';
+import { cashbackService } from '../../cashback/services/cashback.service';
+import { trackingService } from '../../affiliate/services/tracking.service';
 import {
   BadRequestError,
   NotFoundError,
@@ -94,6 +96,14 @@ class CheckoutService {
     const grandTotal = quote.grandTotal - couponDiscount + shippingCharge;
     const remainingAfterWallet = Math.max(0, grandTotal - walletRedemption);
 
+    // 5. Cashback preview — show customer what they'll earn on this order
+    const cashbackPreview = await cashbackService.preview({
+      userId,
+      subtotal:        quote.subtotal,
+      walletRedemption,
+      couponCode:      dto.couponCode ?? (cart as any).couponCode,
+    }).catch(() => ({ eligible: false, policies: [], totalCashback: 0 }));
+
     return {
       cart,
       shippingAddress,
@@ -106,6 +116,7 @@ class CheckoutService {
       grandTotal: Math.round(grandTotal * 100) / 100,
       remainingToPay: Math.round(remainingAfterWallet * 100) / 100,
       paymentMethod: dto.paymentMethod,
+      cashback: cashbackPreview,
     };
   }
 
@@ -159,8 +170,9 @@ class CheckoutService {
 
   /**
    * Execute checkout: place order, charge payment, reserve stock, dispatch events.
+   * affiliationToken — value from the aff_token cookie set by the affiliate tracking redirect.
    */
-  async placeOrder(userId: string, dto: CheckoutDTO) {
+  async placeOrder(userId: string, dto: CheckoutDTO, affiliationToken?: string) {
     const preview = await this.preview(userId, dto);
 
     // 1. Reserve inventory against the cart
@@ -184,6 +196,16 @@ class CheckoutService {
     if (reservationResult.failed.length > 0) {
       throw new BadRequestError('Some items out of stock', reservationResult.failed);
     }
+
+    // Resolve affiliate attribution from cookie token or coupon code (best-effort — must not block checkout).
+    // Validate token format (UUID v4) before querying the DB to avoid unnecessary load from bad cookies.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const validToken = affiliationToken && UUID_RE.test(affiliationToken) ? affiliationToken : undefined;
+    const attribution = await trackingService.resolveForCheckout({
+      attributionToken: validToken,
+      couponCode:       dto.couponCode ?? (preview.cart as any).couponCode,
+      userId,
+    }).catch(() => null);
 
     // Steps 2–4 move money and create the order. Without a DB transaction
     // (needs a replica set), a failure between the wallet debit and a
@@ -224,6 +246,9 @@ class CheckoutService {
         billingAddress: preview.billingAddress as any,
         shippingTotal: preview.shippingTotal,
         notes: dto.notes,
+        affiliateId:              attribution?.affiliateId,
+        affiliateAttributionId:   attribution?.attributionId,
+        affiliateAttributionMethod: attribution?.method,
       } as any);
     } catch (err) {
       if (walletDebited) {
@@ -254,7 +279,14 @@ class CheckoutService {
       throw err;
     }
 
-    // 5. Apply coupon redemption
+    // 5. Mark attribution as converted (best-effort)
+    if (attribution) {
+      trackingService.markConverted(attribution.attributionId, order._id.toString()).catch((err) => {
+        logger.warn('[checkout] failed to mark attribution converted', { attributionId: attribution.attributionId, err });
+      });
+    }
+
+    // 6. Apply coupon redemption
     if (preview.coupon?.valid && preview.couponDiscount > 0) {
       await promotionService.redeem(
         userId,
@@ -265,13 +297,24 @@ class CheckoutService {
       );
     }
 
-    // 6. Mark cart as converted
+    // 7. Create cashback earnings (best-effort — failure must not block the order)
+    cashbackService.createEarnings({
+      orderId:          order._id.toString(),
+      userId,
+      subtotal:         preview.pricing.subtotal,
+      walletRedemption: preview.walletRedemption,
+      couponCode:       preview.coupon?.couponCode,
+    }).catch((err) => {
+      logger.warn('[checkout] cashback earning creation failed (non-blocking)', { orderId: order._id.toString(), err });
+    });
+
+    // 8. Mark cart as converted
     await cartService.markConverted(preview.cart._id.toString(), order._id.toString());
 
-    // 7. Release cart-level reservations — they're now associated with the order
+    // 9. Release cart-level reservations — they're now associated with the order
     await inventoryService.releaseReservations({ cartId: preview.cart._id.toString() });
 
-    logger.info(`[checkout] order ${order.orderNumber} placed for user ${userId} (total ₹${preview.grandTotal})`);
+    logger.info(`[checkout] order ${order.orderNumber} placed for user ${userId} (total ₹${preview.grandTotal}, cashback ₹${preview.cashback.totalCashback})`);
 
     return {
       order,

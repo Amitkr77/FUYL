@@ -20,7 +20,8 @@ export class CheckoutController {
     validate(checkoutSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        const result = await checkoutService.placeOrder(req.user!.userId, req.body);
+        const affiliationToken = req.cookies?.aff_token as string | undefined;
+        const result = await checkoutService.placeOrder(req.user!.userId, req.body, affiliationToken);
         return success(res, result);
       } catch (err) { next(err); }
     },

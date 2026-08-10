@@ -90,6 +90,11 @@ export class OrderService {
     const shipping = dto.shippingTotal ?? 0;
     const grandTotal = subtotal + shipping + tax;
 
+    const affiliateFields: Record<string, unknown> = {};
+    if ((dto as any).affiliateId)              affiliateFields.affiliateId              = new mongoose.Types.ObjectId((dto as any).affiliateId);
+    if ((dto as any).affiliateAttributionId)   affiliateFields.affiliateAttributionId   = new mongoose.Types.ObjectId((dto as any).affiliateAttributionId);
+    if ((dto as any).affiliateAttributionMethod) affiliateFields.affiliateAttributionMethod = (dto as any).affiliateAttributionMethod;
+
     const order = await orderRepo.create({
       orderNumber,
       customerId: new mongoose.Types.ObjectId(customerId),
@@ -110,6 +115,7 @@ export class OrderService {
       timeline: [{ status: OrderStatus.PENDING, at: new Date(), note: 'Order placed' }],
       placedAt: new Date(),
       notes: dto.notes,
+      ...affiliateFields,
     });
 
     // BUG FIXED (found live end-to-end testing with Redis actually running

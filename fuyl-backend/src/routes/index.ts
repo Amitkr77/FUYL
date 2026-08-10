@@ -27,6 +27,8 @@ import { uploadRouter } from '../modules/upload';
 import { contentRouter } from '../modules/content';
 import { marketingRouter } from '../modules/marketing';
 import { shippingRouter } from '../modules/shipping';
+import { cashbackRouter } from '../modules/cashback';
+import { affiliateRouter } from '../modules/affiliate';
 
 const router = Router();
 
@@ -77,5 +79,7 @@ router.use(uploadRouter);
 router.use(contentRouter);
 router.use(marketingRouter);
 router.use(shippingRouter);
+router.use(cashbackRouter);
+router.use(affiliateRouter);
 
 export default router;

@@ -102,4 +102,36 @@ export const ShipmentStatus = {
   CANCELLED: 'cancelled',
 } as const;
 
+// ─── Affiliate ───────────────────────────────────────────────────────────────
+
+export const AffiliateStatus = {
+  PENDING:   'pending',
+  APPROVED:  'approved',
+  REJECTED:  'rejected',
+  SUSPENDED: 'suspended',
+} as const;
+
+export const CommissionStatus = {
+  PENDING:   'pending',
+  APPROVED:  'approved',
+  PAYABLE:   'payable',
+  PAID:      'paid',
+  CANCELLED: 'cancelled',
+  REVERSED:  'reversed',
+} as const;
+
+export const AttributionMethod = {
+  LINK:   'link',
+  COUPON: 'coupon',
+} as const;
+
+export const CommissionEventType = {
+  CREATED:    'created',
+  APPROVED:   'approved',
+  PAYABLE:    'payable',
+  PAID:       'paid',
+  CANCELLED:  'cancelled',
+  REVERSED:   'reversed',
+} as const;
+
 export type EnumOf<T extends Record<string, string>> = T[keyof T];

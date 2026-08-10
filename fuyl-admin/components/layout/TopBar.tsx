@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   Bell, Search, Menu, X, LayoutDashboard, Package, ShoppingCart,
   Users, BarChart3, Settings, FileText, Newspaper, ChevronRight,
-  Boxes, Tag, Gift, Wallet, Mail, Truck, FolderTree, Star, Repeat, Undo2,
+  Boxes, Tag, Gift, Wallet, Mail, Truck, FolderTree, Star, Repeat, Undo2, Coins,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
@@ -23,6 +23,7 @@ const QUICK_NAV = [
   { label: 'Reviews',       href: '/reviews',       Icon: Star,            section: 'Commerce'  },
   { label: 'Subscriptions', href: '/subscriptions', Icon: Repeat,          section: 'Growth'    },
   { label: 'Promotions',    href: '/promotions',    Icon: Tag,             section: 'Growth'    },
+  { label: 'Cashback',      href: '/cashback',      Icon: Coins,           section: 'Growth'    },
   { label: 'Referrals',     href: '/referrals',     Icon: Gift,            section: 'Growth'    },
   { label: 'Wallet',        href: '/wallet',        Icon: Wallet,          section: 'Growth'    },
   { label: 'Newsletter',    href: '/newsletter',    Icon: Mail,            section: 'Growth'    },
@@ -46,6 +47,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/reviews':       'Reviews',
   '/subscriptions': 'Subscriptions',
   '/promotions':    'Promotions',
+  '/cashback':      'Cashback',
   '/referrals':     'Referrals',
   '/wallet':        'Wallet',
   '/newsletter':    'Newsletter',

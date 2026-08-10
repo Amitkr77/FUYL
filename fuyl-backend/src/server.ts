@@ -18,6 +18,8 @@ import {
 import { registerCartSchedulers } from './modules/cart';
 import { registerShippingSchedulers } from './modules/shipping';
 import { registerInventorySchedulers, registerInventoryEventSubscribers } from './modules/inventory';
+import { registerCashbackEventSubscribers, registerCashbackSchedulers } from './modules/cashback';
+import { registerAffiliateEventSubscribers } from './modules/affiliate';
 import {
   registerAnalyticsEventSubscribers,
   registerAnalyticsSchedulers,
@@ -56,6 +58,8 @@ async function bootstrap() {
   //    - analytics listens to ALL events and tracks them
   registerReferralEventSubscribers();
   registerWalletEventSubscribers();
+  registerCashbackEventSubscribers();
+  registerAffiliateEventSubscribers();
   registerNotificationEventSubscribers();
   registerAnalyticsEventSubscribers();
   registerInventoryEventSubscribers();
@@ -76,6 +80,7 @@ async function bootstrap() {
   registerShippingSchedulers();
   registerCartSchedulers();
   registerInventorySchedulers();
+  registerCashbackSchedulers();
   registerAnalyticsSchedulers();
   startAll();
 

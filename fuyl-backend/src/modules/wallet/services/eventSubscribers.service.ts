@@ -96,46 +96,6 @@ export function registerWalletEventSubscribers(): void {
     }
   });
 
-  // ─── Order completed → grant cashback to customer ─────────────────────────
-  eventBus.on<{ orderId: string; userId: string; amount: number }>(
-    Events.ORDER_COMPLETED,
-    async (event) => {
-      try {
-        // Cashback: 1% of order total, capped at ₹100
-        const cashback = Math.min(Math.round(event.amount * 0.01), 100);
-        if (cashback <= 0) return;
-        await walletService.credit({
-          userId: event.userId,
-          amount: cashback,
-          source: 'order_cashback',
-          description: `Order cashback — order ${event.orderId}`,
-          referenceType: 'order',
-          referenceId: event.orderId,
-          expiresAt: addDays(new Date(), env.referral.walletExpiryDays),
-          metadata: { orderId: event.orderId },
-        });
-      } catch (err) {
-        logger.error('[wallet.event] ORDER_COMPLETED handler failed', err);
-      }
-    }
-  );
-
-  // ─── Order cancelled → reverse cashback (best-effort) ─────────────────────
-  eventBus.on<{ orderId: string; userId: string }>(Events.ORDER_CANCELLED, async (event) => {
-    try {
-      const { WalletTransactionRepository } = await import('../repositories/wallet.repository');
-      const txRepo = new WalletTransactionRepository();
-      const txs = await txRepo.findByReference('order', event.orderId);
-      for (const tx of txs) {
-        if (tx.type === 'credit' && !tx.isReversed) {
-          await walletService.reverse(tx._id, `Order ${event.orderId} cancelled`);
-        }
-      }
-    } catch (err) {
-      logger.error('[wallet.event] ORDER_CANCELLED handler failed', err);
-    }
-  });
-
   // ─── User registered → auto-create wallet ─────────────────────────────────
   eventBus.on<{ userId: string }>(Events.USER_REGISTERED, async (event) => {
     try {
