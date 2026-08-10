@@ -1,30 +1,38 @@
 import { z } from 'zod';
 
+const objectId = z.string().regex(/^[0-9a-f]{24}$/i, 'Invalid ObjectId');
+
 export const createPolicySchema = z.object({
-  name:              z.string().min(1).max(120),
-  description:       z.string().max(500).optional(),
-  mode:              z.enum(['standalone', 'attached']),
-  couponCode:        z.string().min(1).max(30).optional(),
-  type:              z.enum(['percentage', 'flat']),
-  value:             z.number().positive(),
-  maxCap:            z.number().positive().optional(),
-  minOrderAmount:    z.number().min(0).optional(),
-  scope:             z.enum(['all', 'specific_products', 'specific_categories']).default('all'),
-  scopeIds:          z.array(z.string().length(24)).default([]),
-  creditTiming:      z.enum(['on_order', 'on_delivery', 'after_days']).default('on_delivery'),
-  creditAfterDays:   z.number().int().positive().optional(),
-  expiryDays:        z.number().int().positive().default(90),
-  isActive:          z.boolean().default(true),
-  startDate:         z.coerce.date().optional(),
-  endDate:           z.coerce.date().optional(),
-  maxUsesPerUser:    z.number().int().min(0).default(0),
-  totalBudget:       z.number().min(0).default(0),
+  name:            z.string().min(1).max(120),
+  description:     z.string().max(500).optional(),
+  mode:            z.enum(['standalone', 'attached']),
+  couponCode:      z.string().min(1).max(30).regex(/^[A-Z0-9_-]+$/i, 'Coupon code must be alphanumeric').optional(),
+  type:            z.enum(['percentage', 'flat']),
+  value:           z.number().positive(),
+  maxCap:          z.number().positive().optional(),
+  minOrderAmount:  z.number().min(0).optional(),
+  scope:           z.enum(['all', 'specific_products', 'specific_categories']).default('all'),
+  scopeIds:        z.array(objectId).default([]),
+  creditTiming:    z.enum(['on_order', 'on_delivery', 'after_days']).default('on_delivery'),
+  creditAfterDays: z.number().int().positive().optional(),
+  expiryDays:      z.number().int().positive().default(90),
+  isActive:        z.boolean().default(true),
+  startDate:       z.coerce.date().optional(),
+  endDate:         z.coerce.date().optional(),
+  maxUsesPerUser:  z.number().int().min(0).default(0),
+  totalBudget:     z.number().min(0).default(0),
 }).refine(
   (d) => d.mode !== 'attached' || !!d.couponCode,
   { message: 'couponCode is required for attached mode', path: ['couponCode'] }
 ).refine(
   (d) => d.creditTiming !== 'after_days' || (d.creditAfterDays !== undefined && d.creditAfterDays > 0),
   { message: 'creditAfterDays is required when creditTiming is after_days', path: ['creditAfterDays'] }
+).refine(
+  (d) => !d.startDate || !d.endDate || d.endDate > d.startDate,
+  { message: 'endDate must be after startDate', path: ['endDate'] }
+).refine(
+  (d) => d.type !== 'percentage' || d.value <= 100,
+  { message: 'Percentage value cannot exceed 100', path: ['value'] }
 );
 
 export const updatePolicySchema = createPolicySchema.partial().omit({ mode: true });
@@ -40,8 +48,8 @@ export const listEarningsSchema = z.object({
   page:    z.coerce.number().int().positive().default(1),
   limit:   z.coerce.number().int().positive().max(100).default(20),
   status:  z.enum(['pending', 'credited', 'reversed', 'expired']).optional(),
-  userId:  z.string().length(24).optional(),
-  orderId: z.string().length(24).optional(),
+  userId:  objectId.optional(),
+  orderId: objectId.optional(),
 });
 
 export type CreatePolicyDTO  = z.infer<typeof createPolicySchema>;

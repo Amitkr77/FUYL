@@ -1,4 +1,4 @@
-import { FilterQuery } from 'mongoose';
+import mongoose, { FilterQuery } from 'mongoose';
 import { CashbackPolicyModel, ICashbackPolicy } from '../models/cashbackPolicy.model';
 import { CashbackEarningModel, ICashbackEarning } from '../models/cashbackEarning.model';
 
@@ -105,6 +105,23 @@ export class CashbackEarningRepository {
     extra: Partial<ICashbackEarning> = {}
   ): Promise<ICashbackEarning | null> {
     return CashbackEarningModel.findByIdAndUpdate(id, { $set: { status, ...extra } }, { new: true });
+  }
+
+  /**
+   * Atomically transition a 'pending' earning to 'credited', stamping the wallet
+   * transaction ID. Returns the updated document, or null if the earning was
+   * not in 'pending' state (another process already handled it). This is the
+   * idempotency guard that prevents double budget-increment under concurrency.
+   */
+  async claimCredited(
+    id: string,
+    walletTransactionId: mongoose.Types.ObjectId
+  ): Promise<ICashbackEarning | null> {
+    return CashbackEarningModel.findOneAndUpdate(
+      { _id: id, status: 'pending' },
+      { $set: { status: 'credited', creditedAt: new Date(), walletTransactionId } },
+      { new: true }
+    );
   }
 
   async findAll(filter: FilterQuery<ICashbackEarning> = {}, page = 1, limit = 20) {

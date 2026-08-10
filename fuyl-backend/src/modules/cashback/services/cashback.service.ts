@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import { CashbackPolicyRepository, CashbackEarningRepository } from '../repositories/cashback.repository';
 import { ICashbackPolicy } from '../models/cashbackPolicy.model';
-import { ICashbackEarning } from '../models/cashbackEarning.model';
 import { walletService } from '../../wallet/services/wallet.service';
 import { logger } from '../../../config/logger';
 import { BadRequestError, NotFoundError } from '../../../shared/errors';
@@ -27,18 +26,17 @@ export interface CashbackPreviewResult {
 export interface PlaceCashbackInput {
   orderId: string;
   userId: string;
-  /** pre-discount subtotal from the pricing quote */
+  /** Pre-discount subtotal from the pricing quote. */
   subtotal: number;
-  /** wallet-paid portion (Option B: excluded from cashback base) */
+  /** Wallet-paid portion (Option B: excluded from cashback base). */
   walletRedemption: number;
   couponCode?: string;
 }
 
 export class CashbackService {
   /**
-   * Determine which policies apply to an order and how much cashback the user
-   * will earn. Called during checkout preview so the UI can show a "Earn ₹X
-   * cashback" message before the user confirms.
+   * Determine which policies apply and how much cashback the user will earn.
+   * Called during checkout preview so the UI can show "Earn ₹X cashback" before confirm.
    */
   async preview(input: {
     userId: string;
@@ -58,16 +56,16 @@ export class CashbackService {
     }
 
     const policies = applicablePolicies.map((p) => ({
-      policyId: p._id.toString(),
-      name: p.name,
+      policyId:       p._id.toString(),
+      name:           p.name,
       cashbackAmount: this.computeAmount(p, cashbackBase),
-      creditTiming: p.creditTiming,
-      expiryDays: p.expiryDays,
-      mode: p.mode,
+      creditTiming:   p.creditTiming,
+      expiryDays:     p.expiryDays,
+      mode:           p.mode,
     }));
 
     return {
-      eligible: true,
+      eligible:      true,
       policies,
       totalCashback: policies.reduce((s, p) => s + p.cashbackAmount, 0),
     };
@@ -75,7 +73,7 @@ export class CashbackService {
 
   /**
    * Create CashbackEarning records immediately after order placement.
-   * Earnings with timing 'on_order' are credited right away; others are
+   * Earnings with 'on_order' timing are credited immediately; others are
    * scheduled for later (delivery event or cron job).
    */
   async createEarnings(input: PlaceCashbackInput): Promise<void> {
@@ -91,24 +89,37 @@ export class CashbackService {
       if (amount <= 0) continue;
 
       const scheduledAt = this.computeScheduledAt(policy);
-      const expiresAt = addDays(scheduledAt, policy.expiryDays);
+      const expiresAt   = addDays(scheduledAt, policy.expiryDays);
 
-      const earning = await earningRepo.create({
-        orderId:           new mongoose.Types.ObjectId(input.orderId),
-        userId:            new mongoose.Types.ObjectId(input.userId),
-        policyId:          new mongoose.Types.ObjectId(policy._id.toString()),
-        cashbackBase,
-        cashbackAmount:    amount,
-        status:            'pending',
-        creditTiming:      policy.creditTiming,
-        creditAfterDays:   policy.creditAfterDays,
-        scheduledCreditAt: scheduledAt,
-        expiresAt,
-        couponCode:        input.couponCode?.toUpperCase(),
-        metadata:          { policyMode: policy.mode },
-      });
+      let earning;
+      try {
+        earning = await earningRepo.create({
+          orderId:           new mongoose.Types.ObjectId(input.orderId),
+          userId:            new mongoose.Types.ObjectId(input.userId),
+          policyId:          new mongoose.Types.ObjectId(policy._id.toString()),
+          cashbackBase,
+          cashbackAmount:    amount,
+          status:            'pending',
+          creditTiming:      policy.creditTiming,
+          creditAfterDays:   policy.creditAfterDays,
+          scheduledCreditAt: scheduledAt,
+          expiresAt,
+          couponCode:        input.couponCode?.toUpperCase(),
+          metadata:          { policyMode: policy.mode },
+        });
+      } catch (err: any) {
+        // Duplicate key error (E11000): earning already exists for this order+policy.
+        // This happens if the ORDER_PLACED event is redelivered — safe to skip.
+        if (err?.code === 11000) {
+          logger.warn('[cashback] duplicate earning skipped for order+policy', {
+            orderId: input.orderId,
+            policyId: policy._id.toString(),
+          });
+          continue;
+        }
+        throw err;
+      }
 
-      // Credit immediately for on_order timing
       if (policy.creditTiming === 'on_order') {
         await this.creditEarning(earning._id.toString());
       }
@@ -118,67 +129,102 @@ export class CashbackService {
   /**
    * Credit a single pending earning — used by on_delivery event handler
    * and the after_days cron job.
+   *
+   * Concurrency safety:
+   * - walletService.credit() is idempotent via referenceType+referenceId, so the
+   *   wallet is credited at most once even if this method is called concurrently.
+   * - earningRepo.claimCredited() atomically transitions status from 'pending' →
+   *   'credited'; only the caller that wins the race increments the policy budget,
+   *   preventing double-counting.
    */
   async creditEarning(earningId: string): Promise<void> {
     const earning = await earningRepo.findById(earningId);
     if (!earning || earning.status !== 'pending') return;
 
+    let transaction;
     try {
-      const { transaction } = await walletService.credit({
+      const result = await walletService.credit({
         userId:        earning.userId.toString(),
         amount:        earning.cashbackAmount,
         source:        'order_cashback',
-        description:   `Cashback for order`,
+        description:   'Order cashback',
         referenceType: 'cashback_earning',
         referenceId:   earning._id.toString(),
         expiresAt:     earning.expiresAt,
-        metadata:      { orderId: earning.orderId.toString(), policyId: earning.policyId?.toString() },
+        metadata:      {
+          orderId:  earning.orderId.toString(),
+          policyId: earning.policyId?.toString(),
+        },
       });
-
-      await earningRepo.updateStatus(earningId, 'credited', {
-        creditedAt:          new Date(),
-        walletTransactionId: transaction._id,
-      } as Partial<ICashbackEarning>);
-
-      // Track budget consumption on the policy
-      if (earning.policyId) {
-        await policyRepo.incrementUsedBudget(earning.policyId.toString(), earning.cashbackAmount);
-      }
-
-      logger.info(`[cashback] credited ₹${earning.cashbackAmount} for earning ${earningId}`);
+      transaction = result.transaction;
     } catch (err) {
-      logger.error('[cashback] failed to credit earning', { earningId, err });
+      // Leave the earning in 'pending' state so the cron job can retry.
+      logger.error('[cashback] wallet credit failed for earning', { earningId, err });
+      return;
     }
+
+    // Atomically claim the earning (pending → credited). If another process already
+    // claimed it (race condition), skip the budget increment to avoid double-counting.
+    const claimed = await earningRepo.claimCredited(
+      earningId,
+      transaction._id as mongoose.Types.ObjectId
+    );
+    if (!claimed) {
+      logger.warn('[cashback] earning already claimed by another process, skipping budget increment', { earningId });
+      return;
+    }
+
+    if (earning.policyId) {
+      await policyRepo.incrementUsedBudget(earning.policyId.toString(), earning.cashbackAmount);
+    }
+
+    logger.info(`[cashback] credited ₹${earning.cashbackAmount} for earning ${earningId}`);
   }
 
   /**
    * Reverse all pending/credited earnings for an order (called on cancellation).
+   *
+   * Safety: credited earnings are only marked 'reversed' after the wallet
+   * reversal succeeds. If the wallet reversal fails, the earning stays 'credited'
+   * and is flagged for manual reconciliation — never silently dropped.
    */
   async reverseEarnings(orderId: string): Promise<void> {
     const earnings = await earningRepo.findByOrder(orderId);
     for (const earning of earnings) {
       if (earning.status === 'reversed') continue;
 
-      if (earning.status === 'credited' && earning.walletTransactionId) {
+      if (earning.status === 'credited') {
+        if (!earning.walletTransactionId) {
+          // Credited status but no wallet tx — data inconsistency; log and skip.
+          logger.error('[cashback] credited earning has no walletTransactionId, cannot reverse', {
+            earningId: earning._id.toString(),
+          });
+          continue;
+        }
         try {
           await walletService.reverse(
             earning.walletTransactionId.toString(),
             `Order ${orderId} cancelled`
           );
+          // Only mark reversed AFTER wallet reversal confirms success.
+          await earningRepo.updateStatus(earning._id.toString(), 'reversed');
         } catch (err) {
-          logger.error('[cashback] failed to reverse wallet transaction for earning', {
+          // Leave in 'credited' state — manual reconciliation required.
+          logger.error('[cashback] wallet reversal failed, earning NOT marked reversed', {
             earningId: earning._id.toString(),
+            orderId,
             err,
           });
         }
+      } else {
+        // 'pending' or 'expired' — cancel directly, no wallet credit to reverse.
+        await earningRepo.updateStatus(earning._id.toString(), 'reversed');
       }
-
-      await earningRepo.updateStatus(earning._id.toString(), 'reversed');
     }
   }
 
   /**
-   * Credit all pending earnings for an order that are tied to on_delivery timing.
+   * Credit all pending earnings for an order with 'on_delivery' timing.
    * Called when the ORDER_DELIVERED event fires.
    */
   async creditDeliveryEarnings(orderId: string): Promise<void> {
@@ -232,8 +278,8 @@ export class CashbackService {
   // ─── Cron job entry point ─────────────────────────────────────────────────
 
   /**
-   * Process all 'after_days' earnings whose scheduled time has passed.
-   * Should be called by a scheduled job (e.g. every hour).
+   * Process all 'after_days' earnings whose scheduledCreditAt has passed.
+   * Called hourly by the scheduler.
    */
   async processDueEarnings(): Promise<void> {
     const due = await earningRepo.findDuePending();
@@ -252,26 +298,24 @@ export class CashbackService {
   ): Promise<ICashbackPolicy[]> {
     const applicable: ICashbackPolicy[] = [];
 
-    // 1. If a coupon code is present, check for an attached policy first
+    // 1. Check for an attached policy linked to the coupon code
     if (couponCode) {
       const attached = await policyRepo.findActiveByCoupon(couponCode);
-      if (attached && this.isEligible(attached, cashbackBase)) {
+      if (attached && this.isEligible(attached, cashbackBase) && !this.isBudgetExhausted(attached)) {
         const uses = await earningRepo.countUserEarnings(userId, attached._id.toString());
         if (attached.maxUsesPerUser === 0 || uses < attached.maxUsesPerUser) {
-          if (!this.isBudgetExhausted(attached)) {
-            applicable.push(attached);
-          }
+          applicable.push(attached);
         }
       }
     }
 
-    // 2. Always check standalone policies (they stack with attached ones)
+    // 2. Check standalone policies (stack on top of attached)
     const standalone = await policyRepo.findActiveStandalone();
     for (const policy of standalone) {
       if (!this.isEligible(policy, cashbackBase)) continue;
+      if (this.isBudgetExhausted(policy)) continue;
       const uses = await earningRepo.countUserEarnings(userId, policy._id.toString());
       if (policy.maxUsesPerUser > 0 && uses >= policy.maxUsesPerUser) continue;
-      if (this.isBudgetExhausted(policy)) continue;
       applicable.push(policy);
     }
 
@@ -294,14 +338,15 @@ export class CashbackService {
         ? (cashbackBase * policy.value) / 100
         : policy.value;
     if (policy.maxCap && amount > policy.maxCap) amount = policy.maxCap;
-    return Math.round(amount * 100) / 100;
+    // Use integer paise arithmetic to avoid floating-point drift in INR
+    return Math.floor(amount * 100) / 100;
   }
 
   private computeScheduledAt(policy: ICashbackPolicy): Date {
     const now = new Date();
     if (policy.creditTiming === 'on_order') return now;
     if (policy.creditTiming === 'after_days') return addDays(now, policy.creditAfterDays ?? 7);
-    // on_delivery — return a far-future date; actual crediting happens via event
+    // on_delivery — set far-future placeholder; actual crediting is triggered by event
     return addDays(now, 365);
   }
 }

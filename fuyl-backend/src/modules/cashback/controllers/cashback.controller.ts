@@ -17,8 +17,8 @@ export class CashbackController {
   /** GET /cashback/me — customer's own earning history */
   getMyEarnings = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      const page  = parseInt(req.query.page  as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
+      const page  = Math.max(1, parseInt(req.query.page  as string) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
       const result = await cashbackService.getUserEarnings(req.user!.userId, page, limit);
       return paginate(res, result.items, result.total, result.page, result.limit);
     } catch (err) { next(err); }
@@ -31,11 +31,13 @@ export class CashbackController {
     validate(listPoliciesSchema, 'query'),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        const { page, limit, isActive, mode } = req.query as any;
+        // req.query is already validated by Zod schema above
+        const page  = Number(req.query.page)  || 1;
+        const limit = Number(req.query.limit) || 20;
         const filter: Record<string, unknown> = {};
-        if (isActive !== undefined) filter.isActive = isActive === 'true';
-        if (mode)                   filter.mode = mode;
-        const result = await cashbackService.listPolicies(filter, Number(page) || 1, Number(limit) || 20);
+        if (req.query.isActive !== undefined) filter.isActive = req.query.isActive === 'true';
+        if (req.query.mode)                   filter.mode     = req.query.mode;
+        const result = await cashbackService.listPolicies(filter, page, limit);
         return paginate(res, result.items, result.total, result.page, result.limit);
       } catch (err) { next(err); }
     },
@@ -88,12 +90,14 @@ export class CashbackController {
     validate(listEarningsSchema, 'query'),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        const { page, limit, status, userId, orderId } = req.query as any;
+        const page  = Number(req.query.page)  || 1;
+        const limit = Number(req.query.limit) || 20;
+        // Validated ObjectIds from query string — safe to pass directly as filter
         const filter: Record<string, unknown> = {};
-        if (status)  filter.status  = status;
-        if (userId)  filter.userId  = userId;
-        if (orderId) filter.orderId = orderId;
-        const result = await cashbackService.listEarnings(filter, Number(page) || 1, Number(limit) || 20);
+        if (req.query.status)  filter.status  = req.query.status;
+        if (req.query.userId)  filter.userId  = req.query.userId;
+        if (req.query.orderId) filter.orderId = req.query.orderId;
+        const result = await cashbackService.listEarnings(filter, page, limit);
         return paginate(res, result.items, result.total, result.page, result.limit);
       } catch (err) { next(err); }
     },
