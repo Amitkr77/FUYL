@@ -102,16 +102,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Logo */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="relative w-8 h-8 shrink-0">
+          <div className="w-8 h-8 shrink-0">
             <Image
               src="/logo.webp"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "https://fuyl.vercel.app/_next/image?url=%2Flogo.webp&w=256&q=75";
-              }}
               alt="FUYL"
-              fill
-              className="object-contain"
+              width={32}
+              height={32}
+              unoptimized
+              className="object-contain w-full h-full"
               priority
             />
           </div>

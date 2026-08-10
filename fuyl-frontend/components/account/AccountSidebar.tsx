@@ -9,6 +9,7 @@ import {
   MapPin,
   Heart,
   LogOut,
+  Link2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { User } from '@/types/user'
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { label: 'Wallet', href: '/account/wallet', icon: WalletIcon, exact: false },
   { label: 'Addresses', href: '/account/addresses', icon: MapPin, exact: false },
   { label: 'Wishlist', href: '/account/wishlist', icon: Heart, exact: false },
+  { label: 'Affiliate', href: '/account/affiliate', icon: Link2, exact: false },
 ] as const
 
 interface AccountSidebarProps {
