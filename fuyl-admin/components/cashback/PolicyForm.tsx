@@ -28,8 +28,8 @@ export function PolicyForm({ policy }: Props) {
     creditAfterDays: policy?.creditAfterDays,
     expiryDays:      policy?.expiryDays ?? 90,
     isActive:        policy?.isActive ?? true,
-    startDate:       policy?.startDate ? policy.startDate.slice(0, 10) : "",
-    endDate:         policy?.endDate   ? policy.endDate.slice(0, 10)   : "",
+    startDate:       policy?.startDate ? policy.startDate.slice(0, 16) : "",
+    endDate:         policy?.endDate   ? policy.endDate.slice(0, 16)   : "",
     maxUsesPerUser:  policy?.maxUsesPerUser ?? 0,
     totalBudget:     policy?.totalBudget ?? 0,
   });
@@ -178,12 +178,12 @@ export function PolicyForm({ policy }: Props) {
             <input type="number" min="0" className={inputCls} value={form.totalBudget ?? 0} onChange={(e) => set("totalBudget", Number(e.target.value))} />
           </div>
           <div>
-            <label className={labelCls}>Start date</label>
-            <input type="date" className={inputCls} value={form.startDate ?? ""} onChange={(e) => set("startDate", e.target.value)} />
+            <label className={labelCls}>Start date &amp; time</label>
+            <input type="datetime-local" className={inputCls} value={form.startDate ?? ""} onChange={(e) => set("startDate", e.target.value)} />
           </div>
           <div>
-            <label className={labelCls}>End date</label>
-            <input type="date" className={inputCls} value={form.endDate ?? ""} onChange={(e) => set("endDate", e.target.value)} />
+            <label className={labelCls}>End date &amp; time</label>
+            <input type="datetime-local" className={inputCls} value={form.endDate ?? ""} onChange={(e) => set("endDate", e.target.value)} />
           </div>
         </div>
         <div className="flex items-center gap-2">

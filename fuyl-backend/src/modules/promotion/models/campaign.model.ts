@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export type DiscountType = 'percent' | 'flat' | 'per_unit' | 'free_shipping';
-export type CouponScope = 'cart' | 'category' | 'product' | 'variant' | 'seller';
+export type CouponScope = 'cart' | 'category' | 'product' | 'variant';
 export type CampaignStatus = 'draft' | 'active' | 'paused' | 'ended';
 
 export interface ICoupon {
@@ -63,9 +63,9 @@ const CouponSchema = new Schema<ICoupon>(
     code: { type: String, required: true, unique: true, uppercase: true, trim: true, index: true },
     discountType: { type: String, enum: ['percent', 'flat', 'per_unit', 'free_shipping'], required: true },
     discountValue: { type: Number, required: true, min: 0 },
-    scope: { type: String, enum: ['cart', 'category', 'product', 'variant', 'seller'], default: 'cart' },
+    scope: { type: String, enum: ['cart', 'category', 'product', 'variant'], default: 'cart' },
     targetIds: [{ type: Schema.Types.ObjectId, refPath: 'couponTargetRef' }],
-    couponTargetRef: { type: String, enum: ['Category', 'Product', 'Variant', 'User'] },
+    couponTargetRef: { type: String, enum: ['Category', 'Product', 'Variant'] },
     currency: { type: String, default: 'INR' },
     maxRedemptionsGlobal: { type: Number, min: 0 },
     maxRedemptionsPerUser: { type: Number, min: 0, default: 1 },
@@ -86,7 +86,6 @@ const COUPON_TARGET_REF_BY_SCOPE: Partial<Record<CouponScope, ICoupon['couponTar
   category: 'Category',
   product: 'Product',
   variant: 'Variant',
-  seller: 'User',
 };
 
 CouponSchema.pre('validate', function (next) {
@@ -106,7 +105,7 @@ const CampaignSchema = new Schema<ICampaign>(
     autoRule: {
       discountType: { type: String, enum: ['percent', 'flat', 'per_unit', 'free_shipping'] },
       discountValue: { type: Number, min: 0 },
-      scope: { type: String, enum: ['cart', 'category', 'product', 'variant', 'seller'] },
+      scope: { type: String, enum: ['cart', 'category', 'product', 'variant'] },
       targetIds: [{ type: Schema.Types.ObjectId }],
       minOrderSubtotal: { type: Number, min: 0 },
     },

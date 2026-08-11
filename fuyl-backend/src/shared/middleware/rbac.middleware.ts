@@ -15,7 +15,6 @@ export function authorize(...roles: string[]) {
 export const Roles = {
   SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
-  SELLER: 'seller',
   CUSTOMER: 'customer',
 } as const;
 

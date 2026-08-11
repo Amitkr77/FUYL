@@ -62,7 +62,7 @@ const navSections: NavSection[] = [
     title: "Growth",
     items: [
       { label: "Subscriptions", href: "/subscriptions", icon: Repeat },
-      { label: "Promotions", href: "/promotions", icon: Tag },
+      { label: "Discounts & Cashback", href: "/promotions", icon: Tag },
       { label: "Cashback", href: "/cashback", icon: Coins },
       { label: "Affiliates", href: "/affiliates", icon: Link2 },
       { label: "Referrals", href: "/referrals", icon: Gift },

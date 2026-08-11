@@ -56,7 +56,6 @@ export interface IProduct extends Document {
   shortDescription?: string;
   description?: string;
   brand?: string;
-  sellerId: mongoose.Types.ObjectId;
   categoryIds: mongoose.Types.ObjectId[];
   collectionIds?: mongoose.Types.ObjectId[];
   tagIds?: mongoose.Types.ObjectId[];
@@ -110,7 +109,6 @@ const ProductSchema = new Schema<IProduct>(
     shortDescription: { type: String, maxlength: 280 },
     description: { type: String },
     brand: { type: String, trim: true, index: true },
-    sellerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     categoryIds: [{ type: Schema.Types.ObjectId, ref: 'Category', index: true }],
     collectionIds: [{ type: Schema.Types.ObjectId, ref: 'Collection' }],
     tagIds: [{ type: Schema.Types.ObjectId, ref: 'Tag' }],

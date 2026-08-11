@@ -16,7 +16,6 @@ export interface IUser extends Document {
   isPhoneVerified: boolean;
   isActive: boolean;
   isDeleted: boolean;
-  sellerId?: mongoose.Types.ObjectId;
   permissions: string[];
   lastLoginAt?: Date;
   lastLoginIp?: string;
@@ -45,7 +44,6 @@ const UserSchema = new Schema<IUser>(
     isPhoneVerified: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
     isDeleted: { type: Boolean, default: false },
-    sellerId: { type: Schema.Types.ObjectId, ref: 'User' },
     permissions: [{ type: String }],
     lastLoginAt: { type: Date },
     lastLoginIp: { type: String },

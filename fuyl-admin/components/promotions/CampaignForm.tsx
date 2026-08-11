@@ -21,7 +21,7 @@ export function CampaignForm() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [type, setType] = useState<CampaignType>('coupon')
-  const [startsAt, setStartsAt] = useState(() => new Date().toISOString().slice(0, 10))
+  const [startsAt, setStartsAt] = useState(() => new Date().toISOString().slice(0, 16))
   const [endsAt, setEndsAt] = useState('')
   const [coupons, setCoupons] = useState<DraftCoupon[]>([emptyCoupon()])
   const [error, setError] = useState('')
@@ -86,10 +86,10 @@ export function CampaignForm() {
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Starts">
-            <input type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className={inputCls} />
+            <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className={inputCls} />
           </Field>
           <Field label="Ends (optional)">
-            <input type="date" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} className={inputCls} />
+            <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} className={inputCls} />
           </Field>
         </div>
       </div>
@@ -145,7 +145,6 @@ export function CampaignForm() {
                   <option value="category">Category</option>
                   <option value="product">Product</option>
                   <option value="variant">Variant</option>
-                  <option value="seller">Seller</option>
                 </select>
               </Field>
               <Field label="Max uses/user" small>

@@ -2,7 +2,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import { env } from '../../../config/env';
 import { BadRequestError } from '../../../shared/errors';
 
-export type UploadFolder = 'products' | 'blog' | 'avatars' | 'reviews' | 'returns';
+export type UploadFolder = 'products' | 'blog' | 'avatars' | 'reviews' | 'returns' | 'categories';
 
 class UploadService {
   /**

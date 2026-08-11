@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition, useEffect, useCallback } from 'react'
-import { IndianRupee, ShoppingBag, TrendingUp, ShoppingCart, RefreshCw, AlertCircle } from 'lucide-react'
+import { IndianRupee, ShoppingBag, TrendingUp, ShoppingCart, RefreshCw, AlertCircle, Download } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import type { DashboardData } from '@/app/(admin)/analytics/actions'
 import type { DateRange } from '@/lib/analytics'
@@ -88,6 +88,54 @@ export default function AnalyticsDashboard({ initial, fetchData }: Props) {
     load(r)
   }
 
+  const exportCSV = () => {
+    const rows: string[][] = []
+
+    rows.push(['=== Summary ==='])
+    rows.push(['Metric', 'Value'])
+    rows.push(['Total Revenue (₹)', String(data.summary.revenue)])
+    rows.push(['Total Orders', String(data.summary.orderCount)])
+    rows.push(['Avg Order Value (₹)', String(data.summary.avgOrderValue)])
+    rows.push(['Abandoned Carts', String(data.cartAbandonment)])
+    rows.push([])
+
+    if (data.chartData.length) {
+      rows.push(['=== Revenue Over Time ==='])
+      rows.push(['Date', 'Revenue (₹)', 'Orders'])
+      data.chartData.forEach((p) => rows.push([p.date, String(p.revenue), String(p.orders)]))
+      rows.push([])
+    }
+
+    if (data.topProducts.length) {
+      rows.push(['=== Top Products ==='])
+      rows.push(['Product', 'Units Sold', 'Revenue (₹)'])
+      data.topProducts.forEach((p) => rows.push([p.name, String(p.unitsSold), String(p.revenue)]))
+      rows.push([])
+    }
+
+    if (data.categorySales.length) {
+      rows.push(['=== Category Sales ==='])
+      rows.push(['Category', 'Orders', 'Revenue (₹)'])
+      data.categorySales.forEach((c) => rows.push([c.category, String(c.orders), String(c.revenue)]))
+      rows.push([])
+    }
+
+    if (data.ordersByStatus.length) {
+      rows.push(['=== Orders by Status ==='])
+      rows.push(['Status', 'Count'])
+      data.ordersByStatus.forEach((o) => rows.push([o.status, String(o.count)]))
+    }
+
+    const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `analytics-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const { summary, chartData, topProducts, funnel, heatmap, devices,
           userActivity, categorySales, customerSegments, ordersByStatus,
           cartAbandonment, error } = data
@@ -102,15 +150,25 @@ export default function AnalyticsDashboard({ initial, fetchData }: Props) {
             Refreshed {lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} · auto-updates every 60s
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => load(range)}
-          disabled={isPending}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isPending ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={exportCSV}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => load(range)}
+            disabled={isPending}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isPending ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Date range picker */}

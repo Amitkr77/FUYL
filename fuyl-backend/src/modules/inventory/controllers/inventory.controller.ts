@@ -1,7 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { AuthedRequest } from '../../../shared/middleware/auth.middleware';
-import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
-import { ForbiddenError } from '../../../shared/errors';
+import { authorize } from '../../../shared/middleware/rbac.middleware';
 import { inventoryService } from '../services';
 import { success, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
@@ -23,10 +22,7 @@ export class InventoryController {
 
   listMine = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      // Sellers list their own stock; admins can pass ?sellerId=
-      const sellerId = req.user?.role === Roles.SELLER
-        ? req.user.userId
-        : (req.query.sellerId as string);
+      const sellerId = req.query.sellerId as string;
       if (!sellerId) return success(res, []);
       const page = Number(req.query.page ?? 1);
       const limit = Math.min(Number(req.query.limit ?? 50), 200);
@@ -56,10 +52,6 @@ export class InventoryController {
     validate(stockAdjustmentSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        // Sellers can only adjust their own stock
-        if (req.user?.role === Roles.SELLER && req.body.sellerId !== req.user.userId) {
-          return next(new ForbiddenError('Sellers can only adjust their own stock'));
-        }
         const updated = await inventoryService.adjustStock(req.body, req.user?.userId);
         return success(res, updated);
       } catch (err) { next(err); }
@@ -70,9 +62,7 @@ export class InventoryController {
     validate(setReorderSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        const sellerId = req.user?.role === Roles.SELLER
-          ? req.user.userId
-          : (req.body.sellerId as string) ?? req.user!.userId;
+        const sellerId = (req.body.sellerId as string) ?? req.user!.userId;
         const variantId = req.query.variantId as string | undefined;
         const updated = await inventoryService.setReorderLevels(
           req.params.productId,
@@ -115,7 +105,6 @@ export class InventoryController {
       if (req.query.productId) filter.productId = req.query.productId;
       if (req.query.sellerId) filter.sellerId = req.query.sellerId;
       if (req.query.type) filter.type = req.query.type;
-      if (req.user?.role === Roles.SELLER) filter.sellerId = req.user.userId;
       const result = await inventoryService.listMovements(filter, page, limit);
       return paginate(res, result.items, result.total, result.page, result.limit);
     } catch (err) { next(err); }
