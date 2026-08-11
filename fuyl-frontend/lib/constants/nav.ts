@@ -35,9 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     label: "Refer & Earn",
-    href: "/pages/refer-and-earn",
-    // href: 'https://af.uppromote.com/qu20gh-4b/register',
-    // external: true,
+    href: "/affiliate/apply",
   },
 ];
 
@@ -52,8 +50,7 @@ export const FOOTER_LINKS = {
     { label: "Learn", href: "/pages/learn" },
     {
       label: "Refer & Earn",
-      href: "https://af.uppromote.com/qu20gh-4b/register",
-      external: true,
+      href: "/affiliate/apply",
     },
   ],
   support: [
