@@ -40,7 +40,11 @@ export async function updatePostAction(id: string, input: BlogPostInput): Promis
 }
 
 export async function deletePostAction(id: string): Promise<void> {
-  await deletePost(id)
-  revalidatePath('/blog')
+  try {
+    await deletePost(id)
+    revalidatePath('/blog')
+  } catch {
+    // Delete failed — redirect without revalidating so the item stays visible
+  }
   redirect('/blog')
 }

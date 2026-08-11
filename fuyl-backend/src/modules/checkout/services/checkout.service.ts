@@ -61,9 +61,11 @@ class CheckoutService {
     let couponValidation: { valid: boolean; reason?: string; discountAmount?: number; couponCode: string } | null = null;
     if (dto.couponCode || cart.couponCode) {
       const code = dto.couponCode ?? cart.couponCode!;
+      const isFirstOrder = !(await orderService.hasOrders(userId));
       couponValidation = await promotionService.validateCoupon(userId, {
         code,
         cartSubtotal: quote.subtotal,
+        isFirstOrder,
         items: cart.items.map((i) => ({
           productId: i.productId.toString(),
           variantId: i.variantId?.toString(),

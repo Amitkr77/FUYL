@@ -12,7 +12,8 @@ class AdminCustomersService {
   async list(page = 1, limit = 20, search?: string) {
     const filter: Record<string, unknown> = { role: RoleEnum.CUSTOMER, isDeleted: false };
     if (search) {
-      const re = { $regex: search, $options: 'i' };
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = { $regex: escaped, $options: 'i' };
       filter.$or = [{ emailLower: re }, { firstName: re }, { lastName: re }];
     }
 

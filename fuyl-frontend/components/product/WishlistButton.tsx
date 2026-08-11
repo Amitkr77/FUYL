@@ -42,17 +42,17 @@ export function WishlistButton({ productId, variantId }: WishlistButtonProps) {
       router.push(`/account?redirect=${encodeURIComponent(pathname)}`)
       return
     }
+    const previous = isWishlisted
+    setWishlisted(!previous)
     setLoading(true)
     try {
-      if (isWishlisted) {
+      if (previous) {
         await removeFromWishlist(authToken, productId, variantId)
-        setWishlisted(false)
       } else {
         await addToWishlist(authToken, productId, variantId)
-        setWishlisted(true)
       }
     } catch {
-      // Non-fatal — the button just doesn't visually update if the call failed.
+      setWishlisted(previous)
     } finally {
       setLoading(false)
     }

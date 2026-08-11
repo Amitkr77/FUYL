@@ -45,8 +45,10 @@ export async function updatePageAction(id: string, input: CMSPageInput): Promise
 }
 
 export async function deletePageAction(id: string): Promise<void> {
-  await deletePage(id)
-  revalidatePath('/content')
+  try {
+    await deletePage(id)
+    revalidatePath('/content')
+  } catch { /* redirect without revalidating on failure */ }
   redirect('/content')
 }
 
@@ -73,8 +75,10 @@ export async function updateIngredientAction(id: string, input: IngredientInput)
 }
 
 export async function deleteIngredientAction(id: string): Promise<void> {
-  await deleteIngredient(id)
-  revalidatePath('/content')
+  try {
+    await deleteIngredient(id)
+    revalidatePath('/content')
+  } catch { /* redirect without revalidating on failure */ }
   redirect('/content?tab=ingredients')
 }
 
@@ -101,8 +105,10 @@ export async function updateTestimonialAction(id: string, input: TestimonialInpu
 }
 
 export async function deleteTestimonialAction(id: string): Promise<void> {
-  await deleteTestimonial(id)
-  revalidatePath('/content')
+  try {
+    await deleteTestimonial(id)
+    revalidatePath('/content')
+  } catch { /* redirect without revalidating on failure */ }
   redirect('/content?tab=testimonials')
 }
 
@@ -129,7 +135,9 @@ export async function updateFAQAction(id: string, input: FAQInput): Promise<Cont
 }
 
 export async function deleteFAQAction(id: string): Promise<void> {
-  await deleteFAQ(id)
-  revalidatePath('/content')
+  try {
+    await deleteFAQ(id)
+    revalidatePath('/content')
+  } catch { /* redirect without revalidating on failure */ }
   redirect('/content?tab=faqs')
 }

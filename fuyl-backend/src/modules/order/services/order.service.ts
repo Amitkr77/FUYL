@@ -641,6 +641,11 @@ export class OrderService {
   async stats() {
     return orderRepo.statsForAdmin();
   }
+
+  /** True if the customer has placed at least one non-cancelled order. */
+  async hasOrders(userId: string): Promise<boolean> {
+    return orderRepo.existsByCustomer(userId, { status: { $ne: OrderStatus.CANCELLED } });
+  }
 }
 
 export const orderService = new OrderService();

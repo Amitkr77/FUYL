@@ -237,6 +237,18 @@ export function ProductForm({ product, categories, attributes, tags, isNew = fal
 
   const handleSave = () => {
     setError('')
+    if (!form.name.trim()) {
+      setError('Product name is required.')
+      return
+    }
+    if (!form.price || form.price <= 0) {
+      setError('A valid price greater than 0 is required.')
+      return
+    }
+    if (form.images.length === 0) {
+      setError('At least one product image is required.')
+      return
+    }
     if (variants.some((v) => !v.sku.trim())) {
       setError('Every variant needs a SKU.')
       return

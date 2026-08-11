@@ -21,6 +21,11 @@ export class OrderRepository {
       .sort({ createdAt: -1 });
   }
 
+  async existsByCustomer(customerId: string | Types.ObjectId, filter: FilterQuery<IOrder> = {}): Promise<boolean> {
+    const count = await OrderModel.countDocuments({ customerId: new Types.ObjectId(customerId.toString()), ...filter });
+    return count > 0;
+  }
+
   async findBySubscription(subscriptionId: string | Types.ObjectId) {
     return OrderModel
       .find({ subscriptionId: new Types.ObjectId(subscriptionId) })

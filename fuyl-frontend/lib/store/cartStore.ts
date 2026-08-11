@@ -109,9 +109,11 @@ export const useCartStore = create<CartState>()(
             const cart = await updateCartItem(currentAuth(), productId, variantId, quantity)
             set({ items: cart.items })
           } catch (err) {
-            console.error('updateQty failed — reverting', err)
+            // Roll back the optimistic update so the UI shows the real quantity,
+            // then re-throw so callers (e.g. CartLineItem) can display the error.
             set({ items: previous })
             void get().syncCart()
+            throw err
           }
         },
 

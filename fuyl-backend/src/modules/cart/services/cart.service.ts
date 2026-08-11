@@ -92,6 +92,8 @@ class CartService {
     // in stock. We sum available across all warehouses for this product/variant.
     const stocks = await inventoryService.getStock(input.productId, input.variantId);
     const totalAvailable = stocks.reduce((s, r) => s + r.available, 0);
+    // Note: the combined-quantity check (existing cart qty + new qty) happens
+    // inside mutateCart where we can see the current cart state.
     if (totalAvailable > 0 && input.quantity > totalAvailable) {
       throw new BadRequestError(`Only ${totalAvailable} unit${totalAvailable === 1 ? '' : 's'} available`);
     }
@@ -141,6 +143,14 @@ class CartService {
           (i.variantId?.toString() ?? '') === (input.variantId ?? '') &&
           (i.subscriptionInterval ?? '') === (input.subscriptionInterval ?? '')
       );
+      // Combined-quantity check: existing cart qty + newly requested qty must
+      // not exceed available stock. The pre-check above only guards the
+      // input.quantity itself, missing the case where the item is already in
+      // the cart (e.g. 5 in cart + 3 requested = 8, but only 7 available).
+      const existingQty = existingIdx >= 0 ? cart.items[existingIdx].quantity : 0;
+      if (totalAvailable > 0 && existingQty + input.quantity > totalAvailable) {
+        throw new BadRequestError(`Only ${totalAvailable - existingQty} more unit${totalAvailable - existingQty === 1 ? '' : 's'} can be added (${existingQty} already in cart)`);
+      }
       if (existingIdx >= 0) {
         cart.items[existingIdx].quantity += input.quantity;
         cart.items[existingIdx].unitPrice = unitPrice; // refresh price snapshot

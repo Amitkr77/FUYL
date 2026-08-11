@@ -12,7 +12,8 @@ export class AdminApiError extends Error {
     public status: number,
     message: string,
     public code?: string,
-    public details?: AdminApiErrorDetail[]
+    // Validation errors: AdminApiErrorDetail[]; E11000 duplicate-key: Record<string,unknown>
+    public details?: unknown
   ) {
     super(message)
     this.name = 'AdminApiError'
@@ -23,6 +24,10 @@ function isFieldValidationDetails(details: unknown): details is AdminApiErrorDet
   return Array.isArray(details) && details.length > 0 && details.every(
     (d) => d && typeof d === 'object' && typeof (d as AdminApiErrorDetail).message === 'string'
   )
+}
+
+function isDuplicateKeyDetails(details: unknown): details is Record<string, unknown> {
+  return details !== null && !Array.isArray(details) && typeof details === 'object'
 }
 
 // "shippingAddress.pincode" -> "Pincode", "email" -> "Email" — just the last
@@ -47,7 +52,7 @@ export function getErrorMessage(err: unknown, fallback: string): string {
   // E11000 as generic "Duplicate key" — the one place admins actually hit
   // this now that the product Slug field is directly editable, so give it a
   // specific, actionable message instead of the raw Mongo-ish wording.
-  if (err instanceof AdminApiError && err.code === 'CONFLICT' && err.details && 'seo.slug' in (err.details as unknown as Record<string, unknown>)) {
+  if (err instanceof AdminApiError && err.code === 'CONFLICT' && isDuplicateKeyDetails(err.details) && 'seo.slug' in err.details) {
     return 'This URL slug is already in use by another product — please choose a different one.'
   }
   if (err instanceof Error && err.message) return err.message
@@ -75,7 +80,7 @@ async function parseResponse<T>(res: Response): Promise<T> {
   try { json = text ? JSON.parse(text) : null } catch { /* non-JSON body */ }
 
   if (!res.ok) {
-    const errorBody = json as { error?: { code?: string; message?: string; details?: AdminApiErrorDetail[] } } | null
+    const errorBody = json as { error?: { code?: string; message?: string; details?: unknown } } | null
     throw new AdminApiError(
       res.status,
       errorBody?.error?.message ?? text ?? `Request failed with status ${res.status}`,

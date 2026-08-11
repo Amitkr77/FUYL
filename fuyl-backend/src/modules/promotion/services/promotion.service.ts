@@ -160,9 +160,18 @@ class PromotionService {
       }
     }
 
-    // First-order only
-    if (coupon.isFirstOrderOnly && !dto.isFirstOrder) {
-      return { valid: false, reason: 'Coupon valid only on first order', couponCode: code };
+    // First-order only: when dto.isFirstOrder is not supplied by the caller
+    // (e.g. storefront cart validation), compute it server-side from order history
+    // so first-time buyers aren't incorrectly shown a rejection.
+    if (coupon.isFirstOrderOnly) {
+      let isFirstOrder = dto.isFirstOrder;
+      if (isFirstOrder === undefined && userId) {
+        const { orderService } = await import('../../order/services/order.service');
+        isFirstOrder = !(await orderService.hasOrders(userId));
+      }
+      if (!isFirstOrder) {
+        return { valid: false, reason: 'Coupon valid only on first order', couponCode: code };
+      }
     }
 
     // Minimum subtotal
