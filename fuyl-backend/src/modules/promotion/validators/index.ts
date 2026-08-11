@@ -4,7 +4,7 @@ export const couponSchema = z.object({
   code: z.string().min(3).max(30).regex(/^[A-Z0-9_-]+$/i, 'Code must be alphanumeric/dash/underscore'),
   discountType: z.enum(['percent', 'flat', 'per_unit', 'free_shipping']),
   discountValue: z.number().min(0),
-  scope: z.enum(['cart', 'category', 'product', 'variant', 'seller']).default('cart'),
+  scope: z.enum(['cart', 'category', 'product', 'variant']).default('cart'),
   targetIds: z.array(z.string().length(24)).optional(),
   currency: z.string().default('INR'),
   maxRedemptionsGlobal: z.number().int().min(0).optional(),
@@ -29,7 +29,7 @@ export const createCampaignSchema = z.object({
   autoRule: z.object({
     discountType: z.enum(['percent', 'flat', 'per_unit', 'free_shipping']),
     discountValue: z.number().min(0),
-    scope: z.enum(['cart', 'category', 'product', 'variant', 'seller']).default('cart'),
+    scope: z.enum(['cart', 'category', 'product', 'variant']).default('cart'),
     targetIds: z.array(z.string().length(24)).optional(),
     minOrderSubtotal: z.number().min(0).optional(),
   }).optional(),

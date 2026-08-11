@@ -262,7 +262,7 @@ export class CashbackService {
     return policyRepo.findAll(filter, page, limit);
   }
 
-  async getPolicy(id: string): Promise<ICashbackPolicy & { allowedUsers: { id: string; email: string; name: string }[] }> {
+  async getPolicy(id: string) {
     const policy = await policyRepo.findById(id);
     if (!policy) throw new NotFoundError('CashbackPolicy');
 
@@ -278,7 +278,7 @@ export class CashbackService {
       }));
     }
 
-    return { ...(policy.toObject() as ICashbackPolicy), allowedUsers };
+    return Object.assign(policy.toObject(), { allowedUsers });
   }
 
   async listEarnings(filter: Record<string, unknown> = {}, page = 1, limit = 20) {

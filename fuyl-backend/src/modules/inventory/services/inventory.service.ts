@@ -75,7 +75,7 @@ class InventoryService {
     // regardless of which admin performs the adjustment.
     const { catalogService } = await import('../../catalog/services/catalog.service');
     const product = await catalogService.getProduct(dto.productId);
-    const sellerId = product.sellerId.toString();
+    const sellerId = product.sellerId?.toString() ?? '';
 
     const stock = await stockRepo.findOrCreate(dto.productId, sellerId, dto.variantId, dto.warehouseId);
     const balanceBefore = stock.onHand;
@@ -132,7 +132,7 @@ class InventoryService {
     // row differently than checkout's reserveStock will look it up under.
     const { catalogService } = await import('../../catalog/services/catalog.service');
     const product = await catalogService.getProduct(productId);
-    const stock = await stockRepo.findOrCreate(productId, product.sellerId.toString(), variantId);
+    const stock = await stockRepo.findOrCreate(productId, product.sellerId?.toString() ?? '', variantId);
     return stockRepo.update(stock._id, {
       reorderThreshold: dto.reorderThreshold,
       reorderQuantity: dto.reorderQuantity,

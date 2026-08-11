@@ -182,7 +182,7 @@ class CheckoutService {
         return {
           productId: i.productId.toString(),
           variantId: i.variantId?.toString(),
-          sellerId: product.sellerId.toString(),
+          sellerId: product.sellerId?.toString() ?? '',
           quantity: i.quantity,
         };
       })
