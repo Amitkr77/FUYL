@@ -330,6 +330,31 @@ export async function getProductReviews(productId: string): Promise<{
   }
 }
 
+interface BackendStockRow {
+  available: number
+  onHand: number
+  reserved: number
+  variantId?: string
+}
+
+/**
+ * Returns the total available quantity for a product (optionally a specific
+ * variant), summed across all warehouses. Returns null if the product has
+ * no inventory record yet (treat as unlimited for UX purposes).
+ */
+export async function getProductStock(productId: string, variantId?: string): Promise<number | null> {
+  try {
+    const qs = variantId ? `?variantId=${variantId}` : ''
+    const rows = await apiFetch<BackendStockRow[]>(`/inventory/stock/${productId}${qs}`, {
+      cache: 'no-store',
+    })
+    if (!rows.length) return null
+    return rows.reduce((sum, r) => sum + r.available, 0)
+  } catch {
+    return null
+  }
+}
+
 export async function getCollection(slug: string): Promise<Collection> {
   const raw = await apiFetch<BackendCollection>(`/catalog/collections/slug/${slug}`, {
     tags:       [`collection-${slug}`],

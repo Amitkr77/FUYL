@@ -135,9 +135,19 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
       {/* Qty + ATC */}
       <div className="flex flex-col gap-3 pt-2">
+        {/* Low-stock warning — shown when ≤5 units remain */}
+        {variant.availableQty !== undefined && variant.availableQty <= 5 && variant.availableQty > 0 && (
+          <p className="text-body-xs text-amber-600 font-medium">
+            Only {variant.availableQty} left in stock
+          </p>
+        )}
         <div className="flex items-center gap-4">
           <span className="text-label text-brand-muted">Quantity</span>
-          <QuantitySelector value={quantity} onChange={setQuantity} max={10} />
+          <QuantitySelector
+            value={quantity}
+            onChange={setQuantity}
+            max={variant.availableQty ?? 10}
+          />
         </div>
         <div className="flex gap-3">
           <div className="flex-1">

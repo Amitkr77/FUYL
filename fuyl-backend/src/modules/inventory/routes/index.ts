@@ -5,8 +5,8 @@ import { inventoryController } from '../controllers';
 
 const router = Router();
 
-// Stock queries
-router.get('/inventory/stock/:productId', authRequired, inventoryController.getStock);
+// Stock queries — public so the storefront can cap quantity selectors
+router.get('/inventory/stock/:productId', inventoryController.getStock);
 router.get('/inventory/mine', authRequired, authorize(Roles.ADMIN, Roles.SUPER_ADMIN), inventoryController.listMine);
 router.get('/inventory/low-stock', authRequired, authorize(Roles.ADMIN, Roles.SUPER_ADMIN), inventoryController.listLowStock);
 router.get('/admin/inventory', authRequired, requirePermission(Permissions.INVENTORY_MANAGE), inventoryController.listAllForAdmin);

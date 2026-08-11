@@ -1,6 +1,7 @@
 import { CartRepository } from '../repositories/cart.repository';
 import { CatalogService } from '../../catalog/services/catalog.service';
 import { PlanRepository } from '../../subscription/repositories/plan.repository';
+import { inventoryService } from '../../inventory/services';
 import {
   NotFoundError,
   BadRequestError,
@@ -87,6 +88,14 @@ class CartService {
     const product = await catalogService.getProduct(input.productId);
     if (!product.isPublished) throw new BadRequestError('Product not available');
 
+    // Validate against live inventory so the cart never holds more than what's
+    // in stock. We sum available across all warehouses for this product/variant.
+    const stocks = await inventoryService.getStock(input.productId, input.variantId);
+    const totalAvailable = stocks.reduce((s, r) => s + r.available, 0);
+    if (totalAvailable > 0 && input.quantity > totalAvailable) {
+      throw new BadRequestError(`Only ${totalAvailable} unit${totalAvailable === 1 ? '' : 's'} available`);
+    }
+
     const priceInfo = await catalogService.getPrice(input.productId, input.variantId);
     const variant = input.variantId ? await catalogService.getVariant(input.variantId) : null;
 
@@ -145,6 +154,13 @@ class CartService {
   }
 
   async updateItemQuantity(owner: CartOwner, productId: string, variantId: string | undefined, quantity: number): Promise<ICart> {
+    // Validate against live inventory before accepting the new quantity
+    const stocks = await inventoryService.getStock(productId, variantId);
+    const totalAvailable = stocks.reduce((s, r) => s + r.available, 0);
+    if (totalAvailable > 0 && quantity > totalAvailable) {
+      throw new BadRequestError(`Only ${totalAvailable} unit${totalAvailable === 1 ? '' : 's'} available`);
+    }
+
     return this.mutateCart(owner, async (cart) => {
       const idx = cart.items.findIndex(
         (i) => i.productId.toString() === productId && (i.variantId?.toString() ?? '') === (variantId ?? '')

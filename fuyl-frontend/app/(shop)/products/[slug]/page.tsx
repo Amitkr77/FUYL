@@ -3,6 +3,7 @@ import { generateSEO } from "@/lib/utils/seo";
 import {
   getProduct,
   getProductReviews,
+  getProductStock,
   type ReviewCard,
 } from "@/lib/api/products";
 import {
@@ -59,6 +60,19 @@ export default async function ProductPage({ params }: Props) {
     product = await getProduct(slug);
   } catch {
     notFound();
+  }
+
+  // Fetch live inventory for the first (default) variant so the quantity
+  // selector can cap at the real available stock. Failures are non-fatal.
+  try {
+    const variant = product.variants[0];
+    const variantId = variant?.id || undefined;
+    const qty = await getProductStock(product.id, variantId);
+    if (qty !== null && product.variants.length > 0) {
+      product.variants[0] = { ...product.variants[0], availableQty: qty };
+    }
+  } catch {
+    // If stock fetch fails, product page still renders — just with no qty cap
   }
 
   // Subscription plans are platform-wide; only offered for subscribable products.

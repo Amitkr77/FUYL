@@ -12,6 +12,7 @@ export interface ProductVariant {
   price: number
   compareAtPrice?: number
   available: boolean
+  availableQty?: number  // live inventory count; undefined = not yet fetched
   sku: string
   weight?: number
   weightUnit?: string
