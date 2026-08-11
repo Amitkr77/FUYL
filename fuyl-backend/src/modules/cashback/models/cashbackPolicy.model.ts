@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export type CashbackType = 'percentage' | 'flat';
 export type CashbackMode = 'standalone' | 'attached';
@@ -35,6 +35,11 @@ export interface ICashbackPolicy extends Document {
   totalBudget: number;
   /** Running total of cashback credited so far. */
   usedBudget: number;
+  /**
+   * When non-empty, only these users are eligible for this policy.
+   * Empty array means the policy applies to all customers.
+   */
+  allowedUserIds: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,6 +65,7 @@ const cashbackPolicySchema = new Schema<ICashbackPolicy>(
     maxUsesPerUser:  { type: Number, default: 0, min: 0 },
     totalBudget:     { type: Number, default: 0, min: 0 },
     usedBudget:      { type: Number, default: 0, min: 0 },
+    allowedUserIds:  [{ type: Schema.Types.ObjectId, ref: 'User' }],
   },
   { timestamps: true }
 );

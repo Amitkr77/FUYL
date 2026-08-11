@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { CashbackPolicyRepository, CashbackEarningRepository } from '../repositories/cashback.repository';
 import { ICashbackPolicy } from '../models/cashbackPolicy.model';
+import { UserModel } from '../../identity/models/user.model';
 import { walletService } from '../../wallet/services/wallet.service';
 import { logger } from '../../../config/logger';
 import { BadRequestError, NotFoundError } from '../../../shared/errors';
@@ -261,10 +262,23 @@ export class CashbackService {
     return policyRepo.findAll(filter, page, limit);
   }
 
-  async getPolicy(id: string): Promise<ICashbackPolicy> {
+  async getPolicy(id: string): Promise<ICashbackPolicy & { allowedUsers: { id: string; email: string; name: string }[] }> {
     const policy = await policyRepo.findById(id);
     if (!policy) throw new NotFoundError('CashbackPolicy');
-    return policy;
+
+    let allowedUsers: { id: string; email: string; name: string }[] = [];
+    if (policy.allowedUserIds?.length) {
+      const users = await UserModel.find({ _id: { $in: policy.allowedUserIds } })
+        .select('email firstName lastName displayName')
+        .lean<{ _id: mongoose.Types.ObjectId; email: string; firstName?: string; lastName?: string; displayName?: string }[]>();
+      allowedUsers = users.map((u) => ({
+        id:    u._id.toString(),
+        email: u.email,
+        name:  u.displayName || `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.email,
+      }));
+    }
+
+    return { ...(policy.toObject() as ICashbackPolicy), allowedUsers };
   }
 
   async listEarnings(filter: Record<string, unknown> = {}, page = 1, limit = 20) {
@@ -301,7 +315,7 @@ export class CashbackService {
     // 1. Check for an attached policy linked to the coupon code
     if (couponCode) {
       const attached = await policyRepo.findActiveByCoupon(couponCode);
-      if (attached && this.isEligible(attached, cashbackBase) && !this.isBudgetExhausted(attached)) {
+      if (attached && this.isEligible(attached, cashbackBase, userId) && !this.isBudgetExhausted(attached)) {
         const uses = await earningRepo.countUserEarnings(userId, attached._id.toString());
         if (attached.maxUsesPerUser === 0 || uses < attached.maxUsesPerUser) {
           applicable.push(attached);
@@ -312,7 +326,7 @@ export class CashbackService {
     // 2. Check standalone policies (stack on top of attached)
     const standalone = await policyRepo.findActiveStandalone();
     for (const policy of standalone) {
-      if (!this.isEligible(policy, cashbackBase)) continue;
+      if (!this.isEligible(policy, cashbackBase, userId)) continue;
       if (this.isBudgetExhausted(policy)) continue;
       const uses = await earningRepo.countUserEarnings(userId, policy._id.toString());
       if (policy.maxUsesPerUser > 0 && uses >= policy.maxUsesPerUser) continue;
@@ -322,8 +336,13 @@ export class CashbackService {
     return applicable;
   }
 
-  private isEligible(policy: ICashbackPolicy, cashbackBase: number): boolean {
+  private isEligible(policy: ICashbackPolicy, cashbackBase: number, userId: string): boolean {
     if (policy.minOrderAmount && cashbackBase < policy.minOrderAmount) return false;
+    // If the policy targets specific users, the placing user must be on the list
+    if (policy.allowedUserIds?.length > 0) {
+      const allowed = policy.allowedUserIds.some((id) => id.toString() === userId);
+      if (!allowed) return false;
+    }
     return true;
   }
 

@@ -9,6 +9,8 @@ import {
   deleteCashbackPolicy,
   type CreatePolicyInput,
 } from '@/lib/cashback'
+import { searchCustomers } from '@/lib/customers'
+import type { AllowedUser } from '@/lib/cashback'
 
 export type CashbackActionState = { error: string } | { success: true }
 
@@ -40,4 +42,13 @@ export async function deletePolicyAction(id: string): Promise<CashbackActionStat
   }
   revalidatePath('/cashback')
   return { success: true }
+}
+
+export async function searchCustomersAction(query: string): Promise<AllowedUser[]> {
+  try {
+    const results = await searchCustomers(query, 10)
+    return results.map((c) => ({ id: c.id, email: c.email, name: c.name }))
+  } catch {
+    return []
+  }
 }

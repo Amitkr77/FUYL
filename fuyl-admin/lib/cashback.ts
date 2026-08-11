@@ -6,6 +6,12 @@ export type CreditTiming     = 'on_order' | 'on_delivery' | 'after_days'
 export type CashbackScope    = 'all' | 'specific_products' | 'specific_categories'
 export type EarningStatus    = 'pending' | 'credited' | 'reversed' | 'expired'
 
+export interface AllowedUser {
+  id: string
+  email: string
+  name: string
+}
+
 export interface CashbackPolicy {
   id: string
   name: string
@@ -26,6 +32,8 @@ export interface CashbackPolicy {
   maxUsesPerUser: number
   totalBudget: number
   usedBudget: number
+  allowedUserIds?: string[]
+  allowedUsers?: AllowedUser[]
   createdAt: string
 }
 
@@ -123,6 +131,7 @@ export interface CreatePolicyInput {
   endDate?: string
   maxUsesPerUser?: number
   totalBudget?: number
+  allowedUserIds?: string[]
 }
 
 export async function createCashbackPolicy(input: CreatePolicyInput): Promise<CashbackPolicy> {

@@ -54,6 +54,13 @@ export async function listCustomers(): Promise<Customer[]> {
   return raw.map(mapCustomer)
 }
 
+export async function searchCustomers(query: string, limit = 10): Promise<Customer[]> {
+  if (!query.trim()) return []
+  const qs = new URLSearchParams({ search: query.trim(), limit: String(limit) })
+  const raw = await adminApiFetch<BackendCustomer[]>(`/admin/customers?${qs.toString()}`)
+  return raw.map(mapCustomer)
+}
+
 export async function getCustomer(id: string): Promise<CustomerDetail | null> {
   try {
     const raw = await adminApiFetch<BackendCustomerDetail>(`/admin/customers/${id}`)

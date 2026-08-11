@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { CashbackPolicy, CreatePolicyInput } from "@/lib/cashback";
-import { createPolicyAction, updatePolicyAction } from "@/app/(admin)/cashback/actions";
+import { Search, X, UserCheck, Loader2 } from "lucide-react";
+import { CashbackPolicy, CreatePolicyInput, AllowedUser } from "@/lib/cashback";
+import { createPolicyAction, updatePolicyAction, searchCustomersAction } from "@/app/(admin)/cashback/actions";
 
 interface Props {
   policy?: CashbackPolicy;
@@ -13,6 +14,15 @@ export function PolicyForm({ policy }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
+
+  // ─── Customer targeting ───────────────────────────────────────────────────
+  const [allowedUsers, setAllowedUsers] = useState<AllowedUser[]>(
+    policy?.allowedUsers ?? []
+  );
+  const [userQuery, setUserQuery] = useState("");
+  const [userResults, setUserResults] = useState<AllowedUser[]>([]);
+  const [searching, setSearching] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [form, setForm] = useState<CreatePolicyInput>({
     name:            policy?.name ?? "",
@@ -38,6 +48,31 @@ export function PolicyForm({ policy }: Props) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function handleUserSearch(q: string) {
+    setUserQuery(q);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!q.trim()) { setUserResults([]); return; }
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const results = await searchCustomersAction(q.trim());
+        setUserResults(results.filter((r) => !allowedUsers.some((u) => u.id === r.id)));
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+  }
+
+  function addUser(user: AllowedUser) {
+    setAllowedUsers((prev) => prev.some((u) => u.id === user.id) ? prev : [...prev, user]);
+    setUserQuery("");
+    setUserResults([]);
+  }
+
+  function removeUser(id: string) {
+    setAllowedUsers((prev) => prev.filter((u) => u.id !== id));
+  }
+
   function buildBody(): CreatePolicyInput {
     return {
       ...form,
@@ -51,6 +86,7 @@ export function PolicyForm({ policy }: Props) {
       couponCode:      form.mode === "attached" ? (form.couponCode ?? "").toUpperCase() : undefined,
       startDate:       form.startDate || undefined,
       endDate:         form.endDate   || undefined,
+      allowedUserIds:  allowedUsers.map((u) => u.id),
     };
   }
 
@@ -190,6 +226,104 @@ export function PolicyForm({ policy }: Props) {
           <input type="checkbox" id="isActive" checked={form.isActive ?? true} onChange={(e) => set("isActive", e.target.checked)} className="accent-[#558476]" />
           <label htmlFor="isActive" className="text-sm text-slate-700">Active</label>
         </div>
+      </div>
+
+      {/* Customer Targeting */}
+      <div className="bg-white rounded-xl border border-slate-100 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <UserCheck className="w-4 h-4 text-[#558476]" />
+          <h3 className="text-sm font-semibold text-slate-800">Customer Targeting</h3>
+          {allowedUsers.length > 0 && (
+            <span className="ml-auto text-xs font-medium bg-[#558476]/10 text-[#558476] px-2 py-0.5 rounded-full">
+              {allowedUsers.length} customer{allowedUsers.length !== 1 ? "s" : ""} targeted
+            </span>
+          )}
+        </div>
+
+        <p className="text-xs text-slate-500">
+          {allowedUsers.length === 0
+            ? "This policy applies to all customers. Search below to target specific customers only."
+            : "Only the customers listed below will receive this cashback when they order."}
+        </p>
+
+        {/* Search input */}
+        <div className="relative">
+          <div className="flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-[#558476]/30 focus-within:border-[#558476]">
+            {searching
+              ? <Loader2 className="w-4 h-4 text-slate-400 shrink-0 animate-spin" />
+              : <Search className="w-4 h-4 text-slate-400 shrink-0" />}
+            <input
+              type="text"
+              value={userQuery}
+              onChange={(e) => handleUserSearch(e.target.value)}
+              placeholder="Search by name or email…"
+              className="flex-1 text-sm outline-none bg-transparent"
+            />
+            {userQuery && (
+              <button type="button" onClick={() => { setUserQuery(""); setUserResults([]); }}>
+                <X className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600" />
+              </button>
+            )}
+          </div>
+
+          {/* Dropdown results */}
+          {userResults.length > 0 && (
+            <ul className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+              {userResults.map((u) => (
+                <li key={u.id}>
+                  <button
+                    type="button"
+                    onClick={() => addUser(u)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-[#558476]/10 flex items-center justify-center shrink-0">
+                      <span className="text-[10px] font-bold text-[#558476]">
+                        {u.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">{u.name}</p>
+                      <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {userQuery.trim() && !searching && userResults.length === 0 && (
+            <p className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-sm px-3 py-2.5 text-sm text-slate-400">
+              No customers found
+            </p>
+          )}
+        </div>
+
+        {/* Selected users list */}
+        {allowedUsers.length > 0 && (
+          <ul className="space-y-1.5">
+            {allowedUsers.map((u) => (
+              <li key={u.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
+                <div className="w-7 h-7 rounded-full bg-[#558476]/10 flex items-center justify-center shrink-0">
+                  <span className="text-[10px] font-bold text-[#558476]">
+                    {u.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-slate-800 truncate">{u.name}</p>
+                  <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeUser(u.id)}
+                  className="shrink-0 p-1 text-slate-400 hover:text-red-500 transition-colors"
+                  aria-label={`Remove ${u.name}`}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="flex gap-3">

@@ -22,6 +22,7 @@ const policyBaseSchema = z.object({
   endDate:         z.coerce.date().optional(),
   maxUsesPerUser:  z.number().int().min(0).default(0),
   totalBudget:     z.number().min(0).default(0),
+  allowedUserIds:  z.array(objectId).optional().default([]),
 });
 
 // Create: full validation with cross-field refinements
