@@ -81,7 +81,7 @@ export class OrderController {
 
   // ─── Admin ──────────────────────────────────────────────────────
   listAll = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER),
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
@@ -89,7 +89,6 @@ export class OrderController {
         const filter: Record<string, unknown> = {};
         if (req.query.status) filter.status = req.query.status;
         if (req.query.customerId) filter.customerId = req.query.customerId;
-        if (req.user!.role === Roles.SELLER) filter.sellerIds = req.user!.userId;
         const result = await orderService.listAll(page, limit, filter);
         return paginate(res, result.items, result.total, result.page, result.limit);
       } catch (err) { next(err); }
@@ -97,7 +96,7 @@ export class OrderController {
   ];
 
   updateStatus = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER),
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     validate(updateStatusSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {

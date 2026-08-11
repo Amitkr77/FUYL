@@ -115,8 +115,8 @@ export default function AnalyticsDashboard({ initial, fetchData }: Props) {
 
     if (data.categorySales.length) {
       rows.push(['=== Category Sales ==='])
-      rows.push(['Category', 'Orders', 'Revenue (₹)'])
-      data.categorySales.forEach((c) => rows.push([c.category, String(c.orders), String(c.revenue)]))
+      rows.push(['Category', 'Units Sold', 'Revenue (₹)'])
+      data.categorySales.forEach((c) => rows.push([c.category, String(c.units), String(c.revenue)]))
       rows.push([])
     }
 

@@ -11,7 +11,7 @@ import { logger } from '../../../config/logger';
 
 export class ShippingController {
   create = [
-    authorize(Roles.SELLER, Roles.ADMIN, Roles.SUPER_ADMIN),
+    authorize(Roles.ADMIN, Roles.SUPER_ADMIN),
     validate(createShipmentSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
@@ -50,10 +50,10 @@ export class ShippingController {
   };
 
   listMine = [
-    authorize(Roles.SELLER, Roles.ADMIN, Roles.SUPER_ADMIN),
+    authorize(Roles.ADMIN, Roles.SUPER_ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        const sellerId = req.user!.role === Roles.SELLER ? req.user!.userId : (req.query.sellerId as string);
+        const sellerId = req.query.sellerId as string;
         if (!sellerId) return success(res, []);
         const page = Number(req.query.page ?? 1);
         const limit = Math.min(Number(req.query.limit ?? 20), 100);
@@ -64,7 +64,7 @@ export class ShippingController {
   ];
 
   updateStatus = [
-    authorize(Roles.SELLER, Roles.ADMIN, Roles.SUPER_ADMIN),
+    authorize(Roles.ADMIN, Roles.SUPER_ADMIN),
     validate(updateShipmentStatusSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {

@@ -27,7 +27,7 @@ router.post('/reviews/:id/report', authRequired, reviewController.report);
 router.post(
   '/reviews/:id/reply',
   authRequired,
-  authorize(Roles.SELLER, Roles.ADMIN, Roles.SUPER_ADMIN),
+  authorize(Roles.ADMIN, Roles.SUPER_ADMIN),
   reviewController.sellerReply
 );
 

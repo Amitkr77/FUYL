@@ -296,7 +296,6 @@ class PromotionService {
         if (coupon.scope === 'category') {
           return (i.categoryIds ?? []).some((c) => coupon.targetIds?.some((t) => t.toString() === c));
         }
-        if (coupon.scope === 'seller') return coupon.targetIds?.some((t) => t.toString() === i.sellerId);
         return false;
       })
       .reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
@@ -314,7 +313,6 @@ class PromotionService {
           if (coupon.scope === 'category') {
             return (i.categoryIds ?? []).some((c) => coupon.targetIds?.some((t) => t.toString() === c));
           }
-          if (coupon.scope === 'seller') return coupon.targetIds?.some((t) => t.toString() === i.sellerId);
           return false;
         })
         .reduce((s, i) => s + i.quantity, 0);

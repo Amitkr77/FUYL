@@ -16,7 +16,7 @@ import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
 // costPerItem/profit/margin have to be gated by the requester's role at
 // serialization time, not by which route was hit. authOptional on these
 // routes means req.user is only populated for a real, verified token.
-const PRIVILEGED_ROLES: string[] = [Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER];
+const PRIVILEGED_ROLES: string[] = [Roles.SUPER_ADMIN, Roles.ADMIN];
 
 function serializeProduct(product: any, req: AuthedRequest) {
   const obj = typeof product?.toObject === 'function' ? product.toObject() : product;
@@ -35,7 +35,7 @@ function serializeProduct(product: any, req: AuthedRequest) {
 export class CatalogController {
   // ─── Products (admin) ─────────────────────────────────────────
   createProduct = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER),
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     validate(createProductSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try { return created(res, serializeProduct(await catalogService.createProduct(req.body), req)); }
@@ -54,7 +54,7 @@ export class CatalogController {
   };
 
   updateProduct = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER),
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     validate(updateProductSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try { return success(res, serializeProduct(await catalogService.updateProduct(req.params.id, req.body), req)); }
@@ -63,7 +63,7 @@ export class CatalogController {
   ];
 
   deleteProduct = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER),
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try { await catalogService.deleteProduct(req.params.id); return success(res, { deleted: true }); }
       catch (err) { next(err); }
@@ -71,7 +71,7 @@ export class CatalogController {
   ];
 
   publishProduct = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER),
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try { return success(res, await catalogService.publish(req.params.id)); }
       catch (err) { next(err); }
@@ -79,7 +79,7 @@ export class CatalogController {
   ];
 
   unpublishProduct = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER),
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try { return success(res, await catalogService.unpublish(req.params.id)); }
       catch (err) { next(err); }
@@ -87,7 +87,7 @@ export class CatalogController {
   ];
 
   listProducts = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER),
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
@@ -123,7 +123,7 @@ export class CatalogController {
 
   // ─── Variants ─────────────────────────────────────────────────
   createVariant = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER),
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     validate(createVariantSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try { return created(res, await catalogService.createVariant(req.body)); }
@@ -147,7 +147,7 @@ export class CatalogController {
   };
 
   updateVariant = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER),
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     validate(updateVariantSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try { return success(res, await catalogService.updateVariant(req.params.id, req.body)); }
@@ -156,7 +156,7 @@ export class CatalogController {
   ];
 
   deactivateVariant = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN, Roles.SELLER),
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try { await catalogService.deactivateVariant(req.params.id); return success(res, { deactivated: true }); }
       catch (err) { next(err); }
