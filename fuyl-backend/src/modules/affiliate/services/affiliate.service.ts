@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { AffiliateRepository } from '../repositories/affiliate.repository';
+import { IAffiliate } from '../models/affiliate.model';
 import { ProgramRepository } from '../repositories/program.repository';
 import { LinkRepository } from '../repositories/link.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
@@ -155,6 +156,56 @@ export class AffiliateService {
       payouts,
       stats: affiliate.stats,
     };
+  }
+
+  /** Affiliate: get my payouts. */
+  async myPayouts(affiliateId: string) {
+    return payoutRepo.findByAffiliate(affiliateId);
+  }
+
+  /** Affiliate: get the active program's public details. */
+  async getProgram(affiliateId: string) {
+    const affiliate = await affiliateRepo.findById(affiliateId);
+    if (!affiliate) throw new NotFoundError('Affiliate');
+    const program = await programRepo.findById(affiliate.programId);
+    if (!program) throw new NotFoundError('Affiliate program');
+    return {
+      name:                  program.name,
+      description:           program.description,
+      defaultRate:           program.defaultRate,
+      commissionBase:        program.commissionBase,
+      attributionWindowDays: program.attributionWindowDays,
+      minPayoutAmount:       program.minPayoutAmount,
+    };
+  }
+
+  /** Affiliate: update their own editable profile fields. */
+  async updateProfile(
+    affiliateId: string,
+    patch: {
+      name?:          string;
+      phone?:         string;
+      channels?:      string[];
+      website?:       string;
+      socialHandles?: Record<string, string>;
+    }
+  ) {
+    const { website, socialHandles, ...directFields } = patch;
+    const update: Partial<IAffiliate> = { ...directFields };
+
+    // website and socialHandles live in the metadata bag so the model
+    // schema does not need a migration for every new social platform.
+    if (website !== undefined || socialHandles !== undefined) {
+      const affiliate = await affiliateRepo.findById(affiliateId);
+      if (!affiliate) throw new NotFoundError('Affiliate');
+      update.metadata = {
+        ...(affiliate.metadata ?? {}),
+        ...(website !== undefined ? { website } : {}),
+        ...(socialHandles !== undefined ? { socialHandles } : {}),
+      };
+    }
+
+    return affiliateRepo.update(affiliateId, update);
   }
 
   /** Affiliate: get my links. */

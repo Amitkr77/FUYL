@@ -1,3 +1,5 @@
+import { FilterQuery } from 'mongoose';
+import { ICommission } from '../models/commission.model';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { AffiliateRepository } from '../repositories/affiliate.repository';
 import { ProgramRepository } from '../repositories/program.repository';
@@ -232,8 +234,26 @@ export class CommissionService {
     logger.info(`[affiliate] commission ${commission._id} ${targetStatus}: ${reason}`);
   }
 
-  async listForAffiliate(affiliateId: string, status?: string) {
-    const filter = status ? { status } : {};
+  async listForAffiliate(
+    affiliateId: string,
+    filters?: {
+      status?:        string;
+      createdAtFrom?: string;
+      createdAtTo?:   string;
+    }
+  ) {
+    const filter: FilterQuery<ICommission> = {};
+
+    if (filters?.status) {
+      filter.status = filters.status;
+    }
+
+    if (filters?.createdAtFrom || filters?.createdAtTo) {
+      filter.createdAt = {};
+      if (filters.createdAtFrom) filter.createdAt.$gte = new Date(filters.createdAtFrom);
+      if (filters.createdAtTo)   filter.createdAt.$lte = new Date(filters.createdAtTo);
+    }
+
     return commissionRepo.findByAffiliate(affiliateId, filter);
   }
 

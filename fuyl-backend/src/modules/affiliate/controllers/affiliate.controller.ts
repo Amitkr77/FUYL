@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { affiliateService } from '../services/affiliate.service';
 import { trackingService } from '../services/tracking.service';
 import { commissionService } from '../services/commission.service';
+import { performanceService, type PerformanceTab } from '../services/performance.service';
 import { AuthedRequest } from '../../../shared/middleware/auth.middleware';
 import { BadRequestError, NotFoundError } from '../../../shared/errors';
 import { env } from '../../../config/env';
@@ -58,9 +59,13 @@ export class AffiliateController {
   /** GET /affiliate/commissions — requires auth + approved affiliate */
   async commissions(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
-      const { status } = req.query;
+      const { status, createdAtFrom, createdAtTo } = req.query;
       const affiliate = await affiliateService.findByUserId(req.user!.userId);
-      const data = await commissionService.listForAffiliate(affiliate._id.toString(), status as string | undefined);
+      const data = await commissionService.listForAffiliate(affiliate._id.toString(), {
+        status:        status        as string | undefined,
+        createdAtFrom: createdAtFrom as string | undefined,
+        createdAtTo:   createdAtTo   as string | undefined,
+      });
       res.json({ success: true, data });
     } catch (err) { next(err); }
   }
@@ -71,6 +76,61 @@ export class AffiliateController {
       const { upi, bankAccount, ifsc, accountName } = req.body;
       const affiliate = await affiliateService.findByUserId(req.user!.userId);
       const updated = await affiliateService.updatePaymentInfo(affiliate._id.toString(), { upi, bankAccount, ifsc, accountName });
+      res.json({ success: true, data: updated });
+    } catch (err) { next(err); }
+  }
+
+  /** GET /affiliate/payouts — requires auth */
+  async payouts(req: AuthedRequest, res: Response, next: NextFunction) {
+    try {
+      const affiliate = await affiliateService.findByUserId(req.user!.userId);
+      const data = await affiliateService.myPayouts(affiliate._id.toString());
+      res.json({ success: true, data });
+    } catch (err) { next(err); }
+  }
+
+  /** GET /affiliate/program — requires auth */
+  async program(req: AuthedRequest, res: Response, next: NextFunction) {
+    try {
+      const affiliate = await affiliateService.findByUserId(req.user!.userId);
+      const data = await affiliateService.getProgram(affiliate._id.toString());
+      res.json({ success: true, data });
+    } catch (err) { next(err); }
+  }
+
+  /** GET /affiliate/performance?from=&to=&tab= — requires auth */
+  async performance(req: AuthedRequest, res: Response, next: NextFunction) {
+    try {
+      const { from, to, tab } = req.query;
+      if (!from || !to || !tab) {
+        throw new BadRequestError('from, to, and tab query params are required');
+      }
+      const validTabs: PerformanceTab[] = ['referrals', 'commission', 'sales', 'clicks'];
+      if (!validTabs.includes(tab as PerformanceTab)) {
+        throw new BadRequestError(`tab must be one of: ${validTabs.join(', ')}`);
+      }
+      const affiliate = await affiliateService.findByUserId(req.user!.userId);
+      const data = await performanceService.getPerformance(affiliate._id.toString(), {
+        from: from as string,
+        to:   to   as string,
+        tab:  tab  as PerformanceTab,
+      });
+      res.json({ success: true, data });
+    } catch (err) { next(err); }
+  }
+
+  /** PATCH /affiliate/profile — requires auth */
+  async updateProfile(req: AuthedRequest, res: Response, next: NextFunction) {
+    try {
+      const { name, phone, channels, website, socialHandles } = req.body;
+      const affiliate = await affiliateService.findByUserId(req.user!.userId);
+      const updated = await affiliateService.updateProfile(affiliate._id.toString(), {
+        name,
+        phone,
+        channels,
+        website,
+        socialHandles,
+      });
       res.json({ success: true, data: updated });
     } catch (err) { next(err); }
   }

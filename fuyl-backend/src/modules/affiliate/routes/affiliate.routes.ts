@@ -22,6 +22,10 @@ router.get('/affiliate/links',          authRequired, affiliateController.links.
 router.post('/affiliate/links',         authRequired, affiliateController.createLink.bind(affiliateController));
 router.get('/affiliate/commissions',    authRequired, affiliateController.commissions.bind(affiliateController));
 router.patch('/affiliate/payment-info', authRequired, affiliateController.updatePaymentInfo.bind(affiliateController));
+router.get('/affiliate/payouts',        authRequired, affiliateController.payouts.bind(affiliateController));
+router.get('/affiliate/program',        authRequired, affiliateController.program.bind(affiliateController));
+router.get('/affiliate/performance',    authRequired, affiliateController.performance.bind(affiliateController));
+router.patch('/affiliate/profile',      authRequired, affiliateController.updateProfile.bind(affiliateController));
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
 router.get('/admin/affiliates',               authRequired, adminOnly, affiliateAdminController.list.bind(affiliateAdminController));
