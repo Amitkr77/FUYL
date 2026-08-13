@@ -1,6 +1,5 @@
 import { adminApiFetch, AdminApiError } from './api'
 import { getSession } from './auth'
-import { getCategories } from './categories'
 import { getTags, resolveTagIds } from './tags'
 
 // ─── Backend raw shapes (subset of fields this file uses) ──────────────────
@@ -91,8 +90,6 @@ export interface AdminProduct {
   // it before this field existed here, so no product could ever be marked
   // subscribable through the admin.
   isSubscribable: boolean
-  category:    string   // name, for display
-  categoryId:  string   // id, for the form's category picker
   brand?:      string
   // Tag names (resolved from tagIds) — see lib/tags.ts. The form edits these
   // as free-typed names; saving resolves/creates Tag documents from them.
@@ -130,11 +127,6 @@ export interface AdminProduct {
   variants: AdminVariant[]
 }
 
-export interface Category {
-  id:   string
-  name: string
-}
-
 export interface AttributeDef {
   slug: string
   name: string
@@ -142,7 +134,6 @@ export interface AttributeDef {
 
 export interface AdminProductInput {
   name:        string
-  categoryId:  string
   brand?:      string
   tags:        string[]
   shortDescription: string
@@ -195,7 +186,6 @@ interface BackendProduct {
   infoBlocks?: ProductInfoBlock[]
   shippingInfo?: ShippingInfo
   seo?: SeoInfo
-  categoryIds?: string[]
   tagIds?: string[]
   status: ProductStatus
   isPublished: boolean
@@ -295,7 +285,6 @@ function productBody(input: AdminProductInput) {
     brand:             input.brand || undefined,
     shortDescription:  input.shortDescription || undefined,
     description:       input.description,
-    categoryIds:       input.categoryId ? [input.categoryId] : [],
     basePrice:         input.price,
     compareAtPrice:    input.compareAtPrice,
     additionalPrices:  input.additionalPrices,
@@ -325,12 +314,6 @@ function productBody(input: AdminProductInput) {
   }
 }
 
-// Canonical implementation now lives in lib/categories.ts (which also powers
-// the admin's Categories management page) — imported above (used internally
-// by this file too) and re-exported here so existing imports from
-// '@/lib/products' keep working unchanged.
-export { getCategories }
-
 // Powers the variant-attribute editor's suggestions (Size/Flavor/Pack
 // Size/Color/etc) — admins can still type a new attribute key freely, this
 // just offers the ones already defined elsewhere in the catalog.
@@ -350,10 +333,9 @@ export async function getAttributes(): Promise<AttributeDef[]> {
 export async function listAdminProducts(): Promise<AdminProduct[]> {
   const sellerId = await requireSellerId()
 
-  const [products, stockRows, categories, tags] = await Promise.all([
+  const [products, stockRows, tags] = await Promise.all([
     adminApiFetch<BackendProduct[]>('/admin/catalog/products?limit=50'),
     adminApiFetch<BackendStock[]>(`/inventory/mine?sellerId=${sellerId}&limit=200`).catch(() => [] as BackendStock[]),
-    getCategories(),
     getTags(),
   ])
   const tagNameById = new Map(tags.map((t) => [t.id, t.name]))
@@ -371,15 +353,12 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
       stockByProduct.set(s.productId, (stockByProduct.get(s.productId) ?? 0) + s.onHand)
     }
   }
-  const categoryName = new Map(categories.map((c) => [c.id, c.name]))
-
   const variantsByProduct = await Promise.all(
     products.map((p) => adminApiFetch<BackendVariant[]>(`/catalog/products/${p._id}/variants`).catch(() => [] as BackendVariant[]))
   )
 
   return products.map((p, i) => {
     const variants = variantsByProduct[i].map((v) => mapVariant(v, stockByVariant))
-    const categoryId = p.categoryIds?.[0] ?? ''
     const images = sortMedia(p.media).map((m) => m.url)
     const stock = variants.length > 0
       ? variants.reduce((sum, v) => sum + v.stock, 0)
@@ -392,8 +371,6 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
       status:      p.status,
       isPublished:    p.isPublished,
       isSubscribable: p.isSubscribable,
-      category:    categoryId ? (categoryName.get(categoryId) ?? '—') : '—',
-      categoryId,
       brand:       p.brand,
       tags:        (p.tagIds ?? []).map((id) => tagNameById.get(id)).filter((n): n is string => Boolean(n)),
       shortDescription: p.shortDescription ?? '',
@@ -424,10 +401,9 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
 
 export async function getAdminProduct(id: string): Promise<AdminProduct | null> {
   try {
-    const [product, rawVariants, categories, tags] = await Promise.all([
+    const [product, rawVariants, tags] = await Promise.all([
       adminApiFetch<BackendProduct>(`/catalog/products/${id}`),
       adminApiFetch<BackendVariant[]>(`/catalog/products/${id}/variants`).catch(() => [] as BackendVariant[]),
-      getCategories(),
       getTags(),
     ])
     const tagNameById = new Map(tags.map((t) => [t.id, t.name]))
@@ -446,8 +422,6 @@ export async function getAdminProduct(id: string): Promise<AdminProduct | null> 
     }
 
     const variants = rawVariants.map((v) => mapVariant(v, stockByVariant))
-    const categoryName = new Map(categories.map((c) => [c.id, c.name]))
-    const categoryId = product.categoryIds?.[0] ?? ''
     const images = sortMedia(product.media).map((m) => m.url)
     const stock = variants.length > 0
       ? variants.reduce((sum, v) => sum + v.stock, 0)
@@ -461,8 +435,6 @@ export async function getAdminProduct(id: string): Promise<AdminProduct | null> 
       status:      product.status,
       isPublished:    product.isPublished,
       isSubscribable: product.isSubscribable,
-      category:    categoryId ? (categoryName.get(categoryId) ?? '') : '',
-      categoryId,
       brand:       product.brand,
       tags:        (product.tagIds ?? []).map((id) => tagNameById.get(id)).filter((n): n is string => Boolean(n)),
       shortDescription: product.shortDescription ?? '',

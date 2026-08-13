@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Save, Trash2, CheckCircle2, ImagePlus, AlertCircle, Star, X, Plus, Truck } from 'lucide-react'
 import type {
-  AdminProduct, Category, AttributeDef, ProductStatus, AdminVariant,
+  AdminProduct, AttributeDef, ProductStatus, AdminVariant,
   AdditionalPrice, FAQEntry, CertificationEntry, ProductInfoBlock, ShippingInfo, WeightUnit, SeoInfo,
 } from '@/lib/products'
 import type { AdminTag } from '@/lib/tags'
@@ -13,11 +13,9 @@ import { createProductAction, updateProductAction, archiveProductAction, getProd
 import { uploadImage } from '@/lib/upload'
 import { Collapsible } from '@/components/ui/Collapsible'
 import { Toggle } from '@/components/ui/Toggle'
-import { SearchableSelect } from '@/components/ui/SearchableSelect'
 
 interface Props {
   product?: AdminProduct
-  categories: Category[]
   attributes: AttributeDef[]
   tags: AdminTag[]
   isNew?: boolean
@@ -52,7 +50,7 @@ function slugify(name: string): string {
   return base || 'product'
 }
 
-export function ProductForm({ product, categories, attributes, tags, isNew = false }: Props) {
+export function ProductForm({ product, attributes, tags, isNew = false }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
@@ -62,7 +60,6 @@ export function ProductForm({ product, categories, attributes, tags, isNew = fal
 
   const [form, setForm] = useState({
     name:        product?.name ?? '',
-    categoryId:  product?.categoryId ?? '',
     brand:       product?.brand ?? '',
     tags:        product?.tags ?? [],
     shortDescription: product?.shortDescription ?? '',
@@ -118,8 +115,6 @@ export function ProductForm({ product, categories, attributes, tags, isNew = fal
 
   const profit = form.costPerItem != null ? form.price - form.costPerItem : null
   const margin = profit != null && form.price > 0 ? (profit / form.price) * 100 : null
-
-  const categoryOptions = categories.map((c) => ({ value: c.id, label: c.name }))
 
   // ─── Tags ────────────────────────────────────────────────────────
   // Free-typed names, chip-style (mirrors EditBlogPostForm.tsx) — resolved to
@@ -339,20 +334,6 @@ export function ProductForm({ product, categories, attributes, tags, isNew = fal
               </div>
               <textarea value={form.shortDescription} onChange={(e) => set({ shortDescription: e.target.value.slice(0, 280) })} rows={2}
                 placeholder="A short summary shown on product cards, listings, and previews..." maxLength={280} className={`${inputCls} resize-none`} />
-            </div>
-            <div>
-              <label className={labelCls}>Category</label>
-              {categories.length === 0 ? (
-                <p className="text-xs text-slate-400 py-2.5">No categories yet</p>
-              ) : (
-                <SearchableSelect
-                  options={categoryOptions}
-                  value={form.categoryId}
-                  onChange={(v) => set({ categoryId: v })}
-                  placeholder="Select a category..."
-                  emptyText="No matching categories"
-                />
-              )}
             </div>
             <div>
               <label className={labelCls}>Description</label>

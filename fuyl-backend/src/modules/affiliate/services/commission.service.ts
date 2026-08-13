@@ -3,6 +3,7 @@ import { ICommission } from '../models/commission.model';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { AffiliateRepository } from '../repositories/affiliate.repository';
 import { ProgramRepository } from '../repositories/program.repository';
+import { PayoutRepository } from '../repositories/payout.repository';
 import { CommissionStatus, CommissionEventType } from '../../../shared/enums';
 import { NotFoundError, ConflictError, BadRequestError } from '../../../shared/errors';
 import { walletService } from '../../wallet/services/wallet.service';
@@ -12,6 +13,7 @@ import mongoose from 'mongoose';
 const commissionRepo = new CommissionRepository();
 const affiliateRepo  = new AffiliateRepository();
 const programRepo    = new ProgramRepository();
+const payoutRepo     = new PayoutRepository();
 
 export class CommissionService {
   /**
@@ -176,6 +178,16 @@ export class CommissionService {
     const totalPaid = transitioned.reduce((sum, c) => sum + c.amount, 0);
     const commissionIds = transitioned.map((c) => c._id.toString());
 
+    await payoutRepo.create({
+      affiliateId: affiliate._id,
+      commissionIds: transitioned.map((c) => c._id),
+      amount: totalPaid,
+      status: 'paid',
+      paymentMethod: affiliate.userId ? 'wallet_credit' : affiliate.paymentInfo?.upi ? 'upi' : 'bank_transfer',
+      paidAt: now,
+      initiatedBy: new mongoose.Types.ObjectId(actorId),
+    });
+
     // If the affiliate has a linked user account, credit their wallet
     if (affiliate.userId) {
       await walletService.credit({
@@ -202,7 +214,7 @@ export class CommissionService {
     const commission = await commissionRepo.findByOrderId(orderId);
     if (!commission) return; // no commission for this order — nothing to do
 
-    if ([CommissionStatus.PAID, CommissionStatus.CANCELLED, CommissionStatus.REVERSED].includes(commission.status as any)) {
+    if ([CommissionStatus.CANCELLED, CommissionStatus.REVERSED].includes(commission.status as any)) {
       logger.info(`[affiliate] commission ${commission._id} already in terminal state ${commission.status}`);
       return;
     }
@@ -266,9 +278,43 @@ export class CommissionService {
     return { commission, events };
   }
 
-  async adminList(page: number, limit: number, status?: string) {
-    const filter = status ? { status } : {};
+  async adminList(page: number, limit: number, filters?: { status?: string; affiliateId?: string; createdAtFrom?: string; createdAtTo?: string }) {
+    const filter: FilterQuery<ICommission> = {};
+    if (filters?.status) filter.status = filters.status;
+    if (filters?.affiliateId) filter.affiliateId = filters.affiliateId;
+    if (filters?.createdAtFrom || filters?.createdAtTo) {
+      filter.createdAt = {};
+      if (filters.createdAtFrom) filter.createdAt.$gte = new Date(filters.createdAtFrom);
+      if (filters.createdAtTo) filter.createdAt.$lte = new Date(filters.createdAtTo);
+    }
     return commissionRepo.paginate(filter, page, limit);
+  }
+
+  async bulkApprove(ids: string[], actorId: string) {
+    const results = await Promise.allSettled(ids.map((id) => this.approve(id, actorId)));
+    return { approved: results.filter((r) => r.status === 'fulfilled').length, failed: results.filter((r) => r.status === 'rejected').length };
+  }
+
+  async voidCommission(id: string, reason: string, actorId: string) {
+    const commission = await commissionRepo.findById(id);
+    if (!commission) throw new NotFoundError('Commission');
+    if ([CommissionStatus.CANCELLED, CommissionStatus.REVERSED].includes(commission.status as any)) throw new ConflictError(`Commission is already ${commission.status}`);
+    const target = commission.status === CommissionStatus.PAID ? CommissionStatus.REVERSED : CommissionStatus.CANCELLED;
+    await commissionRepo.claimTransition(id, commission.status, target, { cancelledAt: new Date(), cancelledReason: reason, actorId: new mongoose.Types.ObjectId(actorId), ...(target === CommissionStatus.REVERSED ? { reversedAt: new Date() } : {}) });
+    await commissionRepo.appendEvent({ commissionId: commission._id, affiliateId: commission.affiliateId, eventType: target === CommissionStatus.REVERSED ? CommissionEventType.REVERSED : CommissionEventType.CANCELLED, amountDelta: -commission.amount, actorId, note: reason });
+    await affiliateRepo.incrementStats(commission.affiliateId, { totalCommissionEarned: -commission.amount, ...(target === CommissionStatus.REVERSED ? { totalCommissionPaid: -commission.amount } : {}) });
+  }
+
+  async adminPayouts(page: number, limit: number, status?: string) { return payoutRepo.paginate(page, limit, status ? { status } : {}); }
+
+  async updatePayout(id: string, input: { status: 'processing' | 'paid' | 'failed'; providerRef?: string; failureReason?: string }) {
+    const payout = await payoutRepo.findById(id);
+    if (!payout) throw new NotFoundError('Affiliate payout');
+    const allowed: Record<string, string[]> = { pending: ['processing', 'paid', 'failed'], processing: ['paid', 'failed'], paid: [], failed: [] };
+    if (!allowed[payout.status]?.includes(input.status)) throw new ConflictError(`Payout cannot move from ${payout.status} to ${input.status}`);
+    if (input.status === 'paid' && !input.providerRef?.trim()) throw new BadRequestError('providerRef is required when marking a payout paid');
+    if (input.status === 'failed' && !input.failureReason?.trim()) throw new BadRequestError('failureReason is required when marking a payout failed');
+    return payoutRepo.update(id, { ...input, ...(input.status === 'paid' ? { paidAt: new Date() } : {}), ...(input.status === 'failed' ? { failedAt: new Date() } : {}) });
   }
 
   async adminStats() {

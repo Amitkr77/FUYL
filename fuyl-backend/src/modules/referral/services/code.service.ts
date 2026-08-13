@@ -1,5 +1,5 @@
 import { CodeRepository } from '../repositories/code.repository';
-import { CampaignRepository } from '../repositories/campaign.repository';
+import { ProgramRepository } from '../repositories/program.repository';
 import { generateReferralCode } from '../utils/codeGenerator';
 import { ConflictError, NotFoundError } from '../../../shared/errors';
 import { env } from '../../../config/env';
@@ -7,7 +7,7 @@ import { addDays } from '../../../shared/utils';
 import mongoose from 'mongoose';
 
 const codeRepo = new CodeRepository();
-const campaignRepo = new CampaignRepository();
+const programRepo = new ProgramRepository();
 
 export class CodeService {
   /**
@@ -17,7 +17,7 @@ export class CodeService {
     const existing = await codeRepo.findActiveByReferrer(userId);
     if (existing) return existing;
 
-    const campaign = await campaignRepo.findActive();
+    const program = await programRepo.findActive();
 
     // Ensure uniqueness — regenerate on collision, up to 5 attempts.
     // Previously re-checked the same unchanged candidate code up to 3
@@ -36,7 +36,7 @@ export class CodeService {
     return codeRepo.create({
       code,
       referrerId: new mongoose.Types.ObjectId(userId),
-      campaignId: campaign?._id,
+      programId: program?._id,
       expiresAt: addDays(new Date(), env.referral.codeExpiryDays),
       maxUses: 0,
       usesCount: 0,

@@ -41,15 +41,34 @@ class InventoryService {
   async listAllForAdmin(page = 1, limit = 50) {
     const result = await stockRepo.findAll(page, limit);
     const { ProductModel } = await import('../../catalog/models/product.model');
+    const { VariantModel } = await import('../../catalog/models/variant.model');
+
     const productIds = [...new Set(result.items.map((s) => s.productId.toString()))];
-    const products = await ProductModel.find({ _id: { $in: productIds } }, { name: 1 });
-    const nameById = new Map(products.map((p) => [p._id.toString(), p.name]));
+    const variantIds = result.items
+      .map((s) => s.variantId?.toString())
+      .filter((id): id is string => Boolean(id));
+
+    const [products, variants] = await Promise.all([
+      ProductModel.find({ _id: { $in: productIds } }, { name: 1 }),
+      variantIds.length > 0
+        ? VariantModel.find({ _id: { $in: variantIds } }, { name: 1, sku: 1 })
+        : Promise.resolve([]),
+    ]);
+
+    const nameById    = new Map(products.map((p) => [p._id.toString(), p.name]));
+    const variantById = new Map(variants.map((v) => [v._id.toString(), { name: v.name, sku: v.sku }]));
+
     return {
       ...result,
-      items: result.items.map((s) => ({
-        ...s.toObject(),
-        productName: nameById.get(s.productId.toString()) ?? 'Unknown product',
-      })),
+      items: result.items.map((s) => {
+        const variant = s.variantId ? variantById.get(s.variantId.toString()) : undefined;
+        return {
+          ...s.toObject(),
+          productName: nameById.get(s.productId.toString()) ?? 'Unknown product',
+          variantName: variant?.name ?? null,
+          variantSku:  variant?.sku  ?? null,
+        };
+      }),
     };
   }
 

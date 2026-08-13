@@ -207,9 +207,9 @@ class CartService {
   }
 
   async applyCoupon(owner: CartOwner, couponCode: string): Promise<ICart> {
-    // Coupon validation lives in the promotion module.
+    // Coupon validation lives in the discount module.
     // For now we record the code; checkout module will validate + apply discount at checkout.
-    // The promotion module's promotion.service can also be called from here if needed.
+    // The discount service can also be called from here if needed.
     return this.mutateCart(owner, (cart) => {
       if (cart.items.length === 0) throw new BadRequestError('Cart is empty');
       cart.couponCode = couponCode.toUpperCase().trim();
@@ -304,7 +304,7 @@ class CartService {
     cart.subtotal = Math.round(subtotal * 100) / 100;
     cart.itemCount = itemCount;
 
-    // Coupon discount (already computed by promotion module on apply)
+    // Coupon discount (already computed by discount module on apply)
     cart.discountTotal = cart.couponDiscount ?? 0;
 
     // Tax — placeholder 0% until pricing module is wired

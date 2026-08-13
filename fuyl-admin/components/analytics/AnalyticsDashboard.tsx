@@ -11,7 +11,6 @@ import DeviceChart            from './DeviceChart'
 import FunnelChart            from './FunnelChart'
 import ActivityHeatmap        from './ActivityHeatmap'
 import TopProductsChart       from './TopProductsChart'
-import CategorySalesChart     from './CategorySalesChart'
 import RepeatVsNewChart       from './RepeatVsNewChart'
 import UserActivityTable      from './UserActivityTable'
 
@@ -113,13 +112,6 @@ export default function AnalyticsDashboard({ initial, fetchData }: Props) {
       rows.push([])
     }
 
-    if (data.categorySales.length) {
-      rows.push(['=== Category Sales ==='])
-      rows.push(['Category', 'Units Sold', 'Revenue (₹)'])
-      data.categorySales.forEach((c) => rows.push([c.category, String(c.units), String(c.revenue)]))
-      rows.push([])
-    }
-
     if (data.ordersByStatus.length) {
       rows.push(['=== Orders by Status ==='])
       rows.push(['Status', 'Count'])
@@ -137,7 +129,7 @@ export default function AnalyticsDashboard({ initial, fetchData }: Props) {
   }
 
   const { summary, chartData, topProducts, funnel, heatmap, devices,
-          userActivity, categorySales, customerSegments, ordersByStatus,
+          userActivity, customerSegments, ordersByStatus,
           cartAbandonment, error } = data
 
   return (
@@ -248,11 +240,8 @@ export default function AnalyticsDashboard({ initial, fetchData }: Props) {
       {/* Activity Heatmap (full width) */}
       <ActivityHeatmap data={heatmap} />
 
-      {/* Row: Top Products + Category Sales */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TopProductsChart   data={topProducts} />
-        <CategorySalesChart data={categorySales} />
-      </div>
+      {/* Top Products */}
+      <TopProductsChart data={topProducts} />
 
       {/* User Activity Table (full width) */}
       <UserActivityTable data={userActivity} />

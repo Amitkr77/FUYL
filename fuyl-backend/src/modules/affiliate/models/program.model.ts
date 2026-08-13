@@ -9,6 +9,7 @@ export interface IAffiliateProgram extends Document {
   name: string;
   description?: string;
   isActive: boolean;
+  isDefault: boolean;
   // Base commission rate as a percentage of commissionBase (e.g. 10 = 10%)
   defaultRate: number;
   // What amount the commission is calculated on
@@ -39,6 +40,7 @@ const AffiliateProgramSchema = new Schema<IAffiliateProgram>(
     name:                  { type: String, required: true, trim: true },
     description:           { type: String, trim: true },
     isActive:              { type: Boolean, default: true, index: true },
+    isDefault:             { type: Boolean, default: false, index: true },
     defaultRate:           { type: Number, required: true, min: 0, max: 100 },
     commissionBase:        { type: String, enum: ['subtotal', 'grand_total'], default: 'subtotal' },
     attributionWindowDays: { type: Number, default: 30, min: 1 },
@@ -49,6 +51,8 @@ const AffiliateProgramSchema = new Schema<IAffiliateProgram>(
   },
   { timestamps: true }
 );
+
+AffiliateProgramSchema.index({ isDefault: 1 }, { unique: true, partialFilterExpression: { isDefault: true } });
 
 export const AffiliateProgramModel = mongoose.model<IAffiliateProgram>(
   'AffiliateProgram',

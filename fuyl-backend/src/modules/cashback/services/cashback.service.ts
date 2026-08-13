@@ -29,9 +29,18 @@ export interface PlaceCashbackInput {
   userId: string;
   /** Pre-discount subtotal from the pricing quote. */
   subtotal: number;
+  /** Merchandise subtotal after all price and coupon discounts. */
+  discountedSubtotal?: number;
   /** Wallet-paid portion (Option B: excluded from cashback base). */
   walletRedemption: number;
   couponCode?: string;
+  items?: CashbackLineItem[];
+}
+
+export interface CashbackLineItem {
+  productId: string;
+  quantity: number;
+  unitPrice: number;
 }
 
 export class CashbackService {
@@ -42,14 +51,18 @@ export class CashbackService {
   async preview(input: {
     userId: string;
     subtotal: number;
+    discountedSubtotal?: number;
     walletRedemption: number;
     couponCode?: string;
+    items?: CashbackLineItem[];
   }): Promise<CashbackPreviewResult> {
-    const cashbackBase = Math.max(0, input.subtotal - input.walletRedemption);
+    const merchandiseBase = input.discountedSubtotal ?? input.subtotal;
+    const cashbackBase = Math.max(0, merchandiseBase - input.walletRedemption);
     const applicablePolicies = await this.resolveApplicablePolicies(
       input.userId,
       cashbackBase,
-      input.couponCode
+      input.couponCode,
+      input.items
     );
 
     if (applicablePolicies.length === 0) {
@@ -78,11 +91,13 @@ export class CashbackService {
    * scheduled for later (delivery event or cron job).
    */
   async createEarnings(input: PlaceCashbackInput): Promise<void> {
-    const cashbackBase = Math.max(0, input.subtotal - input.walletRedemption);
+    const merchandiseBase = input.discountedSubtotal ?? input.subtotal;
+    const cashbackBase = Math.max(0, merchandiseBase - input.walletRedemption);
     const policies = await this.resolveApplicablePolicies(
       input.userId,
       cashbackBase,
-      input.couponCode
+      input.couponCode,
+      input.items
     );
 
     for (const policy of policies) {
@@ -209,6 +224,9 @@ export class CashbackService {
           );
           // Only mark reversed AFTER wallet reversal confirms success.
           await earningRepo.updateStatus(earning._id.toString(), 'reversed');
+          if (earning.policyId) {
+            await policyRepo.decrementUsedBudget(earning.policyId.toString(), earning.cashbackAmount);
+          }
         } catch (err) {
           // Leave in 'credited' state — manual reconciliation required.
           logger.error('[cashback] wallet reversal failed, earning NOT marked reversed', {
@@ -308,14 +326,15 @@ export class CashbackService {
   private async resolveApplicablePolicies(
     userId: string,
     cashbackBase: number,
-    couponCode?: string
+    couponCode?: string,
+    items: CashbackLineItem[] = []
   ): Promise<ICashbackPolicy[]> {
     const applicable: ICashbackPolicy[] = [];
 
     // 1. Check for an attached policy linked to the coupon code
     if (couponCode) {
       const attached = await policyRepo.findActiveByCoupon(couponCode);
-      if (attached && this.isEligible(attached, cashbackBase, userId) && !this.isBudgetExhausted(attached)) {
+      if (attached && this.isEligible(attached, cashbackBase, userId, items) && !this.isBudgetExhausted(attached)) {
         const uses = await earningRepo.countUserEarnings(userId, attached._id.toString());
         if (attached.maxUsesPerUser === 0 || uses < attached.maxUsesPerUser) {
           applicable.push(attached);
@@ -326,7 +345,7 @@ export class CashbackService {
     // 2. Check standalone policies (stack on top of attached)
     const standalone = await policyRepo.findActiveStandalone();
     for (const policy of standalone) {
-      if (!this.isEligible(policy, cashbackBase, userId)) continue;
+      if (!this.isEligible(policy, cashbackBase, userId, items)) continue;
       if (this.isBudgetExhausted(policy)) continue;
       const uses = await earningRepo.countUserEarnings(userId, policy._id.toString());
       if (policy.maxUsesPerUser > 0 && uses >= policy.maxUsesPerUser) continue;
@@ -336,12 +355,21 @@ export class CashbackService {
     return applicable;
   }
 
-  private isEligible(policy: ICashbackPolicy, cashbackBase: number, userId: string): boolean {
+  private isEligible(
+    policy: ICashbackPolicy,
+    cashbackBase: number,
+    userId: string,
+    items: CashbackLineItem[]
+  ): boolean {
     if (policy.minOrderAmount && cashbackBase < policy.minOrderAmount) return false;
     // If the policy targets specific users, the placing user must be on the list
     if (policy.allowedUserIds?.length > 0) {
       const allowed = policy.allowedUserIds.some((id) => id.toString() === userId);
       if (!allowed) return false;
+    }
+    if (policy.scope === 'specific_products') {
+      const targets = new Set(policy.scopeIds ?? []);
+      if (!items.some((item) => targets.has(item.productId))) return false;
     }
     return true;
   }

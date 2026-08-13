@@ -6,7 +6,6 @@ import { validate } from '../../../shared/middleware/validate.middleware';
 import {
   createProductSchema, updateProductSchema,
   createVariantSchema, updateVariantSchema,
-  createCategorySchema, updateCategorySchema,
   createAttributeSchema, createTagSchema, createCollectionSchema,
 } from '../validators';
 import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
@@ -103,7 +102,6 @@ export class CatalogController {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const filter: Record<string, unknown> = {};
-      if (req.query.categoryId) filter.categoryIds = req.query.categoryId;
       if (req.query.tagId) filter.tagIds = req.query.tagId;
       if (req.query.brand) filter.brand = req.query.brand;
       const result = await catalogService.listPublished(page, limit, filter);
@@ -159,53 +157,6 @@ export class CatalogController {
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try { await catalogService.deactivateVariant(req.params.id); return success(res, { deactivated: true }); }
-      catch (err) { next(err); }
-    },
-  ];
-
-  // ─── Categories ───────────────────────────────────────────────
-  createCategory = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
-    validate(createCategorySchema),
-    async (req: AuthedRequest, res: Response, next: NextFunction) => {
-      try { return created(res, await catalogService.createCategory(req.body)); }
-      catch (err) { next(err); }
-    },
-  ];
-
-  getCategory = async (req: AuthedRequest, res: Response, next: NextFunction) => {
-    try { return success(res, await catalogService.getCategory(req.params.id)); }
-    catch (err) { next(err); }
-  };
-
-  getCategoryTree = async (_req: AuthedRequest, res: Response, next: NextFunction) => {
-    try { return success(res, await catalogService.getCategoryTree()); }
-    catch (err) { next(err); }
-  };
-
-  getCategoryChildren = async (req: AuthedRequest, res: Response, next: NextFunction) => {
-    try { return success(res, await catalogService.getCategoryChildren(req.params.id)); }
-    catch (err) { next(err); }
-  };
-
-  listCategories = async (_req: AuthedRequest, res: Response, next: NextFunction) => {
-    try { return success(res, await catalogService.listCategories()); }
-    catch (err) { next(err); }
-  };
-
-  listCategoriesAdmin = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
-    async (_req: AuthedRequest, res: Response, next: NextFunction) => {
-      try { return success(res, await catalogService.listCategoriesAdmin()); }
-      catch (err) { next(err); }
-    },
-  ];
-
-  updateCategory = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
-    validate(updateCategorySchema),
-    async (req: AuthedRequest, res: Response, next: NextFunction) => {
-      try { return success(res, await catalogService.updateCategory(req.params.id, req.body)); }
       catch (err) { next(err); }
     },
   ];

@@ -1,6 +1,6 @@
 import { RewardRepository } from '../repositories/reward.repository';
 import { ReferralRepository } from '../repositories/referral.repository';
-import { CampaignRepository } from '../repositories/campaign.repository';
+import { ProgramRepository } from '../repositories/program.repository';
 import { MilestoneService } from './milestone.service';
 import { RewardType } from '../../../shared/enums';
 import { eventBus, Events } from '../../../shared/services/eventBus.service';
@@ -11,12 +11,12 @@ import mongoose from 'mongoose';
 
 const rewardRepo = new RewardRepository();
 const referralRepo = new ReferralRepository();
-const campaignRepo = new CampaignRepository();
+const programRepo = new ProgramRepository();
 const milestoneService = new MilestoneService();
 
 /**
  * Grants referrer + referee rewards when a referral becomes eligible.
- * Reward type defaults to wallet credit (also issues coupons via promotion module).
+ * Reward type defaults to wallet credit and can also issue discount codes.
  */
 export class RewardService {
   async grant(referralId: string) {
@@ -33,15 +33,15 @@ export class RewardService {
       return;
     }
 
-    const campaign = referral.campaignId
-      ? await campaignRepo.findById(referral.campaignId.toString())
-      : await campaignRepo.findActive();
+    const program = referral.programId
+      ? await programRepo.findById(referral.programId.toString())
+      : await programRepo.findActive();
 
-    const referrerRewardConfig = campaign?.referrerReward ?? {
+    const referrerRewardConfig = program?.referrerReward ?? {
       type: RewardType.WALLET_CREDIT,
       amount: env.referral.defaultReferrerReward,
     };
-    const refereeRewardConfig = campaign?.refereeReward ?? {
+    const refereeRewardConfig = program?.refereeReward ?? {
       type: RewardType.WALLET_CREDIT,
       amount: env.referral.defaultRefereeReward,
     };
@@ -77,7 +77,7 @@ export class RewardService {
       rewardRefereeId: refereeReward._id,
     });
 
-    // Issue coupons if applicable (via promotion module — would publish another event)
+    // Issue discount codes when the referral program calls for them.
     if (referrerRewardConfig.type === RewardType.COUPON && referrerRewardConfig.couponCode) {
       logger.info(`[reward] coupon ${referrerRewardConfig.couponCode} issued to referrer ${referral.referrerId}`);
     }

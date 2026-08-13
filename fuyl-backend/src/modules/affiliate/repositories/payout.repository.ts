@@ -18,15 +18,15 @@ export class PayoutRepository {
     return AffiliatePayoutModel.findByIdAndUpdate(id, { $set: patch }, { new: true });
   }
 
-  async paginate(page = 1, limit = 20) {
+  async paginate(page = 1, limit = 20, filter: Record<string, unknown> = {}) {
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
-      AffiliatePayoutModel.find()
+      AffiliatePayoutModel.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .populate('affiliateId', 'name email'),
-      AffiliatePayoutModel.countDocuments(),
+      AffiliatePayoutModel.countDocuments(filter),
     ]);
     return { items, total, page, limit };
   }

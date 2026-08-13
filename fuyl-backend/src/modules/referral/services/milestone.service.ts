@@ -1,5 +1,5 @@
 import { ReferralRepository } from '../repositories/referral.repository';
-import { CampaignRepository } from '../repositories/campaign.repository';
+import { ProgramRepository } from '../repositories/program.repository';
 import { RewardRepository } from '../repositories/reward.repository';
 import { ReferralStatus, RewardType } from '../../../shared/enums';
 import { addDays } from '../../../shared/utils';
@@ -8,7 +8,7 @@ import { logger } from '../../../config/logger';
 import mongoose from 'mongoose';
 
 const referralRepo = new ReferralRepository();
-const campaignRepo = new CampaignRepository();
+const programRepo = new ProgramRepository();
 const rewardRepo = new RewardRepository();
 
 /**
@@ -17,15 +17,15 @@ const rewardRepo = new RewardRepository();
  */
 export class MilestoneService {
   async checkAndGrant(referrerId: string) {
-    const campaign = await campaignRepo.findActive();
-    if (!campaign || !campaign.milestoneBonuses?.length) return { awarded: false };
+    const program = await programRepo.findActive();
+    if (!program || !program.milestoneBonuses?.length) return { awarded: false };
 
     const rewardedCount = await referralRepo.countByReferrer(referrerId, ReferralStatus.REWARDED);
     const totalEarned = await rewardRepo.totalEarnedByUser(referrerId);
 
     // Check if there's a milestone at exactly this count that hasn't been granted yet.
     // We grant the bonus when the count exactly hits the threshold (idempotent: only on threshold match).
-    const hitMilestone = campaign.milestoneBonuses.find((m) => m.threshold === rewardedCount);
+    const hitMilestone = program.milestoneBonuses.find((m) => m.threshold === rewardedCount);
     if (!hitMilestone) return { awarded: false };
 
     // Idempotency: check if a milestone reward already exists for this threshold.

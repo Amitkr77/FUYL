@@ -1,9 +1,9 @@
 import { Response, NextFunction } from 'express';
 import { AuthedRequest } from '../../../shared/middleware/auth.middleware';
-import { campaignService } from '../services/campaign.service';
+import { programService } from '../services/program.service';
 import { success, created, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
-import { createCampaignSchema, updateCampaignSchema, reviewFraudSchema } from '../validators';
+import { createProgramSchema, updateProgramSchema, reviewFraudSchema } from '../validators';
 import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
 import { ReferralRepository } from '../repositories/referral.repository';
 import { FraudFlagRepository } from '../repositories/fraudFlag.repository';
@@ -13,53 +13,53 @@ const referralRepo = new ReferralRepository();
 const fraudFlagRepo = new FraudFlagRepository();
 
 export class AdminReferralController {
-  // Campaigns
-  createCampaign = [
+  // Programs
+  createProgram = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
-    validate(createCampaignSchema),
+    validate(createProgramSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        return created(res, await campaignService.create(req.body));
+        return created(res, await programService.create(req.body));
       } catch (err) { next(err); }
     },
   ];
 
-  listCampaigns = [
+  listPrograms = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 20;
-        const r = await campaignService.list(page, limit);
+        const r = await programService.list(page, limit);
         return paginate(res, r.items, r.total, r.page, r.limit);
       } catch (err) { next(err); }
     },
   ];
 
-  getCampaign = [
+  getProgram = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        return success(res, await campaignService.get(req.params.id));
+        return success(res, await programService.get(req.params.id));
       } catch (err) { next(err); }
     },
   ];
 
-  updateCampaign = [
+  updateProgram = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
-    validate(updateCampaignSchema),
+    validate(updateProgramSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        return success(res, await campaignService.update(req.params.id, req.body));
+        return success(res, await programService.update(req.params.id, req.body));
       } catch (err) { next(err); }
     },
   ];
 
-  deactivateCampaign = [
+  deactivateProgram = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        await campaignService.deactivate(req.params.id);
+        await programService.deactivate(req.params.id);
         return success(res, { deactivated: true });
       } catch (err) { next(err); }
     },

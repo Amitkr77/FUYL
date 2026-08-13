@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { ToggleLeft, ToggleRight, Trash2, Pencil, Tag } from "lucide-react";
 import { CashbackPolicy } from "@/lib/cashback";
-import { updatePolicyAction, deletePolicyAction } from "@/app/(admin)/cashback/actions";
+import { updatePolicyAction, deletePolicyAction } from "@/app/(admin)/discounts-cashback/cashback/actions";
 
 interface Props {
   policies: CashbackPolicy[];
@@ -128,7 +128,7 @@ export function PoliciesTable({ policies: initial }: Props) {
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">
                     <Link
-                      href={`/cashback/${p.id}/edit`}
+                      href={`/discounts-cashback/cashback/${p.id}/edit`}
                       className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
                     >
                       <Pencil className="w-3.5 h-3.5" />

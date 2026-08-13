@@ -1,6 +1,6 @@
 import { RewardType, FraudReason } from '../../../shared/enums';
 
-export interface CreateCampaignInput {
+export interface CreateProgramInput {
   name: string;
   description?: string;
   startsAt?: Date;
@@ -13,7 +13,7 @@ export interface CreateCampaignInput {
   milestoneBonuses?: Array<{ threshold: number; bonusAmount: number }>;
 }
 
-export type UpdateCampaignInput = Partial<CreateCampaignInput>;
+export type UpdateProgramInput = Partial<CreateProgramInput>;
 
 export interface ApplyCodeInput {
   code: string;

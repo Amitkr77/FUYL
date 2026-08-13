@@ -12,6 +12,8 @@ interface BackendStock {
   reorderThreshold: number
   reorderQuantity: number
   productName: string
+  variantName: string | null
+  variantSku: string | null
   updatedAt: string
 }
 
@@ -22,6 +24,8 @@ export interface StockRow {
   sellerId: string
   warehouseId: string
   productName: string
+  variantName: string | null
+  variantSku: string | null
   onHand: number
   reserved: number
   available: number
@@ -37,6 +41,8 @@ function mapStock(s: BackendStock): StockRow {
     sellerId: s.sellerId,
     warehouseId: s.warehouseId,
     productName: s.productName,
+    variantName: s.variantName ?? null,
+    variantSku: s.variantSku ?? null,
     onHand: s.onHand,
     reserved: s.reserved,
     available: s.available,

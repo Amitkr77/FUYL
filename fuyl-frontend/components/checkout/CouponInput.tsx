@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Tag, X, Loader2, Pencil } from 'lucide-react'
-import { validateCoupon } from '@/lib/api/promotion'
+import { validateCoupon } from '@/lib/api/discount'
 import type { CartItem } from '@/types/cart'
 import { getErrorMessage } from '@/lib/api/client'
 
@@ -20,7 +20,7 @@ interface CouponInputProps {
 }
 
 // Works identically for a guest or a logged-in shopper — validate-coupon
-// no longer requires auth (see fuyl-backend's promotion routes), so this
+// no longer requires auth (see fuyl-backend's discount routes), so this
 // can sit in the order summary from the very first render.
 export function CouponInput({ items, token, applied, onApply, onRemove }: CouponInputProps) {
   const [code, setCode] = useState('')

@@ -70,7 +70,6 @@ export interface GeoPoint {
   city:  string | null
 }
 
-export interface CategorySalesRow { category: string; revenue: number; units: number }
 export interface CustomerSegments  { newCustomers: number; repeatCustomers: number }
 export interface OrdersByStatusRow { status: string; count: number }
 
@@ -141,13 +140,6 @@ export async function getUserActivity(limit = 50, range: DateRange = { preset: '
 export async function getGeography(range: DateRange = { preset: '30d' }): Promise<GeoPoint[]> {
   return adminApiFetch<GeoPoint[]>(
     `/admin/analytics/geography${qs(rangeParams(range))}`
-  )
-}
-
-// ─── Category sales ───────────────────────────────────────────────────────────
-export async function getCategorySales(range: DateRange = { preset: '30d' }): Promise<CategorySalesRow[]> {
-  return adminApiFetch<CategorySalesRow[]>(
-    `/admin/analytics/category-sales${qs(rangeParams(range))}`
   )
 }
 

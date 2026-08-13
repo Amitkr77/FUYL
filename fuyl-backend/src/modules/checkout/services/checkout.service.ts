@@ -1,7 +1,7 @@
 import { cartService } from '../../cart/services/cart.service';
 import { orderService } from '../../order/services/order.service';
 import { inventoryService } from '../../inventory/services/inventory.service';
-import { promotionService } from '../../promotion/services/promotion.service';
+import { discountService } from '../../discount/services/discount.service';
 import { pricingService } from '../../pricing/services/pricing.service';
 import { walletService } from '../../wallet/services/wallet.service';
 import { catalogService } from '../../catalog/services/catalog.service';
@@ -58,23 +58,35 @@ class CheckoutService {
 
     // 2. Validate coupon (if provided)
     let couponDiscount = 0;
-    let couponValidation: { valid: boolean; reason?: string; discountAmount?: number; couponCode: string } | null = null;
+    let couponValidation: {
+      valid: boolean;
+      reason?: string;
+      discountAmount?: number;
+      discountType?: string;
+      couponCode: string;
+    } | null = null;
     if (dto.couponCode || cart.couponCode) {
       const code = dto.couponCode ?? cart.couponCode!;
       const isFirstOrder = !(await orderService.hasOrders(userId));
-      couponValidation = await promotionService.validateCoupon(userId, {
-        code,
-        cartSubtotal: quote.subtotal,
-        isFirstOrder,
-        items: cart.items.map((i) => ({
+      const couponItems = await Promise.all(cart.items.map(async (i) => {
+        const product = await catalogService.getProduct(i.productId.toString());
+        return {
           productId: i.productId.toString(),
           variantId: i.variantId?.toString(),
           quantity: i.quantity,
           unitPrice: i.unitPrice,
-        })),
+        };
+      }));
+      couponValidation = await discountService.validateCoupon(userId, {
+        code,
+        cartSubtotal: quote.subtotal,
+        isFirstOrder,
+        items: couponItems,
       });
       if (couponValidation.valid) {
         couponDiscount = couponValidation.discountAmount ?? 0;
+      } else {
+        throw new BadRequestError(couponValidation.reason ?? 'Discount code is not valid');
       }
     }
 
@@ -93,17 +105,35 @@ class CheckoutService {
     if (!shippingResult.serviceable) {
       throw new BadRequestError("Sorry, we don't deliver to this pincode yet.");
     }
-    const shippingCharge = shippingResult.cost;
+    const quotedShippingCharge = shippingResult.cost;
+    const freeShipping = couponValidation?.valid && couponValidation.discountType === 'free_shipping';
+    const shippingDiscount = freeShipping ? quotedShippingCharge : 0;
+    const shippingCharge = Math.max(0, quotedShippingCharge - shippingDiscount);
 
     const grandTotal = quote.grandTotal - couponDiscount + shippingCharge;
+    if (walletRedemption > grandTotal) walletRedemption = grandTotal;
     const remainingAfterWallet = Math.max(0, grandTotal - walletRedemption);
 
     // 5. Cashback preview — show customer what they'll earn on this order
+    const cashbackItems = await Promise.all(cart.items.map(async (item) => {
+      const product = await catalogService.getProduct(item.productId.toString());
+      return {
+        productId: item.productId.toString(),
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      };
+    }));
+    const discountedSubtotal = Math.max(
+      0,
+      quote.subtotal - quote.discountTotal - couponDiscount
+    );
     const cashbackPreview = await cashbackService.preview({
       userId,
       subtotal:        quote.subtotal,
+      discountedSubtotal,
       walletRedemption,
       couponCode:      dto.couponCode ?? (cart as any).couponCode,
+      items: cashbackItems,
     }).catch(() => ({ eligible: false, policies: [], totalCashback: 0 }));
 
     return {
@@ -113,6 +143,7 @@ class CheckoutService {
       pricing: quote,
       coupon: couponValidation,
       couponDiscount,
+      shippingDiscount: Math.round(shippingDiscount * 100) / 100,
       walletRedemption,
       shippingTotal: Math.round(shippingCharge * 100) / 100,
       grandTotal: Math.round(grandTotal * 100) / 100,
@@ -185,6 +216,7 @@ class CheckoutService {
           productId: i.productId.toString(),
           variantId: i.variantId?.toString(),
           sellerId: product.sellerId?.toString() ?? '',
+          unitPrice: i.unitPrice,
           quantity: i.quantity,
         };
       })
@@ -247,6 +279,9 @@ class CheckoutService {
         shippingAddress: preview.shippingAddress as any,
         billingAddress: preview.billingAddress as any,
         shippingTotal: preview.shippingTotal,
+        discountTotal: preview.pricing.discountTotal + preview.couponDiscount,
+        couponCode: preview.coupon?.valid ? preview.coupon.couponCode : undefined,
+        walletRedemption: preview.walletRedemption,
         notes: dto.notes,
         affiliateId:              attribution?.affiliateId,
         affiliateAttributionId:   attribution?.attributionId,
@@ -289,12 +324,12 @@ class CheckoutService {
     }
 
     // 6. Apply coupon redemption
-    if (preview.coupon?.valid && preview.couponDiscount > 0) {
-      await promotionService.redeem(
+    if (preview.coupon?.valid) {
+      await discountService.redeem(
         userId,
         preview.coupon.couponCode,
         order._id.toString(),
-        preview.couponDiscount,
+        preview.couponDiscount + (preview.shippingDiscount ?? 0),
         preview.cart._id.toString()
       );
     }
@@ -306,6 +341,15 @@ class CheckoutService {
       subtotal:         preview.pricing.subtotal,
       walletRedemption: preview.walletRedemption,
       couponCode:       preview.coupon?.couponCode,
+      discountedSubtotal: Math.max(
+        0,
+        preview.pricing.subtotal - preview.pricing.discountTotal - preview.couponDiscount
+      ),
+      items: itemsWithSeller.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      })),
     }).catch((err) => {
       logger.warn('[checkout] cashback earning creation failed (non-blocking)', { orderId: order._id.toString(), err });
     });

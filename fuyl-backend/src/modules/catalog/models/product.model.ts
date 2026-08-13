@@ -57,7 +57,6 @@ export interface IProduct extends Document {
   description?: string;
   brand?: string;
   sellerId?: mongoose.Types.ObjectId;
-  categoryIds: mongoose.Types.ObjectId[];
   collectionIds?: mongoose.Types.ObjectId[];
   tagIds?: mongoose.Types.ObjectId[];
   attributeValues: Map<string, string | number | boolean | string[]>;
@@ -111,7 +110,6 @@ const ProductSchema = new Schema<IProduct>(
     description: { type: String },
     brand: { type: String, trim: true, index: true },
     sellerId: { type: Schema.Types.ObjectId, ref: 'User', index: true, sparse: true },
-    categoryIds: [{ type: Schema.Types.ObjectId, ref: 'Category', index: true }],
     collectionIds: [{ type: Schema.Types.ObjectId, ref: 'Collection' }],
     tagIds: [{ type: Schema.Types.ObjectId, ref: 'Tag' }],
     attributeValues: { type: Map, of: Schema.Types.Mixed, default: {} },
@@ -211,7 +209,6 @@ const ProductSchema = new Schema<IProduct>(
 );
 
 ProductSchema.index({ name: 'text', shortDescription: 'text', brand: 'text' });
-ProductSchema.index({ categoryIds: 1, isPublished: 1 });
 ProductSchema.index({ sellerId: 1, isPublished: 1 });
 ProductSchema.index({ isPublished: 1, isFeatured: 1, createdAt: -1 });
 

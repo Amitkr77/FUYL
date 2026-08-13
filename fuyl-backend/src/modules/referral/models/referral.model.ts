@@ -5,7 +5,7 @@ export interface IReferral extends Document {
   referrerId: mongoose.Types.ObjectId;
   refereeId: mongoose.Types.ObjectId;
   code: string;
-  campaignId?: mongoose.Types.ObjectId;
+  programId?: mongoose.Types.ObjectId;
   status: typeof ReferralStatus[keyof typeof ReferralStatus];
   sharedAt: Date;
   appliedAt?: Date;
@@ -29,7 +29,7 @@ const ReferralSchema = new Schema<IReferral>(
     referrerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     refereeId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     code: { type: String, required: true, index: true },
-    campaignId: { type: Schema.Types.ObjectId, ref: 'ReferralCampaign' },
+    programId: { type: Schema.Types.ObjectId, ref: 'ReferralProgram' },
     status: { type: String, enum: Object.values(ReferralStatus), default: ReferralStatus.SHARED, index: true },
     sharedAt: { type: Date, default: Date.now },
     appliedAt: { type: Date },

@@ -12,10 +12,6 @@ router.get('/catalog/products/slug/:slug', authOptional, catalogController.getPr
 router.get('/catalog/products/:productId/variants', authOptional, catalogController.listVariantsByProduct);
 router.get('/catalog/variants/:id', authOptional, catalogController.getVariant);
 router.get('/catalog/variants/sku/:sku', authOptional, catalogController.getVariantBySku);
-router.get('/catalog/categories', authOptional, catalogController.listCategories);
-router.get('/catalog/categories/tree', authOptional, catalogController.getCategoryTree);
-router.get('/catalog/categories/:id', authOptional, catalogController.getCategory);
-router.get('/catalog/categories/:id/children', authOptional, catalogController.getCategoryChildren);
 router.get('/catalog/tags', authOptional, catalogController.listTags);
 router.get('/catalog/attributes', authOptional, catalogController.listAttributes);
 router.get('/catalog/attributes/filterable', authOptional, catalogController.listFilterableAttributes);
@@ -36,11 +32,7 @@ router.post('/admin/catalog/variants', authRequired, catalogController.createVar
 router.patch('/admin/catalog/variants/:id', authRequired, catalogController.updateVariant);
 router.delete('/admin/catalog/variants/:id', authRequired, catalogController.deactivateVariant);
 
-// ─── Admin: categories, tags, attributes, collections ────────────
-router.get('/admin/catalog/categories', authRequired, catalogController.listCategoriesAdmin);
-router.post('/admin/catalog/categories', authRequired, catalogController.createCategory);
-router.patch('/admin/catalog/categories/:id', authRequired, catalogController.updateCategory);
-
+// ─── Admin: tags, attributes, collections ────────────────────────
 router.post('/admin/catalog/tags', authRequired, catalogController.createTag);
 
 router.post('/admin/catalog/attributes', authRequired, catalogController.createAttribute);

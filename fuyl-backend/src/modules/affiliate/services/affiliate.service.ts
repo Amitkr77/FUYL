@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import { AffiliateRepository } from '../repositories/affiliate.repository';
 import { IAffiliate } from '../models/affiliate.model';
+import { IAffiliateProgram } from '../models/program.model';
+import { AffiliateSettingsModel, IAffiliateSettings } from '../models/settings.model';
 import { ProgramRepository } from '../repositories/program.repository';
 import { LinkRepository } from '../repositories/link.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
@@ -26,10 +28,12 @@ export class AffiliateService {
     userId?:  string;
     message?: string;
   }) {
+    const settings = await AffiliateSettingsModel.findOneAndUpdate({ key: 'default' }, { $setOnInsert: { key: 'default' } }, { upsert: true, new: true });
+    if (!settings.registrationEnabled) throw new BadRequestError('Affiliate registration is currently closed');
     const existing = await affiliateRepo.findByEmail(input.email);
     if (existing) throw new ConflictError('An application with this email already exists');
 
-    const program = await programRepo.findActive();
+    const program = settings.defaultProgramId ? await programRepo.findById(settings.defaultProgramId) : await programRepo.findActive();
     if (!program) throw new BadRequestError('No active affiliate program at this time');
 
     const affiliate = await affiliateRepo.create({
@@ -39,8 +43,11 @@ export class AffiliateService {
       channels:  input.channels,
       userId:    input.userId ? new mongoose.Types.ObjectId(input.userId) : undefined,
       programId: program._id,
-      status:    AffiliateStatus.PENDING,
+      status:    settings.autoApprove ? AffiliateStatus.APPROVED : AffiliateStatus.PENDING,
+      ...(settings.autoApprove ? { approvedAt: new Date() } : {}),
     });
+
+    if (settings.autoApprove) { const code=await this.generateUniqueCode(affiliate.name); await linkRepo.create({affiliateId:affiliate._id,code,destination:'/',label:'Default'}); }
 
     logger.info(`[affiliate] new application: ${affiliate.email} (${affiliate._id})`);
     return affiliate;
@@ -227,13 +234,141 @@ export class AffiliateService {
 
   // ─── Admin helpers ────────────────────────────────────────────────────────
 
-  async adminList(page: number, limit: number, status?: string) {
-    const filter = status ? { status } : {};
-    return affiliateRepo.paginate(filter, page, limit);
+  async adminList(input: { page: number; limit: number; status?: string; programId?: string; search?: string; sort?: string; direction?: string }) {
+    const filter: Record<string, unknown> = {};
+    if (input.status) filter.status = input.status;
+    if (input.programId) filter.programId = input.programId;
+    if (input.search) {
+      const escaped = input.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.$or = [
+        { name: { $regex: escaped, $options: 'i' } },
+        { email: { $regex: escaped, $options: 'i' } },
+        { phone: { $regex: escaped, $options: 'i' } },
+      ];
+    }
+    const allowedSort = new Set(['createdAt', 'name', 'status', 'stats.totalClicks', 'stats.totalOrders', 'stats.totalRevenue']);
+    const sortField = allowedSort.has(input.sort ?? '') ? input.sort! : 'createdAt';
+    return affiliateRepo.paginate(filter, input.page, input.limit, { [sortField]: input.direction === 'asc' ? 1 : -1 });
+  }
+
+  async adminDetail(affiliateId: string) {
+    const affiliate = await affiliateRepo.adminDetail(affiliateId);
+    if (!affiliate) throw new NotFoundError('Affiliate');
+    const [links, commissions, payouts] = await Promise.all([
+      linkRepo.findByAffiliate(affiliateId),
+      commissionRepo.findByAffiliate(affiliateId),
+      payoutRepo.findByAffiliate(affiliateId),
+    ]);
+    const siteUrl = process.env.CLIENT_URL ?? 'http://localhost:3000';
+    return {
+      affiliate,
+      links: links.map((link) => ({ ...link.toObject(), trackingUrl: `${siteUrl}/r/${link.code}` })),
+      commissions,
+      payouts,
+    };
+  }
+
+  async adminCreate(input: { name: string; email: string; phone?: string; channels?: string[]; programId?: string; status?: string }) {
+    if (!input.name?.trim() || !input.email?.trim()) throw new BadRequestError('name and email are required');
+    if (await affiliateRepo.findByEmail(input.email)) throw new ConflictError('An affiliate with this email already exists');
+    const program = input.programId ? await programRepo.findById(input.programId) : await programRepo.findActive();
+    if (!program) throw new BadRequestError('An active affiliate program is required');
+    const approved = input.status === AffiliateStatus.APPROVED;
+    const affiliate = await affiliateRepo.create({
+      name: input.name.trim(), email: input.email.trim().toLowerCase(), phone: input.phone?.trim(),
+      channels: input.channels ?? [], programId: program._id,
+      status: approved ? AffiliateStatus.APPROVED : AffiliateStatus.PENDING,
+      ...(approved ? { approvedAt: new Date() } : {}),
+    });
+    if (approved) {
+      const code = await this.generateUniqueCode(affiliate.name);
+      await linkRepo.create({ affiliateId: affiliate._id, code, destination: '/', label: 'Default' });
+    }
+    return affiliate;
+  }
+
+  async adminUpdate(affiliateId: string, patch: { name?: string; phone?: string; channels?: string[]; programId?: string; paymentInfo?: IAffiliate['paymentInfo'] }) {
+    const affiliate = await affiliateRepo.findById(affiliateId);
+    if (!affiliate) throw new NotFoundError('Affiliate');
+    if (patch.programId && !(await programRepo.findById(patch.programId))) throw new NotFoundError('Affiliate program');
+    return affiliateRepo.update(affiliateId, patch as Partial<IAffiliate>);
+  }
+
+  async adminReview(affiliateId: string, input: { internalNote?: string; fraudStatus?: 'clear'|'review'|'blocked'; fraudNote?: string }, actorId: string) {
+    const affiliate=await affiliateRepo.findById(affiliateId);if(!affiliate)throw new NotFoundError('Affiliate');
+    return affiliateRepo.update(affiliateId,{metadata:{...(affiliate.metadata??{}),internalNote:input.internalNote??(affiliate.metadata as any)?.internalNote,fraudReview:{status:input.fraudStatus??(affiliate.metadata as any)?.fraudReview?.status??'clear',note:input.fraudNote??(affiliate.metadata as any)?.fraudReview?.note,reviewedAt:new Date(),reviewedBy:actorId}}});
+  }
+
+  async adminCreateLink(affiliateId:string,input:{destination:string;label?:string}){return this.createLink(affiliateId,input)}
+  async adminUpdateLink(affiliateId:string,linkId:string,input:{destination?:string;label?:string;isActive?:boolean}){const link=await linkRepo.findById(linkId);if(!link||link.affiliateId.toString()!==affiliateId)throw new NotFoundError('Affiliate link');if(input.destination!==undefined){const d=input.destination.trim();if(!d.startsWith('/')||d.includes('://')||d.length>500)throw new BadRequestError('destination must be a relative path starting with /');}return linkRepo.update(linkId,input)}
+
+  async affiliateSettings(publicOnly=false){const settings=await AffiliateSettingsModel.findOneAndUpdate({key:'default'},{$setOnInsert:{key:'default'}},{upsert:true,new:true}).populate('defaultProgramId','name defaultRate');if(publicOnly)return {registrationEnabled:settings.registrationEnabled,signupTitle:settings.signupTitle,signupIntroduction:settings.signupIntroduction,termsUrl:settings.termsUrl,requiredFields:settings.requiredFields,defaultProgram:settings.defaultProgramId};return settings}
+  async updateAffiliateSettings(input:Partial<IAffiliateSettings>){if(input.defaultProgramId&&!(await programRepo.findById(input.defaultProgramId)))throw new NotFoundError('Affiliate program');return AffiliateSettingsModel.findOneAndUpdate({key:'default'},{$set:{registrationEnabled:input.registrationEnabled,autoApprove:input.autoApprove,defaultProgramId:input.defaultProgramId,signupTitle:input.signupTitle,signupIntroduction:input.signupIntroduction,termsUrl:input.termsUrl,requiredFields:input.requiredFields,notificationEmail:input.notificationEmail}},{upsert:true,new:true,runValidators:true})}
+
+  async reactivate(affiliateId: string, actorId: string) {
+    const affiliate = await affiliateRepo.findById(affiliateId);
+    if (!affiliate) throw new NotFoundError('Affiliate');
+    if (![AffiliateStatus.SUSPENDED, AffiliateStatus.REJECTED].includes(affiliate.status as any)) throw new ConflictError('Only suspended or rejected affiliates can be reactivated');
+    const updated = await affiliateRepo.update(affiliateId, { status: AffiliateStatus.APPROVED, approvedAt: new Date(), suspendedReason: undefined, rejectedReason: undefined });
+    if ((await linkRepo.findByAffiliate(affiliateId)).length === 0) {
+      const code = await this.generateUniqueCode(affiliate.name);
+      await linkRepo.create({ affiliateId: affiliate._id, code, destination: '/', label: 'Default' });
+    }
+    logger.info(`[affiliate] reactivated: ${affiliateId} by ${actorId}`);
+    return updated;
   }
 
   async adminStats() {
     return affiliateRepo.adminStats();
+  }
+
+  async adminPrograms() {
+    const programs = await programRepo.listAll();
+    return Promise.all(programs.map(async (program) => ({ ...program.toObject(), affiliateCount: await affiliateRepo.countByProgram(program._id) })));
+  }
+
+  async adminProgram(id: string) {
+    const program = await programRepo.findById(id);
+    if (!program) throw new NotFoundError('Affiliate program');
+    return { ...program.toObject(), affiliateCount: await affiliateRepo.countByProgram(id) };
+  }
+
+  async createProgram(input: Partial<IAffiliateProgram>) {
+    if (!input.name?.trim()) throw new BadRequestError('Program name is required');
+    if (input.defaultRate === undefined || input.defaultRate < 0 || input.defaultRate > 100) throw new BadRequestError('Default rate must be between 0 and 100');
+    const program = await programRepo.create({
+      name: input.name.trim(), description: input.description?.trim(), isActive: input.isActive ?? true,
+      isDefault: false, defaultRate: input.defaultRate, commissionBase: input.commissionBase ?? 'subtotal',
+      attributionWindowDays: input.attributionWindowDays ?? 30, tiers: input.tiers ?? [],
+      minPayoutAmount: input.minPayoutAmount ?? 500, autoApproveAfterDays: input.autoApproveAfterDays ?? 7,
+    });
+    const existing = await programRepo.listAll();
+    if (input.isDefault || existing.length === 1) return programRepo.setDefault(program._id);
+    return program;
+  }
+
+  async updateProgram(id: string, input: Partial<IAffiliateProgram>) {
+    const existing = await programRepo.findById(id);
+    if (!existing) throw new NotFoundError('Affiliate program');
+    if (input.defaultRate !== undefined && (input.defaultRate < 0 || input.defaultRate > 100)) throw new BadRequestError('Default rate must be between 0 and 100');
+    const patch = { ...input };
+    delete patch.isDefault;
+    const updated = await programRepo.update(id, patch);
+    if (input.isDefault) return programRepo.setDefault(id);
+    return updated;
+  }
+
+  async setDefaultProgram(id: string) {
+    if (!(await programRepo.findById(id))) throw new NotFoundError('Affiliate program');
+    return programRepo.setDefault(id);
+  }
+
+  async deleteProgram(id: string) {
+    const program = await programRepo.findById(id);
+    if (!program) throw new NotFoundError('Affiliate program');
+    if (program.isDefault) throw new ConflictError('The default program cannot be deleted');
+    if (await affiliateRepo.countByProgram(id)) throw new ConflictError('Move affiliates to another program before deleting this program');
+    await programRepo.delete(id);
   }
 
   // ─── Internals ────────────────────────────────────────────────────────────

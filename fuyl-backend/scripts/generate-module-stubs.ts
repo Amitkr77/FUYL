@@ -21,7 +21,7 @@ const modules = [
   { name: 'catalog',      collections: ['products', 'variants', 'categories', 'collections', 'tags', 'attributes'] },
   { name: 'inventory',    collections: ['inventories', 'warehouses', 'batches', 'stock_movements'] },
   { name: 'pricing',      collections: ['price_rules', 'tax_rules', 'price_books'] },
-  { name: 'promotion',    collections: ['coupons', 'campaigns', 'gift_cards'] },
+  { name: 'discount',     collections: ['discounts', 'coupon_redemptions'] },
   { name: 'cart',         collections: ['carts', 'wishlists'] },
   { name: 'checkout',     collections: ['checkout_sessions'] },
   { name: 'order',        collections: ['orders', 'returns', 'refunds', 'invoices'] },

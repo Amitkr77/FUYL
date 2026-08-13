@@ -1,4 +1,4 @@
-export { CampaignService, campaignService } from './campaign.service';
+export { ProgramService, programService } from './program.service';
 export { CodeService, codeService } from './code.service';
 export { FraudService, fraudService } from './fraud.service';
 export { ReferralService, referralService } from './referral.service';

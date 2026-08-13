@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { RewardType, FraudReason } from '../../../shared/enums';
 
-export const createCampaignSchema = z.object({
+export const createProgramSchema = z.object({
   name: z.string().min(2).max(100),
   description: z.string().max(500).optional(),
   startsAt: z.coerce.date().optional(),
@@ -25,7 +25,7 @@ export const createCampaignSchema = z.object({
   })).default([]),
 });
 
-export const updateCampaignSchema = createCampaignSchema.partial();
+export const updateProgramSchema = createProgramSchema.partial();
 
 export const applyCodeSchema = z.object({
   code: z.string().min(4).max(50).trim().toLowerCase(),
@@ -45,8 +45,8 @@ export const shareSchema = z.object({
   to: z.string().optional(),
 });
 
-export type CreateCampaignDTO = z.infer<typeof createCampaignSchema>;
-export type UpdateCampaignDTO = z.infer<typeof updateCampaignSchema>;
+export type CreateProgramDTO = z.infer<typeof createProgramSchema>;
+export type UpdateProgramDTO = z.infer<typeof updateProgramSchema>;
 export type ApplyCodeDTO = z.infer<typeof applyCodeSchema>;
 export type ReviewFraudDTO = z.infer<typeof reviewFraudSchema>;
 export type ShareDTO = z.infer<typeof shareSchema>;

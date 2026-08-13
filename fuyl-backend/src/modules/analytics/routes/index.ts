@@ -21,7 +21,6 @@ router.get('/admin/analytics/heatmap',              ...adminGuard, analyticsCont
 router.get('/admin/analytics/devices',              ...adminGuard, analyticsController.deviceBreakdown);
 router.get('/admin/analytics/user-activity',        ...adminGuard, analyticsController.userActivity);
 router.get('/admin/analytics/geography',            ...adminGuard, analyticsController.geography);
-router.get('/admin/analytics/category-sales',       ...adminGuard, analyticsController.categorySales);
 router.get('/admin/analytics/customer-segments',    ...adminGuard, analyticsController.customerSegments);
 router.get('/admin/analytics/orders-by-status',     ...adminGuard, analyticsController.ordersByStatus);
 router.get('/admin/analytics/top-products',         ...adminGuard, analyticsController.topProducts);

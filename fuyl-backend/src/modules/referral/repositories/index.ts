@@ -1,4 +1,4 @@
-export { CampaignRepository } from './campaign.repository';
+export { ProgramRepository } from './program.repository';
 export { CodeRepository } from './code.repository';
 export { ReferralRepository } from './referral.repository';
 export { RewardRepository } from './reward.repository';

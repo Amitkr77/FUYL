@@ -10,7 +10,7 @@ export const metadata = generateSEO({
 
 // BUG FIXED (per explicit request): this used to embed a third-party
 // iframe (SITE.referral) instead of the custom referral module — which
-// was already fully built and tested on the backend (codes, campaigns,
+// was already fully built and tested on the backend (codes, referral programs,
 // rewards, fraud checks) but never surfaced as a real storefront page.
 export default function ReferAndEarnPage() {
   return <ReferAndEarnClient />;

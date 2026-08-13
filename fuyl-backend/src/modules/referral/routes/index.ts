@@ -14,12 +14,12 @@ router.get('/referrals/me/list', authRequired, referralController.listMine);
 router.get('/referrals/me/rewards', authRequired, referralController.listMyRewards);
 router.post('/referrals/share', authRequired, referralController.share);
 
-// ─── Admin: campaigns ──────────────────────────────────────────────
-router.post('/admin/referrals/campaigns', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), adminReferralController.createCampaign);
-router.get('/admin/referrals/campaigns', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), adminReferralController.listCampaigns);
-router.get('/admin/referrals/campaigns/:id', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), adminReferralController.getCampaign);
-router.patch('/admin/referrals/campaigns/:id', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), adminReferralController.updateCampaign);
-router.delete('/admin/referrals/campaigns/:id', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), adminReferralController.deactivateCampaign);
+// ─── Admin: programs ──────────────────────────────────────────────
+router.post('/admin/referrals/programs', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), adminReferralController.createProgram);
+router.get('/admin/referrals/programs', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), adminReferralController.listPrograms);
+router.get('/admin/referrals/programs/:id', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), adminReferralController.getProgram);
+router.patch('/admin/referrals/programs/:id', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), adminReferralController.updateProgram);
+router.delete('/admin/referrals/programs/:id', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), adminReferralController.deactivateProgram);
 
 // ─── Admin: dashboard & list ───────────────────────────────────────
 router.get('/admin/referrals/stats', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), adminReferralController.stats);

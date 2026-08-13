@@ -64,6 +64,13 @@ export class CashbackPolicyRepository {
     await CashbackPolicyModel.updateOne({ _id: id }, { $inc: { usedBudget: amount } });
   }
 
+  async decrementUsedBudget(id: string, amount: number): Promise<void> {
+    await CashbackPolicyModel.updateOne(
+      { _id: id },
+      [{ $set: { usedBudget: { $max: [0, { $subtract: ['$usedBudget', amount] }] } } }]
+    );
+  }
+
   async delete(id: string): Promise<void> {
     await CashbackPolicyModel.findByIdAndDelete(id);
   }

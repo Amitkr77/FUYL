@@ -203,45 +203,6 @@ class AnalyticsQueryService {
     }));
   }
 
-  /** Category-wise sales aggregated from order items via product lookup. */
-  async categorySales(days = 30, from?: string, to?: string) {
-    const { since, until } = dateRange(days, from, to);
-    const results = await OrderModel.aggregate([
-      { $match: { createdAt: { $gte: since, $lte: until }, status: { $nin: ['cancelled', 'returned'] } } },
-      { $unwind: '$items' },
-      {
-        $lookup: {
-          from: 'products',
-          localField: 'items.productId',
-          foreignField: '_id',
-          as: 'product',
-          pipeline: [{ $project: { categoryId: 1, name: 1 } }],
-        },
-      },
-      { $unwind: { path: '$product', preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: 'categories',
-          localField: 'product.categoryId',
-          foreignField: '_id',
-          as: 'category',
-          pipeline: [{ $project: { name: 1 } }],
-        },
-      },
-      { $unwind: { path: '$category', preserveNullAndEmptyArrays: true } },
-      {
-        $group: {
-          _id:     { $ifNull: ['$category.name', 'Uncategorized'] },
-          revenue: { $sum: '$items.totalPrice' },
-          units:   { $sum: '$items.quantity' },
-        },
-      },
-      { $sort: { revenue: -1 } },
-      { $limit: 10 },
-    ]);
-    return results.map((r) => ({ category: r._id as string, revenue: r.revenue, units: r.units }));
-  }
-
   /** Repeat vs new customers breakdown. */
   async customerSegments(days = 30, from?: string, to?: string) {
     const { since, until } = dateRange(days, from, to);

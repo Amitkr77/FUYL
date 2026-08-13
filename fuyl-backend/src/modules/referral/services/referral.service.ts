@@ -1,6 +1,6 @@
 import { ReferralRepository } from '../repositories/referral.repository';
 import { CodeRepository } from '../repositories/code.repository';
-import { CampaignRepository } from '../repositories/campaign.repository';
+import { ProgramRepository } from '../repositories/program.repository';
 import { FraudFlagRepository } from '../repositories/fraudFlag.repository';
 import { RewardRepository } from '../repositories/reward.repository';
 import { FraudService } from './fraud.service';
@@ -19,7 +19,7 @@ import mongoose from 'mongoose';
 
 const referralRepo = new ReferralRepository();
 const codeRepo = new CodeRepository();
-const campaignRepo = new CampaignRepository();
+const programRepo = new ProgramRepository();
 const fraudFlagRepo = new FraudFlagRepository();
 const rewardRepo = new RewardRepository();
 const fraudService = new FraudService();
@@ -47,16 +47,16 @@ export class ReferralService {
       throw new ConflictError('Referee already has an active referral');
     }
 
-    const campaign = code.campaignId
-      ? await campaignRepo.findById(code.campaignId.toString())
-      : await campaignRepo.findActive();
+    const program = code.programId
+      ? await programRepo.findById(code.programId.toString())
+      : await programRepo.findActive();
 
     // Create the referral record
     const referral = await referralRepo.create({
       referrerId: code.referrerId,
       refereeId: new mongoose.Types.ObjectId(input.refereeId),
       code: code.code,
-      campaignId: campaign?._id,
+      programId: program?._id,
       status: ReferralStatus.APPLIED,
       appliedAt: new Date(),
       metadata: {
@@ -135,7 +135,7 @@ export class ReferralService {
 
   /**
    * Called when a referee places their first order — set firstOrderId + firstOrderAt.
-   * Reward is NOT yet granted (depends on campaign.rewardTrigger).
+   * Reward is NOT yet granted (depends on program.rewardTrigger).
    */
   async onOrderPlaced(event: { orderId: string; userId: string }) {
     const referral = await referralRepo.findPendingByReferee(event.userId);
@@ -145,11 +145,11 @@ export class ReferralService {
       firstOrderAt: new Date(),
     });
 
-    const campaign = referral.campaignId
-      ? await campaignRepo.findById(referral.campaignId.toString())
-      : await campaignRepo.findActive();
+    const program = referral.programId
+      ? await programRepo.findById(referral.programId.toString())
+      : await programRepo.findActive();
 
-    if (campaign?.rewardTrigger === 'order_placed') {
+    if (program?.rewardTrigger === 'order_placed') {
       await this.markEligibleAndReward(referral._id.toString());
     }
   }
@@ -170,11 +170,11 @@ export class ReferralService {
       });
     }
 
-    const campaign = referral.campaignId
-      ? await campaignRepo.findById(referral.campaignId.toString())
-      : await campaignRepo.findActive();
+    const program = referral.programId
+      ? await programRepo.findById(referral.programId.toString())
+      : await programRepo.findActive();
 
-    if (!campaign || campaign.rewardTrigger !== 'order_completed') return;
+    if (!program || program.rewardTrigger !== 'order_completed') return;
 
     await this.markEligibleAndReward(referral._id.toString());
   }

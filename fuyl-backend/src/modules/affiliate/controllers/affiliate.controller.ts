@@ -8,6 +8,7 @@ import { BadRequestError, NotFoundError } from '../../../shared/errors';
 import { env } from '../../../config/env';
 
 export class AffiliateController {
+  async settings(_req: any,res: Response,next: NextFunction){try{res.json({success:true,data:{settings:await affiliateService.affiliateSettings(true)}})}catch(err){next(err)}}
   /** POST /affiliate/apply — public */
   async apply(req: Request, res: Response, next: NextFunction) {
     try {

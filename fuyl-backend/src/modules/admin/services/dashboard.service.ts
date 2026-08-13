@@ -6,8 +6,8 @@ import { ReferralModel } from '../../referral/models/referral.model';
 import { CartModel } from '../../cart/models/cart.model';
 import { ReviewModel } from '../../review/models/review.model';
 import { ProductModel } from '../../catalog/models/product.model';
-import { CampaignModel } from '../../promotion/models/campaign.model';
-import { CouponRedemptionModel } from '../../promotion/models/redemption.model';
+import { DiscountModel } from '../../discount/models/discount.model';
+import { CouponRedemptionModel } from '../../discount/models/redemption.model';
 import { AnalyticsEventModel } from '../../analytics/models/event.model';
 import { InventoryStockModel } from '../../inventory/models/stock.model';
 import { logger } from '../../../config/logger';
@@ -30,7 +30,7 @@ class AdminDashboardService {
       cartsAbandoned,
       reviewsPending,
       productsPublished, productsTotal,
-      campaignsActive,
+      discountsActive,
       lowStockItems,
       couponRedemptions30d,
     ] = await Promise.all([
@@ -62,7 +62,7 @@ class AdminDashboardService {
       ReviewModel.countDocuments({ status: 'pending' }),
       ProductModel.countDocuments({ isPublished: true, isDeleted: false }),
       ProductModel.countDocuments({ isDeleted: false }),
-      CampaignModel.countDocuments({ status: 'active', isActive: true }),
+      DiscountModel.countDocuments({ status: 'active', isActive: true }),
       InventoryStockModel.countDocuments({ $expr: { $lte: ['$available', '$reorderThreshold'] }, reorderThreshold: { $gt: 0 } }),
       CouponRedemptionModel.countDocuments({ appliedAt: { $gte: since30d }, status: 'applied' }),
     ]);
@@ -103,8 +103,8 @@ class AdminDashboardService {
         productsPublished: productsPublished,
         productsTotal: productsTotal,
       },
-      promotions: {
-        activeCampaigns: campaignsActive,
+      discounts: {
+        activeDiscounts: discountsActive,
         couponRedemptions30d: couponRedemptions30d,
       },
       inventory: {

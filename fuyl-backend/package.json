@@ -17,6 +17,7 @@
     "create-admin": "tsx scripts/create-admin.ts",
   "cashfree-check": "tsx scripts/cashfree-sandbox-check.ts",
     "migrate-certifications": "tsx scripts/migrate-certifications.ts",
+    "migrate:discounts": "tsx scripts/migrate-discount-terminology.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

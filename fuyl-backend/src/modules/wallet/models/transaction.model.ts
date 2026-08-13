@@ -13,7 +13,7 @@ export type WalletTxSource =
   | 'order_cashback'
   | 'order_payment'
   | 'order_refund'
-  | 'promotion'
+  | 'discount'
   | 'gift_card'
   | 'topup'
   | 'withdrawal'
@@ -49,7 +49,7 @@ const WalletTransactionSchema = new Schema<IWalletTransaction>(
     source: {
       type: String,
       enum: ['referral', 'subscription_cashback', 'order_cashback', 'order_payment', 'order_refund',
-             'promotion', 'gift_card', 'topup', 'withdrawal', 'admin_adjustment', 'milestone_bonus', 'reversal'],
+             'discount', 'gift_card', 'topup', 'withdrawal', 'admin_adjustment', 'milestone_bonus', 'reversal'],
       required: true,
       index: true,
     },

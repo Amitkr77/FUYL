@@ -1,23 +1,5 @@
 import { z } from 'zod';
 
-export const createCategorySchema = z.object({
-  name: z.string().min(1).max(100),
-  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
-  description: z.string().max(1000).optional(),
-  parentId: z.string().length(24).optional(),
-  imageUrl: z.string().url().optional(),
-  iconUrl: z.string().url().optional(),
-  isActive: z.boolean().default(true),
-  sortOrder: z.number().int().default(0),
-  seo: z.object({
-    metaTitle: z.string().max(200).optional(),
-    metaDescription: z.string().max(500).optional(),
-    keywords: z.array(z.string()).optional(),
-  }).optional(),
-});
-
-export const updateCategorySchema = createCategorySchema.partial();
-
 export const createAttributeSchema = z.object({
   name: z.string().min(1).max(100),
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
@@ -55,7 +37,6 @@ export const createProductSchema = z.object({
   description: z.string().max(10000).optional(),
   brand: z.string().max(100).optional(),
   sellerId: z.string().length(24),
-  categoryIds: z.array(z.string().length(24)).default([]),
   collectionIds: z.array(z.string().length(24)).optional(),
   tagIds: z.array(z.string().length(24)).optional(),
   attributeValues: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])).default({}),
@@ -145,8 +126,6 @@ export const createVariantSchema = z.object({
 
 export const updateVariantSchema = createVariantSchema.partial();
 
-export type CreateCategoryDTO = z.infer<typeof createCategorySchema>;
-export type UpdateCategoryDTO = z.infer<typeof updateCategorySchema>;
 export type CreateAttributeDTO = z.infer<typeof createAttributeSchema>;
 export type CreateTagDTO = z.infer<typeof createTagSchema>;
 export type CreateCollectionDTO = z.infer<typeof createCollectionSchema>;

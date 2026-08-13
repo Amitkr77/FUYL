@@ -4,7 +4,7 @@ import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X, UserCheck, Loader2 } from "lucide-react";
 import { CashbackPolicy, CreatePolicyInput, AllowedUser } from "@/lib/cashback";
-import { createPolicyAction, updatePolicyAction, searchCustomersAction } from "@/app/(admin)/cashback/actions";
+import { createPolicyAction, updatePolicyAction, searchCustomersAction } from "@/app/(admin)/discounts-cashback/cashback/actions";
 
 interface Props {
   policy?: CashbackPolicy;
@@ -100,7 +100,7 @@ export function PolicyForm({ policy }: Props) {
         if ("error" in result) {
           setError(result.error);
         } else {
-          router.push("/cashback");
+          router.push("/discounts-cashback?tab=cashback");
           router.refresh();
         }
       } else {

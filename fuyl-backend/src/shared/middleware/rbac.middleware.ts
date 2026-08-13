@@ -26,10 +26,10 @@ export type Role = typeof Roles[keyof typeof Roles];
 // exist for the narrower case of granting ONE specific capability to an
 // account that wouldn't otherwise have it (e.g. a support/ops staffer who
 // needs to manage returns and inventory but shouldn't touch payouts or
-// promotions, without promoting them to full `admin`).
+// discounts, without promoting them to full `admin`).
 export const Permissions = {
   WALLET_MANAGE: 'wallet:manage',
-  PROMOTIONS_MANAGE: 'promotions:manage',
+  DISCOUNTS_MANAGE: 'discounts:manage',
   INVENTORY_MANAGE: 'inventory:manage',
   SHIPPING_MANAGE: 'shipping:manage',
   RETURNS_MANAGE: 'returns:manage',

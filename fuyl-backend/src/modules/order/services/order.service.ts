@@ -37,8 +37,16 @@ export interface CreateFromSubscriptionInput {
   cfPaymentId?: string;
 }
 
+/** Server-computed checkout values. These are intentionally not part of the
+ * public create-order validator: only CheckoutService may supply them. */
+export interface CheckoutOrderAdjustments {
+  discountTotal?: number;
+  couponCode?: string;
+  walletRedemption?: number;
+}
+
 export class OrderService {
-  async create(customerId: string, dto: CreateOrderDTO) {
+  async create(customerId: string, dto: CreateOrderDTO & CheckoutOrderAdjustments) {
     // Fetch product details + prices from catalog
     const items: any[] = [];
     let subtotal = 0;
@@ -60,7 +68,6 @@ export class OrderService {
       let itemTax = 0;
       if (product.isTaxable) {
         const taxResult = await pricingService.computeTax(unitPrice, item.quantity, {
-          categoryIds: product.categoryIds?.map((c: any) => c.toString()),
           sellerId: product.sellerId?.toString(),
           state: dto.shippingAddress.state,
           country: dto.shippingAddress.country,
@@ -88,7 +95,11 @@ export class OrderService {
     // Shipping charge is computed upstream by the checkout service (Shiprocket
     // rate for the destination pincode) and passed in; defaults to 0.
     const shipping = dto.shippingTotal ?? 0;
-    const grandTotal = subtotal + shipping + tax;
+    const discountTotal = Math.min(
+      Math.max(0, dto.discountTotal ?? 0),
+      subtotal + tax
+    );
+    const grandTotal = Math.max(0, subtotal + shipping + tax - discountTotal);
 
     const affiliateFields: Record<string, unknown> = {};
     if ((dto as any).affiliateId)              affiliateFields.affiliateId              = new mongoose.Types.ObjectId((dto as any).affiliateId);
@@ -103,7 +114,7 @@ export class OrderService {
       status: OrderStatus.PENDING,
       currency: 'INR',
       subtotal,
-      discountTotal: 0,
+      discountTotal,
       taxTotal: tax,
       shippingTotal: shipping,
       grandTotal,
@@ -115,6 +126,10 @@ export class OrderService {
       timeline: [{ status: OrderStatus.PENDING, at: new Date(), note: 'Order placed' }],
       placedAt: new Date(),
       notes: dto.notes,
+      metadata: {
+        couponCode: dto.couponCode,
+        walletRedemption: dto.walletRedemption ?? 0,
+      },
       ...affiliateFields,
     });
 
@@ -135,6 +150,10 @@ export class OrderService {
       orderNumber,
       itemCount: items.length,
       paymentMethod: dto.paymentMethod,
+      subtotal,
+      discountTotal,
+      walletRedemption: dto.walletRedemption ?? 0,
+      couponCode: dto.couponCode,
     });
     return order;
   }
@@ -160,7 +179,6 @@ export class OrderService {
     let tax = 0;
     if (product.isTaxable) {
       const taxResult = await pricingService.computeTax(discountedPrice, input.quantity, {
-        categoryIds: product.categoryIds?.map((c: any) => c.toString()),
         sellerId: product.sellerId?.toString(),
         state: shippingAddr?.state,
         country: shippingAddr?.country,

@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IReferralCode extends Document {
   code: string;                    // unique, lowercase, e.g. {username}-{nanoid6}
   referrerId: mongoose.Types.ObjectId;
-  campaignId?: mongoose.Types.ObjectId;
+  programId?: mongoose.Types.ObjectId;
   expiresAt?: Date;
   maxUses: number;                 // 0 = unlimited
   usesCount: number;
@@ -16,7 +16,7 @@ const ReferralCodeSchema = new Schema<IReferralCode>(
   {
     code: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
     referrerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    campaignId: { type: Schema.Types.ObjectId, ref: 'ReferralCampaign' },
+    programId: { type: Schema.Types.ObjectId, ref: 'ReferralProgram' },
     expiresAt: { type: Date },
     maxUses: { type: Number, default: 0 },
     usesCount: { type: Number, default: 0 },

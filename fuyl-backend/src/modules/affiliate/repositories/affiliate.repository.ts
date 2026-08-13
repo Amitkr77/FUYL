@@ -40,18 +40,27 @@ export class AffiliateRepository {
     await AffiliateModel.updateOne({ _id: id }, { $inc: fields });
   }
 
-  async paginate(filter: FilterQuery<IAffiliate> = {}, page = 1, limit = 20) {
+  async paginate(
+    filter: FilterQuery<IAffiliate> = {},
+    page = 1,
+    limit = 20,
+    sort: Record<string, 1 | -1> = { createdAt: -1 }
+  ) {
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
       AffiliateModel.find(filter)
         .select('-paymentInfo')   // PII — only returned by the single-affiliate detail endpoint
-        .sort({ createdAt: -1 })
+        .sort(sort)
         .skip(skip)
         .limit(limit)
         .populate('programId', 'name defaultRate'),
       AffiliateModel.countDocuments(filter),
     ]);
     return { items, total, page, limit };
+  }
+
+  async adminDetail(id: string | Types.ObjectId): Promise<IAffiliate | null> {
+    return AffiliateModel.findById(id).populate('programId', 'name defaultRate commissionBase');
   }
 
   async adminStats() {
@@ -62,5 +71,9 @@ export class AffiliateRepository {
       AffiliateModel.countDocuments({ status: AffiliateStatus.SUSPENDED }),
     ]);
     return { total, pending, approved, suspended };
+  }
+
+  async countByProgram(programId: string | Types.ObjectId): Promise<number> {
+    return AffiliateModel.countDocuments({ programId });
   }
 }

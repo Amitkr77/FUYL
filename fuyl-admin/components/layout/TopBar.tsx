@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   Bell, Search, Menu, X, LayoutDashboard, Package, ShoppingCart,
   Users, BarChart3, Settings, FileText, Newspaper, ChevronRight,
-  Boxes, Tag, Gift, Wallet, Mail, Truck, FolderTree, Star, Repeat, Undo2, Coins,
+  Boxes, Tag, Gift, Wallet, Mail, Truck, Star, Repeat, Undo2, CreditCard,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
@@ -14,16 +14,15 @@ import { formatCurrency } from '@/lib/utils'
 const QUICK_NAV = [
   { label: 'Dashboard',     href: '/dashboard',     Icon: LayoutDashboard, section: 'Overview'  },
   { label: 'Products',      href: '/products',      Icon: Package,         section: 'Commerce'  },
-  { label: 'Categories',    href: '/categories',    Icon: FolderTree,      section: 'Commerce'  },
   { label: 'Orders',        href: '/orders',        Icon: ShoppingCart,    section: 'Commerce'  },
   { label: 'Customers',     href: '/customers',     Icon: Users,           section: 'Commerce'  },
   { label: 'Inventory',     href: '/inventory',     Icon: Boxes,           section: 'Commerce'  },
+  { label: 'Payments',      href: '/payments',      Icon: CreditCard,      section: 'Commerce'  },
   { label: 'Shipping',      href: '/shipping',      Icon: Truck,           section: 'Commerce'  },
   { label: 'Returns',       href: '/returns',       Icon: Undo2,           section: 'Commerce'  },
   { label: 'Reviews',       href: '/reviews',       Icon: Star,            section: 'Commerce'  },
   { label: 'Subscriptions', href: '/subscriptions', Icon: Repeat,          section: 'Growth'    },
-  { label: 'Promotions',    href: '/promotions',    Icon: Tag,             section: 'Growth'    },
-  { label: 'Cashback',      href: '/cashback',      Icon: Coins,           section: 'Growth'    },
+  { label: 'Discount & Cashback', href: '/discounts-cashback', Icon: Tag, section: 'Growth' },
   { label: 'Referrals',     href: '/referrals',     Icon: Gift,            section: 'Growth'    },
   { label: 'Wallet',        href: '/wallet',        Icon: Wallet,          section: 'Growth'    },
   { label: 'Newsletter',    href: '/newsletter',    Icon: Mail,            section: 'Growth'    },
@@ -38,16 +37,15 @@ const QUICK_NAV = [
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard':     'Dashboard',
   '/products':      'Products',
-  '/categories':    'Categories',
   '/orders':        'Orders',
   '/customers':     'Customers',
   '/inventory':     'Inventory',
+  '/payments':      'Payments',
   '/shipping':      'Shipping',
   '/returns':       'Returns',
   '/reviews':       'Reviews',
   '/subscriptions': 'Subscriptions',
-  '/promotions':    'Promotions',
-  '/cashback':      'Cashback',
+  '/discounts-cashback': 'Discount & Cashback',
   '/referrals':     'Referrals',
   '/wallet':        'Wallet',
   '/newsletter':    'Newsletter',

@@ -1,6 +1,5 @@
 import { ProductRepository } from '../repositories/product.repository';
 import { VariantRepository } from '../repositories/variant.repository';
-import { CategoryRepository } from '../repositories/category.repository';
 import { TagRepository, AttributeRepository, CollectionRepository } from '../repositories/taxonomy.repository';
 import {
   NotFoundError,
@@ -11,14 +10,12 @@ import mongoose from 'mongoose';
 import {
   CreateProductDTO, UpdateProductDTO,
   CreateVariantDTO, UpdateVariantDTO,
-  CreateCategoryDTO, UpdateCategoryDTO,
   CreateAttributeDTO, CreateTagDTO, CreateCollectionDTO,
 } from '../validators';
 import { revalidateStorefront } from '../../../shared/services/revalidate.service';
 
 const productRepo = new ProductRepository();
 const variantRepo = new VariantRepository();
-const categoryRepo = new CategoryRepository();
 const tagRepo = new TagRepository();
 const attributeRepo = new AttributeRepository();
 const collectionRepo = new CollectionRepository();
@@ -26,17 +23,9 @@ const collectionRepo = new CollectionRepository();
 export class CatalogService {
   // ─── Products ─────────────────────────────────────────────────
   async createProduct(dto: CreateProductDTO) {
-    // Validate categories exist
-    if (dto.categoryIds?.length) {
-      for (const cid of dto.categoryIds) {
-        const c = await categoryRepo.findById(cid);
-        if (!c) throw new NotFoundError(`Category ${cid}`);
-      }
-    }
     const product = await productRepo.create({
       ...dto,
       sellerId: new mongoose.Types.ObjectId(dto.sellerId),
-      categoryIds: (dto.categoryIds ?? []).map((id) => new mongoose.Types.ObjectId(id)),
       collectionIds: (dto.collectionIds ?? []).map((id) => new mongoose.Types.ObjectId(id)),
       tagIds: (dto.tagIds ?? []).map((id) => new mongoose.Types.ObjectId(id)),
       bundleProductIds: (dto.bundleProductIds ?? []).map((id) => new mongoose.Types.ObjectId(id)),
@@ -179,46 +168,6 @@ export class CatalogService {
     }
     return true;
   }
-
-  // ─── Categories ───────────────────────────────────────────────
-  async createCategory(dto: CreateCategoryDTO) {
-    const existing = await categoryRepo.findBySlug(dto.slug);
-    if (existing) throw new ConflictError(`Category slug "${dto.slug}" already exists`);
-    return categoryRepo.create({
-      ...dto,
-      parentId: dto.parentId ? new mongoose.Types.ObjectId(dto.parentId) : undefined,
-    } as any);
-  }
-
-  async getCategory(id: string) {
-    const c = await categoryRepo.findById(id);
-    if (!c) throw new NotFoundError('Category');
-    return c;
-  }
-
-  async getCategoryTree() {
-    const roots = await categoryRepo.findRoots();
-    return roots;
-  }
-
-  async getCategoryChildren(parentId: string) {
-    return categoryRepo.findChildren(parentId);
-  }
-
-  async listCategories() { return categoryRepo.findAll({ isActive: true }); }
-
-  // Admin management view — includes inactive categories so they can be
-  // found and re-activated (the public listCategories() above only ever
-  // shows active ones, which is right for the storefront/product picker).
-  async listCategoriesAdmin() { return categoryRepo.findAll({}); }
-
-  async updateCategory(id: string, dto: UpdateCategoryDTO) {
-    const updated = await categoryRepo.update(id, dto as any);
-    if (!updated) throw new NotFoundError('Category');
-    return updated;
-  }
-
-  async deactivateCategory(id: string) { await categoryRepo.deactivate(id); }
 
   // ─── Tags ─────────────────────────────────────────────────────
   async createTag(dto: CreateTagDTO) {

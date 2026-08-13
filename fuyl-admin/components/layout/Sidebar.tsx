@@ -22,10 +22,9 @@ import {
   Undo2,
   Truck,
   Mail,
-  FolderTree,
   Star,
-  Coins,
   Link2,
+  CreditCard,
 } from "lucide-react";
 import { logout } from "@/app/(admin)/actions";
 
@@ -49,10 +48,10 @@ const navSections: NavSection[] = [
     title: "Commerce",
     items: [
       { label: "Products", href: "/products", icon: Package },
-      { label: "Categories", href: "/categories", icon: FolderTree },
       { label: "Orders", href: "/orders", icon: ShoppingCart },
       { label: "Customers", href: "/customers", icon: Users },
       { label: "Inventory", href: "/inventory", icon: Boxes },
+      { label: "Payments", href: "/payments", icon: CreditCard },
       { label: "Shipping", href: "/shipping", icon: Truck },
       { label: "Returns", href: "/returns", icon: Undo2 },
       { label: "Reviews", href: "/reviews", icon: Star },
@@ -62,8 +61,7 @@ const navSections: NavSection[] = [
     title: "Growth",
     items: [
       { label: "Subscriptions", href: "/subscriptions", icon: Repeat },
-      { label: "Discounts & Cashback", href: "/promotions", icon: Tag },
-      { label: "Cashback", href: "/cashback", icon: Coins },
+      { label: "Discount & Cashback", href: "/discounts-cashback", icon: Tag },
       { label: "Affiliates", href: "/affiliates", icon: Link2 },
       { label: "Referrals", href: "/referrals", icon: Gift },
       { label: "Wallet", href: "/wallet", icon: Wallet },

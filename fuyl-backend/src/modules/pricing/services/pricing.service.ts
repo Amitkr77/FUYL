@@ -21,7 +21,6 @@ export interface QuoteItemInput {
   quantity: number;
   basePrice: number;
   sellerId?: string;
-  categoryIds?: string[];
   isSubscription?: boolean;
   isTaxable?: boolean;
   customerRole?: string;
@@ -199,11 +198,6 @@ class PricingService {
         if (book.customerRoles && book.customerRoles.length > 0) {
           if (!item.customerRole || !book.customerRoles.includes(item.customerRole)) continue;
         }
-        // Apply category filter
-        if (book.categoryIds && book.categoryIds.length > 0) {
-          const cats = item.categoryIds ?? [];
-          if (!cats.some((c) => book.categoryIds?.some((bc) => bc.toString() === c))) continue;
-        }
         // Apply seller filter
         if (book.sellerIds && book.sellerIds.length > 0) {
           if (!item.sellerId || !book.sellerIds.some((s) => s.toString() === item.sellerId)) continue;
@@ -249,11 +243,6 @@ class PricingService {
       const taxBreakdown: Array<{ code: string; rate: number; type: string; amount: number }> = [];
       let lineTax = 0;
       for (const rule of item.isTaxable === false ? [] : taxRules) {
-        // Filter by category
-        if (rule.categoryIds && rule.categoryIds.length > 0) {
-          const cats = item.categoryIds ?? [];
-          if (!cats.some((c) => rule.categoryIds?.some((rc) => rc.toString() === c))) continue;
-        }
         // Filter by seller
         if (rule.sellerIds && rule.sellerIds.length > 0) {
           if (!item.sellerId || !rule.sellerIds.some((s) => s.toString() === item.sellerId)) continue;

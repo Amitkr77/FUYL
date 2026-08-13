@@ -4,7 +4,7 @@ export const adjustBalanceSchema = z.object({
   userId: z.string().length(24),
   amount: z.number().refine((n) => n !== 0, 'Amount must be non-zero'),
   type: z.enum(['credit', 'debit']),
-  source: z.enum(['admin_adjustment', 'topup', 'withdrawal', 'promotion', 'gift_card']),
+  source: z.enum(['admin_adjustment', 'topup', 'withdrawal', 'discount', 'gift_card']),
   description: z.string().min(1).max(500),
   referenceType: z.string().optional(),
   referenceId: z.string().length(24).optional(),

@@ -3,11 +3,11 @@
 import {
   getAnalyticsSummary, getRevenueChartData, getTopProducts,
   getFunnel, getActivityHeatmap, getDeviceBreakdown,
-  getUserActivity, getCategorySales, getCustomerSegments,
+  getUserActivity, getCustomerSegments,
   getOrdersByStatus, getCartAbandonmentCount,
   type DateRange, type AnalyticsSummary, type ChartPoint,
   type TopProduct, type FunnelStep, type HeatmapCell,
-  type DeviceBreakdown, type UserActivityRow, type CategorySalesRow,
+  type DeviceBreakdown, type UserActivityRow,
   type CustomerSegments, type OrdersByStatusRow,
 } from '@/lib/analytics'
 import { getErrorMessage } from '@/lib/api'
@@ -20,7 +20,6 @@ export interface DashboardData {
   heatmap:          HeatmapCell[]
   devices:          DeviceBreakdown
   userActivity:     UserActivityRow[]
-  categorySales:    CategorySalesRow[]
   customerSegments: CustomerSegments
   ordersByStatus:   OrdersByStatusRow[]
   cartAbandonment:  number
@@ -36,7 +35,6 @@ export async function fetchDashboardData(range: DateRange): Promise<DashboardDat
     heatmap:          [],
     devices:          { devices: [], oses: [] },
     userActivity:     [],
-    categorySales:    [],
     customerSegments: { newCustomers: 0, repeatCustomers: 0 },
     ordersByStatus:   [],
     cartAbandonment:  0,
@@ -46,7 +44,7 @@ export async function fetchDashboardData(range: DateRange): Promise<DashboardDat
   try {
     const [
       summary, chartData, topProducts, funnel, heatmap, devices,
-      userActivity, categorySales, customerSegments, ordersByStatus, cartAbandonment,
+      userActivity, customerSegments, ordersByStatus, cartAbandonment,
     ] = await Promise.all([
       getAnalyticsSummary(range),
       getRevenueChartData(range),
@@ -55,13 +53,12 @@ export async function fetchDashboardData(range: DateRange): Promise<DashboardDat
       getActivityHeatmap(range),
       getDeviceBreakdown(range),
       getUserActivity(50, range),
-      getCategorySales(range),
       getCustomerSegments(range),
       getOrdersByStatus(range),
       getCartAbandonmentCount(),
     ])
 
-    return { ...empty, summary, chartData, topProducts, funnel, heatmap, devices, userActivity, categorySales, customerSegments, ordersByStatus, cartAbandonment }
+    return { ...empty, summary, chartData, topProducts, funnel, heatmap, devices, userActivity, customerSegments, ordersByStatus, cartAbandonment }
   } catch (err) {
     return { ...empty, error: getErrorMessage(err, 'Could not load analytics data.') }
   }

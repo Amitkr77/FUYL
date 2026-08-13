@@ -53,7 +53,7 @@ export class CashbackController {
   ];
 
   createPolicy = [
-    requirePermission(Permissions.PROMOTIONS_MANAGE),
+    requirePermission(Permissions.DISCOUNTS_MANAGE),
     validate(createPolicySchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
@@ -64,7 +64,7 @@ export class CashbackController {
   ];
 
   updatePolicy = [
-    requirePermission(Permissions.PROMOTIONS_MANAGE),
+    requirePermission(Permissions.DISCOUNTS_MANAGE),
     validate(updatePolicySchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
@@ -74,7 +74,7 @@ export class CashbackController {
   ];
 
   deletePolicy = [
-    requirePermission(Permissions.PROMOTIONS_MANAGE),
+    requirePermission(Permissions.DISCOUNTS_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         await cashbackService.deletePolicy(req.params.id);

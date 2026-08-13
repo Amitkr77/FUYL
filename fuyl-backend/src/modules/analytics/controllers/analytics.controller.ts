@@ -87,15 +87,6 @@ export class AnalyticsController {
     } catch (err) { next(err); }
   };
 
-  categorySales = async (req: AuthedRequest, res: Response, next: NextFunction) => {
-    try {
-      const days = Number(req.query.days ?? 30);
-      const from = req.query.from as string | undefined;
-      const to   = req.query.to   as string | undefined;
-      return success(res, await analyticsQueryService.categorySales(days, from, to));
-    } catch (err) { next(err); }
-  };
-
   customerSegments = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
       const days = Number(req.query.days ?? 30);

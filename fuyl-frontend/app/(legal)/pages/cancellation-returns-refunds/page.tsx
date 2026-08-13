@@ -49,7 +49,7 @@ export default function ReturnsPage() {
           body: [
             'Products tampered with or showing signs of misuse',
             'Products returned after 30 days without prior approval',
-            'Gift cards and promotional items',
+            'Gift cards and specially discounted items',
           ],
         },
         {

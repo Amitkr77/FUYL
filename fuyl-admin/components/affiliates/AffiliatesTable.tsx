@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Affiliate } from "@/lib/affiliate";
-import { approveAffiliateAction, rejectAffiliateAction, suspendAffiliateAction, payoutAffiliateAction } from "@/app/(admin)/affiliates/actions";
+import { approveAffiliateAction, rejectAffiliateAction, suspendAffiliateAction, payoutAffiliateAction, reactivateAffiliateAction } from "@/app/(admin)/affiliates/actions";
 
 interface Props {
   affiliates: Affiliate[];
@@ -19,6 +20,11 @@ const STATUS_STYLES: Record<string, string> = {
 export function AffiliatesTable({ affiliates, total }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError]     = useState<string>("");
+  const [reasonDialog, setReasonDialog] = useState<{
+    id: string;
+    kind: "reject" | "suspend";
+    reason: string;
+  } | null>(null);
 
   async function run(id: string, action: () => Promise<{ error: string } | null>) {
     setLoading(id);
@@ -26,6 +32,15 @@ export function AffiliatesTable({ affiliates, total }: Props) {
     const res = await action();
     if (res?.error) setError(res.error);
     setLoading(null);
+  }
+
+  function submitReason() {
+    if (!reasonDialog?.reason.trim()) return;
+    const { id, kind, reason } = reasonDialog;
+    setReasonDialog(null);
+    void run(id, () => kind === "reject"
+      ? rejectAffiliateAction(id, reason)
+      : suspendAffiliateAction(id, reason));
   }
 
   if (affiliates.length === 0) {
@@ -59,7 +74,7 @@ export function AffiliatesTable({ affiliates, total }: Props) {
             {affiliates.map((a) => (
               <tr key={a.id} className="hover:bg-slate-50/50 transition-colors">
                 <td className="px-4 py-3">
-                  <div className="font-medium text-slate-800">{a.name}</div>
+                  <Link href={`/affiliates/members/${a.id}`} className="font-medium text-slate-800 hover:text-[#315f52] hover:underline">{a.name}</Link>
                   <div className="text-xs text-slate-400">{a.email}</div>
                 </td>
                 <td className="px-4 py-3 text-xs text-slate-500">
@@ -95,10 +110,7 @@ export function AffiliatesTable({ affiliates, total }: Props) {
                         </button>
                         <button
                           disabled={loading === a.id}
-                          onClick={() => {
-                            const reason = prompt("Rejection reason:");
-                            if (reason) run(a.id, () => rejectAffiliateAction(a.id, reason));
-                          }}
+                          onClick={() => setReasonDialog({ id: a.id, kind: "reject", reason: "" })}
                           className="px-2.5 py-1 text-xs rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 disabled:opacity-50 transition-colors"
                         >
                           Reject
@@ -109,10 +121,7 @@ export function AffiliatesTable({ affiliates, total }: Props) {
                       <>
                         <button
                           disabled={loading === a.id}
-                          onClick={() => {
-                            const reason = prompt("Suspension reason:");
-                            if (reason) run(a.id, () => suspendAffiliateAction(a.id, reason));
-                          }}
+                          onClick={() => setReasonDialog({ id: a.id, kind: "suspend", reason: "" })}
                           className="px-2.5 py-1 text-xs rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-100 disabled:opacity-50 transition-colors"
                         >
                           Suspend
@@ -126,6 +135,9 @@ export function AffiliatesTable({ affiliates, total }: Props) {
                         </button>
                       </>
                     )}
+                    {(a.status === "suspended" || a.status === "rejected") && (
+                      <button disabled={loading === a.id} onClick={() => run(a.id, () => reactivateAffiliateAction(a.id))} className="rounded-lg border border-green-100 bg-green-50 px-2.5 py-1 text-xs text-green-700 hover:bg-green-100 disabled:opacity-50">Reactivate</button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -136,6 +148,26 @@ export function AffiliatesTable({ affiliates, total }: Props) {
           Showing {affiliates.length} of {total} affiliates
         </div>
       </div>
+      {reasonDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" onMouseDown={() => setReasonDialog(null)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="affiliate-action-title" className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" onMouseDown={(event) => event.stopPropagation()}>
+            <h3 id="affiliate-action-title" className="text-base font-semibold capitalize text-slate-900">{reasonDialog.kind} affiliate</h3>
+            <p className="mt-1 text-sm text-slate-500">Record a reason for this status change.</p>
+            <textarea
+              autoFocus
+              rows={4}
+              value={reasonDialog.reason}
+              onChange={(event) => setReasonDialog({ ...reasonDialog, reason: event.target.value })}
+              className="mt-4 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#558476] focus:ring-2 focus:ring-[#558476]/15"
+              placeholder="Enter reason"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setReasonDialog(null)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+              <button type="button" disabled={!reasonDialog.reason.trim()} onClick={submitReason} className="rounded-lg bg-[#12291F] px-3 py-2 text-sm font-semibold text-white hover:bg-[#1c3b2e] disabled:cursor-not-allowed disabled:opacity-40">Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
