@@ -58,23 +58,16 @@ function sorted(products: AdminProduct[], key: SortKey): AdminProduct[] {
 export function ProductsTable({ products }: { products: AdminProduct[] }) {
   const [activeTab,   setActiveTab]   = useState<TabFilter>('all')
   const [search,      setSearch]      = useState('')
-  const [category,    setCategory]    = useState('')
   const [sortKey,     setSortKey]     = useState<SortKey>('name-asc')
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [archivingId,  setArchivingId]  = useState<string | null>(null)
   const [isPending,    startTransition] = useTransition()
 
-  // Unique categories derived from the current data set for the filter dropdown
-  const allCategories = Array.from(
-    new Set(products.map((p) => p.category).filter(Boolean))
-  ).sort()
-
-  const hasFilters = search !== '' || category !== ''
+  const hasFilters = search !== ''
 
   const filtered = sorted(
     products.filter((p) => {
       if (activeTab !== 'all' && p.status !== activeTab) return false
-      if (category && p.category !== category) return false
       if (search) {
         const q = search.toLowerCase()
         const matchName = p.name.toLowerCase().includes(q)
@@ -99,7 +92,7 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
     })
   }
 
-  const clearFilters = () => { setSearch(''); setCategory(''); setActiveTab('all') }
+  const clearFilters = () => { setSearch(''); setActiveTab('all') }
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
@@ -154,27 +147,6 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-          {/* Category filter — only shown if there are categories to filter by */}
-          {allCategories.length > 0 && (
-            <div className="relative">
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className={`appearance-none h-9 pl-3 pr-8 text-sm border rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#558476]/30 focus:border-[#558476] cursor-pointer transition-colors ${
-                  category
-                    ? 'border-[#558476] text-[#558476] bg-[#558476]/5'
-                    : 'border-slate-200 text-slate-600'
-                }`}
-              >
-                <option value="">All categories</option>
-                {allCategories.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-            </div>
-          )}
-
           {/* Sort */}
           <div className="relative">
             <select
@@ -192,7 +164,7 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
           {/* Clear filters */}
           {hasFilters && (
             <button
-              onClick={() => { setSearch(''); setCategory('') }}
+              onClick={() => { setSearch('') }}
               className="h-9 px-3 text-sm text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors whitespace-nowrap"
             >
               Clear
@@ -286,7 +258,7 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
                         )}
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-800 truncate leading-snug">{product.name}</p>
-                          <p className="text-xs text-slate-400 mt-0.5 truncate">{product.category || '—'}</p>
+                          <p className="text-xs text-slate-400 mt-0.5 truncate">{product.variants[0]?.sku || '—'}</p>
                         </div>
                       </div>
                     </td>

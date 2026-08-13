@@ -20,6 +20,8 @@ export const metadata = generateSEO({
   url:         'https://fuyl.in',
 })
 
+export const dynamic = 'force-dynamic'
+
 export default async function HomePage() {
   const [hero,testimonials] = await Promise.all([getStorefrontHero(),getTestimonials()])
   return (
