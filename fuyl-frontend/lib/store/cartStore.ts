@@ -13,6 +13,12 @@ import {
 } from '@/lib/api/cart'
 import { useAuthStore } from './authStore'
 
+// Pending debounce timers keyed by "productId:variantId" — one per line item.
+// A timer fires when no further updateQty call for that item arrives within
+// QTY_DEBOUNCE_MS, at which point the single batched PATCH is sent.
+const qtyTimers = new Map<string, ReturnType<typeof setTimeout>>()
+const QTY_DEBOUNCE_MS = 300
+
 interface CartState {
   guestId:   string | null
   items:     CartItem[]
@@ -96,25 +102,46 @@ export const useCartStore = create<CartState>()(
         },
 
         // Optimistic: update the line locally right away so the UI feels
-        // instant, then reconcile with the authoritative server cart. On
-        // failure, roll back to the pre-change items and re-sync from the
-        // server so we never leave the UI in a lie.
+        // instant, then debounce the actual PATCH so rapid +/− clicks
+        // collapse into a single server request. Without the debounce, each
+        // click fires a PATCH and the last *response to arrive* (not the last
+        // *request sent*) wins — so a slow earlier response can silently
+        // overwrite a newer optimistic state and decrement the visible qty.
         updateQty: async (productId, variantId, quantity) => {
           if (quantity < 1) return get().removeItem(productId, variantId)
-          const previous = get().items
+
+          const key = `${productId}:${variantId ?? ''}`
           const matches = (i: CartItem) =>
             i.productId === productId && (i.variantId || '') === (variantId || '')
-          set({ items: previous.map((i) => (matches(i) ? { ...i, quantity } : i)) })
-          try {
-            const cart = await updateCartItem(currentAuth(), productId, variantId, quantity)
-            set({ items: cart.items })
-          } catch (err) {
-            // Roll back the optimistic update so the UI shows the real quantity,
-            // then re-throw so callers (e.g. CartLineItem) can display the error.
-            set({ items: previous })
-            void get().syncCart()
-            throw err
-          }
+
+          // Apply optimistic update immediately so the UI is always in sync
+          // with what the user intends, regardless of debounce timing.
+          set({ items: get().items.map((i) => (matches(i) ? { ...i, quantity } : i)) })
+
+          // Cancel any in-flight debounce for this line item and schedule a
+          // fresh one. Only the timer that fires actually sends a request, so
+          // intermediate values are never sent to the server.
+          if (qtyTimers.has(key)) clearTimeout(qtyTimers.get(key)!)
+          await new Promise<void>((resolve, reject) => {
+            qtyTimers.set(key, setTimeout(async () => {
+              qtyTimers.delete(key)
+              // Re-read the current quantity at fire time — may have changed
+              // further during the debounce window (e.g. user kept clicking).
+              const currentQty = get().items.find((i) => matches(i))?.quantity ?? quantity
+              const previous = get().items
+              try {
+                const cart = await updateCartItem(currentAuth(), productId, variantId, currentQty)
+                set({ items: cart.items })
+                resolve()
+              } catch (err) {
+                // Roll back the optimistic update so the UI shows the real
+                // quantity, then re-sync so we don't stay in a stale state.
+                set({ items: previous })
+                void get().syncCart()
+                reject(err)
+              }
+            }, QTY_DEBOUNCE_MS))
+          })
         },
 
         removeItem: async (productId, variantId) => {

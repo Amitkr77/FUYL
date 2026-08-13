@@ -2,64 +2,115 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { Search, Edit2, Archive, AlertTriangle } from 'lucide-react'
+import { Search, Edit2, Archive, AlertTriangle, ChevronDown, X, PackageOpen } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import { formatCurrency } from '@/lib/utils'
 import type { AdminProduct, ProductStatus } from '@/lib/products'
 import { archiveProductAction } from '@/app/(admin)/products/actions'
 
 type TabFilter = 'all' | ProductStatus
+type SortKey = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'stock-asc' | 'stock-desc'
 
 const TABS: { label: string; value: TabFilter }[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Active', value: 'active' },
-  { label: 'Draft', value: 'draft' },
+  { label: 'All',      value: 'all'      },
+  { label: 'Active',   value: 'active'   },
+  { label: 'Draft',    value: 'draft'    },
   { label: 'Archived', value: 'archived' },
 ]
 
-const statusVariant = (status: ProductStatus): 'success' | 'default' | 'danger' => {
-  switch (status) {
-    case 'active': return 'success'
-    case 'draft': return 'default'
-    case 'archived': return 'danger'
-  }
+const SORT_OPTIONS: { label: string; value: SortKey }[] = [
+  { label: 'Name A → Z',          value: 'name-asc'   },
+  { label: 'Name Z → A',          value: 'name-desc'  },
+  { label: 'Price: Low → High',   value: 'price-asc'  },
+  { label: 'Price: High → Low',   value: 'price-desc' },
+  { label: 'Stock: Low → High',   value: 'stock-asc'  },
+  { label: 'Stock: High → Low',   value: 'stock-desc' },
+]
+
+// Merges `status` + `isPublished` into a single, unambiguous label.
+// Showing two separate badges (Active + Hidden) was confusing; one badge is clearer.
+function unifiedStatus(status: ProductStatus, isPublished: boolean) {
+  if (status === 'archived') return { label: 'Archived', variant: 'danger'   as const }
+  if (status === 'draft')    return { label: 'Draft',    variant: 'default'  as const }
+  if (!isPublished)          return { label: 'Hidden',   variant: 'warning'  as const }
+  return                            { label: 'Active',   variant: 'success'  as const }
+}
+
+function stockLevel(stock: number): 'out' | 'low' | 'ok' {
+  if (stock === 0)  return 'out'
+  if (stock < 20)   return 'low'
+  return 'ok'
+}
+
+function sorted(products: AdminProduct[], key: SortKey): AdminProduct[] {
+  return [...products].sort((a, b) => {
+    switch (key) {
+      case 'name-asc':   return a.name.localeCompare(b.name)
+      case 'name-desc':  return b.name.localeCompare(a.name)
+      case 'price-asc':  return a.price - b.price
+      case 'price-desc': return b.price - a.price
+      case 'stock-asc':  return a.stock - b.stock
+      case 'stock-desc': return b.stock - a.stock
+    }
+  })
 }
 
 export function ProductsTable({ products }: { products: AdminProduct[] }) {
-  const [activeTab, setActiveTab] = useState<TabFilter>('all')
-  const [search, setSearch] = useState('')
-  const [isPending, startTransition] = useTransition()
-  const [archivingId, setArchivingId] = useState<string | null>(null)
+  const [activeTab,   setActiveTab]   = useState<TabFilter>('all')
+  const [search,      setSearch]      = useState('')
+  const [category,    setCategory]    = useState('')
+  const [sortKey,     setSortKey]     = useState<SortKey>('name-asc')
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [archivingId,  setArchivingId]  = useState<string | null>(null)
+  const [isPending,    startTransition] = useTransition()
 
-  const filtered = products.filter((p) => {
-    const matchTab = activeTab === 'all' || p.status === activeTab
-    const matchSearch =
-      !search ||
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku.toLowerCase().includes(search.toLowerCase())
-    return matchTab && matchSearch
-  })
+  // Unique categories derived from the current data set for the filter dropdown
+  const allCategories = Array.from(
+    new Set(products.map((p) => p.category).filter(Boolean))
+  ).sort()
+
+  const hasFilters = search !== '' || category !== ''
+
+  const filtered = sorted(
+    products.filter((p) => {
+      if (activeTab !== 'all' && p.status !== activeTab) return false
+      if (category && p.category !== category) return false
+      if (search) {
+        const q = search.toLowerCase()
+        const matchName = p.name.toLowerCase().includes(q)
+        // Search across all variant SKUs, not just the first one
+        const matchSku  = p.variants.some((v) => v.sku.toLowerCase().includes(q))
+        if (!matchName && !matchSku) return false
+      }
+      return true
+    }),
+    sortKey
+  )
 
   const tabCount = (tab: TabFilter) =>
     tab === 'all' ? products.length : products.filter((p) => p.status === tab).length
 
   const handleArchive = (id: string) => {
     setArchivingId(id)
+    setConfirmingId(null)
     startTransition(async () => {
       await archiveProductAction(id)
       setArchivingId(null)
     })
   }
 
+  const clearFilters = () => { setSearch(''); setCategory(''); setActiveTab('all') }
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
-      {/* Tabs */}
-      <div className="flex items-center gap-1 px-4 pt-4 border-b border-slate-100">
+
+      {/* Status tabs ─────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-0.5 px-4 pt-3 border-b border-slate-100 overflow-x-auto">
         {TABS.map((tab) => (
           <button
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
-            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 -mb-px ${
+            className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap rounded-t-lg transition-colors border-b-2 -mb-px ${
               activeTab === tab.value
                 ? 'text-[#558476] border-[#558476]'
                 : 'text-slate-500 border-transparent hover:text-slate-700'
@@ -67,7 +118,7 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
           >
             {tab.label}
             <span
-              className={`text-xs px-1.5 py-0.5 rounded-full ${
+              className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
                 activeTab === tab.value
                   ? 'bg-[#558476]/10 text-[#558476]'
                   : 'bg-slate-100 text-slate-400'
@@ -79,109 +130,280 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
         ))}
       </div>
 
-      {/* Search */}
-      <div className="p-4 border-b border-slate-100">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      {/* Toolbar ─────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 px-4 py-3 border-b border-slate-100">
+        {/* Search */}
+        <div className="relative flex-1 min-w-0 w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search products or SKU..."
+            placeholder="Search by name or SKU…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent"
+            className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#558476]/30 focus:border-[#558476] placeholder:text-slate-400 transition-shadow"
           />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              aria-label="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+          {/* Category filter — only shown if there are categories to filter by */}
+          {allCategories.length > 0 && (
+            <div className="relative">
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className={`appearance-none h-9 pl-3 pr-8 text-sm border rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#558476]/30 focus:border-[#558476] cursor-pointer transition-colors ${
+                  category
+                    ? 'border-[#558476] text-[#558476] bg-[#558476]/5'
+                    : 'border-slate-200 text-slate-600'
+                }`}
+              >
+                <option value="">All categories</option>
+                {allCategories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            </div>
+          )}
+
+          {/* Sort */}
+          <div className="relative">
+            <select
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as SortKey)}
+              className="appearance-none h-9 pl-3 pr-8 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#558476]/30 focus:border-[#558476] cursor-pointer"
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+          </div>
+
+          {/* Clear filters */}
+          {hasFilters && (
+            <button
+              onClick={() => { setSearch(''); setCategory('') }}
+              className="h-9 px-3 text-sm text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors whitespace-nowrap"
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Table */}
+      {/* Active-filter summary */}
+      {(hasFilters || activeTab !== 'all') && (
+        <div className="px-5 py-2 bg-slate-50/60 border-b border-slate-100">
+          <p className="text-xs text-slate-500">
+            Showing{' '}
+            <span className="font-semibold text-slate-700">{filtered.length}</span> of{' '}
+            <span className="font-semibold text-slate-700">{products.length}</span> products
+          </p>
+        </div>
+      )}
+
+      {/* Table ───────────────────────────────────────────────────────────── */}
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[620px]">
           <thead>
-            <tr className="border-b border-slate-100">
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Product</th>
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3 hidden md:table-cell">SKU</th>
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3 hidden lg:table-cell">Category</th>
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Price</th>
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Stock</th>
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Status</th>
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Actions</th>
+            <tr className="border-b border-slate-100 bg-slate-50/50">
+              <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Product</th>
+              <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3 hidden md:table-cell">Variants / SKU</th>
+              <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Price</th>
+              <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Stock</th>
+              <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Status</th>
+              <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Actions</th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-slate-50">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-slate-400 text-sm">
-                  No products found.
+                <td colSpan={6} className="px-5 py-16 text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center">
+                      <PackageOpen className="w-6 h-6 text-slate-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-600">
+                        {hasFilters || activeTab !== 'all'
+                          ? 'No products match your filters'
+                          : 'No products yet'}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {hasFilters || activeTab !== 'all'
+                          ? 'Try adjusting your search or filters'
+                          : 'Add your first product to get started'}
+                      </p>
+                    </div>
+                    {(hasFilters || activeTab !== 'all') && (
+                      <button
+                        onClick={clearFilters}
+                        className="text-xs text-[#558476] hover:underline"
+                      >
+                        Clear all filters
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ) : (
-              filtered.map((product) => (
-                <tr key={product.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      {product.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={product.imageUrl} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
-                      ) : (
-                        <div className="w-8 h-8 bg-[#558476]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <span className="text-[#558476] text-xs font-bold">
-                            {product.name.charAt(0)}
+              filtered.map((product) => {
+                const stock   = stockLevel(product.stock)
+                const status  = unifiedStatus(product.status, product.isPublished)
+                const isConfirming = confirmingId === product.id
+                const isArchiving  = isPending && archivingId === product.id
+
+                return (
+                  <tr key={product.id} className="hover:bg-slate-50/60 transition-colors">
+
+                    {/* Product — image + name + category */}
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        {product.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={product.imageUrl}
+                            alt=""
+                            className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border border-slate-100"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-[#558476]/10 rounded-xl flex items-center justify-center flex-shrink-0 border border-[#558476]/10">
+                            <span className="text-[#558476] text-sm font-bold leading-none">
+                              {product.name.charAt(0)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 truncate leading-snug">{product.name}</p>
+                          <p className="text-xs text-slate-400 mt-0.5 truncate">{product.category || '—'}</p>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Variants / SKU */}
+                    <td className="px-5 py-3.5 hidden md:table-cell">
+                      {product.variants.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 text-xs font-medium">
+                            {product.variants.length} variant{product.variants.length !== 1 ? 's' : ''}
+                          </span>
+                          <span className="text-xs text-slate-400 font-mono">
+                            {product.variants[0].sku || '—'}
+                            {product.variants.length > 1 && (
+                              <span className="text-slate-300 not-italic"> +{product.variants.length - 1}</span>
+                            )}
                           </span>
                         </div>
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded-md border border-dashed border-slate-200 text-slate-400 text-xs">
+                            No variants
+                          </span>
+                          <span className="text-xs text-slate-400 font-mono">{product.sku || '—'}</span>
+                        </div>
                       )}
-                      <span className="text-sm font-medium text-slate-900">{product.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-sm text-slate-500 hidden md:table-cell font-mono">{product.sku}</td>
-                  <td className="px-5 py-4 text-sm text-slate-500 hidden lg:table-cell">{product.category}</td>
-                  <td className="px-5 py-4 text-sm font-semibold text-slate-900">{formatCurrency(product.price)}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-1.5">
-                      {product.stock === 0 ? (
-                        <Badge variant="danger">Out of stock</Badge>
-                      ) : product.stock < 20 ? (
-                        <div className="flex items-center gap-1">
-                          <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                          <span className="text-sm text-amber-600 font-medium">{product.stock}</span>
+                    </td>
+
+                    {/* Price */}
+                    <td className="px-5 py-3.5">
+                      <p className="text-sm font-semibold text-slate-800">{formatCurrency(product.price)}</p>
+                      {product.compareAtPrice && product.compareAtPrice > product.price && (
+                        <p className="text-xs text-slate-400 line-through mt-0.5">
+                          {formatCurrency(product.compareAtPrice)}
+                        </p>
+                      )}
+                    </td>
+
+                    {/* Stock */}
+                    <td className="px-5 py-3.5">
+                      {stock === 'out' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-50 text-rose-600 text-xs font-semibold border border-rose-100">
+                          Out of stock
+                        </span>
+                      ) : stock === 'low' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-100">
+                          <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+                          {product.stock} left
+                        </span>
+                      ) : (
+                        <span className="text-sm text-slate-700 font-medium">{product.stock}</span>
+                      )}
+                    </td>
+
+                    {/* Status — single badge merging status + isPublished */}
+                    <td className="px-5 py-3.5">
+                      <Badge variant={status.variant}>{status.label}</Badge>
+                    </td>
+
+                    {/* Actions — 2-step archive confirmation to prevent accidents */}
+                    <td className="px-5 py-3.5">
+                      {isConfirming ? (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="text-xs text-slate-500 whitespace-nowrap">Archive?</span>
+                          <button
+                            onClick={() => handleArchive(product.id)}
+                            disabled={isArchiving}
+                            className="px-2.5 py-1 text-xs font-semibold text-white bg-rose-500 hover:bg-rose-600 rounded-lg transition-colors disabled:opacity-60"
+                          >
+                            {isArchiving ? '…' : 'Yes'}
+                          </button>
+                          <button
+                            onClick={() => setConfirmingId(null)}
+                            className="px-2.5 py-1 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                          >
+                            No
+                          </button>
                         </div>
                       ) : (
-                        <span className="text-sm text-slate-700">{product.stock}</span>
+                        <div className="flex items-center justify-end gap-0.5">
+                          <Link
+                            href={`/products/${product.id}`}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:text-[#558476] hover:bg-[#558476]/10 rounded-lg transition-colors"
+                            title="Edit product"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="hidden sm:inline">Edit</span>
+                          </Link>
+                          {product.status !== 'archived' && (
+                            <button
+                              onClick={() => setConfirmingId(product.id)}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="Archive product"
+                            >
+                              <Archive className="w-3.5 h-3.5 flex-shrink-0" />
+                            </button>
+                          )}
+                        </div>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-1.5">
-                      <Badge variant={statusVariant(product.status)}>
-                        {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
-                      </Badge>
-                      {!product.isPublished && <Badge variant="default">Hidden</Badge>}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-1">
-                      <Link
-                        href={`/products/${product.id}`}
-                        className="p-1.5 text-slate-400 hover:text-[#558476] hover:bg-[#558476]/10 rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Link>
-                      <button
-                        onClick={() => handleArchive(product.id)}
-                        disabled={isPending && archivingId === product.id}
-                        className="p-1.5 text-slate-400 hover:text-[#B76E79] hover:bg-[#B76E79]/10 rounded-lg transition-colors disabled:opacity-50"
-                        title="Archive"
-                      >
-                        <Archive className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Footer count */}
+      {filtered.length > 0 && (
+        <div className="px-5 py-3 border-t border-slate-100">
+          <p className="text-xs text-slate-400">
+            {filtered.length} product{filtered.length !== 1 ? 's' : ''}
+            {hasFilters || activeTab !== 'all' ? ' matching current filters' : ' total'}
+          </p>
+        </div>
+      )}
     </div>
   )
 }

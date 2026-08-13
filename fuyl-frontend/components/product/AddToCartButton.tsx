@@ -71,7 +71,7 @@ export function AddToCartButton({ product, variant, quantity, subscriptionInterv
             Added to Bag
           </>
         ) : (
-          'Add to Bag'
+          'Add to Cart'
         )}
       </Button>
       {error && (

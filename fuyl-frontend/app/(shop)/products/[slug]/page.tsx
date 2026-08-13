@@ -12,7 +12,6 @@ import {
 } from "@/lib/api/subscriptionPlans";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductInfo } from "@/components/product/ProductInfo";
-import { SubscribeOption } from "@/components/product/SubscribeOption";
 import { ProductTabs } from "@/components/product/ProductTabs";
 import { ReviewsWidget } from "@/components/product/ReviewsWidget";
 import { CertificationMarquee } from "@/components/product/CertificationMarquee";
@@ -62,17 +61,24 @@ export default async function ProductPage({ params }: Props) {
     notFound();
   }
 
-  // Fetch live inventory for the first (default) variant so the quantity
-  // selector can cap at the real available stock. Failures are non-fatal.
+  // Fetch live inventory for every variant in parallel so the quantity
+  // selector can cap at the real available stock for whichever variant the
+  // customer picks. Failures are non-fatal — the selector just shows no cap.
   try {
-    const variant = product.variants[0];
-    const variantId = variant?.id || undefined;
-    const qty = await getProductStock(product.id, variantId);
-    if (qty !== null && product.variants.length > 0) {
-      product.variants[0] = { ...product.variants[0], availableQty: qty };
-    }
+    const stockResults = await Promise.allSettled(
+      product.variants.map((v) =>
+        getProductStock(product.id, v.id || undefined)
+      )
+    );
+    product.variants = product.variants.map((v, i) => {
+      const result = stockResults[i];
+      if (result.status === "fulfilled" && result.value !== null) {
+        return { ...v, availableQty: result.value };
+      }
+      return v;
+    });
   } catch {
-    // If stock fetch fails, product page still renders — just with no qty cap
+    // If stock fetches fail, the product page still renders — just with no qty cap.
   }
 
   // Subscription plans are platform-wide; only offered for subscribable products.
@@ -123,14 +129,12 @@ export default async function ProductPage({ params }: Props) {
             />
           </div>
           <div>
-            <ProductInfo product={product} />
-            {product.isSubscribable && plans.length > 0 && (
-              <SubscribeOption
-                productId={product.id}
-                variantId={product.variants[0]?.id || undefined}
-                plans={plans}
-              />
-            )}
+            {/* Plans are passed down so ProductInfo can forward the currently
+                selected variant's id to SubscribeOption — the old architecture
+                passed product.variants[0].id unconditionally, which meant
+                subscribing always used the first variant regardless of what
+                the customer had chosen. */}
+            <ProductInfo product={product} plans={plans} />
           </div>
         </div>
 

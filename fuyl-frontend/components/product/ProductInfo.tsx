@@ -8,18 +8,23 @@ import { BuyNowButton } from "./BuyNowButton";
 import { WishlistButton } from "./WishlistButton";
 import { PincodeCheck } from "./PincodeCheck";
 import { ProductBadges } from "./ProductBadges";
+import { VariantSelector } from "./VariantSelector";
+import { SubscribeOption } from "./SubscribeOption";
 import { formatPrice, discountPercent } from "@/lib/utils/formatPrice";
 import { Badge } from "@/components/ui/Badge";
 import type { Product } from "@/types/product";
+import type { SubscriptionPlan } from "@/lib/api/subscriptionPlans";
 
 interface ProductInfoProps {
   product: Product;
+  plans?: SubscriptionPlan[];
 }
 
-export function ProductInfo({ product }: ProductInfoProps) {
+export function ProductInfo({ product, plans }: ProductInfoProps) {
   const [quantity, setQuantity] = useState(1);
+  const [selectedVariant, setSelectedVariant] = useState(product.variants[0]);
 
-  const variant = product.variants[0];
+  const variant = selectedVariant;
 
   if (!variant) return null;
 
@@ -33,6 +38,13 @@ export function ProductInfo({ product }: ProductInfoProps) {
     ? variant.weightUnit
     : product.weightUnit;
   const netContent = netWeight ? `${netWeight} ${netWeightUnit ?? "g"}` : null;
+
+  function handleVariantChange(v: typeof variant) {
+    setSelectedVariant(v);
+    // Reset quantity when switching variants so the user doesn't accidentally
+    // try to add more units than the new variant has in stock.
+    setQuantity(1);
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -123,15 +135,17 @@ export function ProductInfo({ product }: ProductInfoProps) {
         </p>
       )}
 
-      {/* Flavour label — real per-product data, not a fixed placeholder */}
-      {/* {product.supplementInfo?.flavor && (
-        <p className="text-body-sm text-brand-muted">
-          {product.supplementInfo.flavor}
-        </p>
-      )} */}
-
       {/* Badges */}
       <ProductBadges tags={product.tags} badge={product.badge} />
+
+      {/* Variant selector — only rendered when the product has multiple variants */}
+      {product.variants.length > 1 && (
+        <VariantSelector
+          variants={product.variants}
+          selectedId={variant.id}
+          onChange={handleVariantChange}
+        />
+      )}
 
       {/* Qty + ATC */}
       <div className="flex flex-col gap-3 pt-2">
@@ -165,6 +179,16 @@ export function ProductInfo({ product }: ProductInfoProps) {
         <BuyNowButton product={product} variant={variant} quantity={quantity} />
         <PincodeCheck />
       </div>
+
+      {/* Subscribe & Save — shown inline here (not via a separate server component
+          in page.tsx) so the selected variant's id can be forwarded automatically. */}
+      {product.isSubscribable && plans && plans.length > 0 && (
+        <SubscribeOption
+          productId={product.id}
+          variantId={variant.id || undefined}
+          plans={plans}
+        />
+      )}
 
       {/* Benefits grid — premium 2x2 trust tiles, sourced from real product data */}
       {product.benefits.length > 0 && (
