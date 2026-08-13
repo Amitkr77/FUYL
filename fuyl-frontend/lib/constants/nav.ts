@@ -36,6 +36,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     label: "Refer & Earn",
     href: "/affiliate/apply",
+    external: true,
   },
 ];
 
@@ -51,6 +52,7 @@ export const FOOTER_LINKS = {
     {
       label: "Refer & Earn",
       href: "/affiliate/apply",
+      external: true,
     },
   ],
   support: [

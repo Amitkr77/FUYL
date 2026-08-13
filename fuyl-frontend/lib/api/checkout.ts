@@ -39,6 +39,7 @@ interface BackendPreview {
   // preview, not inside `pricing` (which the pricing engine leaves at 0).
   shippingTotal: number
   pricing: { subtotal: number; discountTotal: number; taxTotal: number; shippingTotal: number }
+  cashback?: { eligible: boolean; totalCashback: number; policies: Array<{ name: string; cashbackAmount: number; creditTiming: string }> }
 }
 
 export interface CheckoutPreview {
@@ -47,6 +48,7 @@ export interface CheckoutPreview {
   taxTotal:      number
   shippingTotal: number
   grandTotal:    number
+  cashback: { eligible: boolean; totalCashback: number; policies: Array<{ name: string; cashbackAmount: number; creditTiming: string }> }
 }
 
 function mapPreview(raw: BackendPreview): CheckoutPreview {
@@ -56,6 +58,7 @@ function mapPreview(raw: BackendPreview): CheckoutPreview {
     taxTotal:      raw.pricing.taxTotal,
     shippingTotal: raw.shippingTotal ?? raw.pricing.shippingTotal,
     grandTotal:    raw.grandTotal,
+    cashback:      raw.cashback ?? { eligible: false, totalCashback: 0, policies: [] },
   }
 }
 

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const couponSchema = z.object({
   code: z.string().min(3).max(30).regex(/^[A-Z0-9_-]+$/i, 'Code must be alphanumeric/dash/underscore'),
-  discountType: z.enum(['percent', 'flat', 'per_unit', 'free_shipping']),
+  discountType: z.enum(['percent', 'flat', 'per_unit', 'free_shipping', 'buy_x_get_y']),
   discountValue: z.number().min(0),
   scope: z.enum(['cart', 'category', 'product', 'variant']).default('cart'),
   targetIds: z.array(z.string().length(24)).optional(),
@@ -11,6 +11,10 @@ export const couponSchema = z.object({
   maxRedemptionsPerUser: z.number().int().min(0).default(1),
   minOrderSubtotal: z.number().min(0).optional(),
   maxDiscountAmount: z.number().min(0).optional(),
+  buyQuantity: z.number().int().min(1).optional(),
+  getQuantity: z.number().int().min(1).optional(),
+  buyTargetIds: z.array(z.string().length(24)).optional(),
+  getTargetIds: z.array(z.string().length(24)).optional(),
   startsAt: z.string().datetime(),
   endsAt: z.string().datetime().optional(),
   isFirstOrderOnly: z.boolean().default(false),
@@ -23,10 +27,17 @@ export const couponSchema = z.object({
   if (coupon.discountType === 'percent' && coupon.discountValue > 100) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discountValue'], message: 'Percentage cannot exceed 100' });
   }
+  if (coupon.discountType === 'buy_x_get_y') {
+    if (!coupon.buyQuantity) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['buyQuantity'], message: 'Buy quantity is required' });
+    if (!coupon.getQuantity) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['getQuantity'], message: 'Get quantity is required' });
+    if (!coupon.buyTargetIds?.length) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['buyTargetIds'], message: 'Select at least one qualifying product' });
+    if (!coupon.getTargetIds?.length) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['getTargetIds'], message: 'Select at least one reward product' });
+    if (coupon.discountValue > 100) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discountValue'], message: 'Reward percentage cannot exceed 100' });
+  }
   if (coupon.endsAt && new Date(coupon.endsAt) <= new Date(coupon.startsAt)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['endsAt'], message: 'End date must be after start date' });
   }
-  if (coupon.scope !== 'cart' && (!coupon.targetIds || coupon.targetIds.length === 0)) {
+  if (coupon.discountType !== 'buy_x_get_y' && coupon.scope !== 'cart' && (!coupon.targetIds || coupon.targetIds.length === 0)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['targetIds'], message: 'Select at least one eligible target' });
   }
 });
@@ -68,6 +79,7 @@ export const updateDiscountSchema = z.object({
   name: z.string().min(2).max(120).optional(),
   description: z.string().max(1000).optional(),
   status: z.enum(['draft', 'active', 'paused', 'ended']).optional(),
+  startsAt: z.string().datetime().optional(),
   endsAt: z.string().datetime().optional(),
   coupons: z.array(couponSchema).optional(),
   customerRoles: z.array(z.string()).optional(),

@@ -86,6 +86,8 @@ export function AmbassadorSection() {
           <div className="flex flex-col items-center gap-6 text-center">
             <Link
               href="/pages/refer-and-earn"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 h-12 px-10 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-lg transition-colors hover:bg-brand-sage hover:text-brand-forest"
             >
               Join the Programme <ArrowRight size={16} />

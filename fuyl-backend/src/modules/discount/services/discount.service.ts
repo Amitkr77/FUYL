@@ -21,6 +21,7 @@ export interface CouponValidationResult {
   discountType?: string;
   couponCode: string;
   discountId?: string;
+  buyXGetY?: { qualifyingSets: number; discountedUnits: number };
 }
 
 class DiscountService {
@@ -80,9 +81,11 @@ class DiscountService {
 
   async updateDiscount(id: string, dto: UpdateDiscountDTO) {
     const patch: Record<string, unknown> = { ...dto };
+    if (dto.startsAt !== undefined) patch.startsAt = new Date(dto.startsAt);
     if (dto.endsAt !== undefined) patch.endsAt = dto.endsAt ? new Date(dto.endsAt) : undefined;
     if (dto.customerIds !== undefined) patch.customerIds = dto.customerIds.map((id) => new Types.ObjectId(id));
     if (dto.coupons !== undefined) {
+      const current = await this.getDiscount(id);
       // Re-validate codes
       for (const c of dto.coupons) {
         const upper = c.code.toUpperCase();
@@ -94,6 +97,7 @@ class DiscountService {
       patch.coupons = dto.coupons.map((c: any) => ({
         ...c,
         code: c.code.toUpperCase(),
+        redemptionsCount: current.coupons.find((existing) => existing.code === c.code.toUpperCase())?.redemptionsCount ?? 0,
         startsAt: c.startsAt ? new Date(c.startsAt) : new Date(),
         endsAt: c.endsAt ? new Date(c.endsAt) : undefined,
       }));
@@ -195,6 +199,7 @@ class DiscountService {
       discountType: coupon.discountType,
       couponCode: code,
       discountId: discount._id.toString(),
+      buyXGetY: coupon.discountType === 'buy_x_get_y' ? this.getBuyXGetYSummary(coupon, dto) : undefined,
     };
   }
 
@@ -279,6 +284,7 @@ class DiscountService {
   // ─── Helpers ──────────────────────────────────────────────────
   private computeDiscountAmount(coupon: ICoupon, dto: ValidateCouponDTO): number {
     if (coupon.discountType === 'free_shipping') return 0; // shipping handled separately
+    if (coupon.discountType === 'buy_x_get_y') return this.computeBuyXGetYAmount(coupon, dto);
 
     if (coupon.scope === 'cart') {
       let amount: number;
@@ -325,6 +331,32 @@ class DiscountService {
 
     if (coupon.maxDiscountAmount !== undefined) amount = Math.min(amount, coupon.maxDiscountAmount);
     return amount;
+  }
+
+  private getBuyXGetYSummary(coupon: ICoupon, dto: ValidateCouponDTO) {
+    const buyIds = new Set((coupon.buyTargetIds ?? []).map((id) => id.toString()));
+    const getIds = new Set((coupon.getTargetIds ?? []).map((id) => id.toString()));
+    const buyQuantity = coupon.buyQuantity ?? 1;
+    const getQuantity = coupon.getQuantity ?? 1;
+    const samePool = buyIds.size === getIds.size && [...buyIds].every((id) => getIds.has(id));
+    const qualifyingQty = dto.items.filter((item) => buyIds.has(item.productId)).reduce((sum, item) => sum + item.quantity, 0);
+    const qualifyingSets = Math.floor(qualifyingQty / (samePool ? buyQuantity + getQuantity : buyQuantity));
+    const availableRewardQty = dto.items.filter((item) => getIds.has(item.productId)).reduce((sum, item) => sum + item.quantity, 0);
+    return { qualifyingSets, discountedUnits: Math.min(availableRewardQty, qualifyingSets * getQuantity) };
+  }
+
+  private computeBuyXGetYAmount(coupon: ICoupon, dto: ValidateCouponDTO): number {
+    const summary = this.getBuyXGetYSummary(coupon, dto);
+    if (summary.discountedUnits <= 0) return 0;
+    const getIds = new Set((coupon.getTargetIds ?? []).map((id) => id.toString()));
+    const rewardUnitPrices = dto.items
+      .filter((item) => getIds.has(item.productId))
+      .flatMap((item) => Array.from({ length: item.quantity }, () => item.unitPrice))
+      .sort((a, b) => a - b)
+      .slice(0, summary.discountedUnits);
+    let amount = rewardUnitPrices.reduce((sum, price) => sum + price, 0) * (coupon.discountValue / 100);
+    if (coupon.maxDiscountAmount !== undefined) amount = Math.min(amount, coupon.maxDiscountAmount);
+    return Math.min(amount, dto.cartSubtotal);
   }
 }
 

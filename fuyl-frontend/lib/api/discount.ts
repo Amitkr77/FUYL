@@ -7,6 +7,7 @@ export interface CouponValidationResult {
   discountAmount?: number
   discountType?:  string
   couponCode:     string
+  buyXGetY?: { qualifyingSets: number; discountedUnits: number }
 }
 
 // No token required — a not-yet-identified guest can validate/apply a

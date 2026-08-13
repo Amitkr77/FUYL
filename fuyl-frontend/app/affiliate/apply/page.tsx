@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Eye, EyeOff } from "lucide-react";
 import { applyAffiliate, getPublicAffiliateSettings, type PublicAffiliateSettings } from "@/lib/api/affiliate";
 import { getErrorMessage } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/store/authStore";
+import { register } from "@/lib/api/account";
 
 const BENEFITS = [
   {
@@ -26,18 +27,23 @@ const BENEFITS = [
 
 export default function AffiliateApplyPage() {
   const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
     channels: "",
+    password: "",
+    confirmPassword: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [settings, setSettings] = useState<PublicAffiliateSettings | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   useEffect(() => { getPublicAffiliateSettings().then(setSettings).catch(() => undefined); }, []);
+  useEffect(() => { if (user) setForm((current) => ({ ...current, firstName: current.firstName || user.firstName, lastName: current.lastName || user.lastName, email: user.email, phone: current.phone || user.phone || "" })); }, [user]);
 
   const setField =
     (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -47,15 +53,23 @@ export default function AffiliateApplyPage() {
     e.preventDefault();
     const name = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
     if (!name || !form.email.trim()) return;
+    if (!token && form.password.length < 8) return setError("Password must be at least 8 characters.");
+    if (!token && form.password !== form.confirmPassword) return setError("Passwords do not match.");
     setLoading(true);
     setError("");
     try {
+      let applicationToken = token ?? undefined;
+      if (!applicationToken) {
+        const session = await register({ firstName: form.firstName.trim(), lastName: form.lastName.trim(), email: form.email.trim(), password: form.password, phone: form.phone.trim() || undefined });
+        useAuthStore.getState().setSession(session.accessToken, session.user);
+        applicationToken = session.accessToken;
+      }
       await applyAffiliate({
         name,
         email: form.email.trim(),
         phone: form.phone.trim() || undefined,
         channels: form.channels.split(',').map((value) => value.trim()).filter(Boolean),
-      }, token ?? undefined);
+      }, applicationToken);
       setDone(true);
     } catch (err) {
       setError(
@@ -80,8 +94,8 @@ export default function AffiliateApplyPage() {
           <Image
             src="/logo.webp"
             alt="FUYL"
-            width={210}
-            height={44}
+            width={220}
+            height={88}
             className="mb-8 object-contain"
           />
           <p className="text-label tracking-[0.3em] text-brand-muted mb-6">
@@ -130,8 +144,8 @@ export default function AffiliateApplyPage() {
         <Image
           src="/logo.webp"
           alt="FUYL"
-          width={110}
-          height={44}
+          width={220}
+          height={88}
           className="mb-8 object-contain"
         />
         <p className="text-label tracking-[0.3em] text-brand-muted mb-6">
@@ -150,7 +164,7 @@ export default function AffiliateApplyPage() {
         {/* Top bar */}
         <div className="flex items-center justify-end px-8 pt-6">
           <Link
-            href="/account"
+            href="/affiliate/login"
             className="px-5 py-2 text-label tracking-wider text-brand-forest border border-brand-forest rounded-full hover:bg-brand-forest hover:text-white transition-colors"
           >
             Login
@@ -163,8 +177,8 @@ export default function AffiliateApplyPage() {
           <Image
             src="/logo.webp"
             alt="FUYL"
-            width={72}
-            height={28}
+            width={150}
+            height={60}
             className="mb-5 object-contain lg:hidden"
           />
 
@@ -218,7 +232,6 @@ export default function AffiliateApplyPage() {
             />
             <LineField
               label="Promotion channels (comma separated)"
-              required={settings?.requiredFields.includes("channels")}
               value={form.channels}
               onChange={setField("channels")}
             />
@@ -228,13 +241,15 @@ export default function AffiliateApplyPage() {
               type="email"
               value={form.email}
               onChange={setField("email")}
+              disabled={Boolean(user)}
             />
+            {!token && <><PasswordField label="Create password" value={form.password} onChange={setField("password")} visible={showPassword} toggle={() => setShowPassword((visible) => !visible)} /><LineField label="Confirm password" required type={showPassword ? "text" : "password"} value={form.confirmPassword} onChange={setField("confirmPassword")} /><p className="-mt-3 text-body-xs text-brand-muted">You will use this email and password on the affiliate login page after your application is approved.</p></>}
 
             {error && <p className="text-body-xs text-red-600">{error}</p>}
 
             <button
               type="submit"
-              disabled={loading || !form.firstName.trim() || !form.email.trim() || (!!settings?.requiredFields.includes("phone") && !form.phone.trim()) || (!!settings?.requiredFields.includes("channels") && !form.channels.trim())}
+              disabled={loading || !form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || (!!settings?.requiredFields.includes("phone") && !form.phone.trim()) || (!token && (form.password.length < 8 || form.password !== form.confirmPassword))}
               className="w-full py-4 bg-brand-forest text-white text-label tracking-[0.22em] uppercase transition-colors hover:bg-brand-olive disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Submitting…" : "JOIN"}
@@ -253,10 +268,12 @@ function LineField({
   onChange,
   type = "text",
   required,
+  disabled,
 }: {
   label: string;
   value: string;
   required?: boolean;
+  disabled?: boolean;
   type?: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
@@ -271,8 +288,13 @@ function LineField({
         value={value}
         onChange={onChange}
         required={required}
-        className="w-full py-2 bg-transparent border-b border-brand-border outline-none text-body-sm text-brand-forest transition-colors focus:border-brand-forest placeholder:text-brand-muted/30"
+        disabled={disabled}
+        className="w-full py-2 bg-transparent border-b border-brand-border outline-none text-body-sm text-brand-forest transition-colors focus:border-brand-forest placeholder:text-brand-muted/30 disabled:opacity-60"
       />
     </div>
   );
+}
+
+function PasswordField({ label, value, onChange, visible, toggle }: { label: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; visible: boolean; toggle: () => void }) {
+  return <div><label className="block text-[10px] font-semibold tracking-[0.18em] uppercase text-brand-muted mb-2">{label}<span className="text-red-500 ml-0.5">*</span></label><div className="relative"><input type={visible ? "text" : "password"} value={value} onChange={onChange} required minLength={8} autoComplete="new-password" className="w-full py-2 pr-10 bg-transparent border-b border-brand-border outline-none text-body-sm text-brand-forest focus:border-brand-forest" /><button type="button" onClick={toggle} aria-label={visible ? "Hide password" : "Show password"} className="absolute right-1 top-1/2 -translate-y-1/2 text-brand-muted">{visible ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></div>
 }

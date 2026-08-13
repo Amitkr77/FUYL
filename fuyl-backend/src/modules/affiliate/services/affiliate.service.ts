@@ -35,7 +35,6 @@ export class AffiliateService {
     const settings = await AffiliateSettingsModel.findOneAndUpdate({ key: 'default' }, { $setOnInsert: { key: 'default' } }, { upsert: true, new: true });
     if (!settings.registrationEnabled) throw new BadRequestError('Affiliate registration is currently closed');
     if (settings.requiredFields.includes('phone') && !input.phone?.trim()) throw new BadRequestError('Phone is required');
-    if (settings.requiredFields.includes('channels') && !input.channels?.length) throw new BadRequestError('At least one promotion channel is required');
     const existing = await affiliateRepo.findByEmail(input.email);
     if (existing) throw new ConflictError('An application with this email already exists');
 

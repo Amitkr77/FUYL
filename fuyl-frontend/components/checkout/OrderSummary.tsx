@@ -134,6 +134,11 @@ export function OrderSummary({
             <span>Total</span>
             <span>{formatPrice(displayTotal)}</span>
           </div>
+          {preview?.cashback.eligible && preview.cashback.totalCashback > 0 && (
+            <div className="rounded-lg bg-emerald-50 px-3 py-2 text-body-xs text-emerald-800">
+              You will earn <strong>{formatPrice(preview.cashback.totalCashback)}</strong> cashback after this order.
+            </div>
+          )}
         </div>
 
         {/* Trust badges */}

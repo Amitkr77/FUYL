@@ -1,6 +1,6 @@
 import { adminApiFetch } from './api'
 
-export type DiscountValueType = 'percent' | 'flat' | 'per_unit' | 'free_shipping'
+export type DiscountValueType = 'percent' | 'flat' | 'per_unit' | 'free_shipping' | 'buy_x_get_y'
 export type DiscountStatus = 'draft' | 'active' | 'paused' | 'ended'
 export type DiscountMethod = 'coupon' | 'automatic' | 'bundle' | 'flash_sale'
 
@@ -15,6 +15,10 @@ export interface DiscountCode {
   minOrderSubtotal?: number
   maxDiscountAmount?: number
   isFirstOrderOnly?: boolean
+  buyQuantity?: number
+  getQuantity?: number
+  buyTargetIds?: string[]
+  getTargetIds?: string[]
   redemptionsCount: number
   isActive: boolean
 }
@@ -50,6 +54,8 @@ export async function listDiscounts(): Promise<Discount[]> {
   const raw = await adminApiFetch<BackendDiscount[]>('/admin/discounts?limit=100')
   return raw.map(mapDiscount)
 }
+export async function getDiscount(id: string): Promise<Discount | null> { try { return mapDiscount(await adminApiFetch<BackendDiscount>(`/admin/discounts/${id}`)) } catch { return null } }
 export async function createDiscount(input: CreateDiscountInput): Promise<void> { await adminApiFetch('/admin/discounts', { method: 'POST', body: input }) }
-export async function updateDiscount(id: string, patch: { status?: DiscountStatus; isFeatured?: boolean; isActive?: boolean }): Promise<void> { await adminApiFetch(`/admin/discounts/${id}`, { method: 'PATCH', body: patch }) }
+export type UpdateDiscountInput = Partial<CreateDiscountInput> & { status?: DiscountStatus; isFeatured?: boolean; isActive?: boolean }
+export async function updateDiscount(id: string, patch: UpdateDiscountInput): Promise<void> { await adminApiFetch(`/admin/discounts/${id}`, { method: 'PATCH', body: patch }) }
 export async function deleteDiscount(id: string): Promise<void> { await adminApiFetch(`/admin/discounts/${id}`, { method: 'DELETE' }) }

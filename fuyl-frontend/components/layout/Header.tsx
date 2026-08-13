@@ -27,7 +27,7 @@ function MobileNavItem({
         <div className="flex w-full items-center justify-between">
           <Link
             href={item.href}
-            target={item.external ? "_blank" : undefined}
+              target={item.external ? "_blank" : "_self"}
             rel={item.external ? "noopener noreferrer" : undefined}
             onClick={onClose}
             className="flex-1 py-3.5 text-label text-brand-forest transition-colors hover:text-brand-teal"
@@ -55,7 +55,7 @@ function MobileNavItem({
       ) : (
         <Link
           href={item.href}
-          target={item.external ? "_blank" : undefined}
+          target={item.external ? "_blank" : "_self"}
           rel={item.external ? "noopener noreferrer" : undefined}
           onClick={onClose}
           className="flex w-full items-center justify-between py-3.5 text-label text-brand-forest transition-colors hover:text-brand-teal"
@@ -170,7 +170,7 @@ export function Header({ shopItems }: HeaderProps = {}) {
               >
                 <Link
                   href={item.href}
-                  target={item.external ? "_blank" : undefined}
+                    target={item.external ? "_blank" : "_self"}
                   rel={item.external ? "noopener noreferrer" : undefined}
                   aria-current={isActive(item) ? "page" : undefined}
                   className={cn(

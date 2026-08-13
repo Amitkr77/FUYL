@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getErrorMessage } from '@/lib/api'
-import { createDiscount, updateDiscount, deleteDiscount, type CreateDiscountInput, type DiscountStatus } from '@/lib/discounts'
+import { createDiscount, updateDiscount, deleteDiscount, type CreateDiscountInput, type UpdateDiscountInput, type DiscountStatus } from '@/lib/discounts'
 
 export type DiscountActionState = { error: string } | { success: true }
 export async function createDiscountAction(input: CreateDiscountInput): Promise<{ error: string } | null> {
@@ -15,6 +15,12 @@ export async function updateDiscountStatusAction(id: string, status: DiscountSta
   try { await updateDiscount(id, { status }) } catch (err) { return { error: getErrorMessage(err, 'Could not update discount status.') } }
   revalidatePath('/discounts-cashback')
   return { success: true }
+}
+export async function updateDiscountAction(id: string, input: UpdateDiscountInput): Promise<{ error: string } | null> {
+  try { await updateDiscount(id, input) } catch (err) { return { error: getErrorMessage(err, 'Could not update the discount.') } }
+  revalidatePath('/discounts-cashback')
+  revalidatePath(`/discounts-cashback/discounts/${id}/edit`)
+  redirect('/discounts-cashback')
 }
 export async function deleteDiscountAction(id: string): Promise<DiscountActionState> {
   try { await deleteDiscount(id) } catch (err) { return { error: getErrorMessage(err, 'Could not delete the discount.') } }

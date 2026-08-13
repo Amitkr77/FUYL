@@ -284,7 +284,7 @@ export function Footer() {
                     target={
                       "external" in link && (link as unknown as { external?: boolean }).external
                         ? "_blank"
-                        : undefined
+                        : "_self"
                     }
                     rel={
                       "external" in link && (link as unknown as { external?: boolean }).external

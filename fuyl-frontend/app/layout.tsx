@@ -1,9 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { AnnouncementBar } from '@/components/layout/AnnouncementBar'
-import { Header } from '@/components/layout/Header'
-import { Footer } from '@/components/layout/Footer'
-import { CartDrawer } from '@/components/layout/CartDrawer'
+import { SiteChrome } from '@/components/layout/SiteChrome'
 import { generateSEO, orgSchema } from '@/lib/utils/seo'
 import { serializeJsonLd } from '@/lib/utils/jsonLd'
 import { getProducts } from '@/lib/api/products'
@@ -63,13 +60,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         >
           Skip to content
         </a>
-        <AnnouncementBar />
-        <Header shopItems={shopItems} />
-        <main id="MainContent" tabIndex={-1}>
-          {children}
-        </main>
-        <Footer />
-        <CartDrawer />
+        <SiteChrome shopItems={shopItems}>{children}</SiteChrome>
         <PageTracker />
       </body>
     </html>

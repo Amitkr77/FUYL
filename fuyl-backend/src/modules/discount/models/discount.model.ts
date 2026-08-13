@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
-export type DiscountType = 'percent' | 'flat' | 'per_unit' | 'free_shipping';
+export type DiscountType = 'percent' | 'flat' | 'per_unit' | 'free_shipping' | 'buy_x_get_y';
 export type CouponScope = 'cart' | 'category' | 'product' | 'variant';
 export type DiscountStatus = 'draft' | 'active' | 'paused' | 'ended';
 
@@ -19,6 +19,10 @@ export interface ICoupon {
   maxRedemptionsPerUser?: number;
   minOrderSubtotal?: number;
   maxDiscountAmount?: number;         // cap for percent discounts
+  buyQuantity?: number;
+  getQuantity?: number;
+  buyTargetIds?: Types.ObjectId[];
+  getTargetIds?: Types.ObjectId[];
   // Validity
   startsAt: Date;
   endsAt?: Date;
@@ -61,7 +65,7 @@ export interface IDiscount extends Document {
 const CouponSchema = new Schema<ICoupon>(
   {
     code: { type: String, required: true, unique: true, uppercase: true, trim: true, index: true },
-    discountType: { type: String, enum: ['percent', 'flat', 'per_unit', 'free_shipping'], required: true },
+    discountType: { type: String, enum: ['percent', 'flat', 'per_unit', 'free_shipping', 'buy_x_get_y'], required: true },
     discountValue: { type: Number, required: true, min: 0 },
     scope: { type: String, enum: ['cart', 'category', 'product', 'variant'], default: 'cart' },
     targetIds: [{ type: Schema.Types.ObjectId, refPath: 'couponTargetRef' }],
@@ -71,6 +75,10 @@ const CouponSchema = new Schema<ICoupon>(
     maxRedemptionsPerUser: { type: Number, min: 0, default: 1 },
     minOrderSubtotal: { type: Number, min: 0 },
     maxDiscountAmount: { type: Number, min: 0 },
+    buyQuantity: { type: Number, min: 1 },
+    getQuantity: { type: Number, min: 1 },
+    buyTargetIds: [{ type: Schema.Types.ObjectId, ref: 'Product' }],
+    getTargetIds: [{ type: Schema.Types.ObjectId, ref: 'Product' }],
     startsAt: { type: Date, required: true },
     endsAt: { type: Date },
     redemptionsCount: { type: Number, default: 0, min: 0 },

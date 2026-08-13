@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Users } from 'lucide-react'
@@ -69,7 +70,7 @@ export default function AffiliateLoginPage() {
   return (
     <main className="grid min-h-screen bg-brand-cream lg:grid-cols-2">
       <section className="hidden bg-brand-forest p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <Link href="/" className="text-2xl font-display tracking-wide">FUYL</Link>
+        <Link href="/"><Image src="/logo.webp" alt="FUYL" width={220} height={88} className="brightness-0 invert" /></Link>
         <div className="max-w-lg">
           <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10"><Users /></div>
           <h1 className="text-display-lg font-display">AFFILIATE PORTAL</h1>
@@ -80,7 +81,7 @@ export default function AffiliateLoginPage() {
 
       <section className="flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-md">
-          <Link href="/" className="mb-10 inline-block text-xl font-display text-brand-forest lg:hidden">FUYL</Link>
+          <Link href="/" className="mb-10 inline-block lg:hidden"><Image src="/logo.webp" alt="FUYL" width={150} height={60} /></Link>
           <div className="rounded-3xl border border-brand-border bg-white p-7 shadow-xl shadow-brand-forest/5 sm:p-9">
             <div className="mb-7">
               <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-forest text-white"><LockKeyhole size={20} /></div>
@@ -103,7 +104,7 @@ export default function AffiliateLoginPage() {
             </form>
 
             <div className="mt-6 border-t border-brand-border pt-6 text-center text-sm text-brand-muted">
-              Not an affiliate yet? <Link href="/affiliate/apply" className="font-semibold text-brand-teal hover:text-brand-forest">Apply to join</Link>
+              Not an affiliate yet? <Link href="/affiliate/apply" target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-teal hover:text-brand-forest">Apply to join</Link>
             </div>
           </div>
           <p className="mt-5 text-center text-xs text-brand-muted">Looking for your orders and profile? <Link href="/account" className="font-semibold text-brand-forest">Customer login</Link></p>

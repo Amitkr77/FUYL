@@ -116,6 +116,8 @@ export default function AffiliateDashboardPage() {
             </p>
             <Link
               href="/affiliate/apply"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-forest text-white text-body-sm font-semibold rounded-xl hover:bg-brand-forest/90 transition-colors"
             >
               Apply to become an affiliate

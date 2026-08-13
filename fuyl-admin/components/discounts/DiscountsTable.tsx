@@ -2,6 +2,8 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import { Search, Trash2 } from 'lucide-react'
+import { Pencil } from 'lucide-react'
+import Link from 'next/link'
 import Badge from '@/components/ui/Badge'
 import type { Discount, DiscountStatus } from '@/lib/discounts'
 import { updateDiscountStatusAction, deleteDiscountAction } from '@/app/(admin)/discounts-cashback/actions'
@@ -21,6 +23,7 @@ function summary(discount: Discount): string {
   const coupon = discount.coupons[0]
   if (!coupon) return discount.type.replace('_', ' ')
   if (coupon.discountType === 'free_shipping') return 'Free shipping'
+  if (coupon.discountType === 'buy_x_get_y') return `Buy ${coupon.buyQuantity ?? 1}, get ${coupon.getQuantity ?? 1} at ${coupon.discountValue}% off`
   const value = coupon.discountType === 'percent' ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`
   return `${value} off ${coupon.scope === 'cart' ? 'order' : coupon.scope}`
 }
@@ -72,7 +75,7 @@ export function DiscountsTable({ discounts }: { discounts: Discount[] }) {
           <td className="px-4 py-4"><p className="font-semibold text-slate-900">{discount.name}</p><p className="text-xs text-slate-500">{summary(discount)}</p></td>
           <td><Badge variant={status === 'Active' ? 'success' : status === 'Expired' ? 'danger' : status === 'Scheduled' ? 'info' : 'default'}>{status}</Badge></td>
           <td>{discount.type === 'automatic' ? 'Automatic' : 'Code'}</td><td>All customers</td><td className="capitalize">{summary(discount)}</td><td>{used}</td>
-          <td className="pr-4 text-right"><select value={discount.status} disabled={pending} onChange={(e) => updateStatus(discount.id, e.target.value as DiscountStatus)} className="mr-2 rounded border border-slate-200 px-2 py-1 text-xs">{statuses.map((s) => <option key={s}>{s}</option>)}</select><button onClick={() => remove(discount.id, discount.name)} disabled={pending} className="text-slate-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button></td>
+          <td className="pr-4 text-right"><select value={discount.status} disabled={pending} onChange={(e) => updateStatus(discount.id, e.target.value as DiscountStatus)} className="mr-2 rounded border border-slate-200 px-2 py-1 text-xs">{statuses.map((s) => <option key={s}>{s}</option>)}</select><Link href={`/discounts-cashback/discounts/${discount.id}/edit`} className="mr-2 inline-flex text-slate-400 hover:text-[#315f52]" aria-label={`Edit ${discount.name}`}><Pencil className="h-4 w-4" /></Link><button onClick={() => remove(discount.id, discount.name)} disabled={pending} className="text-slate-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button></td>
         </tr>
       })}</tbody>
     </table></div>
