@@ -34,6 +34,8 @@ export class AffiliateService {
   }) {
     const settings = await AffiliateSettingsModel.findOneAndUpdate({ key: 'default' }, { $setOnInsert: { key: 'default' } }, { upsert: true, new: true });
     if (!settings.registrationEnabled) throw new BadRequestError('Affiliate registration is currently closed');
+    if (settings.requiredFields.includes('phone') && !input.phone?.trim()) throw new BadRequestError('Phone is required');
+    if (settings.requiredFields.includes('channels') && !input.channels?.length) throw new BadRequestError('At least one promotion channel is required');
     const existing = await affiliateRepo.findByEmail(input.email);
     if (existing) throw new ConflictError('An application with this email already exists');
 
@@ -236,9 +238,12 @@ export class AffiliateService {
     return affiliate;
   }
 
-  async resolvePortalAffiliate(user: { userId: string; impersonatedAffiliateId?: string }) {
+  async resolvePortalAffiliate(user: { userId: string; email?: string; impersonatedAffiliateId?: string }) {
     if (user.impersonatedAffiliateId) { const affiliate=await affiliateRepo.findById(user.impersonatedAffiliateId);if(!affiliate)throw new NotFoundError('Affiliate profile');return affiliate; }
-    return this.findByUserId(user.userId);
+    const linked=await affiliateRepo.findByUserId(user.userId);
+    if(linked)return linked;
+    if(user.email){const byEmail=await affiliateRepo.findByEmail(user.email);if(byEmail&&!byEmail.userId){const claimed=await affiliateRepo.update(byEmail._id,{userId:new mongoose.Types.ObjectId(user.userId)});if(claimed)return claimed;}}
+    throw new NotFoundError('Affiliate profile');
   }
 
   async createImpersonation(affiliateId:string,admin:{userId:string;role:string}){const affiliate=await affiliateRepo.findById(affiliateId);if(!affiliate)throw new NotFoundError('Affiliate');if(affiliate.status!==AffiliateStatus.APPROVED)throw new BadRequestError('Only approved affiliates can be impersonated');const raw=crypto.randomBytes(32).toString('hex');await AffiliateImpersonationModel.create({tokenHash:hashToken(raw),affiliateId:affiliate._id,adminUserId:new mongoose.Types.ObjectId(admin.userId),expiresAt:new Date(Date.now()+300000)});await auditService.write(admin,'affiliate.impersonation.created',{type:'affiliate',id:affiliateId},{expiresInMinutes:5});return{code:raw,expiresInSeconds:300}}

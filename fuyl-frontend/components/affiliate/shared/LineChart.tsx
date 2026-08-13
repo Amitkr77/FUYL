@@ -16,12 +16,13 @@ import { Skeleton } from '@/components/ui/Skeleton'
 
 function ChartTooltip({ active, payload, label, formatter }: {
   active?: boolean
-  payload?: Array<{ value?: number }>
-  label?: string
+  payload?: ReadonlyArray<{ value?: number | string | ReadonlyArray<number | string> }>
+  label?: string | number
   formatter?: (v: number) => string
 }) {
   if (!active || !payload?.length) return null
-  const value = payload[0]?.value ?? 0
+  const rawValue = payload[0]?.value
+  const value = typeof rawValue === 'number' ? rawValue : Number(Array.isArray(rawValue) ? rawValue[0] : rawValue) || 0
   return (
     <div className="bg-brand-forest text-white text-body-xs rounded-lg px-3 py-2 shadow-lg">
       <p className="text-brand-sage mb-0.5">{label}</p>
@@ -50,7 +51,7 @@ export function LineChart({
   emptyMessage = 'No data for the selected period.',
 }: LineChartProps) {
   if (loading) {
-    return <Skeleton className="w-full rounded-xl" style={{ height }} />
+    return <div style={{ height }}><Skeleton className="h-full w-full rounded-xl" /></div>
   }
 
   const allZero = data.every((d) => d.value === 0)

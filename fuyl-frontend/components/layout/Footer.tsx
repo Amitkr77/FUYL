@@ -282,12 +282,12 @@ export function Footer() {
                   <Link
                     href={link.href}
                     target={
-                      "external" in link && (link as any).external
+                      "external" in link && (link as unknown as { external?: boolean }).external
                         ? "_blank"
                         : undefined
                     }
                     rel={
-                      "external" in link && (link as any).external
+                      "external" in link && (link as unknown as { external?: boolean }).external
                         ? "noopener noreferrer"
                         : undefined
                     }

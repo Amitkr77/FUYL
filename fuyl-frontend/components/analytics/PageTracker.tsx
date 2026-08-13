@@ -64,8 +64,10 @@ function requestLocation() {
 
 export function PageTracker() {
   const pathname = usePathname()
-  const entryTimeRef   = useRef<number>(Date.now())
+  const entryTimeRef   = useRef<number>(0)
   const prevPathRef    = useRef<string>('')
+
+  useEffect(() => { entryTimeRef.current = Date.now() }, [])
 
   // Request geolocation lazily on first interaction — avoids an immediate
   // permission prompt on page load which browsers discourage.

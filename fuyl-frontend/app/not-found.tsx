@@ -11,7 +11,7 @@ export default function NotFound() {
       </p>
       <h1 className="text-display-xl font-display">PAGE NOT FOUND</h1>
       <p className="text-body-lg max-w-md" style={{ color: 'var(--color-brand-muted)' }}>
-        The page you're looking for doesn't exist or has been moved.
+        The page you&apos;re looking for doesn&apos;t exist or has been moved.
       </p>
       <div className="flex flex-wrap gap-3 justify-center">
         <Link

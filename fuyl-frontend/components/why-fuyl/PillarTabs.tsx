@@ -27,47 +27,6 @@ interface Ingredient {
   image: string;
 }
 
-// ─── Category styling ────────────────────────────────────────────────────────
-// Full class strings kept as literals so Tailwind's scanner picks them up
-
-const CAT: Record<Category, { gradient: string; badge: string }> = {
-  Vitamin: {
-    gradient: "from-indigo-500 to-purple-600",
-    badge: "bg-indigo-100 text-indigo-700",
-  },
-  Mineral: {
-    gradient: "from-amber-500 to-orange-600",
-    badge: "bg-amber-100 text-amber-800",
-  },
-  Probiotic: {
-    gradient: "from-emerald-500 to-green-700",
-    badge: "bg-emerald-100 text-emerald-700",
-  },
-  Adaptogen: {
-    gradient: "from-violet-500 to-purple-700",
-    badge: "bg-violet-100 text-violet-700",
-  },
-  Antioxidant: {
-    gradient: "from-brand-forest to-brand-olive",
-    badge: "bg-brand-sage text-brand-forest",
-  },
-  Enzyme: {
-    gradient: "from-teal-500 to-cyan-700",
-    badge: "bg-teal-100 text-teal-700",
-  },
-  Omega: {
-    gradient: "from-sky-500 to-blue-700",
-    badge: "bg-sky-100 text-sky-700",
-  },
-  Fiber: {
-    gradient: "from-yellow-500 to-amber-600",
-    badge: "bg-yellow-100 text-yellow-800",
-  },
-  Superfood: {
-    gradient: "from-lime-500 to-green-600",
-    badge: "bg-lime-100 text-lime-800",
-  },
-};
 
 // ─── 48 Premium Ingredients ──────────────────────────────────────────────────
 // Each entry maps to a real product photo in
@@ -652,8 +611,6 @@ function FlipCard({
   isFlipped: boolean;
   onFlip: () => void;
 }) {
-  const cat = CAT[ingredient.category];
-
   return (
     <div
       className="aspect-4/4 cursor-pointer select-none"
@@ -678,11 +635,13 @@ function FlipCard({
         >
           {/* Background Image */}
           <div className="absolute inset-0">
-            <img
+            <Image
               src={ingredient.image}
               alt={ingredient.name}
-              loading="lazy"
-              className="h-full w-full object-cover"
+              fill
+              unoptimized
+              className="object-cover"
+              sizes="(max-width: 640px) 50vw, 200px"
             />
           </div>
 
@@ -942,13 +901,16 @@ export function PillarTabs() {
               )}
             >
               {/* Background Image */}
-              <img
+              <Image
                 src={p.image}
                 alt={p.title}
+                fill
+                unoptimized
                 className={cn(
-                  "absolute inset-0 h-full w-full object-cover transition-transform duration-700",
+                  "object-cover transition-transform duration-700",
                   active === i ? "scale-110" : "group-hover:scale-105",
                 )}
+                sizes="(max-width: 640px) 256px, (max-width: 1024px) 288px, 384px"
               />
 
               {/* Overlay */}

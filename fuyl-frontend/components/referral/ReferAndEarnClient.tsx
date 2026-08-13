@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, startTransition, useCallback } from 'react'
 import Link from 'next/link'
 import { Copy, Check, Mail, MessageCircle, Share2 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -58,16 +58,16 @@ export function ReferAndEarnClient() {
   const [copied, setCopied] = useState(false)
   const [shareMsg, setShareMsg] = useState('')
 
-  const load = () => {
-    if (!token) { setLoading(false); return }
-    setLoading(true)
+  const load = useCallback(() => {
+    if (!token) { startTransition(() => setLoading(false)); return }
+    startTransition(() => setLoading(true))
     getReferralDashboard(token)
       .then(setDash)
       .catch((err) => setError(getErrorMessage(err, 'Could not load your referral dashboard')))
       .finally(() => setLoading(false))
-  }
+  }, [token])
 
-  useEffect(load, [token])
+  useEffect(() => { void load() }, [load])
 
   const handleGenerate = async () => {
     if (!token) return

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { SITE } from "@/lib/constants/site";
@@ -59,11 +60,13 @@ export async function InstagramFeed() {
                   rel="noopener noreferrer"
                   className="relative block aspect-square overflow-hidden rounded-xl group bg-brand-sage"
                 >
-                  <img
+                  <Image
                     src={src}
                     alt={alt}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    loading="lazy"
+                    fill
+                    unoptimized
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    sizes="(max-width: 640px) 208px, (max-width: 1024px) 33vw, 33vw"
                   />
                   {/* Teal hover overlay — interactive element */}
                   <div className="absolute inset-0 bg-brand-teal/0 group-hover:bg-brand-teal/25 transition-colors duration-300" />

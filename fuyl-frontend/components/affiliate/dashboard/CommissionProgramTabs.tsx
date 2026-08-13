@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Coins, TrendingUp, CheckCircle, BadgeCheck } from 'lucide-react'
+import { Coins, CheckCircle, BadgeCheck } from 'lucide-react'
 import { TabBar } from '@/components/affiliate/shared/TabBar'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { formatPrice } from '@/lib/utils/formatPrice'

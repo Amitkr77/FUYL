@@ -5,6 +5,7 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { IngredientsClient } from "@/components/content/IngredientsClient";
 import type { IngredientData } from "@/components/content/IngredientCard";
+import { getIngredients } from "@/lib/api/content";
 
 export const metadata = generateSEO({
   title: "Ingredients",
@@ -536,7 +537,38 @@ const INGREDIENTS: IngredientData[] = SEED.map((s) => {
   };
 });
 
-export default function IngredientsPage() {
+const MANAGED_CATEGORY: Record<string, string> = {
+  greens: "Greens & Superfoods",
+  berries: "Fruits & Berries",
+  adaptogens: "Cognitive Health & Adaptogens",
+  probiotics: "Gut Health",
+  enzymes: "Gut Health",
+  vitamins: "Vitamins & Minerals",
+  omegas: "Vitamins & Minerals",
+  antioxidants: "Antioxidants",
+};
+
+export default async function IngredientsPage() {
+  const managed = await getIngredients().catch(() => []);
+  const managedIngredients: IngredientData[] = managed.map((ingredient) => {
+    const category = MANAGED_CATEGORY[ingredient.category] ?? ingredient.category;
+    const style = CAT_STYLE[category] ?? { bg: "#F5F5F0", accent: "#385442", emoji: "🌿" };
+    return {
+      id: ingredient.id,
+      name: ingredient.name,
+      amount: ingredient.amount,
+      benefit: ingredient.benefit,
+      description: ingredient.description,
+      category,
+      clinical: ingredient.clinicalBacking,
+      image: ingredient.image,
+      ...style,
+    };
+  });
+  const displayedIngredients = managedIngredients.length ? managedIngredients : INGREDIENTS;
+  const displayedCategories = CATEGORIES.filter((category) =>
+    displayedIngredients.some((ingredient) => ingredient.category === category),
+  );
   return (
     <>
       {/* ── Hero ─────────────────────────────────────────── */}
@@ -579,7 +611,7 @@ export default function IngredientsPage() {
       </section>
 
       {/* ── Tabs + Card grid + Sidebar (client) ──────────── */}
-      <IngredientsClient categories={CATEGORIES} ingredients={INGREDIENTS} />
+      <IngredientsClient categories={displayedCategories} ingredients={displayedIngredients} />
     </>
   );
 }

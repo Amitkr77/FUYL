@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, startTransition } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -149,7 +149,7 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     if (!token || !params.id) return;
-    setLoading(true);
+    startTransition(() => setLoading(true));
     // Payment records carry the gateway amount/reference/date — non-fatal if
     // they can't be loaded (the order's own method/status still render).
     getOrderPayments(token, params.id)

@@ -17,7 +17,7 @@ export function EditTestimonialForm({ testimonial }: { testimonial: TestimonialR
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState({
     name: testimonial.name, title: testimonial.title, type: testimonial.type, body: testimonial.body,
-    rating: testimonial.rating, image: testimonial.image, isActive: testimonial.isActive,
+    rating: testimonial.rating, image: testimonial.image, isActive: testimonial.isActive, order:testimonial.order,
   })
 
   const set = (k: Partial<typeof form>) => setForm((f) => ({ ...f, ...k }))

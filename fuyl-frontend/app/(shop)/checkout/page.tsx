@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -94,7 +94,7 @@ export default function CheckoutPage() {
   // this guard, that split second showed the guest "Contact" (email/
   // password) section to logged-in users before it flipped to the real form.
   const [authReady, setAuthReady] = useState(false)
-  useEffect(() => { setAuthReady(true) }, [])
+  useEffect(() => { startTransition(() => setAuthReady(true)) }, [])
   // BUG FIXED (found live — reported as "subtotal shows ₹0 until Review
   // Order"): this page used to read `subtotal`/`itemCount` straight off
   // useCartStore(), which are defined as getters on the store's initial
@@ -148,9 +148,9 @@ export default function CheckoutPage() {
   // overwrites fields the shopper is actively editing mid-keystroke.
   const [pincodeStatus, setPincodeStatus] = useState<'idle' | 'loading' | 'notfound'>('idle')
   useEffect(() => {
-    if (!/^\d{6}$/.test(address.pincode)) { setPincodeStatus('idle'); return }
+    if (!/^\d{6}$/.test(address.pincode)) { startTransition(() => setPincodeStatus('idle')); return }
     let cancelled = false
-    setPincodeStatus('loading')
+    startTransition(() => setPincodeStatus('loading'))
     const t = setTimeout(async () => {
       const result = await lookupPincode(address.pincode)
       if (cancelled) return
@@ -163,7 +163,6 @@ export default function CheckoutPage() {
       }
     }, 400)
     return () => { cancelled = true; clearTimeout(t) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address.pincode])
 
   // Set once placeOrder() succeeds — lets a payment-step retry re-attempt
@@ -204,7 +203,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     // A guest has no saved addresses to fetch — resolve immediately so the
     // manual-entry form shows right away instead of loading forever.
-    if (!token) { setAddressesLoading(false); return }
+    if (!token) { startTransition(() => setAddressesLoading(false)); return }
     let cancelled = false
     getAddresses(token)
       .then((addrs) => {
@@ -246,7 +245,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!token || !addressComplete(address, token, email)) return
     let cancelled = false
-    setPreviewLoading(true)
+    startTransition(() => setPreviewLoading(true))
     const t = setTimeout(async () => {
       try {
         const result = await previewCheckout(token, {

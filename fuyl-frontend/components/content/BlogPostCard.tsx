@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
 
 export interface BlogPostPreview {
@@ -26,11 +27,13 @@ export function BlogPostCard({ post, featured }: BlogPostCardProps) {
     return (
       <Link href={`/pages/learn/${slug}`} className="group grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-12 items-center">
         <div className="relative aspect-video overflow-hidden rounded-sm" style={{ background: 'var(--color-brand-cream)' }}>
-          <img
+          <Image
             src={image}
             alt={imageAlt}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="eager"
+            fill
+            unoptimized
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            sizes="(max-width: 1024px) 100vw, 50vw"
           />
         </div>
         <div className="flex flex-col gap-4">
@@ -62,11 +65,13 @@ export function BlogPostCard({ post, featured }: BlogPostCardProps) {
   return (
     <Link href={`/pages/learn/${slug}`} className="group flex flex-col gap-4">
       <div className="relative aspect-video overflow-hidden rounded-sm" style={{ background: 'var(--color-brand-cream)' }}>
-        <img
+        <Image
           src={image}
           alt={imageAlt}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
+          fill
+          unoptimized
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
       </div>
       <div className="flex flex-wrap gap-2 items-center">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Search, X, ArrowRight, FileText, Package, Newspaper, Leaf, HelpCircle } from "lucide-react";
@@ -44,20 +44,17 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
       const t = setTimeout(() => inputRef.current?.focus(), 50);
       return () => clearTimeout(t);
     }
-    setQuery("");
-    setResults(null);
-    setLoading(false);
+    startTransition(() => { setQuery(""); setResults(null); setLoading(false); });
   }, [open]);
 
   // Debounced live search.
   useEffect(() => {
     const q = query.trim();
     if (!q) {
-      setResults(null);
-      setLoading(false);
+      startTransition(() => { setResults(null); setLoading(false); });
       return;
     }
-    setLoading(true);
+    startTransition(() => setLoading(true));
     const id = ++reqId.current;
     const timer = setTimeout(async () => {
       const res = await globalSearch(q, { productLimit: 5, articleLimit: 3, pageLimit: 5 });

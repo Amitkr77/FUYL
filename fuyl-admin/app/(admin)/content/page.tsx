@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { Plus, Edit2, Trash2, AlertCircle, Star } from 'lucide-react'
+import { Plus, Edit2, Trash2, AlertCircle, Star, Image } from 'lucide-react'
+import { ReorderButtons } from '@/components/content/ReorderButtons'
 import Badge from '@/components/ui/Badge'
 import { getErrorMessage } from '@/lib/api'
 import {
@@ -76,6 +77,10 @@ export default async function ContentPage({
       </div>
 
       {/* Tabs */}
+      <Link href="/content/hero" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+        <div className="flex items-center gap-4"><div className="rounded-xl bg-[#558476]/10 p-3 text-[#558476]"><Image className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Homepage Hero Section</h3><p className="text-sm text-slate-500">Edit headings, subheadings, images, CTA buttons, slide visibility, and timing.</p></div></div>
+      </Link>
+
       <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto scrollbar-hide">
         {TABS.map((t) => (
           <Link
@@ -165,7 +170,7 @@ function IngredientsTable({ items }: { items: IngredientRecord[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {items.length === 0 ? <EmptyRow colSpan={5} label="No ingredients yet." /> : items.map((ing) => (
+            {items.length === 0 ? <EmptyRow colSpan={5} label="No ingredients yet." /> : items.map((ing,index) => (
               <tr key={ing.id} className="hover:bg-slate-50/50 transition-colors">
                 <td className="px-5 py-4">
                   <p className="text-sm font-medium text-slate-900">{ing.name}</p>
@@ -179,6 +184,7 @@ function IngredientsTable({ items }: { items: IngredientRecord[] }) {
                   <Badge variant={ing.isActive ? 'success' : 'default'}>{ing.isActive ? 'Active' : 'Inactive'}</Badge>
                 </td>
                 <td className="px-5 py-4">
+                  <ReorderButtons id={ing.id} order={ing.order} type="ingredient" first={index===0} last={index===items.length-1} />
                   <RowActions editHref={`/content/ingredients/${ing.id}`} deleteAction={deleteIngredientAction.bind(null, ing.id)} />
                 </td>
               </tr>
@@ -205,7 +211,7 @@ function TestimonialsTable({ items }: { items: TestimonialRecord[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {items.length === 0 ? <EmptyRow colSpan={5} label="No testimonials yet." /> : items.map((t) => (
+            {items.length === 0 ? <EmptyRow colSpan={5} label="No testimonials yet." /> : items.map((t,index) => (
               <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
                 <td className="px-5 py-4">
                   <p className="text-sm font-medium text-slate-900">{t.name}</p>
@@ -224,6 +230,7 @@ function TestimonialsTable({ items }: { items: TestimonialRecord[] }) {
                   <Badge variant={t.isActive ? 'success' : 'default'}>{t.isActive ? 'Active' : 'Inactive'}</Badge>
                 </td>
                 <td className="px-5 py-4">
+                  <ReorderButtons id={t.id} order={t.order} type="testimonial" first={index===0} last={index===items.length-1} />
                   <RowActions editHref={`/content/testimonials/${t.id}`} deleteAction={deleteTestimonialAction.bind(null, t.id)} />
                 </td>
               </tr>

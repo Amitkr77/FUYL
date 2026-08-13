@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, startTransition } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Heart } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -20,7 +20,7 @@ export function WishlistButton({ productId, variantId }: WishlistButtonProps) {
   const [isLoading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!token) { setWishlisted(false); return }
+    if (!token) { startTransition(() => setWishlisted(false)); return }
     getWishlist(token)
       .then((items) => setWishlisted(items.some((i) => i.productId === productId)))
       .catch(() => {})

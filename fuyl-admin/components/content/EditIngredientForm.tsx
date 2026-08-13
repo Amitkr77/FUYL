@@ -19,7 +19,7 @@ export function EditIngredientForm({ ingredient }: { ingredient: IngredientRecor
   const [form, setForm] = useState({
     name: ingredient.name, amount: ingredient.amount, benefit: ingredient.benefit,
     description: ingredient.description, image: ingredient.image, category: ingredient.category,
-    clinicalBacking: ingredient.clinicalBacking, isActive: ingredient.isActive,
+    clinicalBacking: ingredient.clinicalBacking, isActive: ingredient.isActive, order:ingredient.order,
   })
 
   const set = (k: Partial<typeof form>) => setForm((f) => ({ ...f, ...k }))

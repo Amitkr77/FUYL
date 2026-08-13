@@ -1,6 +1,10 @@
 import { adminApiFetch, AdminApiError } from './api'
 
 export type ContentStatus = 'draft' | 'published'
+export interface HeroSlide {id:string;eyebrow:string;headline:string;subheading:string;image:string;imageAlt:string;primaryCtaLabel:string;primaryCtaHref:string;secondaryCtaLabel?:string;secondaryCtaHref?:string}
+export interface HeroSection {title:string;isActive:boolean;data:{autoplayMs:number;slides:HeroSlide[]}}
+export async function getHeroSection():Promise<HeroSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<HeroSection>>('/admin/content/storefront-sections/home-hero');return{title:raw?.title??'Homepage hero',isActive:raw?.isActive??true,data:raw?.data??{autoplayMs:5000,slides:[{id:'hero-1',eyebrow:'Introducing FUYL COMPLETE+',headline:'Nourish Daily.\nFeel Stronger.\nLive longer.',subheading:'A Daily Nutrition Powder.',image:'/images/hero-slide-1.webp',imageAlt:'FUYL Complete daily nutrition',primaryCtaLabel:'SHOP FUYL COMPLETE +',primaryCtaHref:'/products/fuyl-complete'},{id:'hero-2',eyebrow:'30-Day Transformation',headline:'One Sachet\nEvery Morning\nEverything covered.',subheading:'Built For Daily Life And Long Term Health.',image:'/images/hero-slide-2.webp',imageAlt:'FUYL daily sachet',primaryCtaLabel:'START TODAY',primaryCtaHref:'/products/fuyl-complete'}]}}}
+export async function updateHeroSection(input:HeroSection):Promise<void>{await adminApiFetch('/admin/content/storefront-sections/home-hero',{method:'PUT',body:input})}
 
 // ─── CMS Pages ──────────────────────────────────────────────────────────────
 interface BackendCMSPage {
@@ -87,6 +91,7 @@ interface BackendIngredient {
   category: IngredientCategory
   clinicalBacking?: string
   isActive: boolean
+  order:number
 }
 
 export interface IngredientRecord {
@@ -100,15 +105,16 @@ export interface IngredientRecord {
   category: IngredientCategory
   clinicalBacking: string
   isActive: boolean
+  order:number
 }
 
-export type IngredientInput = Omit<IngredientRecord, 'id' | 'slug'>
+export type IngredientInput = Omit<IngredientRecord, 'id' | 'slug' | 'order'> & { order?: number }
 
 function mapIngredient(i: BackendIngredient): IngredientRecord {
   return {
     id: i._id, slug: i.slug, name: i.name, amount: i.amount, benefit: i.benefit,
     description: i.description, image: i.image ?? '', category: i.category,
-    clinicalBacking: i.clinicalBacking ?? '', isActive: i.isActive,
+    clinicalBacking: i.clinicalBacking ?? '', isActive: i.isActive, order:i.order??0,
   }
 }
 
@@ -148,6 +154,7 @@ interface BackendTestimonial {
   rating?: number
   image?: string
   isActive: boolean
+  order:number
 }
 
 export interface TestimonialRecord {
@@ -159,14 +166,15 @@ export interface TestimonialRecord {
   rating: number | undefined
   image: string
   isActive: boolean
+  order:number
 }
 
-export type TestimonialInput = Omit<TestimonialRecord, 'id'>
+export type TestimonialInput = Omit<TestimonialRecord, 'id' | 'order'> & { order?: number }
 
 function mapTestimonial(t: BackendTestimonial): TestimonialRecord {
   return {
     id: t._id, name: t.name, title: t.title ?? '', type: t.type, body: t.body,
-    rating: t.rating, image: t.image ?? '', isActive: t.isActive,
+    rating: t.rating, image: t.image ?? '', isActive: t.isActive, order:t.order??0,
   }
 }
 

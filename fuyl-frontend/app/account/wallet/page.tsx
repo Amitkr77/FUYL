@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, startTransition } from 'react'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store/authStore'
 import { formatPrice } from '@/lib/utils/formatPrice'
@@ -56,7 +56,7 @@ export default function WalletPage() {
 
   useEffect(() => {
     if (!token) return
-    setLoading(true)
+    startTransition(() => setLoading(true))
     Promise.all([getWalletBalance(token), getWalletTransactions(token)])
       .then(([b, t]) => { setBalance(b); setTransactions(t) })
       .catch((err) => setError(getErrorMessage(err, 'Failed to load wallet')))

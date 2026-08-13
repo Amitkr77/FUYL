@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, startTransition } from 'react'
 import { useAffiliate }          from '@/lib/hooks/useAffiliate'
 import { getAffiliateCommissions, type Commission, type CommissionStatus } from '@/lib/api/affiliate'
 import { getErrorMessage }       from '@/lib/api/client'
@@ -106,19 +106,18 @@ export default function CommissionPage() {
 
   const load = useCallback(async () => {
     if (!token) return
-    setLoading(true)
-    setError('')
+    startTransition(() => { setLoading(true); setError('') })
     try {
       const data = await getAffiliateCommissions(token, {
         status:        status || undefined,
         createdAtFrom: dateFrom || undefined,
         createdAtTo:   dateTo   || undefined,
       })
-      setAll(data)
+      startTransition(() => setAll(data))
     } catch (err) {
-      setError(getErrorMessage(err, 'Could not load commissions.'))
+      startTransition(() => setError(getErrorMessage(err, 'Could not load commissions.')))
     } finally {
-      setLoading(false)
+      startTransition(() => setLoading(false))
     }
   }, [token, status, dateFrom, dateTo])
 

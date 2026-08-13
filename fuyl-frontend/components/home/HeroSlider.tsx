@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
+import type { StorefrontHeroSlide } from "@/lib/api/content";
 
 const SLIDES = [
   {
@@ -28,22 +29,23 @@ const SLIDES = [
 
 const DURATION = 5000;
 
-export function HeroSlider() {
+export function HeroSlider({slides:managedSlides,autoplayMs}:{slides?:StorefrontHeroSlide[];autoplayMs?:number}) {
+  const slides = managedSlides?.length ? managedSlides.map(s=>({id:s.id,eyebrow:s.eyebrow,headline:s.headline.split('\n').filter(Boolean),sub:s.subheading,cta:{label:s.primaryCtaLabel,href:s.primaryCtaHref},ctaAlt:s.secondaryCtaLabel&&s.secondaryCtaHref?{label:s.secondaryCtaLabel,href:s.secondaryCtaHref}:undefined,image:s.image,imageAlt:s.imageAlt})) : SLIDES;
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
 
   const next = useCallback(
-    () => setCurrent((i) => (i + 1) % SLIDES.length),
-    [],
+    () => setCurrent((i) => (i + 1) % slides.length),
+    [slides.length],
   );
 
   useEffect(() => {
     if (paused) return;
-    const id = setInterval(next, DURATION);
+    const id = setInterval(next, autoplayMs??DURATION);
     return () => clearInterval(id);
-  }, [paused, next]);
+  }, [paused, next, autoplayMs]);
 
-  const slide = SLIDES[current];
+  const slide = slides[current]??slides[0];
 
   return (
     <section
@@ -54,11 +56,11 @@ export function HeroSlider() {
     >
       {/* Full-screen background images — one per slide, crossfade via opacity */}
       <div className="absolute inset-0">
-        {SLIDES.map((s, i) => (
+        {slides.map((s, i) => (
           <Image
             key={s.id}
             src={s.image}
-            alt=""
+            alt={'imageAlt' in s ? s.imageAlt : ''}
             fill
             priority={i === 0}
             sizes="100vw"
@@ -117,6 +119,7 @@ export function HeroSlider() {
               >
                 {slide.cta.label}
               </Link>
+              {'ctaAlt' in slide && slide.ctaAlt && <Link href={slide.ctaAlt.href} className="inline-flex items-center justify-center h-9 sm:h-12 px-4 sm:px-8 text-[9px] sm:text-[11px] font-semibold uppercase tracking-widest border border-white/60 text-white rounded-sm hover:bg-brand-forest">{slide.ctaAlt.label}</Link>}
               {/* <Link
                 href={slide.ctaAlt.href}
                 className="inline-flex items-center justify-center h-11 sm:h-12 px-6 sm:px-8 text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest border border-white/60 text-white! rounded-sm transition-colors hover:bg-brand-forest hover:border-none whitespace-nowrap"
@@ -130,7 +133,7 @@ export function HeroSlider() {
         {/* Slider Navigation */}
         <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-20">
           <div className="flex items-center gap-2 sm:gap-3 rounded-full bg-black/20 backdrop-blur-md px-3 py-2 sm:px-4">
-            {SLIDES.map((_, i) => (
+            {slides.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrent(i)}

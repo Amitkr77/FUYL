@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, startTransition, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useCartStore } from '@/lib/store/cartStore'
@@ -40,9 +40,9 @@ export default function WishlistPage() {
   const [error, setError]       = useState<string | null>(null)
   const [busyKey, setBusyKey]   = useState<string | null>(null)
 
-  const load = () => {
+  const load = useCallback(() => {
     if (!token) return
-    setLoading(true)
+    startTransition(() => setLoading(true))
     getWishlist(token)
       .then(async (items) => {
         const products = await Promise.all(items.map((i) => getProductById(i.productId)))
@@ -50,9 +50,9 @@ export default function WishlistPage() {
       })
       .catch((err) => setError(getErrorMessage(err, 'Failed to load wishlist')))
       .finally(() => setLoading(false))
-  }
+  }, [token])
 
-  useEffect(load, [token])
+  useEffect(() => { void load() }, [load])
 
   const keyOf = (i: WishlistItem) => `${i.productId}-${i.variantId ?? ''}`
 

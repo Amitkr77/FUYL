@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, startTransition } from 'react'
 import { useAffiliate }        from '@/lib/hooks/useAffiliate'
 import { updateAffiliateProfile } from '@/lib/api/affiliate'
 import { getErrorMessage }     from '@/lib/api/client'
@@ -86,16 +86,18 @@ export function ProfileTab() {
   useEffect(() => {
     if (!affiliate) return
     const parts     = (affiliate.name ?? '').trim().split(/\s+/)
-    setFirstName(parts[0] ?? '')
-    setLastName(parts.slice(1).join(' '))
-    setPhone(affiliate.phone ?? '')
-    setWebsite(affiliate.metadata?.website ?? '')
-    const h = affiliate.metadata?.socialHandles ?? {}
-    setFacebook(h.facebook  ?? '')
-    setYoutube(h.youtube    ?? '')
-    setInstagram(h.instagram ?? '')
-    setTiktok(h.tiktok      ?? '')
-    setTwitter(h.twitter    ?? '')
+    startTransition(() => {
+      setFirstName(parts[0] ?? '')
+      setLastName(parts.slice(1).join(' '))
+      setPhone(affiliate.phone ?? '')
+      setWebsite(affiliate.metadata?.website ?? '')
+      const h = affiliate.metadata?.socialHandles ?? {}
+      setFacebook(h.facebook  ?? '')
+      setYoutube(h.youtube    ?? '')
+      setInstagram(h.instagram ?? '')
+      setTiktok(h.tiktok      ?? '')
+      setTwitter(h.twitter    ?? '')
+    })
   }, [affiliate])
 
   const handleSubmit = async (e: React.FormEvent) => {

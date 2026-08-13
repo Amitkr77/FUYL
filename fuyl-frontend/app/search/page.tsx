@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState, startTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -30,14 +30,14 @@ function SearchPageContent() {
   const reqId = useRef(0);
 
   // Keep the input in sync when the URL query changes (e.g. from the modal).
-  useEffect(() => setInput(query), [query]);
+  useEffect(() => { startTransition(() => setInput(query)) }, [query]);
 
   useEffect(() => {
     if (!query) {
-      setResults(null);
+      startTransition(() => setResults(null));
       return;
     }
-    setLoading(true);
+    startTransition(() => setLoading(true));
     const id = ++reqId.current;
     globalSearch(query, { productLimit: 24, articleLimit: 12, pageLimit: 10 }).then(
       (res) => {

@@ -7,7 +7,9 @@ import {
   createIngredient, updateIngredient, deleteIngredient, type IngredientInput,
   createTestimonial, updateTestimonial, deleteTestimonial, type TestimonialInput,
   createFAQ, updateFAQ, deleteFAQ, type FAQInput,
+  listAdminIngredients, listAdminTestimonials,
 } from '@/lib/content'
+import { updateHeroSection,type HeroSection } from '@/lib/content'
 import { adminApiFetch, getErrorMessage } from '@/lib/api'
 import type { SignatureResult } from '@/lib/upload'
 
@@ -21,6 +23,9 @@ export async function getContentImageUploadSignature(): Promise<SignatureResult>
     return { error: getErrorMessage(err, 'Could not authorize the upload.') }
   }
 }
+export async function updateHeroAction(input:HeroSection):Promise<{error?:string}>{try{await updateHeroSection(input);revalidatePath('/content/hero');return{}}catch(err){return{error:getErrorMessage(err,'Could not save hero section.')}}}
+export async function reorderIngredientAction(id:string,direction:'up'|'down'){const items=await listAdminIngredients();const index=items.findIndex(i=>i.id===id),target=direction==='up'?index-1:index+1;if(index<0||target<0||target>=items.length)return;await Promise.all([adminApiFetch(`/admin/content/ingredients/${id}`,{method:'PATCH',body:{order:items[target].order}}),adminApiFetch(`/admin/content/ingredients/${items[target].id}`,{method:'PATCH',body:{order:items[index].order}})]);revalidatePath('/content')}
+export async function reorderTestimonialAction(id:string,direction:'up'|'down'){const items=await listAdminTestimonials();const index=items.findIndex(i=>i.id===id),target=direction==='up'?index-1:index+1;if(index<0||target<0||target>=items.length)return;await Promise.all([adminApiFetch(`/admin/content/testimonials/${id}`,{method:'PATCH',body:{order:items[target].order}}),adminApiFetch(`/admin/content/testimonials/${items[target].id}`,{method:'PATCH',body:{order:items[index].order}})]);revalidatePath('/content')}
 
 // ─── Pages ──────────────────────────────────────────────────────────────────
 export async function createPageAction(input: CMSPageInput): Promise<ContentActionState> {

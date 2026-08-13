@@ -42,7 +42,7 @@ export function ReviewsWidget({ productId, reviews, averageRating, totalCount }:
       {/* Header */}
       <div className="flex flex-col gap-3 mb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-display-md font-display">WHAT THEY'RE SAYING</h2>
+          <h2 className="text-display-md font-display">WHAT THEY&apos;RE SAYING</h2>
           <div className="flex items-center gap-3 mt-2">
             <Stars rating={Math.round(averageRating)} />
             <span className="text-body-sm font-semibold">{averageRating.toFixed(1)} out of 5</span>

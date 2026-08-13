@@ -1,5 +1,8 @@
 import { apiFetch } from './client'
 import type { CMSPage, BlogPost, Ingredient, Testimonial, FAQ, InstagramPost } from '@/types/content'
+export interface StorefrontHeroSlide{id:string;eyebrow:string;headline:string;subheading:string;image:string;imageAlt:string;primaryCtaLabel:string;primaryCtaHref:string;secondaryCtaLabel?:string;secondaryCtaHref?:string}
+export interface StorefrontHero{isActive:boolean;autoplayMs:number;slides:StorefrontHeroSlide[]}
+export async function getStorefrontHero():Promise<StorefrontHero|null>{try{const section=await apiFetch<{isActive:boolean;data:Omit<StorefrontHero,'isActive'>}|null>('/storefront-sections/home-hero',{revalidate:60,tags:['storefront-hero']});return section?{isActive:section.isActive,...section.data}:null}catch{return null}}
 
 // ─── Backend raw shapes — all of these return Mongo's `_id`, not the `id`
 // these frontend types declare, so each needs the same _id -> id mapping
@@ -134,7 +137,7 @@ function mapIngredient(i: BackendIngredient): Ingredient {
 export async function getIngredients(): Promise<Ingredient[]> {
   const raw = await apiFetch<BackendIngredient[]>('/ingredients', {
     tags:       ['ingredients'],
-    revalidate: false, // static — almost never changes
+    revalidate: 60,
   })
   return raw.map(mapIngredient)
 }

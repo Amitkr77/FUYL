@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useId, useRef, useState } from "react";
+import { Suspense, useEffect, useId, useRef, useState, startTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Pencil, Eye, EyeOff, ArrowLeft, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -59,11 +59,11 @@ function AccountPageContent() {
 
   useEffect(() => {
     if (user) {
-      setProfileForm({
+      startTransition(() => setProfileForm({
         firstName: user.firstName,
         lastName: user.lastName,
         phone: user.phone ?? "",
-      });
+      }));
     }
   }, [user]);
 

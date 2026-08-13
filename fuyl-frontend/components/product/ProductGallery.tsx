@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, startTransition } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
@@ -24,10 +24,10 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
   // trapped the lightbox's z-50 inside it — so it lost to the header and
   // even to later-in-DOM page content instead of covering everything.
   const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
+  useEffect(() => { startTransition(() => setMounted(true)) }, [])
 
-  const prev = () => setActive((i) => (i === 0 ? images.length - 1 : i - 1))
-  const next = () => setActive((i) => (i === images.length - 1 ? 0 : i + 1))
+  const prev = useCallback(() => setActive((i) => (i === 0 ? images.length - 1 : i - 1)), [images.length])
+  const next = useCallback(() => setActive((i) => (i === images.length - 1 ? 0 : i + 1)), [images.length])
 
   useEffect(() => {
     if (!lightboxOpen) return
@@ -38,7 +38,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [lightboxOpen, images.length])
+  }, [lightboxOpen, prev, next])
 
   // Lock background scroll while the lightbox is open — same pattern every
   // other overlay in this app uses (see Drawer.tsx). Without this, the rest

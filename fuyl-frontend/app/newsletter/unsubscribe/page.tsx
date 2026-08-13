@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState, startTransition } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2 } from 'lucide-react'
@@ -28,8 +28,7 @@ function NewsletterUnsubscribeContent() {
 
   useEffect(() => {
     if (!token) {
-      setStatus('error')
-      setError('This unsubscribe link is missing or invalid.')
+      startTransition(() => { setStatus('error'); setError('This unsubscribe link is missing or invalid.') })
       return
     }
     unsubscribeNewsletter(token)

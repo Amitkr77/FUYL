@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useAffiliateStore } from '@/lib/store/affiliateStore'
@@ -46,7 +46,7 @@ export function AffiliateAuthGuard({ children }: AffiliateAuthGuardProps) {
   useEffect(() => {
     // ── Step 1: must be logged in ──────────────────────────────────────────
     if (!user) {
-      setGuardState('redirecting')
+      startTransition(() => setGuardState('redirecting'))
       router.replace('/account?next=/affiliate/dashboard')
       return
     }
@@ -60,9 +60,9 @@ export function AffiliateAuthGuard({ children }: AffiliateAuthGuardProps) {
     // If the store already has a ready result, use it immediately
     if (fetchStatus === 'ready' && affiliate) {
       if (affiliate.status === 'approved') {
-        setGuardState('authorized')
+        startTransition(() => setGuardState('authorized'))
       } else {
-        setGuardState('redirecting')
+        startTransition(() => setGuardState('redirecting'))
         router.replace(`/affiliate/apply?reason=${affiliate.status}`)
       }
       return
@@ -79,7 +79,7 @@ export function AffiliateAuthGuard({ children }: AffiliateAuthGuardProps) {
           const err = useAffiliateStore.getState().fetchError ?? ''
           const isNotFound = err.toLowerCase().includes('not found') ||
                              err.toLowerCase().includes('404')
-          setGuardState('redirecting')
+          startTransition(() => setGuardState('redirecting'))
           router.replace(
             isNotFound
               ? '/affiliate/apply?reason=not-found'
@@ -89,9 +89,9 @@ export function AffiliateAuthGuard({ children }: AffiliateAuthGuardProps) {
         }
 
         if (aff?.status === 'approved') {
-          setGuardState('authorized')
+          startTransition(() => setGuardState('authorized'))
         } else {
-          setGuardState('redirecting')
+          startTransition(() => setGuardState('redirecting'))
           router.replace(`/affiliate/apply?reason=${aff?.status ?? 'unknown'}`)
         }
       })

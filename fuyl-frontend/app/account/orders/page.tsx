@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, startTransition } from 'react'
 import Link from 'next/link'
 import { Package, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -84,7 +84,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (!token) return
-    setLoading(true)
+    startTransition(() => setLoading(true))
     getOrders(token)
       .then(setOrders)
       .catch((err) => setError(getErrorMessage(err, 'Failed to load orders')))

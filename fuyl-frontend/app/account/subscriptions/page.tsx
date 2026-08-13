@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, startTransition, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store/authStore'
 import { formatPrice } from '@/lib/utils/formatPrice'
@@ -47,16 +47,16 @@ export default function SubscriptionsPage() {
   const [busyKey, setBusyKey]   = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const load = () => {
+  const load = useCallback(() => {
     if (!token) return
-    setLoading(true)
+    startTransition(() => setLoading(true))
     getMySubscriptions(token)
       .then(setSubs)
       .catch((err) => setError(getErrorMessage(err, 'Failed to load subscriptions')))
       .finally(() => setLoading(false))
-  }
+  }, [token])
 
-  useEffect(load, [token])
+  useEffect(() => { void load() }, [load])
 
   const runAction = async (key: string, action: (token: string) => Promise<void>) => {
     // token can be momentarily null right after a reload — restore it before

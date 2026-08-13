@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState, startTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -67,7 +67,7 @@ function CheckoutSuccessContent() {
   useEffect(() => {
     if (!token) { router.replace('/account'); return }
     if (!orderId) { router.replace('/collections/all'); return }
-    setLoading(true)
+    startTransition(() => setLoading(true))
     getOrder(token, orderId)
       .then(setOrder)
       .catch((err) => setError(getErrorMessage(err, 'Could not load your order')))

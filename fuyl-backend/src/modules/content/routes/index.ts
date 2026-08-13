@@ -20,6 +20,7 @@ router.get('/ingredients', contentController.listIngredients);
 router.get('/testimonials', contentController.listTestimonials);
 router.get('/faqs', contentController.listFAQs);
 router.get('/instagram', contentController.instagramFeed);
+router.get('/storefront-sections/:key', contentController.getStorefrontSection);
 
 // Instagram webhook — Meta Developer platform.
 // GET: ownership verification challenge (must be public, no auth).
@@ -58,6 +59,8 @@ router.get('/admin/content/faqs/:id', authRequired, contentController.getFAQById
 router.post('/admin/content/faqs', authRequired, contentController.createFAQ);
 router.patch('/admin/content/faqs/:id', authRequired, contentController.updateFAQ);
 router.delete('/admin/content/faqs/:id', authRequired, contentController.removeFAQ);
+router.get('/admin/content/storefront-sections/:key',authRequired,contentController.getStorefrontSectionAdmin);
+router.put('/admin/content/storefront-sections/:key',authRequired,contentController.updateStorefrontSection);
 
 // Health
 router.get('/content/health', (_req, res) => {

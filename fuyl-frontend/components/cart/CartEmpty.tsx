@@ -5,7 +5,7 @@ export function CartEmpty() {
     <div className="text-center py-24 flex flex-col items-center gap-6">
       <p className="text-display-xl font-display">YOUR BAG<br/>IS EMPTY</p>
       <p className="text-body-lg" style={{ color: 'var(--color-brand-muted)' }}>
-        Looks like you haven't added anything yet.
+        Looks like you haven&apos;t added anything yet.
       </p>
       <Link
         href="/collections/all"

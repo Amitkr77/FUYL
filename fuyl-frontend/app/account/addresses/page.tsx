@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, startTransition, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store/authStore'
 import { getAddresses, addAddress, updateAddress, removeAddress, type Address, type AddressInput } from '@/lib/api/customer'
@@ -40,16 +40,16 @@ export default function AddressesPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [removingId, setRemovingId] = useState<string | null>(null)
 
-  const load = () => {
+  const load = useCallback(() => {
     if (!token) return
-    setLoading(true)
+    startTransition(() => setLoading(true))
     getAddresses(token)
       .then(setAddresses)
       .catch((err) => setError(getErrorMessage(err, 'Failed to load addresses')))
       .finally(() => setLoading(false))
-  }
+  }, [token])
 
-  useEffect(load, [token])
+  useEffect(() => { load() }, [load])
 
   const startNew = () => { setForm(emptyForm); setEditing('new'); setFormError(null) }
   const startEdit = (a: Address) => {

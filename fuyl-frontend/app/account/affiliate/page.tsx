@@ -112,7 +112,7 @@ export default function AffiliateDashboardPage() {
         {error.toLowerCase().includes('not found') && (
           <div className="bg-brand-cream border border-brand-border rounded-2xl p-6">
             <p className="text-body-md text-brand-forest mb-4">
-              You don't have an affiliate account yet.
+              You don&apos;t have an affiliate account yet.
             </p>
             <Link
               href="/affiliate/apply"

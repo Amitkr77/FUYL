@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { CheckCircle } from "lucide-react";
-import { applyAffiliate } from "@/lib/api/affiliate";
+import { applyAffiliate, getPublicAffiliateSettings, type PublicAffiliateSettings } from "@/lib/api/affiliate";
 import { getErrorMessage } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/store/authStore";
 
@@ -31,10 +31,13 @@ export default function AffiliateApplyPage() {
     lastName: "",
     email: "",
     phone: "",
+    channels: "",
   });
+  const [settings, setSettings] = useState<PublicAffiliateSettings | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  useEffect(() => { getPublicAffiliateSettings().then(setSettings).catch(() => undefined); }, []);
 
   const setField =
     (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -51,7 +54,7 @@ export default function AffiliateApplyPage() {
         name,
         email: form.email.trim(),
         phone: form.phone.trim() || undefined,
-        channels: [],
+        channels: form.channels.split(',').map((value) => value.trim()).filter(Boolean),
       }, token ?? undefined);
       setDone(true);
     } catch (err) {
@@ -115,6 +118,8 @@ export default function AffiliateApplyPage() {
     );
   }
 
+  if (settings && !settings.registrationEnabled) return <main className="flex min-h-[70vh] items-center justify-center px-6"><div className="max-w-lg rounded-2xl border border-brand-border bg-white p-8 text-center"><h1 className="text-2xl font-semibold text-brand-forest">Affiliate applications are currently closed</h1><p className="mt-3 text-brand-muted">Please check back later.</p></div></main>;
+
   return (
     <div
       className="flex"
@@ -164,8 +169,9 @@ export default function AffiliateApplyPage() {
           />
 
           <h2 className="text-[11px] font-bold tracking-[0.28em] uppercase text-brand-forest text-center mb-8">
-            JOIN OUR AFFILIATE PROGRAM
+            {settings?.signupTitle ?? "JOIN OUR AFFILIATE PROGRAM"}
           </h2>
+          {settings?.signupIntroduction && <p className="mb-6 text-center text-body-sm text-brand-muted">{settings.signupIntroduction}</p>}
 
           {/* Benefits table */}
           <div className="w-full mb-8 border border-brand-border divide-y divide-brand-border">
@@ -180,7 +186,7 @@ export default function AffiliateApplyPage() {
                     ✓
                   </span>
                   <span className="text-body-xs text-brand-forest">
-                    {b.value}
+                    {b.label === "Commission amount" && settings?.defaultProgram ? `${settings.defaultProgram.defaultRate}% per eligible order` : b.value}
                   </span>
                 </div>
               </div>
@@ -205,9 +211,16 @@ export default function AffiliateApplyPage() {
             </div>
             <LineField
               label="Phone"
+              required={settings?.requiredFields.includes("phone")}
               type="tel"
               value={form.phone}
               onChange={setField("phone")}
+            />
+            <LineField
+              label="Promotion channels (comma separated)"
+              required={settings?.requiredFields.includes("channels")}
+              value={form.channels}
+              onChange={setField("channels")}
             />
             <LineField
               label="Email"
@@ -221,11 +234,12 @@ export default function AffiliateApplyPage() {
 
             <button
               type="submit"
-              disabled={loading || !form.firstName.trim() || !form.email.trim()}
+              disabled={loading || !form.firstName.trim() || !form.email.trim() || (!!settings?.requiredFields.includes("phone") && !form.phone.trim()) || (!!settings?.requiredFields.includes("channels") && !form.channels.trim())}
               className="w-full py-4 bg-brand-forest text-white text-label tracking-[0.22em] uppercase transition-colors hover:bg-brand-olive disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Submitting…" : "JOIN"}
             </button>
+            {settings?.termsUrl && <p className="text-center text-body-xs text-brand-muted">By applying, you agree to the <Link className="underline" href={settings.termsUrl}>affiliate terms</Link>.</p>}
           </form>
         </div>
       </div>

@@ -68,24 +68,6 @@ const MILESTONES = [
   },
 ];
 
-const VALUES = [
-  {
-    title: "Radical Transparency",
-    body: "You will always know exactly what is in your sachet, at exactly what dose, and why. We will never hide behind proprietary blends.",
-  },
-  {
-    title: "Evidence Over Hype",
-    body: "If an ingredient does not have peer-reviewed clinical evidence at the dose we include, it does not make the formula. Full stop.",
-  },
-  {
-    title: "India First",
-    body: "We are building for the Indian body, the Indian diet, the Indian lifestyle. Not adapting a Western product for India.",
-  },
-  {
-    title: "Long-Term Thinking",
-    body: "We are not building a supplement brand. We are building a long-term partner for your health. Every decision we make reflects that.",
-  },
-];
 
 export default function OurStoryPage() {
   return (

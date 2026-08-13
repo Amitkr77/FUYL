@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, startTransition } from "react";
 import Link from "next/link";
 import { X, ArrowRight } from "lucide-react";
 import { ANNOUNCEMENT, ANNOUNCEMENT_LINK } from "@/lib/constants/site";
@@ -13,7 +13,7 @@ export function AnnouncementBar() {
   // Persist dismissal so it doesn't reappear on every navigation/reload. Keyed
   // to the announcement text, so changing the copy re-shows the bar.
   useEffect(() => {
-    if (localStorage.getItem(DISMISS_KEY) === ANNOUNCEMENT) setDismissed(true);
+    if (localStorage.getItem(DISMISS_KEY) === ANNOUNCEMENT) startTransition(() => setDismissed(true));
   }, []);
 
   const dismiss = () => {

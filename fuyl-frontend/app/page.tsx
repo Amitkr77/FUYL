@@ -12,6 +12,7 @@ import { AmbassadorSection }   from '@/components/home/AmbassadorSection'
 import { InstagramFeed }       from '@/components/home/InstagramFeed'
 import { NewsletterSection }   from '@/components/home/NewsletterSection'
 import { generateSEO }         from '@/lib/utils/seo'
+import { getStorefrontHero, getTestimonials } from '@/lib/api/content'
 
 export const metadata = generateSEO({
   title:       'Complete Daily Nutrition',
@@ -19,11 +20,14 @@ export const metadata = generateSEO({
   url:         'https://fuyl.in',
 })
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [hero,testimonials] = await Promise.all([getStorefrontHero(),getTestimonials()])
   return (
     <>
       {/* 1 — Hero */}
-      <HeroSlider />
+      {hero?.isActive !== false && (
+        <HeroSlider slides={hero?.slides} autoplayMs={hero?.autoplayMs} />
+      )}
 
       {/* 2 — Marquee ticker */}
       <MarqueeStrip />
@@ -47,7 +51,7 @@ export default function HomePage() {
       <JoinOurTeam />
 
       {/* 9 — Testimonials */}
-      <TestimonialsSection />
+      <TestimonialsSection managed={testimonials} />
 
       {/* 10 — FAQ */}
       <FaqSection />

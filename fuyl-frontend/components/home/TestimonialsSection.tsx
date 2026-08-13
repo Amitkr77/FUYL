@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Star, Quote } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
+import type { Testimonial } from "@/types/content";
 
 type Tab = "experts" | "customers";
 
@@ -65,10 +66,11 @@ function Stars() {
   );
 }
 
-export function TestimonialsSection() {
+export function TestimonialsSection({managed}:{managed?:Testimonial[]}) {
   const [tab, setTab] = useState<Tab>("customers");
 
-  const items = TESTIMONIALS[tab];
+  const managedItems = managed?.filter(item=>item.type===(tab==='experts'?'expert':'customer')).map(item=>({id:item.id,name:item.name,role:item.title??'',body:item.body}));
+  const items = managedItems?.length ? managedItems : TESTIMONIALS[tab];
 
   return (
     <section className="section-py bg-brand-cream">

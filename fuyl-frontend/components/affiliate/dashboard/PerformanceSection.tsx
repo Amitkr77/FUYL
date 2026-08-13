@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, startTransition } from 'react'
 import { LineChart }    from '@/components/affiliate/shared/LineChart'
 import { TabBar }       from '@/components/affiliate/shared/TabBar'
 import { getAffiliatePerformance, type PerformanceTab, type PerformanceDataPoint } from '@/lib/api/affiliate'
@@ -56,15 +56,15 @@ export function PerformanceSection() {
 
   const fetch = useCallback(async () => {
     if (!token) return
-    setLoading(true)
+    startTransition(() => setLoading(true))
     try {
       const { from, to } = getPreset(preset)
       const result = await getAffiliatePerformance(token, { from, to, tab: activeTab })
-      setData(result)
+      startTransition(() => setData(result))
     } catch {
-      setData([])
+      startTransition(() => setData([]))
     } finally {
-      setLoading(false)
+      startTransition(() => setLoading(false))
     }
   }, [token, activeTab, preset])
 

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { generateSEO } from '@/lib/utils/seo'
 import { ScrollReveal } from '@/components/ui/ScrollReveal'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SITE } from '@/lib/constants/site'
@@ -72,7 +71,7 @@ export default function ContactPage() {
           <Breadcrumbs className="mb-5" items={[{ label: 'Contact' }]} />
           <ScrollReveal>
             <p className="text-label mb-3" style={{ color: 'var(--color-brand-berry)' }}>Get in Touch</p>
-            <h1 className="text-display-2xl font-display mb-4">LET'S TALK.</h1>
+            <h1 className="text-display-2xl font-display mb-4">LET&apos;S TALK.</h1>
             <p className="text-body-lg max-w-xl" style={{ color: 'var(--color-brand-muted)' }}>
               Questions about your order, the product, or anything else — we respond to every message within 24 hours.
             </p>
@@ -137,7 +136,7 @@ export default function ContactPage() {
                   <span className="text-5xl">✅</span>
                   <p className="text-display-md font-display">MESSAGE SENT!</p>
                   <p className="text-body-md" style={{ color: 'var(--color-brand-muted)' }}>
-                    We'll get back to you within 24 hours.
+                    We&apos;ll get back to you within 24 hours.
                   </p>
                   <button
                     onClick={() => setStatus('idle')}

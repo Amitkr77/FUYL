@@ -13,6 +13,7 @@ import {
   createTestimonialSchema, updateTestimonialSchema,
   createFAQSchema, updateFAQSchema,
 } from '../validators';
+import { StorefrontSectionModel } from '../models/storefrontSection.model';
 
 export class ContentController {
   // ─── Public ───────────────────────────────────────────────────
@@ -337,6 +338,10 @@ export class ContentController {
       logger.error('[webhook] instagram cache bust failed', err);
     }
   };
+
+  getStorefrontSection = async (req:Request,res:Response,next:NextFunction)=>{try{const section=await StorefrontSectionModel.findOne({key:req.params.key});return success(res,section)}catch(err){next(err)}};
+  getStorefrontSectionAdmin = async (req:Request,res:Response,next:NextFunction)=>{try{const section=await StorefrontSectionModel.findOne({key:req.params.key});return success(res,section)}catch(err){next(err)}};
+  updateStorefrontSection = async (req:Request,res:Response,next:NextFunction)=>{try{const {title,isActive,data}=req.body;if(!title||!data||typeof data!=='object')return res.status(400).json({success:false,error:{code:'BAD_REQUEST',message:'title and data are required'}});const section=await StorefrontSectionModel.findOneAndUpdate({key:req.params.key},{$set:{title,isActive:isActive!==false,data}},{upsert:true,new:true,runValidators:true});return success(res,section)}catch(err){next(err)}};
 }
 
 export const contentController = new ContentController();
