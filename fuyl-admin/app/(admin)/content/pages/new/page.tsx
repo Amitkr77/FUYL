@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, Save, Eye, CheckCircle2, AlertCircle, Code } from 'lucide-react'
+import { Save, Eye, CheckCircle2, AlertCircle, Code } from 'lucide-react'
 import { createPageAction } from '../../actions'
 
 const inputCls = 'w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent'
@@ -33,9 +32,6 @@ export default function NewContentPagePage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/content" className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
           <div>
             <h2 className="text-xl font-bold text-slate-900">New Page</h2>
             <p className="text-sm text-slate-500">Fill in the details and save or publish</p>

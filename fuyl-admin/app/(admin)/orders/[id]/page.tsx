@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, Package, Truck, MapPin, User, ClipboardList, CheckCircle2, CreditCard } from 'lucide-react'
+import { ArrowRight, Package, Truck, MapPin, User, ClipboardList, CheckCircle2, CreditCard } from 'lucide-react'
 import { getAdminOrder } from '@/lib/orders'
 import { OrderStatusPanel } from '@/components/orders/OrderStatusPanel'
 import { BookShipmentPanel } from '@/components/shipping/BookShipmentPanel'
@@ -38,9 +38,6 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/orders" className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-        </Link>
         <div>
           <h2 className="text-xl font-bold text-slate-900">{order.orderNumber}</h2>
           <p className="text-sm text-slate-500 mt-0.5">Placed on {formatDate(order.date)}</p>

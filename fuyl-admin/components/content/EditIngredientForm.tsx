@@ -1,8 +1,7 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, Save, CheckCircle2, Trash2, AlertCircle, ImagePlus } from 'lucide-react'
+import { Save, CheckCircle2, Trash2, AlertCircle, ImagePlus } from 'lucide-react'
 import type { IngredientRecord } from '@/lib/content'
 import { INGREDIENT_CATEGORIES } from '@/lib/ingredientCategory'
 import { updateIngredientAction, deleteIngredientAction, getContentImageUploadSignature } from '@/app/(admin)/content/actions'
@@ -54,9 +53,6 @@ export function EditIngredientForm({ ingredient }: { ingredient: IngredientRecor
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/content?tab=ingredients" className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
           <div>
             <h2 className="text-xl font-bold text-slate-900">Edit Ingredient</h2>
             <p className="text-sm text-slate-500 truncate max-w-xs">{ingredient.name}</p>

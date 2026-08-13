@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -9,10 +9,14 @@ import { Drawer } from '@/components/ui/Drawer'
 import { Button } from '@/components/ui/Button'
 import { useCart } from '@/lib/hooks/useCart'
 import { formatPrice } from '@/lib/utils/formatPrice'
+import { getProductStock } from '@/lib/api/products'
+import { getErrorMessage } from '@/lib/api/client'
 
 export function CartDrawer() {
   const router = useRouter()
   const { items, isOpen, closeCart, updateQty, removeItem, subtotal, syncCart, isLoading } = useCart()
+  const [stockByItem, setStockByItem] = useState<Record<string, number | null>>({})
+  const [quantityError, setQuantityError] = useState<Record<string, string>>({})
 
   // Reconcile local cart state with the backend once on mount, rather than
   // trusting persisted localStorage indefinitely (this component is always
@@ -21,6 +25,34 @@ export function CartDrawer() {
     syncCart()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const stockKey = items.map((item) => `${item.productId}:${item.variantId || ''}`).sort().join('|')
+  useEffect(() => {
+    if (!isOpen || !items.length) return
+    let active = true
+    void Promise.all(items.map(async (item) => {
+      const key = `${item.productId}:${item.variantId || ''}`
+      return [key, await getProductStock(item.productId, item.variantId || undefined)] as const
+    })).then((entries) => { if (active) setStockByItem(Object.fromEntries(entries)) })
+    return () => { active = false }
+    // Quantities do not affect live stock, so refetch only when cart lines change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, stockKey])
+
+  const changeQuantity = async (item: (typeof items)[number], next: number) => {
+    const key = `${item.productId}:${item.variantId || ''}`
+    const available = stockByItem[key]
+    if (available !== null && available !== undefined && next > available) {
+      setQuantityError((errors) => ({ ...errors, [key]: `Only ${available} unit${available === 1 ? '' : 's'} available` }))
+      return
+    }
+    setQuantityError((errors) => ({ ...errors, [key]: '' }))
+    try {
+      await updateQty(item.productId, item.variantId || undefined, next)
+    } catch (error) {
+      setQuantityError((errors) => ({ ...errors, [key]: getErrorMessage(error, 'Could not update quantity') }))
+    }
+  }
 
   return (
     <Drawer open={isOpen} onClose={closeCart} side="right" title="Your Bag">
@@ -62,7 +94,7 @@ export function CartDrawer() {
                     {/* Disabled at qty 1 so a stray tap can't silently delete
                         the line — removal is the explicit trash button. */}
                     <button
-                      onClick={() => updateQty(item.productId, item.variantId || undefined, item.quantity - 1)}
+                      onClick={() => void changeQuantity(item, item.quantity - 1)}
                       disabled={isLoading || item.quantity <= 1}
                       aria-label="Decrease quantity"
                       className="w-9 h-9 flex items-center justify-center rounded-sm border border-brand-border text-brand-olive hover:text-brand-teal hover:border-brand-teal transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
@@ -71,8 +103,8 @@ export function CartDrawer() {
                     </button>
                     <span className="text-body-sm w-6 text-center tabular-nums">{item.quantity}</span>
                     <button
-                      onClick={() => updateQty(item.productId, item.variantId || undefined, item.quantity + 1)}
-                      disabled={isLoading}
+                      onClick={() => void changeQuantity(item, item.quantity + 1)}
+                      disabled={isLoading || (stockByItem[`${item.productId}:${item.variantId || ''}`] !== null && stockByItem[`${item.productId}:${item.variantId || ''}`] !== undefined && item.quantity >= stockByItem[`${item.productId}:${item.variantId || ''}`]!)}
                       aria-label="Increase quantity"
                       className="w-9 h-9 flex items-center justify-center rounded-sm border border-brand-border text-brand-olive hover:text-brand-teal hover:border-brand-teal transition-colors disabled:opacity-50"
                     >
@@ -87,6 +119,8 @@ export function CartDrawer() {
                       <Trash2 size={15} />
                     </button>
                   </div>
+                  {quantityError[`${item.productId}:${item.variantId || ''}`] && <p className="mt-1.5 text-xs text-red-600" role="alert">{quantityError[`${item.productId}:${item.variantId || ''}`]}</p>}
+                  {stockByItem[`${item.productId}:${item.variantId || ''}`] !== null && stockByItem[`${item.productId}:${item.variantId || ''}`] !== undefined && item.quantity >= stockByItem[`${item.productId}:${item.variantId || ''}`]! && <p className="mt-1.5 text-xs text-brand-muted">Maximum available quantity reached</p>}
                 </div>
               </div>
             ))}

@@ -36,7 +36,6 @@ export const createProductSchema = z.object({
   shortDescription: z.string().max(280).optional(),
   description: z.string().max(10000).optional(),
   brand: z.string().max(100).optional(),
-  sellerId: z.string().length(24),
   collectionIds: z.array(z.string().length(24)).optional(),
   tagIds: z.array(z.string().length(24)).optional(),
   attributeValues: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])).default({}),
@@ -68,8 +67,6 @@ export const createProductSchema = z.object({
   costPerItem: z.number().min(0).optional(),
   currency: z.string().default('INR'),
   isSubscribable: z.boolean().default(false),
-  isBundle: z.boolean().default(false),
-  bundleProductIds: z.array(z.string().length(24)).optional(),
   ingredients: z.array(z.string()).optional(),
   benefits: z.array(z.string()).optional(),
   faqs: z.array(z.object({

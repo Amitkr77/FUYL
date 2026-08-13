@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Minus, Plus, Trash2 } from 'lucide-react'
@@ -8,6 +8,7 @@ import { formatPrice } from '@/lib/utils/formatPrice'
 import { useCart } from '@/lib/hooks/useCart'
 import { getErrorMessage } from '@/lib/api/client'
 import type { CartItem } from '@/types/cart'
+import { getProductStock } from '@/lib/api/products'
 
 interface CartLineItemProps {
   item: CartItem
@@ -16,9 +17,22 @@ interface CartLineItemProps {
 export function CartLineItem({ item }: CartLineItemProps) {
   const { updateQty, removeItem, isLoading } = useCart()
   const [qtyError, setQtyError] = useState('')
+  const [availableStock, setAvailableStock] = useState<number | null>(null)
+
+  useEffect(() => {
+    let active = true
+    void getProductStock(item.productId, item.variantId || undefined).then((stock) => {
+      if (active) setAvailableStock(stock ?? 0)
+    })
+    return () => { active = false }
+  }, [item.productId, item.variantId])
 
   const handleUpdateQty = async (newQty: number) => {
     setQtyError('')
+    if (availableStock !== null && newQty > availableStock) {
+      setQtyError(`Only ${availableStock} unit${availableStock === 1 ? '' : 's'} available`)
+      return
+    }
     try {
       await updateQty(item.productId, item.variantId || undefined, newQty)
     } catch (err) {
@@ -62,7 +76,7 @@ export function CartLineItem({ item }: CartLineItemProps) {
               <Minus size={14} />
             </button>
             <span className="w-8 text-center text-body-sm font-semibold tabular-nums">{item.quantity}</span>
-            <button onClick={() => handleUpdateQty(item.quantity + 1)} disabled={isLoading} className="w-10 h-10 flex items-center justify-center hover:bg-[#F5EDE8] transition-colors disabled:opacity-50" aria-label="Increase quantity">
+            <button onClick={() => handleUpdateQty(item.quantity + 1)} disabled={isLoading || (availableStock !== null && item.quantity >= availableStock)} className="w-10 h-10 flex items-center justify-center hover:bg-[#F5EDE8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Increase quantity">
               <Plus size={14} />
             </button>
           </div>
@@ -71,6 +85,9 @@ export function CartLineItem({ item }: CartLineItemProps) {
 
         {qtyError && (
           <p className="text-body-xs text-red-500">{qtyError}</p>
+        )}
+        {!qtyError && availableStock !== null && item.quantity >= availableStock && (
+          <p className="text-body-xs text-brand-muted">Maximum available quantity reached</p>
         )}
       </div>
     </div>

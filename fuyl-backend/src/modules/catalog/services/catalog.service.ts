@@ -25,10 +25,8 @@ export class CatalogService {
   async createProduct(dto: CreateProductDTO) {
     const product = await productRepo.create({
       ...dto,
-      sellerId: new mongoose.Types.ObjectId(dto.sellerId),
       collectionIds: (dto.collectionIds ?? []).map((id) => new mongoose.Types.ObjectId(id)),
       tagIds: (dto.tagIds ?? []).map((id) => new mongoose.Types.ObjectId(id)),
-      bundleProductIds: (dto.bundleProductIds ?? []).map((id) => new mongoose.Types.ObjectId(id)),
     } as any);
     void revalidateStorefront(['/', '/collections/all', `/products/${dto.seo?.slug}`]);
     return product;

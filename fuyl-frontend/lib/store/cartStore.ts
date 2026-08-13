@@ -17,6 +17,7 @@ import { useAuthStore } from './authStore'
 // A timer fires when no further updateQty call for that item arrives within
 // QTY_DEBOUNCE_MS, at which point the single batched PATCH is sent.
 const qtyTimers = new Map<string, ReturnType<typeof setTimeout>>()
+const qtyVersions = new Map<string, number>()
 const QTY_DEBOUNCE_MS = 300
 
 interface CartState {
@@ -111,6 +112,8 @@ export const useCartStore = create<CartState>()(
           if (quantity < 1) return get().removeItem(productId, variantId)
 
           const key = `${productId}:${variantId ?? ''}`
+          const version = (qtyVersions.get(key) ?? 0) + 1
+          qtyVersions.set(key, version)
           const matches = (i: CartItem) =>
             i.productId === productId && (i.variantId || '') === (variantId || '')
 
@@ -131,13 +134,17 @@ export const useCartStore = create<CartState>()(
               const previous = get().items
               try {
                 const cart = await updateCartItem(currentAuth(), productId, variantId, currentQty)
-                set({ items: cart.items })
+                // A request already in flight may finish after a newer click.
+                // Never let that stale response overwrite the latest intent.
+                if (qtyVersions.get(key) === version) set({ items: cart.items })
                 resolve()
               } catch (err) {
                 // Roll back the optimistic update so the UI shows the real
                 // quantity, then re-sync so we don't stay in a stale state.
-                set({ items: previous })
-                void get().syncCart()
+                if (qtyVersions.get(key) === version) {
+                  set({ items: previous })
+                  void get().syncCart()
+                }
                 reject(err)
               }
             }, QTY_DEBOUNCE_MS))

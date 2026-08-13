@@ -4,6 +4,7 @@ export interface ICartItem {
   productId: Types.ObjectId;
   variantId?: Types.ObjectId;
   name: string;
+  variantTitle?: string;
   sku?: string;
   slug?: string;
   image?: string;
@@ -49,6 +50,7 @@ const CartItemSchema = new Schema<ICartItem>(
     productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true, index: true },
     variantId: { type: Schema.Types.ObjectId, ref: 'Variant' },
     name: { type: String, required: true },
+    variantTitle: { type: String },
     sku: { type: String },
     slug: { type: String },
     image: { type: String },

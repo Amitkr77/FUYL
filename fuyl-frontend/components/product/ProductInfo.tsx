@@ -22,7 +22,12 @@ interface ProductInfoProps {
 
 export function ProductInfo({ product, plans }: ProductInfoProps) {
   const [quantity, setQuantity] = useState(1);
-  const [selectedVariant, setSelectedVariant] = useState(product.variants[0]);
+  // Start on the first purchasable option. Selecting an out-of-stock first
+  // variant makes an otherwise available product appear unavailable.
+  const [selectedVariant, setSelectedVariant] = useState(
+    product.variants.find((candidate) => candidate.available && (candidate.availableQty ?? 1) > 0)
+      ?? product.variants[0],
+  );
 
   const variant = selectedVariant;
 

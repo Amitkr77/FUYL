@@ -69,7 +69,9 @@ class CheckoutService {
       const code = dto.couponCode ?? cart.couponCode!;
       const isFirstOrder = !(await orderService.hasOrders(userId));
       const couponItems = await Promise.all(cart.items.map(async (i) => {
-        const product = await catalogService.getProduct(i.productId.toString());
+        const stocks = await inventoryService.getStock(i.productId.toString(), i.variantId?.toString());
+        const inventoryOwner = stocks[0]?.sellerId?.toString();
+        if (!inventoryOwner) throw new BadRequestError(`Inventory is not configured for ${i.productId.toString()}`);
         return {
           productId: i.productId.toString(),
           variantId: i.variantId?.toString(),
@@ -211,11 +213,16 @@ class CheckoutService {
     // 1. Reserve inventory against the cart
     const itemsWithSeller = await Promise.all(
       preview.cart.items.map(async (i) => {
-        const product = await catalogService.getProduct(i.productId.toString());
+        const stocks = await inventoryService.getStock(i.productId.toString(), i.variantId?.toString());
+        const inventoryOwner = stocks.find((stock) => i.variantId
+          ? stock.variantId?.toString() === i.variantId.toString()
+          : !stock.variantId,
+        )?.sellerId.toString();
+        if (!inventoryOwner) throw new BadRequestError(`Inventory is not configured for ${i.productId.toString()}`);
         return {
           productId: i.productId.toString(),
           variantId: i.variantId?.toString(),
-          sellerId: product.sellerId?.toString() ?? '',
+          sellerId: inventoryOwner,
           unitPrice: i.unitPrice,
           quantity: i.quantity,
         };

@@ -2,6 +2,7 @@ import { OrderRepository } from '../repositories/order.repository';
 import { ReturnRepository, RefundRepository, InvoiceRepository } from '../repositories/return.repository';
 import { CatalogService } from '../../catalog/services/catalog.service';
 import { pricingService } from '../../pricing/services/pricing.service';
+import { inventoryService } from '../../inventory/services/inventory.service';
 import {
   NotFoundError,
   BadRequestError,
@@ -46,6 +47,14 @@ export interface CheckoutOrderAdjustments {
 }
 
 export class OrderService {
+  private async inventorySellerId(productId: string, variantId?: string): Promise<string | undefined> {
+    const stocks = await inventoryService.getStock(productId, variantId);
+    return stocks.find((stock) => variantId
+      ? stock.variantId?.toString() === variantId
+      : !stock.variantId,
+    )?.sellerId.toString();
+  }
+
   async create(customerId: string, dto: CreateOrderDTO & CheckoutOrderAdjustments) {
     // Fetch product details + prices from catalog
     const items: any[] = [];
@@ -59,16 +68,17 @@ export class OrderService {
 
       const priceInfo = await catalogService.getPrice(item.productId, item.variantId);
       const variant = item.variantId ? await catalogService.getVariant(item.variantId) : null;
+      const sellerId = await this.inventorySellerId(item.productId, item.variantId);
 
       const unitPrice = priceInfo.price;
       const totalPrice = unitPrice * item.quantity;
       subtotal += totalPrice;
-      if (product.sellerId) sellerIds.add(product.sellerId.toString());
+      if (sellerId) sellerIds.add(sellerId);
 
       let itemTax = 0;
       if (product.isTaxable) {
         const taxResult = await pricingService.computeTax(unitPrice, item.quantity, {
-          sellerId: product.sellerId?.toString(),
+          sellerId,
           state: dto.shippingAddress.state,
           country: dto.shippingAddress.country,
         });
@@ -175,11 +185,12 @@ export class OrderService {
     // Fetch product for name/sku
     const product = await catalogService.getProduct(input.productId);
     const variant = input.variantId ? await catalogService.getVariant(input.variantId) : null;
+    const sellerId = await this.inventorySellerId(input.productId, input.variantId);
 
     let tax = 0;
     if (product.isTaxable) {
       const taxResult = await pricingService.computeTax(discountedPrice, input.quantity, {
-        sellerId: product.sellerId?.toString(),
+        sellerId,
         state: shippingAddr?.state,
         country: shippingAddr?.country,
       });
@@ -190,7 +201,7 @@ export class OrderService {
     const order = await orderRepo.create({
       orderNumber,
       customerId: new mongoose.Types.ObjectId(input.customerId),
-      sellerIds: product.sellerId ? [product.sellerId] : [],
+      sellerIds: sellerId ? [new mongoose.Types.ObjectId(sellerId)] : [],
       items: [{
         productId: new mongoose.Types.ObjectId(input.productId),
         variantId: input.variantId ? new mongoose.Types.ObjectId(input.variantId) : undefined,

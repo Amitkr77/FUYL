@@ -349,7 +349,8 @@ interface BackendStockRow {
 /**
  * Returns the total available quantity for a product (optionally a specific
  * variant), summed across all warehouses. Returns null if the product has
- * no inventory record yet (treat as unlimited for UX purposes).
+ * no inventory record yet. The cart treats that as unavailable until stock
+ * is explicitly configured by an admin.
  */
 export async function getProductStock(productId: string, variantId?: string): Promise<number | null> {
   try {

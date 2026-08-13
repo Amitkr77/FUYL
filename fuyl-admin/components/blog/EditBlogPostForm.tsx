@@ -1,8 +1,7 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, Save, CheckCircle2, Eye, Trash2, AlertCircle, ImagePlus, X, Code, Plus } from 'lucide-react'
+import { Save, CheckCircle2, Eye, Trash2, AlertCircle, ImagePlus, X, Code, Plus } from 'lucide-react'
 import type { BlogPostDetail } from '@/lib/blog'
 import { updatePostAction, deletePostAction, getBlogImageUploadSignature } from '@/app/(admin)/blog/actions'
 import { uploadImage } from '@/lib/upload'
@@ -76,9 +75,6 @@ export function EditBlogPostForm({ post }: { post: BlogPostDetail }) {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/blog" className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
           <div>
             <h2 className="text-xl font-bold text-slate-900">Edit Post</h2>
             <p className="text-sm text-slate-500 truncate max-w-xs">{post.title}</p>

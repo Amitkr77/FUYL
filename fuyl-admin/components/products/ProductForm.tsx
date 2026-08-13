@@ -2,8 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { ArrowLeft, Save, Trash2, CheckCircle2, ImagePlus, AlertCircle, Star, X, Plus, Truck } from 'lucide-react'
+import { Save, Trash2, CheckCircle2, ImagePlus, AlertCircle, Star, X, Plus, Truck } from 'lucide-react'
 import type {
   AdminProduct, AttributeDef, ProductStatus, AdminVariant,
   AdditionalPrice, FAQEntry, CertificationEntry, ProductInfoBlock, ShippingInfo, WeightUnit, SeoInfo,
@@ -320,9 +319,6 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/products" className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
           <div>
             <h2 className="text-xl font-bold text-slate-900">{isNew ? 'New Product' : 'Edit Product'}</h2>
             <p className="text-sm text-slate-500">{isNew ? 'Create a new product listing' : `Editing: ${product?.name}`}</p>

@@ -84,7 +84,7 @@ function CheckoutSuccessContent() {
         </span>
         <h1 className="text-display-xl font-display text-brand-forest mb-3">ORDER CONFIRMED</h1>
         <p className="text-body-md text-brand-muted max-w-md">
-          Thank you{order ? ` — order ${order.orderNumber} is on its way` : ''}. We&apos;ve sent a confirmation to your email.
+          Thank you{order ? ` — we received order ${order.orderNumber}` : ''}. We&apos;ve sent a confirmation to your email.
         </p>
       </div>
 

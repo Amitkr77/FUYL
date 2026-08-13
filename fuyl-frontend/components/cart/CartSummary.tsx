@@ -20,7 +20,7 @@ export function CartSummary() {
           <span className="text-brand-forest font-medium">{formatPrice(subtotal)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-brand-muted">Shipping</span>
+          <span className="text-brand-muted">Estimated shipping</span>
           {/* Teal "Free" — positive interactive indicator */}
           <span>{shipping === 0
             ? <span className="text-brand-teal font-semibold">Free</span>
@@ -33,7 +33,7 @@ export function CartSummary() {
           </p>
         )}
         <div className="flex justify-between font-semibold pt-2 border-t border-brand-border text-body-md text-brand-forest">
-          <span>Total</span>
+          <span>Estimated total</span>
           <span>{formatPrice(total)}</span>
         </div>
       </div>
@@ -42,7 +42,7 @@ export function CartSummary() {
         Proceed to Checkout
       </Button>
       <p className="text-body-xs text-center text-brand-muted">
-        Taxes calculated at checkout · Secure, encrypted payment
+        Final shipping and taxes are calculated at checkout · Secure payment
       </p>
     </div>
   )

@@ -114,6 +114,8 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('cashfree')
   const [preview, setPreview] = useState<CheckoutPreview | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState('')
+  const [previewRetry, setPreviewRetry] = useState(0)
   const [error, setError] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
 
@@ -243,9 +245,12 @@ export default function CheckoutPage() {
   // Continue resolves one; silently creating an account in the background
   // just because a debounce timer fired would be the wrong tradeoff.
   useEffect(() => {
-    if (!token || !addressComplete(address, token, email)) return
+    if (!token || !addressComplete(address, token, email)) {
+      startTransition(() => { setPreview(null); setPreviewLoading(false); setPreviewError('') })
+      return
+    }
     let cancelled = false
-    startTransition(() => setPreviewLoading(true))
+    startTransition(() => { setPreview(null); setPreviewLoading(true); setPreviewError('') })
     const t = setTimeout(async () => {
       try {
         const result = await previewCheckout(token, {
@@ -254,7 +259,8 @@ export default function CheckoutPage() {
           couponCode: appliedCoupon?.code,
         })
         if (!cancelled) setPreview(result)
-      } catch {
+      } catch (err) {
+        if (!cancelled) setPreviewError(getErrorMessage(err, 'Could not calculate your final total. Please try again.'))
         // Keep the last good preview showing — a transient failure here
         // isn't worth interrupting typing over; the authoritative check
         // happens again at Place Order.
@@ -264,7 +270,7 @@ export default function CheckoutPage() {
     }, 500)
     return () => { cancelled = true; clearTimeout(t) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, address, paymentMethod, appliedCoupon?.code])
+  }, [token, address, paymentMethod, appliedCoupon?.code, previewRetry])
 
   const set = (k: keyof CheckoutAddressInput) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setAddress((a) => ({ ...a, [k]: e.target.value }))
@@ -393,8 +399,11 @@ export default function CheckoutPage() {
   }
 
   const [confirming, setConfirming] = useState(false)
+  const confirmingRef = useRef(false)
 
   const handleConfirm = async () => {
+    if (confirmingRef.current || !preview || previewLoading) return
+    confirmingRef.current = true
     setError('')
     setConfirming(true)
     try {
@@ -406,6 +415,7 @@ export default function CheckoutPage() {
       setError(getErrorMessage(err, 'Something went wrong placing your order.'))
       setStep('error')
     } finally {
+      confirmingRef.current = false
       setConfirming(false)
     }
   }
@@ -711,7 +721,7 @@ export default function CheckoutPage() {
                   size="lg"
                   fullWidth
                   loading={confirming}
-                  disabled={confirming}
+                  disabled={confirming || previewLoading || !preview}
                   onClick={handleConfirm}
                 >
                   Place Order — {formatPrice(displayTotal)}
@@ -720,6 +730,12 @@ export default function CheckoutPage() {
                   <p className="text-body-xs text-brand-muted text-center mt-1.5 flex items-center justify-center gap-1">
                     <Spinner size={12} /> Calculating exact total…
                   </p>
+                )}
+                {previewError && !confirming && (
+                  <div className="text-center mt-2" role="alert">
+                    <p className="text-body-xs text-red-600">{previewError}</p>
+                    <button type="button" onClick={() => setPreviewRetry((value) => value + 1)} className="mt-1 text-body-xs font-semibold text-brand-teal hover:text-brand-forest">Retry calculation</button>
+                  </div>
                 )}
               </StickyActionBar>
             </div>

@@ -45,7 +45,12 @@ class InventoryService {
 
     const productIds = [...new Set(result.items.map((s) => s.productId.toString()))];
     const [products, variants] = await Promise.all([
-      ProductModel.find({ _id: { $in: productIds } }, { name: 1 }),
+      // Match the admin Products page: drafts and active products are visible,
+      // while archived (soft-deleted) and missing products are not.
+      ProductModel.find(
+        { _id: { $in: productIds }, isDeleted: false },
+        { name: 1 },
+      ),
       productIds.length > 0
         ? VariantModel.find(
             { productId: { $in: productIds }, isActive: true },
@@ -55,6 +60,7 @@ class InventoryService {
     ]);
 
     const nameById    = new Map(products.map((p) => [p._id.toString(), p.name]));
+    const visibleProductIds = new Set(nameById.keys());
     const variantById = new Map(variants.map((v) => [v._id.toString(), { name: v.name, sku: v.sku }]));
     const productsWithVariants = new Set(variants.map((v) => v.productId.toString()));
 
@@ -63,6 +69,7 @@ class InventoryService {
     // variants creates a misleading third "default" variant in the admin UI.
     const visibleItems = result.items.filter((stock) => {
       const productId = stock.productId.toString();
+      if (!visibleProductIds.has(productId)) return false;
       if (!stock.variantId) return !productsWithVariants.has(productId);
       return variantById.has(stock.variantId.toString());
     });
@@ -87,23 +94,15 @@ class InventoryService {
 
   // ─── Stock adjustments ───────────────────────────────────────
   async adjustStock(dto: StockAdjustmentDTO, performedBy?: string) {
-    // BUG FIXED (found live — reported as "set stock to 100, checkout says
-    // out of stock"): this used to trust dto.sellerId as-is, which the admin
-    // client sources from whichever admin is currently logged in — not
-    // necessarily the product's actual owner. InventoryStock's unique index
-    // is {productId, variantId, warehouseId} only (no sellerId), so a stock
-    // row already exists for that combination once ANY admin has touched
-    // it. Checkout always resolves sellerId from the product's own
-    // `sellerId` field (catalog.service.ts's checkout path), so a second
-    // admin adjusting stock under their own userId would look for a row
-    // under the wrong sellerId, find nothing, and collide with the unique
-    // index trying to create one — surfacing as a raw duplicate-key error
-    // that reserveStock's catch-all mislabels "out of stock". Resolving
-    // sellerId from the product itself, authoritatively, closes that gap
-    // regardless of which admin performs the adjustment.
-    const { catalogService } = await import('../../catalog/services/catalog.service');
-    const product = await catalogService.getProduct(dto.productId);
-    const sellerId = product.sellerId?.toString() ?? '';
+    // Seller ownership belongs to inventory, not the product catalog. The
+    // authenticated admin client supplies the inventory owner when creating
+    // the first stock record; existing records retain that owner.
+    const existingStocks = await stockRepo.findByProduct(dto.productId, dto.variantId);
+    const existingStock = existingStocks.find((row) =>
+      row.warehouseId === (dto.warehouseId ?? 'default')
+      && (dto.variantId ? row.variantId?.toString() === dto.variantId : !row.variantId),
+    );
+    const sellerId = existingStock?.sellerId.toString() ?? dto.sellerId;
 
     const stock = await stockRepo.findOrCreate(dto.productId, sellerId, dto.variantId, dto.warehouseId);
     const balanceBefore = stock.onHand;
@@ -154,13 +153,17 @@ class InventoryService {
     return updated;
   }
 
-  async setReorderLevels(productId: string, _sellerId: string, dto: SetReorderDTO, variantId?: string) {
-    // Same fix as adjustStock — resolve sellerId from the product itself
-    // rather than the caller-supplied value, so this can never key a stock
-    // row differently than checkout's reserveStock will look it up under.
-    const { catalogService } = await import('../../catalog/services/catalog.service');
-    const product = await catalogService.getProduct(productId);
-    const stock = await stockRepo.findOrCreate(productId, product.sellerId?.toString() ?? '', variantId);
+  async setReorderLevels(productId: string, sellerId: string, dto: SetReorderDTO, variantId?: string) {
+    const existingStocks = await stockRepo.findByProduct(productId, variantId);
+    const existingStock = existingStocks.find((row) => variantId
+      ? row.variantId?.toString() === variantId
+      : !row.variantId,
+    );
+    const stock = await stockRepo.findOrCreate(
+      productId,
+      existingStock?.sellerId.toString() ?? sellerId,
+      variantId,
+    );
     return stockRepo.update(stock._id, {
       reorderThreshold: dto.reorderThreshold,
       reorderQuantity: dto.reorderQuantity,

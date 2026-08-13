@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Banknote, ExternalLink, Mail, MousePointerClick, ShoppingBag, UserRound } from "lucide-react";
+import { Banknote, ExternalLink, Mail, MousePointerClick, ShoppingBag, UserRound } from "lucide-react";
 import { getAffiliate } from "@/lib/affiliate";
 import { AdminApiError } from "@/lib/api";
 import { AffiliateProfileEditor } from "@/components/affiliates/AffiliateProfileEditor";
@@ -20,7 +20,7 @@ export default async function AffiliateDetailPage({ params }: { params: Promise<
 
   return <div className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-3"><Link href="/affiliates/members" className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 hover:text-slate-900"><ArrowLeft className="h-4 w-4" /></Link><div><h2 className="text-xl font-bold text-slate-900">{affiliate.name}</h2><p className="text-sm text-slate-500">Joined {new Date(affiliate.createdAt).toLocaleDateString("en-IN")}</p></div></div>
+      <div><h2 className="text-xl font-bold text-slate-900">{affiliate.name}</h2><p className="text-sm text-slate-500">Joined {new Date(affiliate.createdAt).toLocaleDateString("en-IN")}</p></div>
       <div className="flex items-center gap-3"><LoginAsAffiliateButton id={affiliate.id} disabled={affiliate.status !== "approved"} /><AffiliateProfileEditor affiliate={affiliate} /><span className="rounded-full bg-[#558476]/10 px-3 py-1.5 text-sm font-semibold capitalize text-[#315f52]">{affiliate.status}</span></div>
     </div>
 

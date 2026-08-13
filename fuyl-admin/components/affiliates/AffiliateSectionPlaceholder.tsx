@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ArrowRight, type LucideIcon } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 
 export function AffiliateSectionPlaceholder({ icon: Icon, title, description, available }: { icon: LucideIcon; title: string; description: string; available: string[] }) {
   return (
@@ -11,7 +10,6 @@ export function AffiliateSectionPlaceholder({ icon: Icon, title, description, av
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Planned capabilities</p>
         <ul className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">{available.map((item) => <li key={item}>• {item}</li>)}</ul>
       </div>
-      <Link href="/affiliates" className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-[#315f52] hover:text-[#12291F]">Back to overview <ArrowRight className="h-4 w-4" /></Link>
     </section>
   );
 }

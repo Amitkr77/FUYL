@@ -11,6 +11,7 @@ interface BackendCartItem {
   productId: string
   variantId?: string
   name: string
+  variantTitle?: string
   slug?: string
   image?: string
   unitPrice: number
@@ -35,7 +36,7 @@ function mapCartItem(item: BackendCartItem): CartItem {
     variantId:    item.variantId ?? '',
     slug:         item.slug ?? '',
     name:         item.name,
-    variantTitle: '', // backend stores no variant display name on the cart snapshot, only variantId
+    variantTitle: item.variantTitle ?? '',
     price:        item.unitPrice,
     quantity:     item.quantity,
     image:        item.image ?? '',

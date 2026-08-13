@@ -34,6 +34,7 @@ export class InventoryStockRepository {
   async findByProduct(productId: string | Types.ObjectId, variantId?: string | Types.ObjectId) {
     const filter: Record<string, unknown> = { productId: new Types.ObjectId(productId.toString()) };
     if (variantId) filter.variantId = new Types.ObjectId(variantId.toString());
+    else filter.variantId = { $exists: false };
     return InventoryStockModel.find(filter);
   }
 

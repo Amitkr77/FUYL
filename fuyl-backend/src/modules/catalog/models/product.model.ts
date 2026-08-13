@@ -56,7 +56,6 @@ export interface IProduct extends Document {
   shortDescription?: string;
   description?: string;
   brand?: string;
-  sellerId?: mongoose.Types.ObjectId;
   collectionIds?: mongoose.Types.ObjectId[];
   tagIds?: mongoose.Types.ObjectId[];
   attributeValues: Map<string, string | number | boolean | string[]>;
@@ -71,8 +70,6 @@ export interface IProduct extends Document {
   costPerItem?: number;          // admin-only — never serialize on public routes
   currency: string;
   isSubscribable: boolean;
-  isBundle: boolean;
-  bundleProductIds?: mongoose.Types.ObjectId[];
   ingredients?: string[];
   benefits?: string[];
   faqs?: { question: string; answer: string }[];
@@ -109,7 +106,6 @@ const ProductSchema = new Schema<IProduct>(
     shortDescription: { type: String, maxlength: 280 },
     description: { type: String },
     brand: { type: String, trim: true, index: true },
-    sellerId: { type: Schema.Types.ObjectId, ref: 'User', index: true, sparse: true },
     collectionIds: [{ type: Schema.Types.ObjectId, ref: 'Collection' }],
     tagIds: [{ type: Schema.Types.ObjectId, ref: 'Tag' }],
     attributeValues: { type: Map, of: Schema.Types.Mixed, default: {} },
@@ -143,8 +139,6 @@ const ProductSchema = new Schema<IProduct>(
     costPerItem: { type: Number, min: 0 },
     currency: { type: String, default: 'INR' },
     isSubscribable: { type: Boolean, default: false, index: true },
-    isBundle: { type: Boolean, default: false },
-    bundleProductIds: [{ type: Schema.Types.ObjectId, ref: 'Product' }],
     ingredients: [{ type: String }],
     benefits: [{ type: String }],
     faqs: [{
@@ -209,7 +203,6 @@ const ProductSchema = new Schema<IProduct>(
 );
 
 ProductSchema.index({ name: 'text', shortDescription: 'text', brand: 'text' });
-ProductSchema.index({ sellerId: 1, isPublished: 1 });
 ProductSchema.index({ isPublished: 1, isFeatured: 1, createdAt: -1 });
 
 export const ProductModel = mongoose.model<IProduct>('Product', ProductSchema, 'products');

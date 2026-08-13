@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, ShoppingBag, IndianRupee, TrendingUp, Mail } from 'lucide-react'
+import { ArrowRight, ShoppingBag, IndianRupee, TrendingUp, Mail } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import { getCustomer } from '@/lib/customers'
 import type { OrderStatus } from '@/lib/orders'
@@ -37,9 +37,6 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/customers" className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-        </Link>
         <div>
           <h2 className="text-xl font-bold text-slate-900">Customer Profile</h2>
           <p className="text-sm text-slate-500">Member since {formatDate(customer.joined)}</p>

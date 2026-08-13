@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, Save, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Save, CheckCircle2, AlertCircle } from 'lucide-react'
 import { createFAQAction } from '../../actions'
 
 const inputCls = 'w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent'
@@ -28,9 +27,6 @@ export default function NewFAQPage() {
     <div className="space-y-5 max-w-2xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/content?tab=faqs" className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
           <div>
             <h2 className="text-xl font-bold text-slate-900">New FAQ</h2>
             <p className="text-sm text-slate-500">Shown on the storefront&apos;s homepage</p>

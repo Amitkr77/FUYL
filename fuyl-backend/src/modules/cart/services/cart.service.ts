@@ -94,7 +94,7 @@ class CartService {
     const totalAvailable = stocks.reduce((s, r) => s + r.available, 0);
     // Note: the combined-quantity check (existing cart qty + new qty) happens
     // inside mutateCart where we can see the current cart state.
-    if (totalAvailable > 0 && input.quantity > totalAvailable) {
+    if (input.quantity > totalAvailable) {
       throw new BadRequestError(`Only ${totalAvailable} unit${totalAvailable === 1 ? '' : 's'} available`);
     }
 
@@ -120,6 +120,7 @@ class CartService {
       productId: new Types.ObjectId(input.productId),
       variantId: input.variantId ? new Types.ObjectId(input.variantId) : undefined,
       name: product.name,
+      variantTitle: variant?.name,
       sku: variant?.sku,
       slug: product.seo?.slug,
       image: product.media?.find((m: any) => m.isPrimary)?.url ?? product.media?.[0]?.url,
@@ -148,7 +149,7 @@ class CartService {
       // input.quantity itself, missing the case where the item is already in
       // the cart (e.g. 5 in cart + 3 requested = 8, but only 7 available).
       const existingQty = existingIdx >= 0 ? cart.items[existingIdx].quantity : 0;
-      if (totalAvailable > 0 && existingQty + input.quantity > totalAvailable) {
+      if (existingQty + input.quantity > totalAvailable) {
         throw new BadRequestError(`Only ${totalAvailable - existingQty} more unit${totalAvailable - existingQty === 1 ? '' : 's'} can be added (${existingQty} already in cart)`);
       }
       if (existingIdx >= 0) {
@@ -167,7 +168,7 @@ class CartService {
     // Validate against live inventory before accepting the new quantity
     const stocks = await inventoryService.getStock(productId, variantId);
     const totalAvailable = stocks.reduce((s, r) => s + r.available, 0);
-    if (totalAvailable > 0 && quantity > totalAvailable) {
+    if (quantity > totalAvailable) {
       throw new BadRequestError(`Only ${totalAvailable} unit${totalAvailable === 1 ? '' : 's'} available`);
     }
 

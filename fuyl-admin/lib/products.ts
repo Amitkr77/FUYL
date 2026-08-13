@@ -471,7 +471,7 @@ export async function createAdminProduct(input: AdminProductInput): Promise<stri
 
   const product = await adminApiFetch<{ _id: string }>('/admin/catalog/products', {
     method: 'POST',
-    body: { ...productBody(input), sellerId, tagIds },
+    body: { ...productBody(input), tagIds },
   })
 
   try {

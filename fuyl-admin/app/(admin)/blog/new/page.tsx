@@ -1,8 +1,7 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, Save, CheckCircle2, Eye, AlertCircle, ImagePlus, X, Code, Plus } from 'lucide-react'
+import { Save, CheckCircle2, Eye, AlertCircle, ImagePlus, X, Code, Plus } from 'lucide-react'
 import { createPostAction, getBlogImageUploadSignature } from '../actions'
 import { uploadImage } from '@/lib/upload'
 
@@ -76,9 +75,6 @@ export default function NewBlogPostPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/blog" className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
           <div>
             <h2 className="text-xl font-bold text-slate-900">New Blog Post</h2>
             <p className="text-sm text-slate-500">Fill in the details and save or publish</p>

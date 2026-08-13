@@ -1,8 +1,7 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, Save, CheckCircle2, AlertCircle, ImagePlus, Star } from 'lucide-react'
+import { Save, CheckCircle2, AlertCircle, ImagePlus, Star } from 'lucide-react'
 import { createTestimonialAction, getContentImageUploadSignature } from '../../actions'
 import { uploadImage } from '@/lib/upload'
 
@@ -46,9 +45,6 @@ export default function NewTestimonialPage() {
     <div className="space-y-5 max-w-2xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/content?tab=testimonials" className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
           <div>
             <h2 className="text-xl font-bold text-slate-900">New Testimonial</h2>
             <p className="text-sm text-slate-500">Shown on the storefront&apos;s homepage</p>

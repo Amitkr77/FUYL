@@ -73,9 +73,11 @@ export default async function ProductPage({ params }: Props) {
     product.variants = product.variants.map((v, i) => {
       const result = stockResults[i];
       if (result.status === "fulfilled" && result.value !== null) {
-        return { ...v, availableQty: result.value };
+        return { ...v, available: v.available && result.value > 0, availableQty: result.value };
       }
-      return v;
+      // Stock must be explicitly configured before an item can be purchased;
+      // the cart API enforces the same rule authoritatively.
+      return { ...v, available: false, availableQty: 0 };
     });
   } catch {
     // If stock fetches fail, the product page still renders — just with no qty cap.
