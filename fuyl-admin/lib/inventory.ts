@@ -53,7 +53,15 @@ function mapStock(s: BackendStock): StockRow {
 
 export async function listInventory(): Promise<StockRow[]> {
   const raw = await adminApiFetch<BackendStock[]>('/admin/inventory?limit=200')
-  return raw.map(mapStock)
+  const rows = raw.map(mapStock)
+  const productsWithVariants = new Set(
+    rows.filter((row) => Boolean(row.variantId)).map((row) => row.productId),
+  )
+
+  // Be defensive against older API deployments and legacy records: once a
+  // product has variants, its former product-level stock row is not a variant
+  // and must not be displayed or included in inventory totals.
+  return rows.filter((row) => row.variantId || !productsWithVariants.has(row.productId))
 }
 
 export type AdjustmentType =

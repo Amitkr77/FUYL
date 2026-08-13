@@ -29,8 +29,8 @@ export default async function ProductsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Inventory</h2>
-          <p className="text-sm text-slate-500 mt-0.5">Manage your product catalog and stock levels</p>
+          <h2 className="text-xl font-bold text-slate-900">Products</h2>
+          <p className="text-sm text-slate-500 mt-0.5">Manage your product catalog, pricing, and variants</p>
         </div>
         <Link
           href="/products/new"

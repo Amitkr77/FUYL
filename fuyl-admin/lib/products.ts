@@ -474,6 +474,7 @@ export async function createAdminProduct(input: AdminProductInput): Promise<stri
     body: { ...productBody(input), sellerId, tagIds },
   })
 
+  try {
   for (const variant of input.variants) {
     const created = await adminApiFetch<{ _id: string }>('/admin/catalog/variants', {
       method: 'POST',
@@ -496,6 +497,10 @@ export async function createAdminProduct(input: AdminProductInput): Promise<stri
   // No variants — stock is tracked directly against the product itself.
   if (input.variants.length === 0 && input.stock > 0) {
     await reconcileStock(product._id, undefined, sellerId, input.stock)
+  }
+  } catch (err) {
+    await adminApiFetch(`/admin/catalog/products/${product._id}`, { method: 'DELETE' }).catch(() => undefined)
+    throw err
   }
 
   return product._id
@@ -554,6 +559,7 @@ export async function updateAdminProduct(id: string, input: AdminProductInput): 
 
   for (const old of existing) {
     if (!keptIds.has(old._id)) {
+      await reconcileStock(id, old._id, sellerId, 0)
       await adminApiFetch(`/admin/catalog/variants/${old._id}`, { method: 'DELETE' })
     }
   }
@@ -564,6 +570,8 @@ export async function updateAdminProduct(id: string, input: AdminProductInput): 
   // stock is always reconciled above.
   if (input.variants.length === 0) {
     await reconcileStock(id, undefined, sellerId, input.stock)
+  } else {
+    await reconcileStock(id, undefined, sellerId, 0)
   }
 }
 

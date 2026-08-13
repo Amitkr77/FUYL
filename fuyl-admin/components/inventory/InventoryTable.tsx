@@ -221,7 +221,15 @@ export function InventoryTable({ stock }: { stock: StockRow[] }) {
 
   // Apply search + stock-level filter at the group level
   const groups = allGroups.filter((g) => {
-    if (search && !g.productName.toLowerCase().includes(search.toLowerCase())) return false
+    if (search) {
+      const term = search.toLowerCase()
+      const matchesProduct = g.productName.toLowerCase().includes(term)
+      const matchesVariant = g.rows.some((row) =>
+        row.variantName?.toLowerCase().includes(term)
+        || row.variantSku?.toLowerCase().includes(term),
+      )
+      if (!matchesProduct && !matchesVariant) return false
+    }
     if (filter === 'out') return g.hasOut || g.totalAvailable === 0
     if (filter === 'low') return g.hasLow
     return true
@@ -422,7 +430,7 @@ export function InventoryTable({ stock }: { stock: StockRow[] }) {
                             <td className="pl-12 pr-5 py-3">
                               <div>
                                 <p className="text-sm text-slate-700 font-medium">
-                                  {row.variantName ?? 'Default variant'}
+                                  {row.variantName ?? 'Single product'}
                                 </p>
                                 {row.variantSku && (
                                   <p className="text-xs text-slate-400 font-mono mt-0.5">{row.variantSku}</p>

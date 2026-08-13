@@ -124,6 +124,10 @@ export class CatalogService {
   }
 
   async updateVariant(id: string, dto: UpdateVariantDTO) {
+    if (dto.sku) {
+      const skuOwner = await variantRepo.findBySku(dto.sku);
+      if (skuOwner && skuOwner._id.toString() !== id) throw new ConflictError(`SKU ${dto.sku} already exists`);
+    }
     if (dto.attributes) {
       const existing = await variantRepo.findById(id);
       if (!existing) throw new NotFoundError('Variant');

@@ -65,7 +65,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
     shortDescription: product?.shortDescription ?? '',
     description: product?.description ?? '',
     status:      product?.status ?? ('draft' as ProductStatus),
-    isPublished:    product?.isPublished ?? true,
+    isPublished:    product?.isPublished ?? false,
     isSubscribable: product?.isSubscribable ?? false,
     images:      product?.images ?? [],
     price:            product?.price ?? 1499,
@@ -246,6 +246,44 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
     }
     if (variants.some((v) => !v.sku.trim())) {
       setError('Every variant needs a SKU.')
+      return
+    }
+    if (variants.some((v) => !v.name.trim())) {
+      setError('Every variant needs a name.')
+      return
+    }
+    if (variants.some((v) => !Number.isFinite(v.price) || v.price <= 0)) {
+      setError('Every variant needs a price greater than 0.')
+      return
+    }
+    if (variants.some((v) => !Number.isInteger(v.stock) || v.stock < 0)) {
+      setError('Variant stock must be a whole number of 0 or more.')
+      return
+    }
+    if (variants.some((v) => v.compareAtPrice !== undefined && v.compareAtPrice <= v.price)) {
+      setError('Each compare-at price must be greater than its selling price.')
+      return
+    }
+    if (form.compareAtPrice !== undefined && form.compareAtPrice <= form.price) {
+      setError('Compare-at price must be greater than the selling price.')
+      return
+    }
+    const normalizedSkus = variants.map((v) => v.sku.trim().toUpperCase())
+    if (new Set(normalizedSkus).size !== normalizedSkus.length) {
+      setError('Variant SKUs must be unique.')
+      return
+    }
+    const combinations = variants.map((v) => JSON.stringify(Object.entries(v.attributes).sort(([a], [b]) => a.localeCompare(b))))
+    if (variants.length > 1 && new Set(combinations).size !== combinations.length) {
+      setError('Each variant needs a unique combination of attributes.')
+      return
+    }
+    if (form.additionalPrices.some((price) => !price.label.trim() || price.price < 0)) {
+      setError('Every additional price needs a label and a valid amount.')
+      return
+    }
+    if (form.status === 'active' && form.shipping.isPhysical && (!form.shipping.weight || form.shipping.weight <= 0) && variants.every((v) => !v.weight || v.weight <= 0)) {
+      setError('An active physical product needs a product or variant shipping weight.')
       return
     }
     if (form.infoBlocks.some((b) => !b.description.trim())) {
@@ -784,7 +822,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
             <div>
               <h3 className="text-sm font-semibold text-slate-900 mb-3">Status</h3>
-              <select value={form.status} onChange={(e) => set({ status: e.target.value as ProductStatus })} className={inputCls}>
+              <select value={form.status} onChange={(e) => { const status = e.target.value as ProductStatus; set({ status, isPublished: status === 'active' }) }} className={inputCls}>
                 <option value="active">Active</option>
                 <option value="draft">Draft</option>
                 <option value="archived">Archived</option>
@@ -792,14 +830,6 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
               <p className={helpCls}>
                 {form.status === 'active' ? 'Available for sale' : form.status === 'draft' ? 'Work in progress' : 'Removed from store'}
               </p>
-            </div>
-            <div className="pt-3 border-t border-slate-100">
-              <Toggle
-                checked={form.isPublished}
-                onChange={(v) => set({ isPublished: v })}
-                label="Published"
-                description={form.isPublished ? 'Visible on the storefront' : 'Hidden from customers, regardless of status'}
-              />
             </div>
             <div className="pt-3 border-t border-slate-100">
               <Toggle
@@ -898,19 +928,19 @@ function VariantRow({
       <div className="grid grid-cols-4 gap-3">
         <div>
           <label className={labelCls}>Price (₹)</label>
-          <input type="number" value={variant.price} onChange={(e) => onUpdate({ price: Number(e.target.value) })} className={smallInputCls} />
+          <input type="number" min={0.01} step="0.01" value={variant.price} onChange={(e) => onUpdate({ price: Number(e.target.value) })} className={smallInputCls} />
         </div>
         <div>
           <label className={labelCls}>Compare-at (₹)</label>
-          <input type="number" value={variant.compareAtPrice ?? ''} onChange={(e) => onUpdate({ compareAtPrice: e.target.value ? Number(e.target.value) : undefined })} className={smallInputCls} />
+          <input type="number" min={0} step="0.01" value={variant.compareAtPrice ?? ''} onChange={(e) => onUpdate({ compareAtPrice: e.target.value ? Number(e.target.value) : undefined })} className={smallInputCls} />
         </div>
         <div>
           <label className={labelCls}>Stock</label>
-          <input type="number" value={variant.stock} onChange={(e) => onUpdate({ stock: Number(e.target.value) })} className={smallInputCls} />
+          <input type="number" min={0} step={1} value={variant.stock} onChange={(e) => onUpdate({ stock: Number(e.target.value) })} className={smallInputCls} />
         </div>
         <div>
           <label className={labelCls}>Weight (g)</label>
-          <input type="number" value={variant.weight ?? ''} onChange={(e) => onUpdate({ weight: e.target.value ? Number(e.target.value) : undefined })} className={smallInputCls} />
+          <input type="number" min={0} value={variant.weight ?? ''} onChange={(e) => onUpdate({ weight: e.target.value ? Number(e.target.value) : undefined })} className={smallInputCls} />
         </div>
       </div>
 

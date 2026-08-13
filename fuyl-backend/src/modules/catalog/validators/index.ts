@@ -108,7 +108,7 @@ export const createProductSchema = z.object({
 
 export const updateProductSchema = createProductSchema.partial();
 
-export const createVariantSchema = z.object({
+const variantObjectSchema = z.object({
   productId: z.string().length(24),
   sku: z.string().min(1).max(50),
   name: z.string().min(1).max(200),
@@ -116,6 +116,13 @@ export const createVariantSchema = z.object({
   price: z.number().min(0),
   salePrice: z.number().min(0).optional(),
   compareAtPrice: z.number().min(0).optional(),
+  media: z.array(z.object({
+    url: z.string().url(),
+    type: z.enum(['image', 'video', 'pdf']).default('image'),
+    alt: z.string().max(200).optional(),
+    position: z.number().int().default(0),
+    isPrimary: z.boolean().default(false),
+  })).default([]),
   currency: z.string().default('INR'),
   weight: z.number().min(0).optional(),
   weightUnit: z.string().max(10).default('g'),
@@ -124,7 +131,17 @@ export const createVariantSchema = z.object({
   isSubscribable: z.boolean().default(true),
 });
 
-export const updateVariantSchema = createVariantSchema.partial();
+export const createVariantSchema = variantObjectSchema.superRefine((variant, ctx) => {
+  if (variant.compareAtPrice !== undefined && variant.compareAtPrice <= variant.price) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['compareAtPrice'], message: 'Compare-at price must be greater than the selling price' });
+  }
+});
+
+export const updateVariantSchema = variantObjectSchema.partial().superRefine((variant, ctx) => {
+  if (variant.price !== undefined && variant.compareAtPrice !== undefined && variant.compareAtPrice <= variant.price) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['compareAtPrice'], message: 'Compare-at price must be greater than the selling price' });
+  }
+});
 
 export type CreateAttributeDTO = z.infer<typeof createAttributeSchema>;
 export type CreateTagDTO = z.infer<typeof createTagSchema>;

@@ -44,23 +44,32 @@ class InventoryService {
     const { VariantModel } = await import('../../catalog/models/variant.model');
 
     const productIds = [...new Set(result.items.map((s) => s.productId.toString()))];
-    const variantIds = result.items
-      .map((s) => s.variantId?.toString())
-      .filter((id): id is string => Boolean(id));
-
     const [products, variants] = await Promise.all([
       ProductModel.find({ _id: { $in: productIds } }, { name: 1 }),
-      variantIds.length > 0
-        ? VariantModel.find({ _id: { $in: variantIds } }, { name: 1, sku: 1 })
+      productIds.length > 0
+        ? VariantModel.find(
+            { productId: { $in: productIds }, isActive: true },
+            { productId: 1, name: 1, sku: 1 },
+          )
         : Promise.resolve([]),
     ]);
 
     const nameById    = new Map(products.map((p) => [p._id.toString(), p.name]));
     const variantById = new Map(variants.map((v) => [v._id.toString(), { name: v.name, sku: v.sku }]));
+    const productsWithVariants = new Set(variants.map((v) => v.productId.toString()));
+
+    // A product has exactly one inventory mode. Legacy product-level rows may
+    // remain after variants are added, but exposing those alongside the real
+    // variants creates a misleading third "default" variant in the admin UI.
+    const visibleItems = result.items.filter((stock) => {
+      const productId = stock.productId.toString();
+      if (!stock.variantId) return !productsWithVariants.has(productId);
+      return variantById.has(stock.variantId.toString());
+    });
 
     return {
       ...result,
-      items: result.items.map((s) => {
+      items: visibleItems.map((s) => {
         const variant = s.variantId ? variantById.get(s.variantId.toString()) : undefined;
         return {
           ...s.toObject(),

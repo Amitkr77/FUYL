@@ -120,18 +120,27 @@ function mapImages(media: BackendMedia[]): ProductImage[] {
   }))
 }
 
-function mapVariant(v: BackendVariant): ProductVariant {
+function mapVariant(v: BackendVariant, available = v.isActive): ProductVariant {
   const { price, compareAtPrice } = effectivePrice(v.price, v.salePrice, v.compareAtPrice)
   return {
     id: v._id,
     title: v.name,
     price,
     compareAtPrice,
-    available: v.isActive,
+    available,
     sku: v.sku,
     weight: v.weight,
     weightUnit: v.weightUnit,
   }
+}
+
+async function mapVariantsWithStock(productId: string, variants: BackendVariant[]): Promise<ProductVariant[]> {
+  return Promise.all(variants.map(async (variant) => {
+    const stock = await getProductStock(productId, variant._id)
+    // No inventory row means inventory is not being tracked for this variant;
+    // otherwise zero available stock must make the option unavailable.
+    return mapVariant(variant, variant.isActive && (stock === null || stock > 0))
+  }))
 }
 
 async function getTagNames(tagIds?: string[]): Promise<string[]> {
@@ -231,7 +240,7 @@ export async function getProduct(slug: string): Promise<Product> {
     getTagNames(raw.tagIds),
   ])
 
-  return mapProduct(raw, variants.map(mapVariant), tags)
+  return mapProduct(raw, await mapVariantsWithStock(raw._id, variants), tags)
 }
 
 // Used by the wishlist page, which only stores a productId (no slug) per
@@ -250,7 +259,7 @@ export async function getProductById(id: string): Promise<Product | null> {
       }),
       getTagNames(raw.tagIds),
     ])
-    return mapProduct(raw, variants.map(mapVariant), tags)
+    return mapProduct(raw, await mapVariantsWithStock(raw._id, variants), tags)
   } catch {
     return null
   }
