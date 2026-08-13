@@ -48,7 +48,7 @@ export function BuyNowButton({ product, variant, quantity, subscriptionInterval,
   return (
     <div>
       <Button variant="outline" size="lg" fullWidth loading={isLoading} onClick={handleBuyNow}>
-        Add &amp; Checkout
+        Buy Now
       </Button>
       {error && (
         <p className="mt-2 flex items-center gap-1.5 text-body-xs" style={{ color: '#B91C1C' }}>
