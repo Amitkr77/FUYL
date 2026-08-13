@@ -33,7 +33,7 @@ export class IdentityController {
           httpOnly: true,
           secure: env.isProd,
           sameSite: 'strict',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
+          maxAge: 30 * 24 * 60 * 60 * 1000,
         });
         return created(res, {
           user: result.user,
@@ -54,7 +54,7 @@ export class IdentityController {
           httpOnly: true,
           secure: env.isProd,
           sameSite: 'strict',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
+          maxAge: 30 * 24 * 60 * 60 * 1000,
         });
         return success(res, { user: result.user, accessToken: result.accessToken });
       } catch (err) { next(err); }
@@ -85,7 +85,7 @@ export class IdentityController {
           httpOnly: true,
           secure: env.isProd,
           sameSite: 'strict',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
+          maxAge: 30 * 24 * 60 * 60 * 1000,
         });
         return success(res, {
           status: 'authenticated',
@@ -109,7 +109,7 @@ export class IdentityController {
           httpOnly: true,
           secure: env.isProd,
           sameSite: 'strict',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
+          maxAge: 30 * 24 * 60 * 60 * 1000,
         });
         return success(res, tokens);
       } catch (err) { next(err); }
@@ -228,7 +228,7 @@ export class IdentityController {
           httpOnly: true,
           secure: env.isProd,
           sameSite: 'strict',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
+          maxAge: 30 * 24 * 60 * 60 * 1000,
         });
         return success(res, { user: result.user, accessToken: result.accessToken });
       } catch (err) { next(err); }

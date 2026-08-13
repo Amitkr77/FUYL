@@ -6,6 +6,7 @@ import {
   comparePassword,
   hashToken,
   signAccessToken,
+  signShortAccessToken,
   signRefreshToken,
   verifyRefreshToken,
   generateEmailVerificationToken,
@@ -36,7 +37,12 @@ import { OtpModel } from '../models/otp.model';
 const userRepo = new UserRepository();
 const refreshRepo = new RefreshTokenRepository();
 
-const REFRESH_TOKEN_TTL_DAYS = 7;
+const REFRESH_TOKEN_TTL_DAYS = 30;
+
+function issueAccessToken(payload: JwtPayload): string {
+  const isAdmin = payload.role === RoleEnum.ADMIN || payload.role === RoleEnum.SUPER_ADMIN;
+  return isAdmin ? signShortAccessToken(payload, '8h') : signAccessToken(payload);
+}
 
 export class IdentityService {
   async register(dto: RegisterDTO, meta: { ip?: string; userAgent?: string; deviceFingerprint?: string }) {
@@ -151,7 +157,7 @@ export class IdentityService {
       isRevoked: false,
     });
 
-    const newAccess = signAccessToken({ userId: user.id, role: user.role, email: user.email, permissions: user.permissions });
+    const newAccess = issueAccessToken({ userId: user.id, role: user.role, email: user.email, permissions: user.permissions });
     return { accessToken: newAccess, refreshToken: newRefresh };
   }
 
@@ -521,7 +527,7 @@ export class IdentityService {
   ) {
     const userIdStr = user._id.toString();
     const payload: JwtPayload = { userId: userIdStr, role: user.role, email: user.email, permissions: user.permissions };
-    const accessToken = signAccessToken(payload);
+    const accessToken = issueAccessToken(payload);
     const refreshToken = signRefreshToken(payload);
 
     await refreshRepo.create({

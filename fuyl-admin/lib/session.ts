@@ -17,9 +17,9 @@ if (!rawJwtSecret) {
 const JWT_SECRET = new TextEncoder().encode(rawJwtSecret)
 
 export const SESSION_COOKIE = 'fuyl-admin-session'
-// Matches the backend's refresh-token lifetime (JWT_REFRESH_EXPIRY=7d) — the
+// Matches the backend's refresh-token lifetime (JWT_REFRESH_EXPIRY=30d) — the
 // local session shouldn't be able to outlive the refresh token it wraps.
-export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
+export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
 
 export interface AdminSessionPayload {
   userId: string
