@@ -47,7 +47,7 @@ export function AffiliateAuthGuard({ children }: AffiliateAuthGuardProps) {
     // ── Step 1: must be logged in ──────────────────────────────────────────
     if (!user) {
       startTransition(() => setGuardState('redirecting'))
-      router.replace('/account?next=/affiliate/dashboard')
+      router.replace('/affiliate/login')
       return
     }
 

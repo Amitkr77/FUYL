@@ -95,8 +95,8 @@ export default function AffiliateDashboardPage() {
     return (
       <div className="text-center py-16">
         <p className="text-body-md text-brand-muted mb-4">Sign in to access your affiliate dashboard.</p>
-        <Link href="/account" className="text-brand-teal font-semibold hover:text-brand-forest transition-colors">
-          Sign In
+        <Link href="/affiliate/login" className="text-brand-teal font-semibold hover:text-brand-forest transition-colors">
+          Affiliate Sign In
         </Link>
       </div>
     )
