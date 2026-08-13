@@ -98,6 +98,7 @@ export class AffiliateAdminController {
   async updateLink(req:AuthedRequest,res:Response,next:NextFunction){try{res.json({success:true,data:{link:await affiliateService.adminUpdateLink(req.params.id,req.params.linkId,req.body)}})}catch(err){next(err)}}
   async settings(_req:AuthedRequest,res:Response,next:NextFunction){try{res.json({success:true,data:{settings:await affiliateService.affiliateSettings()}})}catch(err){next(err)}}
   async updateSettings(req:AuthedRequest,res:Response,next:NextFunction){try{res.json({success:true,data:{settings:await affiliateService.updateAffiliateSettings(req.body)}})}catch(err){next(err)}}
+  async impersonate(req:AuthedRequest,res:Response,next:NextFunction){try{res.json({success:true,data:await affiliateService.createImpersonation(req.params.id,{userId:req.user!.userId,role:req.user!.role})})}catch(err){next(err)}}
 
   /** POST /admin/commissions/:id/approve */
   async approveCommission(req: AuthedRequest, res: Response, next: NextFunction) {

@@ -24,6 +24,7 @@ import {
   createAdminAffiliateLink,
   updateAdminAffiliateLink,
   type AffiliateSettings,
+  createAffiliateImpersonation,
 } from '@/lib/affiliate'
 
 export async function approveAffiliateAction(id: string): Promise<{ error: string } | null> {
@@ -35,6 +36,7 @@ export async function approveAffiliateAction(id: string): Promise<{ error: strin
   revalidatePath('/affiliates')
   return null
 }
+export async function createAffiliateImpersonationAction(id:string):Promise<{error?:string;url?:string}>{try{const{code}=await createAffiliateImpersonation(id);const storefront=process.env.STOREFRONT_URL??process.env.NEXT_PUBLIC_STOREFRONT_URL??'http://localhost:3000';return{url:`${storefront}/affiliate/impersonate?code=${encodeURIComponent(code)}`}}catch(err){return{error:getErrorMessage(err,'Could not start affiliate login.')}}}
 
 export async function saveAffiliateSettingsAction(input:AffiliateSettings):Promise<{error?:string}>{try{await updateAffiliateSettings(input);revalidatePath('/affiliates/settings');return{}}catch(err){return{error:getErrorMessage(err,'Could not save affiliate settings.')}}}
 export async function saveAffiliateReviewAction(id:string,input:{internalNote?:string;fraudStatus?:'clear'|'review'|'blocked';fraudNote?:string}):Promise<{error?:string}>{try{await updateAffiliateReview(id,input);revalidatePath(`/affiliates/members/${id}`);return{}}catch(err){return{error:getErrorMessage(err,'Could not save affiliate review.')}}}

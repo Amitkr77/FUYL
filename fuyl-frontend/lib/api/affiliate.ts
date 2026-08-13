@@ -109,9 +109,12 @@ export async function applyAffiliate(input: {
   phone?:    string
   channels:  string[]
   message?:  string
-}): Promise<{ _id: string; status: AffiliateStatus }> {
-  return apiFetch('/affiliate/apply', { method: 'POST', body: input })
+}, token?: string): Promise<{ _id: string; status: AffiliateStatus }> {
+  return apiFetch('/affiliate/apply', { method: 'POST', body: input, token })
 }
+
+export interface PublicAffiliateSettings {registrationEnabled:boolean;signupTitle:string;signupIntroduction:string;termsUrl?:string;requiredFields:string[];defaultProgram?:{name:string;defaultRate:number}}
+export async function getPublicAffiliateSettings():Promise<PublicAffiliateSettings>{return(await apiFetch<{settings:PublicAffiliateSettings}>('/affiliate/settings')).settings}
 
 // Affiliate profile (lightweight — for auth guard)
 export async function getAffiliateMe(token: string): Promise<AffiliateProfile> {
@@ -196,3 +199,5 @@ export async function updateAffiliateProfile(
 ): Promise<AffiliateProfile> {
   return apiFetch('/affiliate/profile', { method: 'PATCH', body: patch, token })
 }
+
+export async function exchangeAffiliateImpersonation(code:string):Promise<{accessToken:string;affiliate:AffiliateProfile;user:{_id:string;email:string;firstName?:string;lastName?:string;phone?:string};expiresInSeconds:number}>{return apiFetch('/affiliate/impersonation/exchange',{method:'POST',body:{code}})}

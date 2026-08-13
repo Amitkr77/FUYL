@@ -118,7 +118,8 @@ export async function apiFetch<T>(
     // Expired access token — exchange the refresh cookie for a new one and
     // retry exactly once. Only meaningful for authenticated client-side
     // calls (token present); anonymous/public 401s just fall through.
-    if (res.status === 401 && token && !_isRetry) {
+    const impersonating = typeof window !== 'undefined' && (await import('@/lib/store/authStore')).useAuthStore.getState().isAffiliateImpersonation
+    if (res.status === 401 && token && !_isRetry && !impersonating) {
       const newToken = await tryRefreshToken()
       const { useAuthStore } = await import('@/lib/store/authStore')
       if (newToken) {

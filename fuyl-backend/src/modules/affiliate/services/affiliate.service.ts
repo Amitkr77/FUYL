@@ -3,6 +3,10 @@ import { AffiliateRepository } from '../repositories/affiliate.repository';
 import { IAffiliate } from '../models/affiliate.model';
 import { IAffiliateProgram } from '../models/program.model';
 import { AffiliateSettingsModel, IAffiliateSettings } from '../models/settings.model';
+import { AffiliateImpersonationModel } from '../models/impersonation.model';
+import { UserModel } from '../../identity/models/user.model';
+import { signShortAccessToken, hashToken } from '../../identity/utils/crypto';
+import { auditService } from '../../../shared/services/audit.service';
 import { ProgramRepository } from '../repositories/program.repository';
 import { LinkRepository } from '../repositories/link.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
@@ -41,7 +45,7 @@ export class AffiliateService {
       email:     input.email,
       phone:     input.phone,
       channels:  input.channels,
-      userId:    input.userId ? new mongoose.Types.ObjectId(input.userId) : undefined,
+      userId:    input.userId ? new mongoose.Types.ObjectId(input.userId) : (await UserModel.findOne({ emailLower: input.email.toLowerCase().trim(), isActive: true, isDeleted: false }))?._id,
       programId: program._id,
       status:    settings.autoApprove ? AffiliateStatus.APPROVED : AffiliateStatus.PENDING,
       ...(settings.autoApprove ? { approvedAt: new Date() } : {}),
@@ -232,6 +236,15 @@ export class AffiliateService {
     return affiliate;
   }
 
+  async resolvePortalAffiliate(user: { userId: string; impersonatedAffiliateId?: string }) {
+    if (user.impersonatedAffiliateId) { const affiliate=await affiliateRepo.findById(user.impersonatedAffiliateId);if(!affiliate)throw new NotFoundError('Affiliate profile');return affiliate; }
+    return this.findByUserId(user.userId);
+  }
+
+  async createImpersonation(affiliateId:string,admin:{userId:string;role:string}){const affiliate=await affiliateRepo.findById(affiliateId);if(!affiliate)throw new NotFoundError('Affiliate');if(affiliate.status!==AffiliateStatus.APPROVED)throw new BadRequestError('Only approved affiliates can be impersonated');const raw=crypto.randomBytes(32).toString('hex');await AffiliateImpersonationModel.create({tokenHash:hashToken(raw),affiliateId:affiliate._id,adminUserId:new mongoose.Types.ObjectId(admin.userId),expiresAt:new Date(Date.now()+300000)});await auditService.write(admin,'affiliate.impersonation.created',{type:'affiliate',id:affiliateId},{expiresInMinutes:5});return{code:raw,expiresInSeconds:300}}
+
+  async exchangeImpersonation(code:string){const session=await AffiliateImpersonationModel.findOneAndUpdate({tokenHash:hashToken(code),usedAt:{$exists:false},expiresAt:{$gt:new Date()}},{$set:{usedAt:new Date()}},{new:true});if(!session)throw new BadRequestError('Impersonation link is invalid, expired, or already used');const affiliate=await affiliateRepo.findById(session.affiliateId);if(!affiliate||affiliate.status!==AffiliateStatus.APPROVED)throw new BadRequestError('Affiliate is not active');const linked=affiliate.userId?await UserModel.findById(affiliate.userId):null;const userId=linked?._id.toString()??affiliate._id.toString();const accessToken=signShortAccessToken({userId,role:'customer',email:affiliate.email,permissions:[],impersonatedAffiliateId:affiliate._id.toString(),impersonatedBy:session.adminUserId.toString()},'15m');await auditService.write({userId:session.adminUserId.toString(),role:'admin'},'affiliate.impersonation.started',{type:'affiliate',id:affiliate._id.toString()});return{accessToken,affiliate,user:{_id:userId,email:affiliate.email,firstName:affiliate.name.split(' ')[0]??'',lastName:affiliate.name.split(' ').slice(1).join(' '),phone:affiliate.phone},expiresInSeconds:900}}
+
   // ─── Admin helpers ────────────────────────────────────────────────────────
 
   async adminList(input: { page: number; limit: number; status?: string; programId?: string; search?: string; sort?: string; direction?: string }) {
@@ -274,10 +287,12 @@ export class AffiliateService {
     const program = input.programId ? await programRepo.findById(input.programId) : await programRepo.findActive();
     if (!program) throw new BadRequestError('An active affiliate program is required');
     const approved = input.status === AffiliateStatus.APPROVED;
+    const linkedUser=await UserModel.findOne({emailLower:input.email.trim().toLowerCase(),isActive:true,isDeleted:false});
     const affiliate = await affiliateRepo.create({
       name: input.name.trim(), email: input.email.trim().toLowerCase(), phone: input.phone?.trim(),
       channels: input.channels ?? [], programId: program._id,
       status: approved ? AffiliateStatus.APPROVED : AffiliateStatus.PENDING,
+      userId: linkedUser?._id,
       ...(approved ? { approvedAt: new Date() } : {}),
     });
     if (approved) {

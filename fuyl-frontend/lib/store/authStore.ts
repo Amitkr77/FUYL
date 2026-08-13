@@ -12,6 +12,7 @@ interface AuthState {
   token:      string | null
   isLoading:  boolean
   error:      string | null
+  isAffiliateImpersonation: boolean
   // Actions
   login:      (email: string, password: string) => Promise<void>
   register:   (payload: { firstName: string; lastName: string; email: string; password: string; phone?: string; referralCode?: string }) => Promise<void>
@@ -23,6 +24,8 @@ interface AuthState {
   // all issue the same shape), so this just adopts it directly rather than
   // re-deriving it through login()/register() again.
   setSession: (token: string, user: User) => void
+  setAffiliateImpersonation: (token:string,user:User)=>void
+  exitAffiliateImpersonation:()=>void
   // Re-mint the in-memory access token from the httpOnly refresh cookie on a
   // fresh page load. The access token is NOT persisted (kept out of
   // localStorage to shrink the XSS blast radius) — only `user` is — so on
@@ -38,12 +41,13 @@ export const useAuthStore = create<AuthState>()(
       token:     null,
       isLoading: false,
       error:     null,
+      isAffiliateImpersonation: false,
 
       login: async (email, password) => {
         set({ isLoading: true, error: null })
         try {
           const { accessToken, user } = await apiLogin({ email, password })
-          set({ token: accessToken, user })
+          set({ token: accessToken, user, isAffiliateImpersonation:false })
           await useCartStore.getState().mergeGuestCart()
         } catch (err: unknown) {
           set({ error: getErrorMessage(err, 'Login failed. Please try again.') })
@@ -56,7 +60,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null })
         try {
           const { accessToken, user } = await apiRegister(payload)
-          set({ token: accessToken, user })
+          set({ token: accessToken, user, isAffiliateImpersonation:false })
           await useCartStore.getState().mergeGuestCart()
         } catch (err: unknown) {
           set({ error: getErrorMessage(err, 'Registration failed. Please try again.') })
@@ -65,10 +69,12 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout:     () => set({ user: null, token: null }),
+      logout:     () => set({ user: null, token: null, isAffiliateImpersonation:false }),
       clearError: () => set({ error: null }),
       setUser:    (user) => set({ user }),
       setSession: (token, user) => set({ token, user, error: null }),
+      setAffiliateImpersonation:(token,user)=>set({token,user,error:null,isAffiliateImpersonation:true}),
+      exitAffiliateImpersonation:()=>set({token:null,user:null,isAffiliateImpersonation:false}),
 
       rehydrate: async () => {
         // Only relevant when we believe we're logged in (persisted user) but
@@ -96,7 +102,7 @@ export const useAuthStore = create<AuthState>()(
       // across reloads/redirects. (XSS exposure is mitigated by the storefront
       // HTML sanitizer + CSP.) rehydrate() below stays as a no-op safety net:
       // it only acts when a user is present but the token is somehow missing.
-      partialize: (state) => ({ token: state.token, user: state.user }),
+      partialize: (state) => ({ token: state.token, user: state.user, isAffiliateImpersonation:state.isAffiliateImpersonation }),
       // If the token didn't come back from storage but the user did, restore it
       // from the refresh cookie (defensive; normally the token is persisted).
       onRehydrateStorage: () => (state) => {

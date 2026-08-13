@@ -8,14 +8,16 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  type TooltipProps,
 } from 'recharts'
 import type { PerformanceDataPoint } from '@/lib/api/affiliate'
 import { Skeleton } from '@/components/ui/Skeleton'
 
 // ─── Custom tooltip ───────────────────────────────────────────────────────────
 
-function ChartTooltip({ active, payload, label, formatter }: TooltipProps<number, string> & {
+function ChartTooltip({ active, payload, label, formatter }: {
+  active?: boolean
+  payload?: Array<{ value?: number }>
+  label?: string
   formatter?: (v: number) => string
 }) {
   if (!active || !payload?.length) return null

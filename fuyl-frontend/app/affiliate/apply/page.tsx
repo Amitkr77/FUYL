@@ -6,6 +6,7 @@ import Image from "next/image";
 import { CheckCircle } from "lucide-react";
 import { applyAffiliate } from "@/lib/api/affiliate";
 import { getErrorMessage } from "@/lib/api/client";
+import { useAuthStore } from "@/lib/store/authStore";
 
 const BENEFITS = [
   {
@@ -24,6 +25,7 @@ const BENEFITS = [
 ];
 
 export default function AffiliateApplyPage() {
+  const token = useAuthStore((state) => state.token);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -50,7 +52,7 @@ export default function AffiliateApplyPage() {
         email: form.email.trim(),
         phone: form.phone.trim() || undefined,
         channels: [],
-      });
+      }, token ?? undefined);
       setDone(true);
     } catch (err) {
       setError(

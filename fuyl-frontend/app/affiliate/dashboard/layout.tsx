@@ -4,6 +4,7 @@ import { AffiliateSidebar }   from '@/components/affiliate/layout/AffiliateSideb
 import { AffiliateBottomBar } from '@/components/affiliate/layout/AffiliateBottomBar'
 import { AffiliateHeader }    from '@/components/affiliate/layout/AffiliateHeader'
 import { AffiliateAuthGuard } from '@/components/affiliate/shared/AffiliateAuthGuard'
+import { ImpersonationBanner } from '@/components/affiliate/layout/ImpersonationBanner'
 
 export default function AffiliateDashboardLayout({
   children,
@@ -12,6 +13,7 @@ export default function AffiliateDashboardLayout({
 }) {
   return (
     <AffiliateAuthGuard>
+      <ImpersonationBanner />
       <div className="flex min-h-screen bg-brand-cream">
         {/* Desktop sidebar */}
         <AffiliateSidebar />

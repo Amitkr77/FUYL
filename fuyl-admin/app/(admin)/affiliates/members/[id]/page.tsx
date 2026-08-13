@@ -6,6 +6,7 @@ import { AdminApiError } from "@/lib/api";
 import { AffiliateProfileEditor } from "@/components/affiliates/AffiliateProfileEditor";
 import { AffiliateReviewCard } from "@/components/affiliates/AffiliateReviewCard";
 import { AffiliateLinkManager } from "@/components/affiliates/AffiliateLinkManager";
+import { LoginAsAffiliateButton } from "@/components/affiliates/LoginAsAffiliateButton";
 
 function money(value: number) { return `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`; }
 function programName(program: Awaited<ReturnType<typeof getAffiliate>>["affiliate"]["programId"]) { return typeof program === "string" ? program : program.name; }
@@ -20,7 +21,7 @@ export default async function AffiliateDetailPage({ params }: { params: Promise<
   return <div className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-3"><Link href="/affiliates/members" className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 hover:text-slate-900"><ArrowLeft className="h-4 w-4" /></Link><div><h2 className="text-xl font-bold text-slate-900">{affiliate.name}</h2><p className="text-sm text-slate-500">Joined {new Date(affiliate.createdAt).toLocaleDateString("en-IN")}</p></div></div>
-      <div className="flex items-center gap-3"><AffiliateProfileEditor affiliate={affiliate} /><span className="rounded-full bg-[#558476]/10 px-3 py-1.5 text-sm font-semibold capitalize text-[#315f52]">{affiliate.status}</span></div>
+      <div className="flex items-center gap-3"><LoginAsAffiliateButton id={affiliate.id} disabled={affiliate.status !== "approved"} /><AffiliateProfileEditor affiliate={affiliate} /><span className="rounded-full bg-[#558476]/10 px-3 py-1.5 text-sm font-semibold capitalize text-[#315f52]">{affiliate.status}</span></div>
     </div>
 
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

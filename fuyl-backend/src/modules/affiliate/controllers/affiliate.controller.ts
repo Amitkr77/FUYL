@@ -8,6 +8,7 @@ import { BadRequestError, NotFoundError } from '../../../shared/errors';
 import { env } from '../../../config/env';
 
 export class AffiliateController {
+  async exchangeImpersonation(req:Request,res:Response,next:NextFunction){try{if(!req.body.code)throw new BadRequestError('code is required');res.json({success:true,data:await affiliateService.exchangeImpersonation(req.body.code)})}catch(err){next(err)}}
   async settings(_req: any,res: Response,next: NextFunction){try{res.json({success:true,data:{settings:await affiliateService.affiliateSettings(true)}})}catch(err){next(err)}}
   /** POST /affiliate/apply — public */
   async apply(req: Request, res: Response, next: NextFunction) {
@@ -23,7 +24,7 @@ export class AffiliateController {
   /** GET /affiliate/me — requires auth + approved affiliate */
   async me(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
-      const affiliate = await affiliateService.findByUserId(req.user!.userId);
+      const affiliate = await affiliateService.resolvePortalAffiliate(req.user!);
       res.json({ success: true, data: affiliate });
     } catch (err) { next(err); }
   }
@@ -31,7 +32,7 @@ export class AffiliateController {
   /** GET /affiliate/dashboard — requires auth + approved affiliate */
   async dashboard(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
-      const affiliate = await affiliateService.findByUserId(req.user!.userId);
+      const affiliate = await affiliateService.resolvePortalAffiliate(req.user!);
       const data = await affiliateService.myDashboard(affiliate._id.toString());
       res.json({ success: true, data });
     } catch (err) { next(err); }
@@ -40,7 +41,7 @@ export class AffiliateController {
   /** GET /affiliate/links — requires auth + approved affiliate */
   async links(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
-      const affiliate = await affiliateService.findByUserId(req.user!.userId);
+      const affiliate = await affiliateService.resolvePortalAffiliate(req.user!);
       const data = await affiliateService.myLinks(affiliate._id.toString());
       res.json({ success: true, data });
     } catch (err) { next(err); }
@@ -51,7 +52,7 @@ export class AffiliateController {
     try {
       const { destination, label } = req.body;
       if (!destination) throw new BadRequestError('destination is required');
-      const affiliate = await affiliateService.findByUserId(req.user!.userId);
+      const affiliate = await affiliateService.resolvePortalAffiliate(req.user!);
       const link = await affiliateService.createLink(affiliate._id.toString(), { destination, label });
       res.status(201).json({ success: true, data: link });
     } catch (err) { next(err); }
@@ -61,7 +62,7 @@ export class AffiliateController {
   async commissions(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
       const { status, createdAtFrom, createdAtTo } = req.query;
-      const affiliate = await affiliateService.findByUserId(req.user!.userId);
+      const affiliate = await affiliateService.resolvePortalAffiliate(req.user!);
       const data = await commissionService.listForAffiliate(affiliate._id.toString(), {
         status:        status        as string | undefined,
         createdAtFrom: createdAtFrom as string | undefined,
@@ -75,7 +76,7 @@ export class AffiliateController {
   async updatePaymentInfo(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
       const { upi, bankAccount, ifsc, accountName } = req.body;
-      const affiliate = await affiliateService.findByUserId(req.user!.userId);
+      const affiliate = await affiliateService.resolvePortalAffiliate(req.user!);
       const updated = await affiliateService.updatePaymentInfo(affiliate._id.toString(), { upi, bankAccount, ifsc, accountName });
       res.json({ success: true, data: updated });
     } catch (err) { next(err); }
@@ -84,7 +85,7 @@ export class AffiliateController {
   /** GET /affiliate/payouts — requires auth */
   async payouts(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
-      const affiliate = await affiliateService.findByUserId(req.user!.userId);
+      const affiliate = await affiliateService.resolvePortalAffiliate(req.user!);
       const data = await affiliateService.myPayouts(affiliate._id.toString());
       res.json({ success: true, data });
     } catch (err) { next(err); }
@@ -93,7 +94,7 @@ export class AffiliateController {
   /** GET /affiliate/program — requires auth */
   async program(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
-      const affiliate = await affiliateService.findByUserId(req.user!.userId);
+      const affiliate = await affiliateService.resolvePortalAffiliate(req.user!);
       const data = await affiliateService.getProgram(affiliate._id.toString());
       res.json({ success: true, data });
     } catch (err) { next(err); }
@@ -110,7 +111,7 @@ export class AffiliateController {
       if (!validTabs.includes(tab as PerformanceTab)) {
         throw new BadRequestError(`tab must be one of: ${validTabs.join(', ')}`);
       }
-      const affiliate = await affiliateService.findByUserId(req.user!.userId);
+      const affiliate = await affiliateService.resolvePortalAffiliate(req.user!);
       const data = await performanceService.getPerformance(affiliate._id.toString(), {
         from: from as string,
         to:   to   as string,
@@ -124,7 +125,7 @@ export class AffiliateController {
   async updateProfile(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
       const { name, phone, channels, website, socialHandles } = req.body;
-      const affiliate = await affiliateService.findByUserId(req.user!.userId);
+      const affiliate = await affiliateService.resolvePortalAffiliate(req.user!);
       const updated = await affiliateService.updateProfile(affiliate._id.toString(), {
         name,
         phone,
@@ -179,3 +180,4 @@ export class AffiliateController {
 }
 
 export const affiliateController = new AffiliateController();
+

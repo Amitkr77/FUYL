@@ -279,6 +279,7 @@ export async function updateAffiliateSettings(input:AffiliateSettings):Promise<v
 export async function updateAffiliateReview(id:string,input:{internalNote?:string;fraudStatus?:'clear'|'review'|'blocked';fraudNote?:string}):Promise<void>{await adminApiFetch(`/admin/affiliates/${id}/review`,{method:'PATCH',body:input})}
 export async function createAdminAffiliateLink(id:string,input:{destination:string;label?:string}):Promise<void>{await adminApiFetch(`/admin/affiliates/${id}/links`,{method:'POST',body:input})}
 export async function updateAdminAffiliateLink(id:string,linkId:string,input:{destination?:string;label?:string;isActive?:boolean}):Promise<void>{await adminApiFetch(`/admin/affiliates/${id}/links/${linkId}`,{method:'PATCH',body:input})}
+export async function createAffiliateImpersonation(id:string):Promise<{code:string;expiresInSeconds:number}>{return adminApiFetch(`/admin/affiliates/${id}/impersonate`,{method:'POST'})}
 
 export async function approveCommission(id: string): Promise<void> {
   await adminApiFetch(`/admin/commissions/${id}/approve`, { method: 'POST' })

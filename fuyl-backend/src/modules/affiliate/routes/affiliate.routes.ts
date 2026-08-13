@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { affiliateController } from '../controllers/affiliate.controller';
 import { affiliateAdminController } from '../controllers/admin.controller';
-import { authRequired } from '../../../shared/middleware/auth.middleware';
+import { authRequired, authOptional } from '../../../shared/middleware/auth.middleware';
 import { authorize } from '../../../shared/middleware/rbac.middleware';
 
 const router = Router();
@@ -13,7 +13,8 @@ const adminOnly = authorize('admin', 'super_admin');
 router.get('/r/:code', affiliateController.track.bind(affiliateController));
 
 // ─── Public ───────────────────────────────────────────────────────────────────
-router.post('/affiliate/apply', affiliateController.apply.bind(affiliateController));
+router.post('/affiliate/apply', authOptional, affiliateController.apply.bind(affiliateController));
+router.post('/affiliate/impersonation/exchange', affiliateController.exchangeImpersonation.bind(affiliateController));
 router.get('/affiliate/settings', affiliateController.settings.bind(affiliateController));
 
 // ─── Affiliate portal (requires account) ──────────────────────────────────────
@@ -37,6 +38,7 @@ router.patch('/admin/affiliate-programs/:id', authRequired, adminOnly, affiliate
 router.post('/admin/affiliate-programs/:id/default', authRequired, adminOnly, affiliateAdminController.setDefaultProgram.bind(affiliateAdminController));
 router.delete('/admin/affiliate-programs/:id', authRequired, adminOnly, affiliateAdminController.deleteProgram.bind(affiliateAdminController));
 router.get('/admin/affiliates/stats',         authRequired, adminOnly, affiliateAdminController.stats.bind(affiliateAdminController));
+router.post('/admin/affiliates/:id/impersonate', authRequired, adminOnly, affiliateAdminController.impersonate.bind(affiliateAdminController));
 router.post('/admin/affiliates',              authRequired, adminOnly, affiliateAdminController.create.bind(affiliateAdminController));
 router.get('/admin/affiliates/:id',           authRequired, adminOnly, affiliateAdminController.detail.bind(affiliateAdminController));
 router.patch('/admin/affiliates/:id',         authRequired, adminOnly, affiliateAdminController.update.bind(affiliateAdminController));

@@ -20,6 +20,7 @@ const refreshSignOptions: SignOptions = { expiresIn: env.jwt.refreshExpiry as an
 export function signAccessToken(payload: JwtPayload): string {
   return jwt.sign(payload, env.jwt.accessSecret, accessSignOptions);
 }
+export function signShortAccessToken(payload: JwtPayload, expiresIn: string = '15m'): string { return jwt.sign(payload, env.jwt.accessSecret, { expiresIn } as SignOptions); }
 
 export function signRefreshToken(payload: JwtPayload): string {
   return jwt.sign(payload, env.jwt.refreshSecret, refreshSignOptions);

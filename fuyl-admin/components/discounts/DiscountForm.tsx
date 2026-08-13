@@ -24,7 +24,7 @@ const emptyCoupon = (): DraftCoupon => ({
 })
 
 type Target = { id: string; name: string }
-export function DiscountForm({ products = [], categories = [] }: { products?: Target[]; categories?: Target[] }) {
+export function DiscountForm({ products = [] }: { products?: Target[] }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [discountKind, setDiscountKind] = useState<'product' | 'order' | 'free_shipping'>('order')
@@ -156,7 +156,6 @@ export function DiscountForm({ products = [], categories = [] }: { products?: Ta
                   className={inputCls}
                 >
                   <option value="cart">Cart</option>
-                  <option value="category">Category</option>
                   <option value="product">Product</option>
                 </select>
               </Field>
@@ -172,8 +171,8 @@ export function DiscountForm({ products = [], categories = [] }: { products?: Ta
               <Field label="Minimum order ₹" small><input type="number" min="0" value={c.minOrderSubtotal} onChange={(e) => updateCoupon(i, { minOrderSubtotal: e.target.value })} className={`${inputCls} w-28`} placeholder="None" /></Field>
               {c.discountType === 'percent' && <Field label="Maximum discount ₹" small><input type="number" min="0" value={c.maxDiscountAmount} onChange={(e) => updateCoupon(i, { maxDiscountAmount: e.target.value })} className={`${inputCls} w-28`} placeholder="No cap" /></Field>}
               <label className="flex items-center gap-2 pb-2 text-xs text-slate-600"><input type="checkbox" checked={c.isFirstOrderOnly} onChange={(e) => updateCoupon(i, { isFirstOrderOnly: e.target.checked })} />First order only</label>
-              {c.scope !== 'cart' && <div className="w-full"><label className="mb-1 block text-xs font-medium text-slate-500">Eligible {c.scope === 'category' ? 'categories' : 'products'}</label><select multiple value={c.targetIds} onChange={(e) => updateCoupon(i, { targetIds: Array.from(e.target.selectedOptions, (option) => option.value) })} className={`${inputCls} min-h-24`}>
-                {(c.scope === 'category' ? categories : products).map((target) => <option key={target.id} value={target.id}>{target.name}</option>)}
+              {c.scope !== 'cart' && <div className="w-full"><label className="mb-1 block text-xs font-medium text-slate-500">Eligible products</label><select multiple value={c.targetIds} onChange={(e) => updateCoupon(i, { targetIds: Array.from(e.target.selectedOptions, (option) => option.value) })} className={`${inputCls} min-h-24`}>
+                {products.map((target) => <option key={target.id} value={target.id}>{target.name}</option>)}
               </select><p className="mt-1 text-xs text-slate-400">Hold Ctrl/Cmd to select multiple.</p></div>}
               {coupons.length > 1 && (
                 <button

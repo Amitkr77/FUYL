@@ -12,6 +12,8 @@ export interface JwtPayload {
   // changes take effect on next login/refresh, not instantly), so
   // permission checks don't need a DB roundtrip per request.
   permissions?: string[];
+  impersonatedAffiliateId?: string;
+  impersonatedBy?: string;
   iat?: number;
   exp?: number;
 }
@@ -40,6 +42,7 @@ export function authenticate(required: boolean = true) {
       if (payload.kind) {
         return next(new UnauthorizedError('Invalid or expired token'));
       }
+      if (payload.impersonatedAffiliateId && !req.originalUrl.includes('/affiliate/')) return next(new UnauthorizedError('Affiliate impersonation tokens are restricted to affiliate routes'));
       req.user = payload;
       next();
     } catch {
