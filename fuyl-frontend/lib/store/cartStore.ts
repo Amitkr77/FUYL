@@ -86,13 +86,8 @@ export const useCartStore = create<CartState>()(
         // (AddToCartButton, the wishlist page) call openCart() themselves
         // right after a successful add; BuyNowButton deliberately doesn't.
         addItem: async (input) => {
-          set({ isLoading: true })
-          try {
-            const cart = await addCartItem(currentAuth(), input)
-            set({ items: cart.items })
-          } finally {
-            set({ isLoading: false })
-          }
+          const cart = await addCartItem(currentAuth(), input)
+          set({ items: cart.items })
           // BUG FIXED (found live — reported as "add to cart isn't
           // working"): this used to catch-and-log the error here, which
           // meant the promise returned to the caller always resolved

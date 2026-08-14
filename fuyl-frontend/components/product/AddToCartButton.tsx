@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Check, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { useCart } from '@/lib/hooks/useCart'
 import { useCartStore } from '@/lib/store/cartStore'
 import type { Product, ProductVariant } from '@/types/product'
 import { getErrorMessage } from '@/lib/api/client'
@@ -17,20 +16,18 @@ interface AddToCartButtonProps {
 }
 
 export function AddToCartButton({ product, variant, quantity, subscriptionInterval, subscriptionDiscountPercent }: AddToCartButtonProps) {
-  const { addItem, isLoading } = useCart()
+  const { addItem } = useCartStore()
+  const [loading, setLoading] = useState(false)
   const [added, setAdded] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleAdd = async () => {
     if (!variant.available) return
     setError(null)
+    setLoading(true)
     try {
-      // Backend returns the authoritative name/price/image snapshot on every
-      // cart mutation — the caller only needs to identify what to add.
       await addItem({
         productId: product.id,
-        // '' marks the synthesized "no real variant" case (see
-        // lib/api/products.ts mapProduct) — never forward it as a fake id.
         variantId: variant.id || undefined,
         quantity,
         subscriptionInterval,
@@ -40,11 +37,9 @@ export function AddToCartButton({ product, variant, quantity, subscriptionInterv
       setAdded(true)
       setTimeout(() => setAdded(false), 2000)
     } catch (err) {
-      // BUG FIXED (found live — reported as "add to cart isn't working"):
-      // this had no error handling at all, so a failed add-to-cart call
-      // (which cartStore.ts's addItem used to swallow silently) had no way
-      // to reach the user. Now it does.
       setError(getErrorMessage(err, 'Could not add this to your bag. Please try again.'))
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -62,7 +57,7 @@ export function AddToCartButton({ product, variant, quantity, subscriptionInterv
         variant="primary"
         size="lg"
         fullWidth
-        loading={isLoading && !added}
+        loading={loading && !added}
         onClick={handleAdd}
       >
         {added ? (
