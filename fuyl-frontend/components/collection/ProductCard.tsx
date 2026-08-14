@@ -6,6 +6,7 @@ import { Star } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { formatPrice } from "@/lib/utils/formatPrice";
 import { AddToCartButton } from "@/components/product/AddToCartButton";
+import { WishlistButton } from "@/components/product/WishlistButton";
 import type { Product } from "@/types/product";
 
 interface ProductCardProps {
@@ -114,12 +115,15 @@ export function ProductCard({ product, layout = "grid" }: ProductCardProps) {
           <PriceRow variant={variant} />
         </div>
 
-        {/* ATC */}
-        {variant && (
-          <div className="w-40 shrink-0">
-            <AddToCartButton product={product} variant={variant} quantity={1} />
-          </div>
-        )}
+        {/* Actions */}
+        <div className="flex shrink-0 items-center gap-3">
+          <WishlistButton productId={product.id} variantId={variant?.id || undefined} />
+          {variant && (
+            <div className="w-40">
+              <AddToCartButton product={product} variant={variant} quantity={1} />
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -153,6 +157,10 @@ export function ProductCard({ product, layout = "grid" }: ProductCardProps) {
             <Badge variant="muted">Sold Out</Badge>
           </div>
         )}
+        {/* Wishlist — sits above the image */}
+        <div className="absolute top-3 right-3">
+          <WishlistButton productId={product.id} variantId={variant?.id || undefined} />
+        </div>
       </div>
 
       {/* Title, rating, price, ATC */}

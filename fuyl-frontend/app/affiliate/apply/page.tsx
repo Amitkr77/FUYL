@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, startTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { CheckCircle, Eye, EyeOff } from "lucide-react";
@@ -43,7 +43,7 @@ export default function AffiliateApplyPage() {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   useEffect(() => { getPublicAffiliateSettings().then(setSettings).catch(() => undefined); }, []);
-  useEffect(() => { if (user) setForm((current) => ({ ...current, firstName: current.firstName || user.firstName, lastName: current.lastName || user.lastName, email: user.email, phone: current.phone || user.phone || "" })); }, [user]);
+  useEffect(() => { if (user) startTransition(() => setForm((current) => ({ ...current, firstName: current.firstName || user.firstName, lastName: current.lastName || user.lastName, email: user.email, phone: current.phone || user.phone || "" }))); }, [user]);
 
   const setField =
     (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>

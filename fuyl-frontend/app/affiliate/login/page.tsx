@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Users } from 'lucide-react'
 import { login as authenticate } from '@/lib/api/account'
@@ -23,7 +23,7 @@ export default function AffiliateLoginPage() {
 
   useEffect(() => {
     if (!existingToken) {
-      setChecking(false)
+      startTransition(() => setChecking(false))
       return
     }
     getAffiliateMe(existingToken)
