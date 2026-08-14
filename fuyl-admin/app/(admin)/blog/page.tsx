@@ -5,6 +5,7 @@ import { listAdminPosts } from '@/lib/blog'
 import { deletePostAction } from './actions'
 import { formatDate } from '@/lib/utils'
 import { getErrorMessage } from '@/lib/api'
+import { CsvExportButton } from '@/components/ui/CsvExportButton'
 
 export default async function BlogPage() {
   let posts: Awaited<ReturnType<typeof listAdminPosts>> = []
@@ -23,13 +24,13 @@ export default async function BlogPage() {
           <h2 className="text-xl font-bold text-slate-900">Blog</h2>
           <p className="text-sm text-slate-500 mt-0.5">{posts.length} posts total</p>
         </div>
-        <Link
+        <div className="flex items-center gap-2"><CsvExportButton filename="blog-posts" columns={[{key:'title',label:'Title'},{key:'category',label:'Category'},{key:'author',label:'Author'},{key:'status',label:'Status'},{key:'views',label:'Views'},{key:'publishedAt',label:'Published at'}]} rows={posts} /><Link
           href="/blog/new"
           className="flex items-center gap-2 px-4 py-2 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors"
         >
           <Plus className="w-4 h-4" />
           New Post
-        </Link>
+        </Link></div>
       </div>
 
       {error && (

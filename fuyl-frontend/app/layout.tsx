@@ -6,6 +6,7 @@ import { serializeJsonLd } from '@/lib/utils/jsonLd'
 import { getProducts } from '@/lib/api/products'
 import type { NavItem } from '@/lib/constants/nav'
 import { PageTracker } from '@/components/analytics/PageTracker'
+import { getNavigationPages } from '@/lib/api/content'
 import '@/styles/globals.css'
 
 const inter = Inter({
@@ -41,7 +42,10 @@ async function getShopNavItems(): Promise<NavItem[]> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const shopItems = await getShopNavItems()
+  const [shopItems, contentNavigation] = await Promise.all([
+    getShopNavItems(),
+    getNavigationPages().catch(() => []),
+  ])
 
   return (
     <html lang="en" className={inter.variable}>
@@ -60,7 +64,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         >
           Skip to content
         </a>
-        <SiteChrome shopItems={shopItems}>{children}</SiteChrome>
+        <SiteChrome shopItems={shopItems} contentNavigation={contentNavigation}>{children}</SiteChrome>
         <PageTracker />
       </body>
     </html>

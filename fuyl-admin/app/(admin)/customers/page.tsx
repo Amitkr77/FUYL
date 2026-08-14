@@ -3,6 +3,7 @@ import { CustomersTable } from '@/components/customers/CustomersTable'
 import { listCustomers } from '@/lib/customers'
 import { getErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
+import { CsvExportButton } from '@/components/ui/CsvExportButton'
 
 export default async function CustomersPage() {
   let customers: Awaited<ReturnType<typeof listCustomers>> = []
@@ -25,9 +26,16 @@ export default async function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900">Customers</h2>
-        <p className="text-sm text-slate-500 mt-0.5">Understand customer activity, order history, and lifetime value</p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Customers</h2>
+          <p className="text-sm text-slate-500 mt-0.5">Understand customer activity, order history, and lifetime value</p>
+        </div>
+        <CsvExportButton
+          filename="customers"
+          columns={[{ key: 'name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' }, { key: 'joined', label: 'Joined' }, { key: 'orders', label: 'Orders' }, { key: 'totalSpent', label: 'Total spent' }]}
+          rows={customers}
+        />
       </div>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">

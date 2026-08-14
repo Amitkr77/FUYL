@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { login } from "./actions";
-import { Leaf, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -33,16 +33,14 @@ export default function LoginPage() {
               <div className="text-xs font-medium text-[#558476] tracking-[0.3em] uppercase">Admin</div>
             </div>
           </div> */}
-          <Link href="/" className="inline-flex justify-center mb-12">
-            {/* The brand logo is dark forest-green artwork; invert it to white
-                so it reads against the dark #12291F panel. */}
+          <Link href="/" className="inline-flex justify-center rounded-2xl bg-white px-6 py-4 mb-12 shadow-sm">
             <Image
               src="/images/logo.webp"
               alt="FUYL"
-              width={160}
-              height={58}
+              width={260}
+              height={124}
               priority
-              className="h-16 w-auto object-contain brightness-0 invert"
+              className="h-auto w-64 object-contain"
             />
           </Link>
 
@@ -80,19 +78,9 @@ export default function LoginPage() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-white">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
-          <div className="flex lg:hidden items-center gap-3 mb-10">
-            <div className="w-10 h-10 bg-[#12291F] rounded-xl flex items-center justify-center">
-              <Leaf className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-[#12291F] tracking-widest">
-                FUYL
-              </div>
-              <div className="text-xs text-[#558476] tracking-[0.3em] uppercase font-medium">
-                Admin
-              </div>
-            </div>
-          </div>
+          <Link href="/" className="inline-flex lg:hidden mb-10" aria-label="FUYL home">
+            <Image src="/images/logo.webp" alt="FUYL" width={180} height={86} priority className="h-auto w-44 object-contain" />
+          </Link>
 
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-slate-900 mb-1">

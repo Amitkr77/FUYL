@@ -14,6 +14,7 @@ export function EditPageForm({ page }: { page: CMSPageDetail }) {
   const [showPreview, setShowPreview] = useState(false)
   const [form, setForm] = useState({
     title: page.title, body: page.body, seoTitle: page.seoTitle, seoDescription: page.seoDescription, status: page.status,
+    navigationPlacement: page.navigationPlacement, navigationLabel: page.navigationLabel, navigationOrder: page.navigationOrder,
   })
 
   const set = (k: Partial<typeof form>) => setForm((f) => ({ ...f, ...k }))
@@ -110,6 +111,15 @@ export function EditPageForm({ page }: { page: CMSPageDetail }) {
                 <option value="published">Published</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Show page in</label>
+              <select value={form.navigationPlacement} onChange={(e) => set({ navigationPlacement: e.target.value as typeof form.navigationPlacement })} className={inputCls}>
+                <option value="none">Nowhere — direct URL only</option><option value="header">Website header</option><option value="footer">Website footer</option><option value="both">Header and footer</option>
+              </select>
+              <p className="text-xs text-slate-400 mt-1.5">Only published pages appear in storefront navigation.</p>
+            </div>
+            {form.navigationPlacement !== 'none' && <><div><label className="block text-sm font-medium text-slate-700 mb-1.5">Navigation label</label><input value={form.navigationLabel} onChange={(e) => set({ navigationLabel: e.target.value })} placeholder={form.title} className={inputCls} /></div><div><label className="block text-sm font-medium text-slate-700 mb-1.5">Navigation order</label><input type="number" min={0} value={form.navigationOrder} onChange={(e) => set({ navigationOrder: Number(e.target.value) })} className={inputCls} /></div></>}
+            {form.status === 'published' && <a href={`/pages/${page.slug}`} target="_blank" rel="noreferrer" className="inline-flex text-sm font-medium text-[#558476] hover:underline">View storefront page ↗</a>}
           </div>
 
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">

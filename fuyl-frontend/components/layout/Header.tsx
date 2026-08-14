@@ -99,9 +99,10 @@ interface HeaderProps {
   // it always mirrors whatever currently sits at the top of /collections/all
   // instead of two hand-picked links going stale as the catalog changes.
   shopItems?: NavItem[];
+  contentPages?: NavItem[];
 }
 
-export function Header({ shopItems }: HeaderProps = {}) {
+export function Header({ shopItems, contentPages = [] }: HeaderProps = {}) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -117,11 +118,12 @@ export function Header({ shopItems }: HeaderProps = {}) {
       ? pathname === "/"
       : pathname === item.href || pathname.startsWith(item.href + "/"));
 
-  const navItems = shopItems?.length
+  const baseNavItems = shopItems?.length
     ? NAV_ITEMS.map((item) =>
         item.label === "Shop" ? { ...item, children: shopItems } : item,
       )
     : NAV_ITEMS;
+  const navItems = [...baseNavItems, ...contentPages.filter((page) => !baseNavItems.some((existing) => existing.href === page.href))];
 
   const handleMouseEnter = (label: string) => {
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current);

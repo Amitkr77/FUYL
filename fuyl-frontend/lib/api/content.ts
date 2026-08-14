@@ -35,6 +35,19 @@ export async function getPage(slug: string): Promise<CMSPage> {
   return mapPage(raw)
 }
 
+export interface NavigationPage {
+  label: string
+  href: string
+  placement: 'header' | 'footer' | 'both'
+}
+
+export async function getNavigationPages(): Promise<NavigationPage[]> {
+  const raw = await apiFetch<Array<BackendCMSPage & { navigationPlacement: 'header' | 'footer' | 'both'; navigationLabel?: string }>>('/pages/navigation', {
+    tags: ['page-navigation'], revalidate: 60,
+  })
+  return raw.map((page) => ({ label: page.navigationLabel?.trim() || page.title, href: `/pages/${page.slug}`, placement: page.navigationPlacement }))
+}
+
 // ─── Backend raw shape (fuyl-backend's content/models/post.model.ts) ───────
 // `content` is HTML — rendered with dangerouslySetInnerHTML on the blog
 // detail page, not plain text. `tags` falls back to wrapping `category`

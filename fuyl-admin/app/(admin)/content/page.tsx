@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Plus, Edit2, Trash2, AlertCircle, Star, Image } from 'lucide-react'
+import { Plus, Edit2, Trash2, AlertCircle, Star, Image, ExternalLink } from 'lucide-react'
 import { ReorderButtons } from '@/components/content/ReorderButtons'
 import Badge from '@/components/ui/Badge'
 import { getErrorMessage } from '@/lib/api'
@@ -119,6 +119,8 @@ function EmptyRow({ colSpan, label }: { colSpan: number; label: string }) {
 }
 
 function PagesTable({ items }: { items: CMSPageSummary[] }) {
+  const storefrontUrl = (process.env.STOREFRONT_URL ?? process.env.NEXT_PUBLIC_STOREFRONT_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
       <div className="overflow-x-auto">
@@ -127,17 +129,35 @@ function PagesTable({ items }: { items: CMSPageSummary[] }) {
             <tr className="border-b border-slate-100">
               <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Title</th>
               <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3 hidden md:table-cell">Slug</th>
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3 hidden md:table-cell">Last Updated</th>
+              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3 hidden md:table-cell">Navigation</th>
+              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3 hidden lg:table-cell">Last Updated</th>
               <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Status</th>
               <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {items.length === 0 ? <EmptyRow colSpan={5} label="No pages yet." /> : items.map((page) => (
+            {items.length === 0 ? <EmptyRow colSpan={6} label="No pages yet." /> : items.map((page) => (
               <tr key={page.id} className="hover:bg-slate-50/50 transition-colors">
                 <td className="px-5 py-4"><p className="text-sm font-medium text-slate-900">{page.title}</p></td>
-                <td className="px-5 py-4 hidden md:table-cell"><span className="text-xs font-mono text-slate-500">/{page.slug}</span></td>
-                <td className="px-5 py-4 text-sm text-slate-500 hidden md:table-cell">{formatDate(page.updatedAt)}</td>
+                <td className="px-5 py-4 hidden md:table-cell">
+                  {page.status === 'published' ? (
+                    <a
+                      href={`${storefrontUrl}/pages/${page.slug}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-mono text-[#558476] hover:underline"
+                      title="Open this page on the storefront"
+                    >
+                      /pages/{page.slug}<ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : <span className="text-xs font-mono text-slate-500">/pages/{page.slug}</span>}
+                </td>
+                <td className="px-5 py-4 hidden md:table-cell">
+                  <span className="text-xs capitalize text-slate-600">
+                    {page.navigationPlacement === 'none' ? 'Direct URL only' : page.navigationPlacement}
+                  </span>
+                </td>
+                <td className="px-5 py-4 text-sm text-slate-500 hidden lg:table-cell">{formatDate(page.updatedAt)}</td>
                 <td className="px-5 py-4">
                   <Badge variant={page.status === 'published' ? 'success' : 'default'}>
                     {page.status === 'published' ? 'Published' : 'Draft'}

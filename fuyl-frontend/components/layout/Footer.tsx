@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Mail, Phone } from "lucide-react";
 import { FOOTER_LINKS, SITE } from "@/lib/constants";
+import type { NavItem } from "@/lib/constants/nav";
 
 function InstagramIcon() {
   return (
@@ -189,7 +190,7 @@ function RupayIcon() {
   );
 }
 
-export function Footer() {
+export function Footer({ contentPages = [] }: { contentPages?: NavItem[] }) {
   const socialLinks = [
     { href: SITE.instagram, icon: InstagramIcon, label: "Instagram" },
     { href: SITE.youtube, icon: YoutubeIcon, label: "YouTube" },
@@ -304,7 +305,7 @@ export function Footer() {
           <div>
             <p className="text-label mb-4 text-brand-forest">Support</p>
             <ul className="space-y-3">
-              {FOOTER_LINKS.support.map((link) => (
+              {[...FOOTER_LINKS.support, ...contentPages.filter((page) => !FOOTER_LINKS.support.some((link) => link.href === page.href))].map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}

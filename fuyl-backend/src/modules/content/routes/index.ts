@@ -15,6 +15,7 @@ router.get('/posts/:slug', contentController.getBySlug);
 // Public — CMS pages, ingredients, testimonials, FAQs (matches
 // fuyl-frontend/lib/api/content.ts's getPage/getIngredients/getTestimonials/getFAQs,
 // which were also defined against this contract before a backend existed for it).
+router.get('/pages/navigation', contentController.listNavigationPages);
 router.get('/pages/:slug', contentController.getPageBySlug);
 router.get('/ingredients', contentController.listIngredients);
 router.get('/testimonials', contentController.listTestimonials);

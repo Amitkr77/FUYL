@@ -2,6 +2,7 @@ import { AlertCircle, CreditCard, CheckCircle2, XCircle, RefreshCcw, IndianRupee
 import { PaymentsTable } from '@/components/payments/PaymentsTable'
 import { listPayments, getPaymentStats } from '@/lib/payments'
 import { getErrorMessage } from '@/lib/api'
+import { CsvExportButton } from '@/components/ui/CsvExportButton'
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
@@ -58,12 +59,12 @@ export default async function PaymentsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <div className="flex items-center justify-between gap-3"><div>
         <h2 className="text-xl font-bold text-slate-900">Payments</h2>
         <p className="text-sm text-slate-500 mt-0.5">
           Monitor transactions, track payment status, and process refunds
         </p>
-      </div>
+      </div><CsvExportButton filename="payments" columns={[{key:'paymentNumber',label:'Payment number'},{key:'orderId',label:'Order ID'},{key:'amount',label:'Amount'},{key:'method',label:'Method'},{key:'gateway',label:'Gateway'},{key:'status',label:'Status'},{key:'attemptedAt',label:'Attempted at'},{key:'capturedAt',label:'Captured at'},{key:'refundedAmount',label:'Refunded amount'}]} rows={payments} /></div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

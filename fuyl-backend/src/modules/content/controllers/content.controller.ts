@@ -94,6 +94,11 @@ export class ContentController {
     catch (err) { next(err); }
   };
 
+  listNavigationPages = async (_req: AuthedRequest, res: Response, next: NextFunction) => {
+    try { return success(res, await contentService.listNavigationPages()); }
+    catch (err) { next(err); }
+  };
+
   // ─── CMS Pages — Admin ───────────────────────────────────────
   listPagesAdmin = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),

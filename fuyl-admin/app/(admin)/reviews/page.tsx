@@ -2,6 +2,7 @@ import { AlertCircle } from 'lucide-react'
 import { ReviewsTable } from '@/components/reviews/ReviewsTable'
 import { listAdminReviews } from '@/lib/reviews'
 import { getErrorMessage } from '@/lib/api'
+import { CsvExportButton } from '@/components/ui/CsvExportButton'
 
 export default async function ReviewsPage() {
   let reviews: Awaited<ReturnType<typeof listAdminReviews>> = []
@@ -16,12 +17,12 @@ export default async function ReviewsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="flex items-center justify-between gap-3"><div>
         <h2 className="text-xl font-bold text-slate-900">Reviews</h2>
         <p className="text-sm text-slate-500 mt-0.5">
           {reviews.length} total{pendingCount > 0 && <span className="text-amber-600"> · {pendingCount} awaiting moderation</span>}
         </p>
-      </div>
+      </div><CsvExportButton filename="reviews" columns={[{key:'productName',label:'Product'},{key:'customerName',label:'Customer'},{key:'rating',label:'Rating'},{key:'title',label:'Title'},{key:'body',label:'Review'},{key:'status',label:'Status'},{key:'createdAt',label:'Created at'}]} rows={reviews} /></div>
 
       {error && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">

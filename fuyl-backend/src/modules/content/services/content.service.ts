@@ -170,6 +170,10 @@ class ContentService {
     return page;
   }
 
+  async listNavigationPages() {
+    return cmsPageRepo.listNavigation();
+  }
+
   async listPagesAdmin(page = 1, limit = 20) {
     return cmsPageRepo.paginate({}, page, limit);
   }

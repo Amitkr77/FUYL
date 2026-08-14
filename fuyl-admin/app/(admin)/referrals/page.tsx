@@ -3,6 +3,7 @@ import { getReferralStats, listReferrals } from '@/lib/referrals'
 import { ReferralsTable } from '@/components/referrals/ReferralsTable'
 import { formatCurrency } from '@/lib/utils'
 import { getErrorMessage } from '@/lib/api'
+import { CsvExportButton } from '@/components/ui/CsvExportButton'
 
 export default async function ReferralsPage() {
   let stats: Awaited<ReturnType<typeof getReferralStats>> | null = null
@@ -16,10 +17,10 @@ export default async function ReferralsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="flex items-center justify-between gap-3"><div>
         <h2 className="text-xl font-bold text-slate-900">Referrals</h2>
         <p className="text-sm text-slate-500 mt-0.5">Track referral performance and rewards</p>
-      </div>
+      </div><CsvExportButton filename="referrals" columns={[{key:'id',label:'Referral ID'},{key:'referrerName',label:'Referrer'},{key:'refereeName',label:'Referred customer'},{key:'code',label:'Code'},{key:'status',label:'Status'},{key:'rewardAmount',label:'Reward'},{key:'createdAt',label:'Created at'}]} rows={referrals} /></div>
 
       {error && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">

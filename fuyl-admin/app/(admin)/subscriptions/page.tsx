@@ -3,6 +3,7 @@ import { getSubscriptionStats, listSubscriptions } from '@/lib/subscriptions'
 import { SubscriptionsTable } from '@/components/subscriptions/SubscriptionsTable'
 import { formatCurrency } from '@/lib/utils'
 import { getErrorMessage } from '@/lib/api'
+import { CsvExportButton } from '@/components/ui/CsvExportButton'
 
 export default async function SubscriptionsPage() {
   let stats: Awaited<ReturnType<typeof getSubscriptionStats>> | null = null
@@ -16,10 +17,10 @@ export default async function SubscriptionsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="flex items-center justify-between gap-3"><div>
         <h2 className="text-xl font-bold text-slate-900">Subscriptions</h2>
         <p className="text-sm text-slate-500 mt-0.5">Recurring orders and billing health</p>
-      </div>
+      </div><CsvExportButton filename="subscriptions" columns={[{key:'id',label:'Subscription ID'},{key:'customerName',label:'Customer'},{key:'productName',label:'Product'},{key:'interval',label:'Interval'},{key:'status',label:'Status'},{key:'nextBillingDate',label:'Next billing'},{key:'amount',label:'Amount'}]} rows={subscriptions} /></div>
 
       {error && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">

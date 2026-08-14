@@ -467,6 +467,22 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
               </div>
             </div>
 
+            <div className="rounded-lg border border-slate-200 px-4 py-3">
+              <Collapsible
+                title="More pricing options"
+                description="Stock, display prices, unit pricing, cost, tax, profit, and margin"
+                defaultOpen={Boolean(
+                  product && (
+                    form.stock > 0
+                    || form.additionalPrices.length > 0
+                    || form.unitPriceValue != null
+                    || form.unitPriceUnit
+                    || form.costPerItem != null
+                    || !form.isTaxable
+                  )
+                )}
+              >
+                <div className="space-y-4 pt-4">
             {variants.length === 0 && (
               <div>
                 <label className={labelCls}>Stock</label>
@@ -536,6 +552,9 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                 </div>
               </div>
             )}
+                </div>
+              </Collapsible>
+            </div>
           </div>
 
           {/* Variants — optional */}

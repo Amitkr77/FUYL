@@ -2,6 +2,7 @@ import { AlertCircle, Boxes, AlertTriangle, PackageX, PackageCheck } from 'lucid
 import { InventoryTable } from '@/components/inventory/InventoryTable'
 import { listInventory } from '@/lib/inventory'
 import { getErrorMessage } from '@/lib/api'
+import { CsvExportButton } from '@/components/ui/CsvExportButton'
 
 export default async function InventoryPage() {
   let stock: Awaited<ReturnType<typeof listInventory>> = []
@@ -28,12 +29,12 @@ export default async function InventoryPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <div className="flex items-center justify-between gap-3"><div>
         <h2 className="text-xl font-bold text-slate-900">Inventory</h2>
         <p className="text-sm text-slate-500 mt-0.5">
           Track on-hand stock, reserved units, and reorder levels across all products and variants
         </p>
-      </div>
+      </div><CsvExportButton filename="inventory" columns={[{key:'productName',label:'Product'},{key:'variantName',label:'Variant'},{key:'variantSku',label:'SKU'},{key:'onHand',label:'On hand'},{key:'reserved',label:'Reserved'},{key:'available',label:'Available'},{key:'reorderThreshold',label:'Reorder at'}]} rows={stock} /></div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

@@ -34,4 +34,11 @@ export class CMSPageRepository {
     ]);
     return { items, total, page, limit };
   }
+
+  async listNavigation() {
+    return CMSPageModel.find({
+      status: 'published',
+      navigationPlacement: { $in: ['header', 'footer', 'both'] },
+    }).select('title slug navigationPlacement navigationLabel navigationOrder').sort({ navigationOrder: 1, title: 1 }).lean();
+  }
 }

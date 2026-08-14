@@ -2,6 +2,7 @@ import { AlertCircle, Clock, Truck, CheckCircle2, XCircle } from 'lucide-react'
 import { getShippingStats, listShipments } from '@/lib/shipping'
 import { ShipmentsTable } from '@/components/shipping/ShipmentsTable'
 import { getErrorMessage } from '@/lib/api'
+import { CsvExportButton } from '@/components/ui/CsvExportButton'
 
 export default async function ShippingPage() {
   let stats: Awaited<ReturnType<typeof getShippingStats>> | null = null
@@ -15,10 +16,10 @@ export default async function ShippingPage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="flex items-center justify-between gap-3"><div>
         <h2 className="text-xl font-bold text-slate-900">Shipping</h2>
         <p className="text-sm text-slate-500 mt-0.5">Track shipments from booking to delivery</p>
-      </div>
+      </div><CsvExportButton filename="shipments" columns={[{key:'orderNumber',label:'Order'},{key:'customerName',label:'Customer'},{key:'carrier',label:'Carrier'},{key:'trackingNumber',label:'Tracking number'},{key:'status',label:'Status'},{key:'shippedAt',label:'Shipped at'},{key:'deliveredAt',label:'Delivered at'}]} rows={shipments} /></div>
 
       {error && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">

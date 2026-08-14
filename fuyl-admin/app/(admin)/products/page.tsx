@@ -3,6 +3,7 @@ import { Plus, AlertCircle, Package, TrendingUp, AlertTriangle, PackageX } from 
 import { ProductsTable } from '@/components/products/ProductsTable'
 import { listAdminProducts } from '@/lib/products'
 import { getErrorMessage } from '@/lib/api'
+import { CsvExportButton } from '@/components/ui/CsvExportButton'
 
 export default async function ProductsPage() {
   let products: Awaited<ReturnType<typeof listAdminProducts>> = []
@@ -32,13 +33,13 @@ export default async function ProductsPage() {
           <h2 className="text-xl font-bold text-slate-900">Products</h2>
           <p className="text-sm text-slate-500 mt-0.5">Manage your product catalog, pricing, and variants</p>
         </div>
-        <Link
+        <div className="flex items-center gap-2"><CsvExportButton filename="products" columns={[{key:'name',label:'Product'},{key:'status',label:'Status'},{key:'price',label:'Price'},{key:'stock',label:'Stock'},{key:'sku',label:'SKU'}]} rows={products} /><Link
           href="/products/new"
           className="flex items-center gap-2 px-4 py-2 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           Add Product
-        </Link>
+        </Link></div>
       </div>
 
       {/* Quick stats */}

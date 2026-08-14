@@ -12,7 +12,7 @@ export default function NewContentPagePage() {
   const [error, setError] = useState('')
   const [showPreview, setShowPreview] = useState(false)
   const [form, setForm] = useState({
-    title: '', body: '', seoTitle: '', seoDescription: '', status: 'draft' as 'draft' | 'published',
+    title: '', body: '', seoTitle: '', seoDescription: '', status: 'draft' as 'draft' | 'published', navigationPlacement: 'none' as 'none' | 'header' | 'footer' | 'both', navigationLabel: '', navigationOrder: 0,
   })
 
   const slug = form.title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').slice(0, 60)
@@ -110,6 +110,8 @@ export default function NewContentPagePage() {
                 <option value="published">Published</option>
               </select>
             </div>
+            <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Show page in</label><select value={form.navigationPlacement} onChange={(e) => set({ navigationPlacement: e.target.value as typeof form.navigationPlacement })} className={inputCls}><option value="none">Nowhere — direct URL only</option><option value="header">Website header</option><option value="footer">Website footer</option><option value="both">Header and footer</option></select><p className="text-xs text-slate-400 mt-1.5">Publishing makes the page accessible. Choose a navigation location so customers can discover it.</p></div>
+            {form.navigationPlacement !== 'none' && <><div><label className="block text-sm font-medium text-slate-700 mb-1.5">Navigation label</label><input value={form.navigationLabel} onChange={(e) => set({ navigationLabel: e.target.value })} placeholder={form.title || 'Menu label'} className={inputCls} /></div><div><label className="block text-sm font-medium text-slate-700 mb-1.5">Navigation order</label><input type="number" min={0} value={form.navigationOrder} onChange={(e) => set({ navigationOrder: Number(e.target.value) })} className={inputCls} /></div></>}
           </div>
 
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">

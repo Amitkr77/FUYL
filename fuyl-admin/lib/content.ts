@@ -15,6 +15,9 @@ interface BackendCMSPage {
   seoTitle?: string
   seoDescription?: string
   status: ContentStatus
+  navigationPlacement?: 'none' | 'header' | 'footer' | 'both'
+  navigationLabel?: string
+  navigationOrder?: number
   updatedAt: string
 }
 
@@ -23,6 +26,9 @@ export interface CMSPageSummary {
   slug: string
   title: string
   status: ContentStatus
+  navigationPlacement: 'none' | 'header' | 'footer' | 'both'
+  navigationLabel: string
+  navigationOrder: number
   updatedAt: string
 }
 
@@ -38,10 +44,13 @@ export interface CMSPageInput {
   seoTitle: string
   seoDescription: string
   status: ContentStatus
+  navigationPlacement: 'none' | 'header' | 'footer' | 'both'
+  navigationLabel: string
+  navigationOrder: number
 }
 
 function mapPage(p: BackendCMSPage): CMSPageSummary {
-  return { id: p._id, slug: p.slug, title: p.title, status: p.status, updatedAt: p.updatedAt }
+  return { id: p._id, slug: p.slug, title: p.title, status: p.status, updatedAt: p.updatedAt, navigationPlacement: p.navigationPlacement ?? 'none', navigationLabel: p.navigationLabel ?? '', navigationOrder: p.navigationOrder ?? 0 }
 }
 
 export async function listAdminPages(): Promise<CMSPageSummary[]> {
@@ -52,7 +61,7 @@ export async function listAdminPages(): Promise<CMSPageSummary[]> {
 export async function getAdminPage(id: string): Promise<CMSPageDetail | null> {
   try {
     const p = await adminApiFetch<BackendCMSPage>(`/admin/content/pages/${id}`)
-    return { ...mapPage(p), body: p.body, seoTitle: p.seoTitle ?? '', seoDescription: p.seoDescription ?? '' }
+    return { ...mapPage(p), body: p.body, seoTitle: p.seoTitle ?? '', seoDescription: p.seoDescription ?? '', navigationPlacement: p.navigationPlacement ?? 'none', navigationLabel: p.navigationLabel ?? '', navigationOrder: p.navigationOrder ?? 0 }
   } catch {
     return null
   }

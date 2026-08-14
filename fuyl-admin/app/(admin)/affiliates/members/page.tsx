@@ -3,6 +3,7 @@ import { AffiliatesTable } from "@/components/affiliates/AffiliatesTable";
 import { AddAffiliateDialog } from "@/components/affiliates/AddAffiliateDialog";
 import { getAffiliateStats, listAffiliates } from "@/lib/affiliate";
 import { getErrorMessage } from "@/lib/api";
+import { CsvExportButton } from "@/components/ui/CsvExportButton";
 
 export default async function AffiliateMembersPage({ searchParams }: { searchParams: Promise<{ search?: string; status?: string; page?: string }> }) {
   const query = await searchParams;
@@ -26,7 +27,10 @@ export default async function AffiliateMembersPage({ searchParams }: { searchPar
             {stats?.affiliates.total ?? 0} total · {stats?.affiliates.approved ?? 0} approved · {stats?.affiliates.pending ?? 0} pending review
           </p>
         </div>
-        <AddAffiliateDialog />
+        <div className="flex items-center gap-2">
+          <CsvExportButton filename="affiliates" columns={[{key:'name',label:'Name'},{key:'email',label:'Email'},{key:'phone',label:'Phone'},{key:'status',label:'Status'},{key:'programName',label:'Program'},{key:'createdAt',label:'Joined'}]} rows={affiliatesData.items} />
+          <AddAffiliateDialog />
+        </div>
       </div>
       {error && (
         <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-600">

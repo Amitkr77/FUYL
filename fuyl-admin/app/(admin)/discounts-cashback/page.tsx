@@ -6,6 +6,7 @@ import { EarningsTable } from '@/components/cashback/EarningsTable'
 import { listDiscounts } from '@/lib/discounts'
 import { listCashbackPolicies, listCashbackEarnings } from '@/lib/cashback'
 import { getErrorMessage } from '@/lib/api'
+import { CsvExportButton } from '@/components/ui/CsvExportButton'
 
 export default async function DiscountCashbackPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab = 'discounts' } = await searchParams
@@ -20,7 +21,7 @@ export default async function DiscountCashbackPage({ searchParams }: { searchPar
   const tabs = [{ id: 'discounts', label: 'Discounts' }, { id: 'cashback', label: 'Cashback' }, { id: 'activity', label: 'Activity' }]
   return <div className="space-y-5">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h1 className="text-2xl font-bold text-slate-900">Discount &amp; Cashback</h1><p className="mt-1 text-sm text-slate-500">Manage customer savings and wallet rewards in one place.</p></div>
-      {tab !== 'activity' && <Link href={tab === 'cashback' ? '/discounts-cashback/cashback/new' : '/discounts-cashback/discounts/new'} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#12291F] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#234c3a]"><Plus className="h-4 w-4" />{tab === 'cashback' ? 'Create cashback' : 'Create discount'}</Link>}
+      <div className="flex items-center gap-2"><CsvExportButton filename={tab === 'activity' ? 'cashback-activity' : tab === 'cashback' ? 'cashback-policies' : 'discounts'} columns={tab === 'activity' ? [{key:'customerName',label:'Customer'},{key:'amount',label:'Amount'},{key:'status',label:'Status'},{key:'createdAt',label:'Created at'}] : [{key:'name',label:'Name'},{key:'type',label:'Type'},{key:'status',label:'Status'},{key:'startsAt',label:'Starts at'},{key:'endsAt',label:'Ends at'}]} rows={tab === 'activity' ? earnings.items : tab === 'cashback' ? policies : discounts} />{tab !== 'activity' && <Link href={tab === 'cashback' ? '/discounts-cashback/cashback/new' : '/discounts-cashback/discounts/new'} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#12291F] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#234c3a]"><Plus className="h-4 w-4" />{tab === 'cashback' ? 'Create cashback' : 'Create discount'}</Link>}</div>
     </div>
     <nav className="flex gap-1 border-b border-slate-200">{tabs.map((item) => <Link key={item.id} href={`/discounts-cashback?tab=${item.id}`} className={`border-b-2 px-4 py-2.5 text-sm font-medium ${tab === item.id ? 'border-[#558476] text-[#315f52]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{item.label}</Link>)}</nav>
     <section className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-3">

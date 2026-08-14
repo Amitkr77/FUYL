@@ -9,6 +9,9 @@ export const createPostSchema = z.object({
   tags: z.array(z.string().min(1).max(50)).optional(),
   author: z.string().min(1).max(100),
   status: z.enum(['draft', 'published']).default('draft'),
+  navigationPlacement: z.enum(['none', 'header', 'footer', 'both']).default('none'),
+  navigationLabel: z.string().max(80).optional(),
+  navigationOrder: z.number().int().min(0).default(0),
 });
 
 export const updatePostSchema = createPostSchema.partial();
