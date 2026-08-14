@@ -15,7 +15,6 @@ import {
 import { cn } from '@/lib/utils/cn'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useAffiliateStore } from '@/lib/store/affiliateStore'
-import { StatusBadge } from '@/components/affiliate/shared/StatusBadge'
 
 const NAV_ITEMS = [
   { label: 'Dashboard',       href: '/affiliate/dashboard',            icon: LayoutDashboard, exact: true  },
@@ -32,11 +31,7 @@ function isActive(pathname: string, href: string, exact: boolean) {
 export function AffiliateSidebar() {
   const pathname  = usePathname()
   const router    = useRouter()
-  const { user }  = useAuthStore()
-  const affiliate = useAffiliateStore((s) => s.affiliate)
-  const { logout } = useAuthStore()
-
-  const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase()
+  const { user, logout } = useAuthStore()
 
   const handleLogout = () => {
     logout()
@@ -61,29 +56,6 @@ export function AffiliateSidebar() {
           Affiliate Portal
         </p>
       </div>
-
-      {/* User chip */}
-      {user && (
-        <div className="px-4 py-4 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="shrink-0 w-9 h-9 rounded-full bg-brand-teal text-white flex items-center justify-center text-body-xs font-bold">
-              {initials || '?'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-body-xs font-semibold text-white truncate">
-                {user.firstName} {user.lastName}
-              </p>
-              {affiliate && (
-                <StatusBadge
-                  status={affiliate.status}
-                  variant="affiliate"
-                  className="mt-0.5 text-[9px]"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
@@ -110,9 +82,7 @@ export function AffiliateSidebar() {
       {/* Bottom — support + logout */}
       <div className="px-3 py-4 border-t border-white/10 flex flex-col gap-1">
         <a
-          href="https://redfuel.in"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="mailto:admin@fuyl.in"
           className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-body-sm font-semibold text-brand-sage/70 hover:bg-white/8 hover:text-white transition-colors"
         >
           <HelpCircle size={16} className="shrink-0" />

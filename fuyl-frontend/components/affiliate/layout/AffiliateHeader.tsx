@@ -142,9 +142,7 @@ export function AffiliateHeader() {
             {/* Bottom */}
             <div className="px-3 py-4 border-t border-white/10 flex flex-col gap-1">
               <a
-                href="https://redfuel.in"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="mailto:admin@fuyl.in"
                 className="flex items-center gap-3 px-4 py-3 rounded-xl text-body-sm font-semibold text-brand-sage/70 hover:bg-white/8 hover:text-white transition-colors"
               >
                 <HelpCircle size={17} className="shrink-0" />
