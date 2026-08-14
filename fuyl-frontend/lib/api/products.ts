@@ -283,10 +283,23 @@ export async function getProducts(params?: {
     revalidate: 300,
   })
 
-  // List items map without variants/tags (would be an N+1 fetch per item
-  // for a page of products) — fine for now since nothing in the app calls
-  // this function yet; revisit if a listing/search page starts consuming it.
-  return items.map((raw) => mapProduct(raw, [], []))
+  // Fetch variants for each product so ProductCard has real variant IDs.
+  // Without this, Add to Cart sends variantId:undefined, the backend looks for
+  // product-level stock (variantId:{$exists:false}), finds nothing when stock
+  // is tracked per-variant, and throws "0 units available".
+  // We use mapVariant (isActive-based availability) rather than mapVariantsWithStock
+  // to avoid an extra stock-check per variant — the backend re-validates at cart-add time.
+  return Promise.all(items.map(async (raw) => {
+    try {
+      const variants = await apiFetch<BackendVariant[]>(`/catalog/products/${raw._id}/variants`, {
+        tags:       [`product-${raw.seo.slug}-variants`],
+        revalidate: 300,
+      })
+      return mapProduct(raw, variants.map((v) => mapVariant(v)), [])
+    } catch {
+      return mapProduct(raw, [], [])
+    }
+  }))
 }
 
 // Full-text product search (backend GET /catalog/products/search?q=). Like
