@@ -1,6 +1,6 @@
 import { apiFetch } from './client'
 
-export type PaymentMethod = 'cashfree' | 'cod'
+export type PaymentMethod = 'cashfree' | 'cod' | 'wallet'
 
 interface BackendCreatePaymentResult {
   payment: { _id: string }
@@ -17,6 +17,7 @@ interface BackendCreatePaymentResult {
 
 export type CreatePaymentResult =
   | { method: 'cod' }
+  | { method: 'wallet' }
   | {
       method: 'cashfree'
       cfOrderId: string
@@ -27,8 +28,10 @@ export type CreatePaymentResult =
     }
 
 // Step 2 of checkout (after placeOrder): actually attempts payment.
-// COD -> records a pending payment, done. Cashfree -> creates a gateway order
-// and returns the payment_session_id the client SDK needs to render checkout.
+// COD -> records a pending payment, done. Wallet -> order fully covered by
+// wallet debit (done at placeOrder time), no gateway needed. Cashfree ->
+// creates a gateway order and returns the payment_session_id the client SDK
+// needs to render checkout.
 export async function createPayment(token: string, orderId: string, method: PaymentMethod): Promise<CreatePaymentResult> {
   const raw = await apiFetch<BackendCreatePaymentResult>('/payments', {
     method: 'POST',
@@ -45,6 +48,7 @@ export async function createPayment(token: string, orderId: string, method: Paym
       mode:             raw.cashfree.mode,
     }
   }
+  if (raw.wallet) return { method: 'wallet' }
   return { method: 'cod' }
 }
 

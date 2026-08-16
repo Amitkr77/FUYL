@@ -18,9 +18,10 @@ export interface CheckoutAddressInput {
 export type CheckoutPaymentMethod = 'cashfree' | 'cod'
 
 export interface CheckoutInput {
-  shippingAddress: CheckoutAddressInput
-  paymentMethod:   CheckoutPaymentMethod
-  couponCode?:     string
+  shippingAddress:        CheckoutAddressInput
+  paymentMethod:          CheckoutPaymentMethod | 'wallet'
+  couponCode?:            string
+  walletRedemptionAmount?: number
 }
 
 interface BackendPreview {
@@ -38,27 +39,34 @@ interface BackendPreview {
   // Real shipping charge (Shiprocket rate) — lives at the top level of the
   // preview, not inside `pricing` (which the pricing engine leaves at 0).
   shippingTotal: number
+  // Wallet fields — only present when walletRedemptionAmount > 0 in the request.
+  walletRedemption?: number
+  remainingToPay?: number
   pricing: { subtotal: number; discountTotal: number; taxTotal: number; shippingTotal: number }
   cashback?: { eligible: boolean; totalCashback: number; policies: Array<{ name: string; cashbackAmount: number; creditTiming: string }> }
 }
 
 export interface CheckoutPreview {
-  subtotal:      number
-  discountTotal: number
-  taxTotal:      number
-  shippingTotal: number
-  grandTotal:    number
+  subtotal:         number
+  discountTotal:    number
+  taxTotal:         number
+  shippingTotal:    number
+  grandTotal:       number
+  walletRedemption: number
+  remainingToPay:   number
   cashback: { eligible: boolean; totalCashback: number; policies: Array<{ name: string; cashbackAmount: number; creditTiming: string }> }
 }
 
 function mapPreview(raw: BackendPreview): CheckoutPreview {
   return {
-    subtotal:      raw.pricing.subtotal,
-    discountTotal: raw.pricing.discountTotal + raw.couponDiscount,
-    taxTotal:      raw.pricing.taxTotal,
-    shippingTotal: raw.shippingTotal ?? raw.pricing.shippingTotal,
-    grandTotal:    raw.grandTotal,
-    cashback:      raw.cashback ?? { eligible: false, totalCashback: 0, policies: [] },
+    subtotal:         raw.pricing.subtotal,
+    discountTotal:    raw.pricing.discountTotal + raw.couponDiscount,
+    taxTotal:         raw.pricing.taxTotal,
+    shippingTotal:    raw.shippingTotal ?? raw.pricing.shippingTotal,
+    grandTotal:       raw.grandTotal,
+    walletRedemption: raw.walletRedemption ?? 0,
+    remainingToPay:   raw.remainingToPay ?? raw.grandTotal,
+    cashback:         raw.cashback ?? { eligible: false, totalCashback: 0, policies: [] },
   }
 }
 

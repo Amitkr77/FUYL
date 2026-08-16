@@ -15,6 +15,7 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { useCartStore } from '@/lib/store/cartStore'
 import { useCart } from '@/lib/hooks/useCart'
 import { previewCheckout, placeOrder, type CheckoutAddressInput, type CheckoutPaymentMethod, type CheckoutPreview } from '@/lib/api/checkout'
+import { getWalletBalance } from '@/lib/api/wallet'
 import { getAddresses, type Address } from '@/lib/api/customer'
 import { checkEmailExists, checkoutIdentify } from '@/lib/api/account'
 import { createPayment, verifyPayment } from '@/lib/api/payment'
@@ -118,6 +119,8 @@ export default function CheckoutPage() {
   const [previewRetry, setPreviewRetry] = useState(0)
   const [error, setError] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
+  const [walletBalance, setWalletBalance] = useState<number | null>(null)
+  const [useWallet, setUseWallet] = useState(false)
 
   // Guest checkout — resolves to a real account inline, without ever
   // sending the shopper to a separate login/register page (see
@@ -221,6 +224,14 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
+  // Fetch wallet balance once after auth resolves — reset when user logs out.
+  useEffect(() => {
+    if (!token) { startTransition(() => { setWalletBalance(null); setUseWallet(false) }); return }
+    getWalletBalance(token)
+      .then((w) => { if (!w.isFrozen && w.balance > 0) startTransition(() => setWalletBalance(w.balance)) })
+      .catch(() => {})
+  }, [token])
+
   // Nothing to check out — send back to cart, unless we just successfully
   // ordered (which empties the cart and would otherwise bounce this screen away
   // right as we're navigating to the success page).
@@ -251,12 +262,14 @@ export default function CheckoutPage() {
     }
     let cancelled = false
     startTransition(() => { setPreview(null); setPreviewLoading(true); setPreviewError('') })
+    const walletAmount = useWallet ? (walletBalance ?? 0) : 0
     const t = setTimeout(async () => {
       try {
         const result = await previewCheckout(token, {
           shippingAddress: address,
           paymentMethod,
           couponCode: appliedCoupon?.code,
+          walletRedemptionAmount: walletAmount > 0 ? walletAmount : undefined,
         })
         if (!cancelled) setPreview(result)
       } catch (err) {
@@ -270,7 +283,7 @@ export default function CheckoutPage() {
     }, 500)
     return () => { cancelled = true; clearTimeout(t) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, address, paymentMethod, appliedCoupon?.code, previewRetry])
+  }, [token, address, paymentMethod, appliedCoupon?.code, previewRetry, useWallet, walletBalance])
 
   const set = (k: keyof CheckoutAddressInput) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setAddress((a) => ({ ...a, [k]: e.target.value }))
@@ -362,9 +375,11 @@ export default function CheckoutPage() {
   // retry — never creates a new order.
   const attemptPayment = async (order: { orderId: string; orderNumber: string }) => {
     try {
-      const payment = await createPayment(token!, order.orderId, paymentMethod)
+      const walletCoversAll = preview !== null && preview.remainingToPay === 0
+      const method = useWallet && walletCoversAll ? 'wallet' : paymentMethod
+      const payment = await createPayment(token!, order.orderId, method)
 
-      if (payment.method === 'cod') {
+      if (payment.method === 'cod' || payment.method === 'wallet') {
         await useCartStore.getState().syncCart()
         router.push(`/checkout/success?orderId=${order.orderId}`)
         return
@@ -407,7 +422,15 @@ export default function CheckoutPage() {
     setError('')
     setConfirming(true)
     try {
-      const order = await placeOrder(token!, { shippingAddress: address, paymentMethod, couponCode: appliedCoupon?.code })
+      const walletAmount = useWallet ? (walletBalance ?? 0) : 0
+      const walletCoversAll = preview.remainingToPay === 0
+      const method = useWallet && walletCoversAll ? 'wallet' : paymentMethod
+      const order = await placeOrder(token!, {
+        shippingAddress: address,
+        paymentMethod: method,
+        couponCode: appliedCoupon?.code,
+        walletRedemptionAmount: walletAmount > 0 ? walletAmount : undefined,
+      })
       orderPlacedRef.current = true
       setPlacedOrder(order)
       await attemptPayment(order)
@@ -431,7 +454,7 @@ export default function CheckoutPage() {
 
   const stepIndex = step === 'address' ? 0 : step === 'review' ? 1 : 2
   const displayDiscount = preview?.discountTotal ?? appliedCoupon?.discountAmount ?? 0
-  const displayTotal = preview?.grandTotal ?? Math.max(0, subtotal - displayDiscount)
+  const displayTotal = preview?.remainingToPay ?? preview?.grandTotal ?? Math.max(0, subtotal - displayDiscount)
   const showManualForm = !addressesLoading && (savedAddresses.length === 0 || selectedAddressId === 'new')
 
   return (
@@ -646,6 +669,38 @@ export default function CheckoutPage() {
                 <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
               </div>
 
+              {token && walletBalance !== null && walletBalance > 0 && (
+                <div className="space-y-3 mb-8">
+                  <h2 className="text-display-md font-display">Wallet</h2>
+                  <label className="flex items-center justify-between gap-4 p-4 rounded-xl border cursor-pointer transition-colors border-brand-border has-checked:border-brand-teal has-checked:bg-brand-sage/20">
+                    <div>
+                      <p className="text-body-sm font-semibold text-brand-forest">Use wallet balance</p>
+                      <p className="text-body-xs text-brand-muted">{formatPrice(walletBalance)} available</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={useWallet}
+                      onChange={(e) => setUseWallet(e.target.checked)}
+                    />
+                    <div
+                      className={`relative shrink-0 w-10 h-6 rounded-full transition-colors pointer-events-none ${useWallet ? 'bg-brand-teal' : 'bg-brand-border'}`}
+                      aria-hidden="true"
+                    >
+                      <div className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${useWallet ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+                    </div>
+                  </label>
+                  {useWallet && preview && (
+                    <p className="text-body-xs text-brand-muted px-1">
+                      {formatPrice(preview.walletRedemption)} will be deducted from your wallet.
+                      {preview.remainingToPay > 0
+                        ? ` Pay ${formatPrice(preview.remainingToPay)} via ${paymentMethod === 'cashfree' ? 'card / UPI' : 'cash on delivery'}.`
+                        : ' Your wallet covers this order fully — no additional payment needed.'}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <StickyActionBar>
                 <Button
                   variant="primary"
@@ -802,6 +857,7 @@ export default function CheckoutPage() {
             previewLoading={previewLoading}
             displayDiscount={displayDiscount}
             displayTotal={displayTotal}
+            walletRedemption={preview?.walletRedemption ?? 0}
             defaultExpanded={step === 'review'}
           />
         </div>

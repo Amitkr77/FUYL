@@ -162,6 +162,7 @@ export class OrderService {
       paymentMethod: dto.paymentMethod,
       subtotal,
       discountTotal,
+      discountedSubtotal: Math.max(0, subtotal - discountTotal),
       walletRedemption: dto.walletRedemption ?? 0,
       couponCode: dto.couponCode,
     });
