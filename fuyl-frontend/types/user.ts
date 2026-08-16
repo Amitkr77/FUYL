@@ -35,6 +35,9 @@ export type OrderStatus =
   | 'pending'
   | 'confirmed'
   | 'packed'
+  | 'dispatched'
+  | 'in_transit'
+  | 'out_for_delivery'
   | 'shipped'
   | 'delivered'
   | 'completed'
@@ -42,7 +45,7 @@ export type OrderStatus =
   | 'returned'
 
 // Mirrors the backend's PaymentMethod / PaymentStatus enums (src/shared/enums/index.ts).
-export type OrderPaymentMethod = 'razorpay' | 'upi' | 'cod' | 'wallet' | 'split'
+export type OrderPaymentMethod = 'razorpay' | 'upi' | 'cod' | 'wallet' | 'split' | 'cashfree'
 export type OrderPaymentStatus = 'pending' | 'success' | 'failed' | 'refunded' | 'partially_refunded'
 
 export interface OrderAddress {

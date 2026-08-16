@@ -297,11 +297,15 @@ export class OrderService {
     if (paymentStatus === PaymentStatus.SUCCESS) {
       const order = await orderRepo.findById(orderId);
       if (order && order.status === OrderStatus.PENDING) {
-        return orderRepo.appendTimeline(
+        const updated = await orderRepo.appendTimeline(
           orderId,
           { status: OrderStatus.CONFIRMED, note: 'Payment confirmed' },
           { paymentStatus, confirmedAt: new Date() }
         );
+        eventBus.publish(Events.ORDER_CONFIRMED, {
+          orderId, userId: order.customerId.toString(), orderNumber: order.orderNumber,
+        });
+        return updated;
       }
     }
     return orderRepo.update(orderId, { paymentStatus });
@@ -343,7 +347,9 @@ export class OrderService {
     // "order number" by slicing the raw Mongo _id whenever the real one
     // isn't in the event payload — neither publish call here ever included
     // it. Passing orderNumber/carrier through directly.
-    if (dto.status === OrderStatus.SHIPPED) {
+    if (dto.status === OrderStatus.CONFIRMED) {
+      eventBus.publish(Events.ORDER_CONFIRMED, { orderId, userId: order.customerId.toString(), orderNumber: order.orderNumber });
+    } else if (dto.status === OrderStatus.SHIPPED) {
       eventBus.publish(Events.ORDER_SHIPPED, {
         orderId, userId: order.customerId.toString(), trackingNumber: dto.trackingNumber,
         orderNumber: order.orderNumber, carrier: dto.carrier,
@@ -390,12 +396,14 @@ export class OrderService {
       }
     }
 
-    const updated = await orderRepo.update(orderId, { status: OrderStatus.RETURNED });
-    await orderRepo.appendTimeline(orderId, {
+    // Single atomic write: appendTimeline sets both the timeline entry and the
+    // status field in one findByIdAndUpdate — avoids a crash leaving the order
+    // in RETURNED status with no timeline entry (the previous double-write).
+    const updated = await orderRepo.appendTimeline(orderId, {
       status: OrderStatus.RETURNED,
       note: 'Shipment returned to origin (undelivered)',
     });
-    eventBus.publish(Events.ORDER_RETURNED, { orderId, userId: order.customerId.toString() });
+    eventBus.publish(Events.ORDER_RETURNED, { orderId, userId: order.customerId.toString(), orderNumber: order.orderNumber });
     return updated;
   }
 

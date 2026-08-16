@@ -341,25 +341,10 @@ class CheckoutService {
       );
     }
 
-    // 7. Create cashback earnings (best-effort — failure must not block the order)
-    cashbackService.createEarnings({
-      orderId:          order._id.toString(),
-      userId,
-      subtotal:         preview.pricing.subtotal,
-      walletRedemption: preview.walletRedemption,
-      couponCode:       preview.coupon?.couponCode,
-      discountedSubtotal: Math.max(
-        0,
-        preview.pricing.subtotal - preview.pricing.discountTotal - preview.couponDiscount
-      ),
-      items: itemsWithSeller.map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-      })),
-    }).catch((err) => {
-      logger.warn('[checkout] cashback earning creation failed (non-blocking)', { orderId: order._id.toString(), err });
-    });
+    // 7. Cashback earnings are created by the ORDER_PLACED event subscriber
+    //    (cashback/services/eventSubscribers.service.ts) — do NOT call
+    //    cashbackService.createEarnings() here as well, or every order gets
+    //    credited twice (once per call path).
 
     // 8. Mark cart as converted
     await cartService.markConverted(preview.cart._id.toString(), order._id.toString());

@@ -40,6 +40,7 @@ export const createOrderSchema = z.object({
 export const updateStatusSchema = z.object({
   status: z.enum([
     OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PACKED,
+    OrderStatus.DISPATCHED, OrderStatus.IN_TRANSIT, OrderStatus.OUT_FOR_DELIVERY,
     OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.COMPLETED, OrderStatus.CANCELLED,
   ]),
   note: z.string().max(500).optional(),

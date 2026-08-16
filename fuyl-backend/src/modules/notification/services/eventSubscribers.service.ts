@@ -48,6 +48,24 @@ export function registerNotificationEventSubscribers(): void {
     }
   );
 
+  // ORDER_CONFIRMED → order_confirmed email
+  eventBus.on<{ orderId: string; userId: string; orderNumber?: string }>(
+    Events.ORDER_CONFIRMED,
+    async (payload) => {
+      await notificationService.dispatch({
+        channel: 'email',
+        to: { userId: payload.userId },
+        template: 'order_confirmed',
+        data: {
+          orderNumber: payload.orderNumber ?? payload.orderId,
+          orderUrl: `${env.clientUrl}/account/orders/${payload.orderId}`,
+        },
+        userId: payload.userId,
+        category: 'transactional',
+      });
+    }
+  );
+
   // ORDER_SHIPPED → order_shipped email
   //
   // BUG FIXED (same class as ORDER_PLACED above, found in the same pass):
@@ -82,6 +100,83 @@ export function registerNotificationEventSubscribers(): void {
         template: 'order_delivered',
         data: {
           orderNumber: payload.orderNumber ?? payload.orderId,
+          orderUrl: `${env.clientUrl}/account/orders/${payload.orderId}`,
+        },
+        userId: payload.userId,
+        category: 'transactional',
+      });
+    }
+  );
+
+  // ORDER_CANCELLED → order_cancelled email
+  eventBus.on<{ orderId: string; userId: string; amount: number }>(
+    Events.ORDER_CANCELLED,
+    async (payload) => {
+      await notificationService.dispatch({
+        channel: 'email',
+        to: { userId: payload.userId },
+        template: 'order_cancelled',
+        data: {
+          orderId: payload.orderId,
+          amount: payload.amount,
+          currency: '₹',
+          orderUrl: `${env.clientUrl}/account/orders/${payload.orderId}`,
+        },
+        userId: payload.userId,
+        category: 'transactional',
+      });
+    }
+  );
+
+  // ORDER_RETURNED → order_returned email (RTO or customer return)
+  eventBus.on<{ orderId: string; userId: string; orderNumber?: string }>(
+    Events.ORDER_RETURNED,
+    async (payload) => {
+      await notificationService.dispatch({
+        channel: 'email',
+        to: { userId: payload.userId },
+        template: 'order_returned',
+        data: {
+          orderNumber: payload.orderNumber ?? payload.orderId,
+          orderUrl: `${env.clientUrl}/account/orders/${payload.orderId}`,
+        },
+        userId: payload.userId,
+        category: 'transactional',
+      });
+    }
+  );
+
+  // PAYMENT_FAILED → payment_failed email
+  eventBus.on<{ orderId: string; userId: string; reason?: string }>(
+    Events.PAYMENT_FAILED,
+    async (payload) => {
+      await notificationService.dispatch({
+        channel: 'email',
+        to: { userId: payload.userId },
+        template: 'payment_failed',
+        data: {
+          orderId: payload.orderId,
+          reason: payload.reason ?? 'Payment could not be processed',
+          retryUrl: `${env.clientUrl}/account/orders/${payload.orderId}`,
+        },
+        userId: payload.userId,
+        category: 'transactional',
+      });
+    }
+  );
+
+  // PAYMENT_REFUNDED → payment_refunded email
+  eventBus.on<{ orderId: string; userId: string; amount: number }>(
+    Events.PAYMENT_REFUNDED,
+    async (payload) => {
+      await notificationService.dispatch({
+        channel: 'email',
+        to: { userId: payload.userId },
+        template: 'payment_refunded',
+        data: {
+          orderId: payload.orderId,
+          amount: payload.amount,
+          currency: '₹',
           orderUrl: `${env.clientUrl}/account/orders/${payload.orderId}`,
         },
         userId: payload.userId,

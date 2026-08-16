@@ -226,14 +226,26 @@ class ShippingService {
       extraPatch
     );
 
-    // Keep the order's own status in sync on delivery — same mechanism
-    // createFromOrder() uses, so ORDER_DELIVERED fires normally too.
-    if (status === ShipmentStatus.DELIVERED) {
+    // Keep the order status in sync as the shipment advances through carrier states.
+    // PICKED_UP → DISPATCHED, IN_TRANSIT → IN_TRANSIT, DELIVERED → DELIVERED.
+    // Each transition fires the corresponding order event (e.g. ORDER_DELIVERED),
+    // which in turn sends customer notifications and updates analytics.
+    // UpdateStatusDTO.status excludes 'returned' (that goes via handleRtoReturn) and
+    // 'cancelled' — only map to statuses the updateStatus endpoint accepts.
+    type UpdatableStatus = Exclude<typeof OrderStatus[keyof typeof OrderStatus], 'returned' | 'cancelled'>;
+    const orderStatusMap: Partial<Record<typeof ShipmentStatus[keyof typeof ShipmentStatus], UpdatableStatus>> = {
+      [ShipmentStatus.PICKED_UP]:        OrderStatus.DISPATCHED,
+      [ShipmentStatus.IN_TRANSIT]:       OrderStatus.IN_TRANSIT,
+      [ShipmentStatus.OUT_FOR_DELIVERY]: OrderStatus.OUT_FOR_DELIVERY,
+      [ShipmentStatus.DELIVERED]:        OrderStatus.DELIVERED,
+    };
+    const targetOrderStatus = orderStatusMap[status];
+    if (targetOrderStatus) {
       const { orderService } = await import('../../order/services/order.service');
       try {
-        await orderService.updateStatus(shipment.orderId.toString(), { status: OrderStatus.DELIVERED }, orderActor);
+        await orderService.updateStatus(shipment.orderId.toString(), { status: targetOrderStatus }, orderActor);
       } catch (err) {
-        logger.warn(`[shipping] could not sync order ${shipment.orderId} to delivered`, err);
+        logger.warn(`[shipping] could not sync order ${shipment.orderId} to ${targetOrderStatus}`, err);
       }
     }
 

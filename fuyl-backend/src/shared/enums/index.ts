@@ -10,6 +10,7 @@ export const OrderStatus = {
   PACKED: 'packed',
   DISPATCHED: 'dispatched',
   IN_TRANSIT: 'in_transit',
+  OUT_FOR_DELIVERY: 'out_for_delivery',
   SHIPPED: 'shipped',
   DELIVERED: 'delivered',
   COMPLETED: 'completed',
