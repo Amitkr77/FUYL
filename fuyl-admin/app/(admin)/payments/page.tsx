@@ -5,7 +5,7 @@ import { getErrorMessage } from '@/lib/api'
 import { CsvExportButton } from '@/components/ui/CsvExportButton'
 
 function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount)
 }
 
 export default async function PaymentsPage() {

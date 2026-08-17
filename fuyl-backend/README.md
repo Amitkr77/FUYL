@@ -164,6 +164,12 @@ Only `wallet`, `referral`, `notification`, and `analytics` currently register ev
 | `npm run test:unit` | Unit tests only |
 | `npm run test:integration` | Integration tests only |
 | `npm run test:e2e` | End-to-end tests |
+| `npm run test:db:up` | Start the isolated MongoDB replica-set test database on port 27018 |
+| `npm run test:db:down` | Stop the isolated test database (its dedicated Docker volume is preserved) |
+
+Transaction integration tests never use the application `MONGODB_URI`. They default to
+`mongodb://127.0.0.1:27018/fuyl_test?replicaSet=rs0&directConnection=true` and refuse to
+clear any database whose name is not exactly `fuyl_test`.
 
 ---
 

@@ -509,39 +509,47 @@ export default function OrderDetailPage() {
                         order.paymentStatus}
                     </span>
                   </div>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-brand-muted">External payment</span>
-                    <span className="text-brand-forest font-medium text-right">
-                      {formatPrice(
-                        payments
-                          .filter((p) => ['success', 'refunded', 'partially_refunded'].includes(p.status) && !['wallet', 'loyalty'].includes(p.gateway))
-                          .reduce((sum, p) => sum + p.amount, 0)
-                      )}
-                    </span>
-                  </div>
-                  {(order.walletApplied ?? 0) > 0 && (
-                    <div className="flex justify-between gap-3 text-body-xs">
-                      <span className="text-brand-muted">Wallet used</span>
-                      <span className="text-brand-forest">{formatPrice(order.walletApplied ?? 0)}</span>
-                    </div>
-                  )}
-                  {(order.loyaltyApplied ?? 0) > 0 && (
-                    <div className="flex justify-between gap-3 text-body-xs">
-                      <span className="text-brand-muted">Loyalty used</span>
-                      <span className="text-brand-forest">{formatPrice(order.loyaltyApplied ?? 0)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between gap-3 border-t border-brand-border pt-2 mt-1">
-                    <span className="text-brand-muted">Amount due</span>
-                    <span className="text-brand-forest font-semibold">{formatPrice(Math.max(0,
-                      order.total -
-                      (order.walletApplied ?? 0) -
-                      (order.loyaltyApplied ?? 0) -
-                      payments
-                        .filter((p) => ['success', 'refunded', 'partially_refunded'].includes(p.status) && !['wallet', 'loyalty'].includes(p.gateway))
-                        .reduce((sum, p) => sum + p.amount, 0)
-                    ))}</span>
-                  </div>
+                  {(() => {
+                    const externalPaid = payments
+                      .filter((p) => ['success', 'refunded', 'partially_refunded'].includes(p.status) && !['wallet', 'loyalty'].includes(p.gateway))
+                      .reduce((sum, p) => sum + p.amount, 0)
+                    const walletPaid = order.walletApplied ?? 0
+                    const loyaltyPaid = order.loyaltyApplied ?? 0
+                    const totalPaid = externalPaid + walletPaid + loyaltyPaid
+                    const amountDue = Math.max(0, order.total - totalPaid)
+                    return (
+                      <>
+                        {externalPaid > 0 && (
+                          <div className="flex justify-between gap-3">
+                            <span className="text-brand-muted">Online payment</span>
+                            <span className="text-brand-forest font-medium text-right">{formatPrice(externalPaid)}</span>
+                          </div>
+                        )}
+                        {walletPaid > 0 && (
+                          <div className="flex justify-between gap-3">
+                            <span className="text-brand-muted">Wallet used</span>
+                            <span className="text-brand-forest font-medium text-right">{formatPrice(walletPaid)}</span>
+                          </div>
+                        )}
+                        {loyaltyPaid > 0 && (
+                          <div className="flex justify-between gap-3">
+                            <span className="text-brand-muted">Loyalty used</span>
+                            <span className="text-brand-forest font-medium text-right">{formatPrice(loyaltyPaid)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between gap-3 border-t border-brand-border pt-2 mt-1">
+                          <span className="text-brand-forest font-semibold">Total paid</span>
+                          <span className="text-brand-forest font-semibold">{formatPrice(totalPaid)}</span>
+                        </div>
+                        {amountDue > 0 && (
+                          <div className="flex justify-between gap-3">
+                            <span className="text-brand-muted">Amount due</span>
+                            <span className="text-brand-forest font-semibold">{formatPrice(amountDue)}</span>
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
                 </div>
                 {((payments[0]?.reference ?? order.razorpayPaymentId) ||
                   payments[0]?.capturedAt ||

@@ -113,14 +113,16 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <span className="text-slate-900 font-medium text-right">{PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}</span>
               <span className="text-slate-500">Status</span>
               <span className="text-slate-900 font-medium text-right">{PAYMENT_STATUS_LABEL[order.paymentStatus] ?? order.paymentStatus}</span>
-              <span className="text-slate-500">External captured</span>
-              <span className="text-slate-900 font-medium text-right">{formatCurrency(capturedExternal)}</span>
-              <span className="text-slate-500">Wallet used</span>
-              <span className="text-slate-900 font-medium text-right">{formatCurrency(order.walletApplied)}</span>
-              <span className="text-slate-500">Loyalty used</span>
-              <span className="text-slate-900 font-medium text-right">{formatCurrency(order.loyaltyApplied)}</span>
-              <span className="text-slate-500">Amount due</span>
-              <span className="text-slate-900 font-semibold text-right">{formatCurrency(amountDue)}</span>
+              {capturedExternal > 0 && <><span className="text-slate-500">Online payment</span>
+              <span className="text-slate-900 font-medium text-right">{formatCurrency(capturedExternal)}</span></>}
+              {order.walletApplied > 0 && <><span className="text-slate-500">Wallet used</span>
+              <span className="text-slate-900 font-medium text-right">{formatCurrency(order.walletApplied)}</span></>}
+              {order.loyaltyApplied > 0 && <><span className="text-slate-500">Loyalty used</span>
+              <span className="text-slate-900 font-medium text-right">{formatCurrency(order.loyaltyApplied)}</span></>}
+              <span className="text-slate-500 font-semibold pt-1 border-t border-slate-100">Total paid</span>
+              <span className="text-slate-900 font-bold text-right pt-1 border-t border-slate-100">{formatCurrency(capturedExternal + order.walletApplied + order.loyaltyApplied)}</span>
+              {amountDue > 0 && <><span className="text-amber-600 font-semibold">Amount due</span>
+              <span className="text-amber-600 font-bold text-right">{formatCurrency(amountDue)}</span></>}
               {refunded > 0 && <><span className="text-slate-500">Refunded</span><span className="text-rose-600 font-medium text-right">{formatCurrency(refunded)}</span></>}
             </div>
             {order.payments.length > 0 && (

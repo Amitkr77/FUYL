@@ -50,8 +50,10 @@ const InventoryStockSchema = new Schema<IInventoryStock>(
   { timestamps: true }
 );
 
-// Unique per product/variant/warehouse
-InventoryStockSchema.index({ productId: 1, variantId: 1, warehouseId: 1 }, { unique: true, partialFilterExpression: { variantId: { $exists: true } } });
-InventoryStockSchema.index({ productId: 1, warehouseId: 1 }, { unique: true, partialFilterExpression: { variantId: { $exists: false } } });
+// A missing variant is indexed as null, so this single compound index permits
+// one product-level row and one row per distinct variant at each warehouse.
+// MongoDB 7 rejects `$exists: false` inside a partialFilterExpression, which
+// made the previous product-level unique index impossible to create.
+InventoryStockSchema.index({ productId: 1, variantId: 1, warehouseId: 1 }, { unique: true });
 
 export const InventoryStockModel = mongoose.model<IInventoryStock>('InventoryStock', InventoryStockSchema, 'inventory_stocks');

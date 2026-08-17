@@ -15,7 +15,7 @@ import { refundPaymentAction } from '@/app/(admin)/payments/actions'
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency', currency: 'INR', maximumFractionDigits: 2,
-  }).format(amount / 100)
+  }).format(amount)
 }
 
 function formatDate(iso: string) {
@@ -57,7 +57,7 @@ function MethodIcon({ method }: { method: string }) {
 
 function RefundForm({ payment, onDone }: { payment: Payment; onDone: () => void }) {
   const maxRefundable = payment.amount - payment.refundedAmount
-  const [amount,    setAmount]    = useState(String(maxRefundable / 100))
+  const [amount,    setAmount]    = useState(String(maxRefundable))
   const [reason,    setReason]    = useState('')
   const [isPartial, setIsPartial] = useState(false)
   const [error,     setError]     = useState('')
@@ -67,7 +67,7 @@ function RefundForm({ payment, onDone }: { payment: Payment; onDone: () => void 
     setError('')
     if (!reason.trim()) { setError('Please provide a reason for the refund.'); return }
 
-    const amt = isPartial ? Number(amount) * 100 : undefined
+    const amt = isPartial ? Number(amount) : undefined
     if (isPartial && (!amt || amt <= 0 || amt > maxRefundable)) {
       setError(`Amount must be between ₹0 and ${formatCurrency(maxRefundable)}.`)
       return
@@ -115,7 +115,7 @@ function RefundForm({ payment, onDone }: { payment: Payment; onDone: () => void 
               type="number"
               min={1}
               step={0.01}
-              max={maxRefundable / 100}
+              max={maxRefundable}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="w-32 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#558476]/40 focus:border-[#558476]"
