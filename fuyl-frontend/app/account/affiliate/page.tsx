@@ -246,7 +246,7 @@ export default function AffiliateDashboardPage() {
                 {commissions.map((c) => (
                   <tr key={c._id} className="hover:bg-brand-cream/40 transition-colors">
                     <td className="px-4 py-3 font-mono text-brand-muted">
-                      {c.orderId.slice(-8).toUpperCase()}
+                      {typeof c.orderId === 'string' ? 'Order unavailable' : (c.orderId.orderNumber ?? 'Order unavailable')}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-brand-muted">
                       {formatPrice(c.baseAmount)}

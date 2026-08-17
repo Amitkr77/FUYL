@@ -5,9 +5,6 @@ import { success, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
 import { adjustBalanceSchema, freezeWalletSchema } from '../validators';
 import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
-import { WalletTransactionRepository } from '../repositories/wallet.repository';
-
-const txRepo = new WalletTransactionRepository();
 
 export class WalletController {
   getMyBalance = async (req: AuthedRequest, res: Response, next: NextFunction) => {
@@ -39,8 +36,8 @@ export class WalletController {
       try {
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 20;
-        const result = await txRepo.paginate({ userId: req.params.userId }, page, limit);
-        return paginate(res, result.items, result.total, result.page, result.limit);
+        const items = await walletService.getTransactions(req.params.userId, limit);
+        return paginate(res, items, items.length, page, limit);
       } catch (err) { next(err); }
     },
   ];

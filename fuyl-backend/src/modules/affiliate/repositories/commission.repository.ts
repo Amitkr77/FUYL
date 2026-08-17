@@ -17,7 +17,9 @@ export class CommissionRepository {
   }
 
   async findByAffiliate(affiliateId: string | Types.ObjectId, filter: FilterQuery<ICommission> = {}) {
-    return CommissionModel.find({ affiliateId, ...filter }).sort({ createdAt: -1 });
+    return CommissionModel.find({ affiliateId, ...filter })
+      .sort({ createdAt: -1 })
+      .populate('orderId', 'orderNumber grandTotal');
   }
 
   /** Atomically claim status transition — idempotent. Returns null if already in target status. */

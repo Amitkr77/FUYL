@@ -46,7 +46,29 @@ export class WalletService {
   }
 
   async getTransactions(userId: string | Types.ObjectId, limit = 50) {
-    return txRepo.findByUser(userId, {}, limit);
+    const transactions = await txRepo.findByUser(userId, {}, limit);
+    const reversalIds = transactions
+      .map((tx) => (tx.metadata as any)?.originalTxId)
+      .filter(Boolean);
+    const originals = await Promise.all(reversalIds.map((id) => txRepo.findById(id)));
+    const originalOrderById = new Map(
+      originals.filter(Boolean).map((tx) => [tx!._id.toString(), (tx!.metadata as any)?.orderId])
+    );
+    const orderIds = transactions.map((tx) =>
+      (tx.metadata as any)?.orderId ?? originalOrderById.get(String((tx.metadata as any)?.originalTxId))
+    ).filter(Boolean);
+    const { OrderModel } = await import('../../order/models/order.model');
+    const orders = await OrderModel.find({ _id: { $in: orderIds } }).select('orderNumber').lean();
+    const orderNumbers = new Map(orders.map((order) => [order._id.toString(), order.orderNumber]));
+
+    return transactions.map((tx) => {
+      const raw = tx.toObject();
+      const orderId = (tx.metadata as any)?.orderId ?? originalOrderById.get(String((tx.metadata as any)?.originalTxId));
+      const orderNumber = orderNumbers.get(String(orderId));
+      return orderNumber
+        ? { ...raw, description: raw.description.replace(/[0-9a-f]{24}/gi, orderNumber), orderNumber }
+        : raw;
+    });
   }
 
   async credit(input: CreditInput) {
@@ -159,6 +181,16 @@ export class WalletService {
     }
     if (!updated) throw new Error('Failed to reverse wallet transaction');
 
+    let displayReason = reason;
+    const relatedOrderId = (original.metadata as any)?.orderId;
+    if (relatedOrderId) {
+      const { OrderModel } = await import('../../order/models/order.model');
+      const relatedOrder = await OrderModel.findById(relatedOrderId).select('orderNumber').lean();
+      if (relatedOrder?.orderNumber) {
+        displayReason = reason.replace(String(relatedOrderId), relatedOrder.orderNumber);
+      }
+    }
+
     const reversalTx = await txRepo.create({
       walletId: updated._id,
       userId: updated.userId,
@@ -170,9 +202,9 @@ export class WalletService {
       balanceAfter: updated.balance,
       referenceType: 'wallet_transaction',
       referenceId: original._id,
-      description: `Reversal: ${reason}`,
+      description: `Reversal: ${displayReason}`,
       isReversed: false,
-      metadata: { originalTxId: original._id, reason },
+      metadata: { originalTxId: original._id, reason: displayReason, orderId: relatedOrderId },
     });
 
     await txRepo.markReversed(original._id, reversalTx._id);

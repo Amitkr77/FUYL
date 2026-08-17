@@ -61,7 +61,7 @@ const COLUMNS: ColumnDef<Commission>[] = [
     header: 'Order No.',
     cell:   (r) => (
       <span className="font-mono text-brand-muted text-[11px]">
-        {r.orderId.slice(-8).toUpperCase()}
+        {typeof r.orderId === 'string' ? 'Order unavailable' : (r.orderId.orderNumber ?? 'Order unavailable')}
       </span>
     ),
   },

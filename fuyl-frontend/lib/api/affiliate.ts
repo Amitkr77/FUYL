@@ -26,7 +26,7 @@ export interface AffiliateLink {
 
 export interface Commission {
   _id:                    string
-  orderId:                string
+  orderId:                string | { _id: string; orderNumber?: string }
   attributionId?:         string
   snapshotRate:           number
   baseAmount:             number

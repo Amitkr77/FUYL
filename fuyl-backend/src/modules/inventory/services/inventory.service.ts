@@ -294,7 +294,7 @@ class InventoryService {
   /**
    * When an order ships, convert reservation → permanent deduction from onHand.
    */
-  async fulfillOrder(orderId: string): Promise<void> {
+  async fulfillOrder(orderId: string, orderNumber?: string): Promise<void> {
     const reservations = await reservationRepo.fulfillByOrder(orderId);
     for (const r of reservations) {
       const stock = await stockRepo.findOrCreate(r.productId, r.sellerId, r.variantId, r.warehouseId);
@@ -314,7 +314,7 @@ class InventoryService {
             balanceAfter: updated2.onHand,
             referenceType: 'order',
             referenceId: new Types.ObjectId(orderId),
-            note: `Order ${orderId} shipped`,
+            note: `Order ${orderNumber ?? 'shipment'} shipped`,
           });
         }
       }

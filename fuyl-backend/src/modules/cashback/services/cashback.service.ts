@@ -157,11 +157,14 @@ export class CashbackService {
 
     let transaction;
     try {
+      const { OrderModel } = await import('../../order/models/order.model');
+      const order = await OrderModel.findById(earning.orderId).select('orderNumber').lean();
+      const orderLabel = order?.orderNumber ?? 'your order';
       const result = await walletService.credit({
         userId:        earning.userId.toString(),
         amount:        earning.cashbackAmount,
         source:        'order_cashback',
-        description:   'Order cashback',
+        description:   `Cashback for order ${orderLabel}`,
         referenceType: 'cashback_earning',
         referenceId:   earning._id.toString(),
         expiresAt:     earning.expiresAt,
@@ -202,7 +205,13 @@ export class CashbackService {
    * reversal succeeds. If the wallet reversal fails, the earning stays 'credited'
    * and is flagged for manual reconciliation — never silently dropped.
    */
-  async reverseEarnings(orderId: string): Promise<void> {
+  async reverseEarnings(orderId: string, orderNumber?: string): Promise<void> {
+    if (!orderNumber) {
+      const { OrderModel } = await import('../../order/models/order.model');
+      const order = await OrderModel.findById(orderId).select('orderNumber').lean();
+      orderNumber = order?.orderNumber;
+    }
+    const orderLabel = orderNumber ?? 'your order';
     const earnings = await earningRepo.findByOrder(orderId);
     for (const earning of earnings) {
       if (earning.status === 'reversed') continue;
@@ -218,7 +227,7 @@ export class CashbackService {
         try {
           await walletService.reverse(
             earning.walletTransactionId.toString(),
-            `Order ${orderId} cancelled`
+            `Order ${orderLabel} cancelled`
           );
           // Only mark reversed AFTER wallet reversal confirms success.
           await earningRepo.updateStatus(earning._id.toString(), 'reversed');

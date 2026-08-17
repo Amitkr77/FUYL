@@ -30,6 +30,7 @@ export function registerAffiliateEventSubscribers(): void {
         attributionId: order.affiliateAttributionId.toString(),
         subtotal:      order.subtotal,
         grandTotal:    order.grandTotal,
+        orderNumber:   order.orderNumber,
       });
     } catch (err) {
       logger.error('[affiliate.event] ORDER_COMPLETED handler failed', err);

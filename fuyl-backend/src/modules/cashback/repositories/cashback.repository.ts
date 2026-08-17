@@ -134,7 +134,9 @@ export class CashbackEarningRepository {
   async findAll(filter: FilterQuery<ICashbackEarning> = {}, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
-      CashbackEarningModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('policyId', 'name'),
+      CashbackEarningModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit)
+        .populate('policyId', 'name')
+        .populate('orderId', 'orderNumber'),
       CashbackEarningModel.countDocuments(filter),
     ]);
     return { items, total, page, limit, pages: Math.ceil(total / limit) };

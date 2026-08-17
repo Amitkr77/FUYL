@@ -46,7 +46,7 @@ export function EarningsTable({ earnings, total }: Props) {
             return (
               <tr key={e.id} className="hover:bg-slate-50/50 transition-colors">
                 <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                  {e.orderId.slice(-8).toUpperCase()}
+                  {e.orderNumber ?? "Order unavailable"}
                 </td>
                 <td className="px-4 py-3 text-slate-700">
                   <div>{policyName}</div>

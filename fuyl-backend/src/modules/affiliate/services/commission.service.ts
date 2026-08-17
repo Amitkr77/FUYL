@@ -27,6 +27,7 @@ export class CommissionService {
     attributionId: string;
     subtotal:      number;
     grandTotal:    number;
+    orderNumber?:  string;
   }): Promise<void> {
     const affiliate = await affiliateRepo.findById(input.affiliateId);
     if (!affiliate) throw new NotFoundError('Affiliate');
@@ -81,7 +82,7 @@ export class CommissionService {
       affiliateId:  commission.affiliateId,
       eventType:    CommissionEventType.CREATED,
       amountDelta:  amount,
-      note:         `Order ${input.orderId} at ${rate}% on ₹${baseAmount}`,
+      note:         `Order ${input.orderNumber ?? 'commission'} at ${rate}% on ₹${baseAmount}`,
     });
 
     // Update affiliate stats

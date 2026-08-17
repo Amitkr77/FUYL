@@ -9,9 +9,9 @@ import { logger } from '../../../config/logger';
  */
 export function registerInventoryEventSubscribers(): void {
   // ─── Order shipped → convert reservation into a permanent stock deduction ──
-  eventBus.on<{ orderId: string }>(Events.ORDER_SHIPPED, async (event) => {
+  eventBus.on<{ orderId: string; orderNumber?: string }>(Events.ORDER_SHIPPED, async (event) => {
     try {
-      await inventoryService.fulfillOrder(event.orderId);
+      await inventoryService.fulfillOrder(event.orderId, event.orderNumber);
     } catch (err) {
       logger.error('[inventory.event] ORDER_SHIPPED handler failed', err);
     }

@@ -486,7 +486,7 @@ export class OrderService {
       actor: new Types.ObjectId(actorId),
     });
 
-    eventBus.publish(Events.ORDER_CANCELLED, { orderId, userId: order.customerId.toString(), amount: order.grandTotal });
+    eventBus.publish(Events.ORDER_CANCELLED, { orderId, userId: order.customerId.toString(), amount: order.grandTotal, orderNumber: order.orderNumber });
     return updated;
   }
 

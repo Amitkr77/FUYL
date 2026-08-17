@@ -36,9 +36,9 @@ export function registerCashbackEventSubscribers(): void {
     }
   });
 
-  eventBus.on<{ orderId: string; userId: string }>(Events.ORDER_CANCELLED, async (event) => {
+  eventBus.on<{ orderId: string; userId: string; orderNumber?: string }>(Events.ORDER_CANCELLED, async (event) => {
     try {
-      await cashbackService.reverseEarnings(event.orderId);
+      await cashbackService.reverseEarnings(event.orderId, event.orderNumber);
     } catch (err) {
       logger.error('[cashback.event] ORDER_CANCELLED handler failed', { orderId: event.orderId, err });
     }

@@ -40,6 +40,7 @@ export interface CashbackPolicy {
 export interface CashbackEarning {
   id: string
   orderId: string
+  orderNumber?: string
   userId: string
   policyId?: string | { name: string }
   cashbackBase: number
@@ -77,7 +78,7 @@ interface BackendPolicy {
 
 interface BackendEarning {
   _id: string
-  orderId: string
+  orderId: string | { _id: string; orderNumber?: string }
   userId: string
   policyId?: string | { name: string }
   cashbackBase: number
@@ -95,7 +96,8 @@ function mapPolicy(p: BackendPolicy): CashbackPolicy {
 }
 
 function mapEarning(e: BackendEarning): CashbackEarning {
-  return { ...e, id: e._id }
+  const order = typeof e.orderId === 'string' ? null : e.orderId
+  return { ...e, id: e._id, orderId: order?._id ?? e.orderId as string, orderNumber: order?.orderNumber }
 }
 
 // ─── Policies ─────────────────────────────────────────────────────────────────
