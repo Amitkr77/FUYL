@@ -128,3 +128,41 @@ export async function adminApiFetch<T>(path: string, options: { method?: string;
 
   return parseResponse<T>(res)
 }
+
+export interface PaginationMeta {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNext: boolean
+  hasPrev: boolean
+}
+
+/** Preserve the backend's pagination envelope instead of discarding `meta`. */
+export async function adminApiFetchPaginated<T>(
+  path: string,
+  options: { method?: string; body?: unknown } = {}
+): Promise<{ items: T[]; meta: PaginationMeta }> {
+  const session = await getSession()
+  if (!session) throw new AdminApiError(401, 'Not signed in')
+
+  let res = await rawFetch(path, { ...options, token: session.accessToken })
+  if (res.status === 401) {
+    const newAccessToken = await refreshAccessToken(session)
+    if (!newAccessToken) throw new AdminApiError(401, 'Session expired — please sign in again')
+    res = await rawFetch(path, { ...options, token: newAccessToken })
+  }
+
+  const text = await res.text()
+  let json: unknown = null
+  try { json = text ? JSON.parse(text) : null } catch { /* handled below */ }
+  if (!res.ok) {
+    const body = json as { error?: { code?: string; message?: string; details?: unknown } } | null
+    throw new AdminApiError(res.status, body?.error?.message ?? text ?? `Request failed with status ${res.status}`, body?.error?.code, body?.error?.details)
+  }
+  const envelope = json as { data?: T[]; meta?: PaginationMeta } | null
+  if (!envelope || !Array.isArray(envelope.data) || !envelope.meta) {
+    throw new AdminApiError(500, 'Backend returned an invalid paginated response')
+  }
+  return { items: envelope.data, meta: envelope.meta }
+}

@@ -123,7 +123,6 @@ export interface AdminOrderDetail extends AdminOrder {
 }
 
 function mapOrder(o: BackendOrder): AdminOrder {
-  const loyaltyRedemption = Number(o.metadata?.loyaltyRedemption ?? 0)
   return {
     id:           o._id,
     orderNumber:  o.orderNumber,
@@ -132,7 +131,7 @@ function mapOrder(o: BackendOrder): AdminOrder {
     phone:        o.shippingAddress?.phone ?? '',
     date:         o.placedAt,
     itemCount:    o.items.length,
-    total:        Math.max(0, o.grandTotal - loyaltyRedemption),
+    total:        o.grandTotal,
     status:       o.status,
   }
 }

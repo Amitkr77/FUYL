@@ -64,6 +64,24 @@ export class CashbackPolicyRepository {
     await CashbackPolicyModel.updateOne({ _id: id }, { $inc: { usedBudget: amount } });
   }
 
+  async claimBudget(id: string, amount: number): Promise<boolean> {
+    const policy = await CashbackPolicyModel.findOneAndUpdate(
+      {
+        _id: id,
+        isActive: true,
+        $expr: {
+          $or: [
+            { $eq: ['$totalBudget', 0] },
+            { $lte: [{ $add: ['$usedBudget', amount] }, '$totalBudget'] },
+          ],
+        },
+      },
+      { $inc: { usedBudget: amount } },
+      { new: true }
+    );
+    return Boolean(policy);
+  }
+
   async decrementUsedBudget(id: string, amount: number): Promise<void> {
     await CashbackPolicyModel.updateOne(
       { _id: id },
@@ -77,6 +95,47 @@ export class CashbackPolicyRepository {
 }
 
 export class CashbackEarningRepository {
+  async claimProcessingWithBudget(id: string, amount: number): Promise<ICashbackEarning | null> {
+    const session = await mongoose.startSession();
+    try {
+      let claimed: ICashbackEarning | null = null;
+      await session.withTransaction(async () => {
+        const earning = await CashbackEarningModel.findOne({ _id: id, status: 'pending' }).session(session);
+        if (!earning) return;
+        const budgetReserved = Boolean((earning.metadata as any)?.budgetReserved);
+        if (earning.policyId && !budgetReserved) {
+          const policy = await CashbackPolicyModel.findOneAndUpdate(
+            {
+              _id: earning.policyId,
+              $expr: {
+                $or: [
+                  { $eq: ['$totalBudget', 0] },
+                  { $lte: [{ $add: ['$usedBudget', amount] }, '$totalBudget'] },
+                ],
+              },
+            },
+            { $inc: { usedBudget: amount } },
+            { new: true, session }
+          );
+          if (!policy) return;
+        }
+        claimed = await CashbackEarningModel.findOneAndUpdate(
+          { _id: earning._id, status: 'pending' },
+          {
+            $set: {
+              status: 'processing',
+              ...(earning.policyId ? { 'metadata.budgetReserved': true } : {}),
+            },
+          },
+          { new: true, session }
+        );
+      });
+      return claimed;
+    } finally {
+      await session.endSession();
+    }
+  }
+
   async create(data: Partial<ICashbackEarning>): Promise<ICashbackEarning> {
     return CashbackEarningModel.create(data);
   }
@@ -129,6 +188,37 @@ export class CashbackEarningRepository {
       { $set: { status: 'credited', creditedAt: new Date(), walletTransactionId } },
       { new: true }
     );
+  }
+
+  async claimProcessing(id: string): Promise<ICashbackEarning | null> {
+    return CashbackEarningModel.findOneAndUpdate(
+      { _id: id, status: 'pending' },
+      { $set: { status: 'processing' } },
+      { new: true }
+    );
+  }
+
+  async completeCredited(id: string, walletTransactionId: mongoose.Types.ObjectId): Promise<ICashbackEarning | null> {
+    return CashbackEarningModel.findOneAndUpdate(
+      { _id: id, status: 'processing' },
+      { $set: { status: 'credited', creditedAt: new Date(), walletTransactionId } },
+      { new: true }
+    );
+  }
+
+  async requeueProcessing(id: string): Promise<void> {
+    await CashbackEarningModel.updateOne(
+      { _id: id, status: 'processing' },
+      { $set: { status: 'pending' } }
+    );
+  }
+
+  async requeueStaleProcessing(staleBefore: Date): Promise<number> {
+    const result = await CashbackEarningModel.updateMany(
+      { status: 'processing', updatedAt: { $lt: staleBefore } },
+      { $set: { status: 'pending' } }
+    );
+    return result.modifiedCount;
   }
 
   async findAll(filter: FilterQuery<ICashbackEarning> = {}, page = 1, limit = 20) {

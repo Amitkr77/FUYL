@@ -1,6 +1,7 @@
 import { eventBus, Events } from '../../../shared/services/eventBus.service';
 import { cashbackService } from './cashback.service';
 import { logger } from '../../../config/logger';
+import type { CashbackPreviewResult } from './cashback.service';
 
 /**
  * Wires the cashback module to order lifecycle events.
@@ -15,6 +16,7 @@ export function registerCashbackEventSubscribers(): void {
     userId: string;
     subtotal: number;
     couponCode?: string;
+    cashbackSnapshot?: CashbackPreviewResult;
   }>(Events.ORDER_PLACED, async (event) => {
     try {
       await cashbackService.createEarnings({
@@ -22,6 +24,7 @@ export function registerCashbackEventSubscribers(): void {
         userId:    event.userId,
         subtotal:  event.subtotal,
         couponCode: event.couponCode,
+        snapshot:   event.cashbackSnapshot,
       });
     } catch (err) {
       logger.error('[cashback.event] ORDER_PLACED handler failed', { orderId: event.orderId, err });

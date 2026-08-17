@@ -11,6 +11,7 @@ import {
   CreatePriceBookDTO, UpdatePriceBookDTO,
   CreateTaxRuleDTO, UpdateTaxRuleDTO,
 } from '../validators';
+import { clampPaise, fromPaise, toPaise } from '../../../shared/utils';
 
 const priceBookRepo = new PriceBookRepository();
 const taxRuleRepo = new TaxRuleRepository();
@@ -182,9 +183,9 @@ class PricingService {
     const currency = opts.currency ?? 'INR';
     const taxRules = await taxRuleRepo.findActive();
     const out: QuoteItemOutput[] = [];
-    let subtotal = 0;
-    let discountTotal = 0;
-    let taxTotal = 0;
+    let subtotalPaise = 0;
+    let discountTotalPaise = 0;
+    let taxTotalPaise = 0;
 
     for (const item of items) {
       // 1. Find best matching price book
@@ -235,13 +236,14 @@ class PricingService {
         }
       }
 
-      const lineSubtotal = appliedPrice * item.quantity;
-      const volumeDiscount = lineSubtotal * (volumeDiscountPercent / 100);
-      const discountedSubtotal = lineSubtotal - volumeDiscount;
+      const appliedPricePaise = toPaise(appliedPrice);
+      const lineSubtotalPaise = appliedPricePaise * item.quantity;
+      const volumeDiscountPaise = Math.round(lineSubtotalPaise * (volumeDiscountPercent / 100));
+      const discountedSubtotalPaise = clampPaise(lineSubtotalPaise - volumeDiscountPaise);
 
       // 3. Apply tax rules (skipped entirely for non-taxable items)
       const taxBreakdown: Array<{ code: string; rate: number; type: string; amount: number }> = [];
-      let lineTax = 0;
+      let lineTaxPaise = 0;
       for (const rule of item.isTaxable === false ? [] : taxRules) {
         // Filter by seller
         if (rule.sellerIds && rule.sellerIds.length > 0) {
@@ -256,49 +258,49 @@ class PricingService {
           if (!opts.country || !rule.countries.includes(opts.country.toUpperCase())) continue;
         }
 
-        let amount = 0;
+        let amountPaise = 0;
         if (rule.type === 'percent') {
-          const base = rule.isCompound ? discountedSubtotal + lineTax : discountedSubtotal;
-          amount = base * (rule.rate / 100);
+          const basePaise = rule.isCompound ? discountedSubtotalPaise + lineTaxPaise : discountedSubtotalPaise;
+          amountPaise = Math.round(basePaise * (rule.rate / 100));
         } else if (rule.type === 'flat') {
-          amount = rule.rate;
+          amountPaise = toPaise(rule.rate);
         } else if (rule.type === 'per_unit') {
-          amount = rule.rate * item.quantity;
+          amountPaise = toPaise(rule.rate) * item.quantity;
         }
-        lineTax += amount;
-        taxBreakdown.push({ code: rule.code, rate: rule.rate, type: rule.type, amount: Math.round(amount * 100) / 100 });
+        lineTaxPaise += amountPaise;
+        taxBreakdown.push({ code: rule.code, rate: rule.rate, type: rule.type, amount: fromPaise(amountPaise) });
       }
 
-      const lineTotal = discountedSubtotal + lineTax;
+      const lineTotalPaise = discountedSubtotalPaise + lineTaxPaise;
 
       out.push({
         productId: item.productId,
         variantId: item.variantId,
         quantity: item.quantity,
         basePrice: item.basePrice,
-        appliedPrice: Math.round(appliedPrice * 100) / 100,
+        appliedPrice: fromPaise(appliedPricePaise),
         discountPercent: bookDiscountPercent + volumeDiscountPercent,
-        discountAmount: Math.round(volumeDiscount * 100) / 100,
+        discountAmount: fromPaise(volumeDiscountPaise),
         taxPercent: taxBreakdown.reduce((s, t) => s + (t.type === 'percent' ? t.rate : 0), 0),
-        taxAmount: Math.round(lineTax * 100) / 100,
-        totalPrice: Math.round(lineTotal * 100) / 100,
+        taxAmount: fromPaise(lineTaxPaise),
+        totalPrice: fromPaise(lineTotalPaise),
         currency,
         taxBreakdown,
         appliedPriceBookId,
       });
 
-      subtotal += lineSubtotal;
-      discountTotal += volumeDiscount;
-      taxTotal += lineTax;
+      subtotalPaise += lineSubtotalPaise;
+      discountTotalPaise += volumeDiscountPaise;
+      taxTotalPaise += lineTaxPaise;
     }
 
     return {
       items: out,
-      subtotal: Math.round(subtotal * 100) / 100,
-      discountTotal: Math.round(discountTotal * 100) / 100,
-      taxTotal: Math.round(taxTotal * 100) / 100,
+      subtotal: fromPaise(subtotalPaise),
+      discountTotal: fromPaise(discountTotalPaise),
+      taxTotal: fromPaise(taxTotalPaise),
       shippingTotal: 0, // set by checkout module
-      grandTotal: Math.round((subtotal - discountTotal + taxTotal) * 100) / 100,
+      grandTotal: fromPaise(subtotalPaise - discountTotalPaise + taxTotalPaise),
       currency,
     };
   }
@@ -314,8 +316,8 @@ class PricingService {
     isCompound?: boolean;
   }): Promise<{ totalTax: number; breakdown: Array<{ code: string; amount: number }> }> {
     const taxRules = await taxRuleRepo.findActive();
-    const lineSubtotal = basePrice * quantity;
-    let totalTax = 0;
+    const lineSubtotalPaise = toPaise(basePrice) * quantity;
+    let totalTaxPaise = 0;
     const breakdown: Array<{ code: string; amount: number }> = [];
 
     for (const rule of taxRules) {
@@ -332,20 +334,20 @@ class PricingService {
       if (rule.countries && rule.countries.length > 0) {
         if (!opts.country || !rule.countries.includes(opts.country.toUpperCase())) continue;
       }
-      let amount = 0;
+      let amountPaise = 0;
       if (rule.type === 'percent') {
-        const base = rule.isCompound ? lineSubtotal + totalTax : lineSubtotal;
-        amount = base * (rule.rate / 100);
+        const basePaise = rule.isCompound ? lineSubtotalPaise + totalTaxPaise : lineSubtotalPaise;
+        amountPaise = Math.round(basePaise * (rule.rate / 100));
       } else if (rule.type === 'flat') {
-        amount = rule.rate;
+        amountPaise = toPaise(rule.rate);
       } else if (rule.type === 'per_unit') {
-        amount = rule.rate * quantity;
+        amountPaise = toPaise(rule.rate) * quantity;
       }
-      totalTax += amount;
-      breakdown.push({ code: rule.code, amount: Math.round(amount * 100) / 100 });
+      totalTaxPaise += amountPaise;
+      breakdown.push({ code: rule.code, amount: fromPaise(amountPaise) });
     }
 
-    return { totalTax: Math.round(totalTax * 100) / 100, breakdown };
+    return { totalTax: fromPaise(totalTaxPaise), breakdown };
   }
 }
 

@@ -15,6 +15,8 @@ import { logger } from '../../../config/logger';
 import { nextNumber } from '../utils/counter';
 import { CreateOrderDTO, UpdateStatusDTO, CreateReturnDTO, UpdateReturnDTO } from '../validators';
 import mongoose, { Types } from 'mongoose';
+import { fromPaise, proratePaise, toPaise } from '../../../shared/utils';
+import type { CashbackPreviewResult } from '../../cashback/services/cashback.service';
 
 const orderRepo = new OrderRepository();
 const returnRepo = new ReturnRepository();
@@ -47,6 +49,15 @@ export interface CheckoutOrderAdjustments {
   loyaltyRedemptionReference?: string;
   loyaltyRedemption?: number;
   loyaltyPointsRedeemed?: number;
+  cashbackSnapshot?: CashbackPreviewResult;
+  pricingSnapshot?: {
+    items: Array<{ productId: string; variantId?: string; appliedPrice: number; discountAmount: number; taxAmount: number }>;
+    subtotal: number;
+    discountTotal: number;
+    taxTotal: number;
+    shippingTotal: number;
+    grandTotal: number;
+  };
 }
 
 export class OrderService {
@@ -73,13 +84,16 @@ export class OrderService {
       const variant = item.variantId ? await catalogService.getVariant(item.variantId) : null;
       const sellerId = await this.inventorySellerId(item.productId, item.variantId);
 
-      const unitPrice = priceInfo.price;
+      const quotedItem = dto.pricingSnapshot?.items.find((quoted) =>
+        quoted.productId === item.productId && (quoted.variantId ?? '') === (item.variantId ?? '')
+      );
+      const unitPrice = quotedItem?.appliedPrice ?? priceInfo.price;
       const totalPrice = unitPrice * item.quantity;
       subtotal += totalPrice;
       if (sellerId) sellerIds.add(sellerId);
 
-      let itemTax = 0;
-      if (product.isTaxable) {
+      let itemTax = quotedItem?.taxAmount ?? 0;
+      if (!quotedItem && product.isTaxable) {
         const taxResult = await pricingService.computeTax(unitPrice, item.quantity, {
           sellerId,
           state: dto.shippingAddress.state,
@@ -97,7 +111,7 @@ export class OrderService {
         quantity: item.quantity,
         unitPrice,
         totalPrice,
-        discount: 0,
+        discount: quotedItem?.discountAmount ?? 0,
         tax: itemTax,
         currency: priceInfo.currency,
         image: product.media?.find((m: any) => m.isPrimary)?.url ?? product.media?.[0]?.url,
@@ -145,6 +159,8 @@ export class OrderService {
         loyaltyRedemptionReference: dto.loyaltyRedemptionReference,
         loyaltyRedemption: dto.loyaltyRedemption ?? 0,
         loyaltyPointsRedeemed: dto.loyaltyPointsRedeemed ?? 0,
+        cashbackSnapshot: dto.cashbackSnapshot,
+        pricingSnapshot: dto.pricingSnapshot,
       },
       ...affiliateFields,
     });
@@ -170,6 +186,7 @@ export class OrderService {
       discountTotal,
       walletRedemption: dto.walletRedemption ?? 0,
       couponCode: dto.couponCode,
+      cashbackSnapshot: dto.cashbackSnapshot,
     });
     return order;
   }
@@ -509,14 +526,19 @@ export class OrderService {
     }
 
     const returnNumber = await nextNumber('RET');
-    const refundAmount = dto.items.reduce((sum, item) => {
+    const refundAmountPaise = dto.items.reduce((sum, item) => {
       const orderItem = order.items.find((oi: any) =>
         oi.productId.toString() === item.productId &&
         (!item.variantId || oi.variantId?.toString() === item.variantId)
       );
       if (!orderItem) throw new BadRequestError(`Item ${item.productId} not in order`);
-      return sum + (orderItem as any).totalPrice * (item.quantity / (orderItem as any).quantity);
+      return sum + proratePaise(
+        toPaise((orderItem as any).totalPrice),
+        item.quantity,
+        (orderItem as any).quantity
+      );
     }, 0);
+    const refundAmount = fromPaise(refundAmountPaise);
 
     const ret = await returnRepo.create({
       returnNumber,

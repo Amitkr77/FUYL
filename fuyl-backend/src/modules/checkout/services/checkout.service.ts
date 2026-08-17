@@ -19,6 +19,7 @@ import { eventBus, Events } from '../../../shared/services/eventBus.service';
 import { logger } from '../../../config/logger';
 import { OrderStatus, PaymentStatus, PaymentMethod } from '../../../shared/enums';
 import { CheckoutDTO } from '../validators';
+import { clampPaise, fromPaise, toPaise } from '../../../shared/utils';
 
 // Converts a product/variant weight to grams for cart-weight totals — variants
 // are always stored in grams, but a product's own shippingInfo.weight can be
@@ -97,7 +98,7 @@ class CheckoutService {
     let walletRedemption = 0;
     if (dto.walletRedemptionAmount && dto.walletRedemptionAmount > 0) {
       const balance = await walletService.getBalance(userId);
-      if (balance.balance < dto.walletRedemptionAmount) {
+      if (toPaise(balance.balance) < toPaise(dto.walletRedemptionAmount)) {
         throw new PaymentRequiredError(`Insufficient wallet balance (have ₹${balance.balance}, requested ₹${dto.walletRedemptionAmount})`);
       }
       walletRedemption = dto.walletRedemptionAmount;
@@ -123,19 +124,23 @@ class CheckoutService {
     const quotedShippingCharge = shippingResult.cost;
     const freeShipping = couponValidation?.valid && couponValidation.discountType === 'free_shipping';
     const shippingDiscount = freeShipping ? quotedShippingCharge : 0;
-    const shippingCharge = Math.max(0, quotedShippingCharge - shippingDiscount);
-
-    const grandTotal = quote.grandTotal - couponDiscount + shippingCharge;
-    if (walletRedemption > grandTotal) walletRedemption = grandTotal;
+    const shippingChargePaise = clampPaise(toPaise(quotedShippingCharge) - toPaise(shippingDiscount));
+    const grandTotalPaise = clampPaise(
+      toPaise(quote.grandTotal) - toPaise(couponDiscount) + shippingChargePaise
+    );
+    let walletRedemptionPaise = toPaise(walletRedemption);
+    if (walletRedemptionPaise > grandTotalPaise) walletRedemptionPaise = grandTotalPaise;
+    walletRedemption = fromPaise(walletRedemptionPaise);
     // Loyalty deduction comes after wallet, cannot exceed remaining amount
-    const maxLoyaltyValue = Math.max(0, grandTotal - walletRedemption);
-    if (loyaltyRedemption > maxLoyaltyValue) {
+    const maxLoyaltyPaise = clampPaise(grandTotalPaise - walletRedemptionPaise);
+    if (toPaise(loyaltyRedemption) > maxLoyaltyPaise) {
       const config = await loyaltyService.getActiveConfig();
       if (config) {
         // Only whole redemption blocks are legal. Reduce both the monetary
         // deduction and point debit together so the customer is never charged
         // more points than the amount shown in checkout.
-        const blocks = Math.floor(maxLoyaltyValue / config.redeemValue);
+        const redeemValuePaise = toPaise(config.redeemValue);
+        const blocks = redeemValuePaise > 0 ? Math.floor(maxLoyaltyPaise / redeemValuePaise) : 0;
         loyaltyPointsToRedeem = Math.min(loyaltyPointsToRedeem, blocks * config.redeemPoints);
         loyaltyRedemption = loyaltyService.computeRedemptionValue(config, loyaltyPointsToRedeem);
       } else {
@@ -143,7 +148,10 @@ class CheckoutService {
         loyaltyRedemption = 0;
       }
     }
-    const remainingAfterWallet = Math.max(0, grandTotal - walletRedemption - loyaltyRedemption);
+    const loyaltyRedemptionPaise = toPaise(loyaltyRedemption);
+    const remainingAfterWalletPaise = clampPaise(
+      grandTotalPaise - walletRedemptionPaise - loyaltyRedemptionPaise
+    );
 
     // 5. Cashback preview — show customer what they'll earn on this order.
     // Cashback is calculated on the original subtotal (before discount and wallet).
@@ -166,13 +174,13 @@ class CheckoutService {
       pricing: quote,
       coupon: couponValidation,
       couponDiscount,
-      shippingDiscount: Math.round(shippingDiscount * 100) / 100,
+      shippingDiscount: fromPaise(toPaise(shippingDiscount)),
       walletRedemption,
-      loyaltyRedemption: Math.round(loyaltyRedemption * 100) / 100,
+      loyaltyRedemption: fromPaise(loyaltyRedemptionPaise),
       loyaltyPointsToRedeem,
-      shippingTotal: Math.round(shippingCharge * 100) / 100,
-      grandTotal: Math.round(grandTotal * 100) / 100,
-      remainingToPay: Math.round(remainingAfterWallet * 100) / 100,
+      shippingTotal: fromPaise(shippingChargePaise),
+      grandTotal: fromPaise(grandTotalPaise),
+      remainingToPay: fromPaise(remainingAfterWalletPaise),
       paymentMethod: dto.paymentMethod,
       cashback: cashbackPreview,
     };
@@ -329,11 +337,27 @@ class CheckoutService {
         loyaltyRedemptionReference: loyaltyDebited ? preview.cart._id.toString() : undefined,
         loyaltyRedemption: preview.loyaltyRedemption,
         loyaltyPointsRedeemed: loyaltyDebited ? preview.loyaltyPointsToRedeem : 0,
+        cashbackSnapshot: preview.cashback,
+        pricingSnapshot: {
+          items: preview.pricing.items,
+          subtotal: preview.pricing.subtotal,
+          discountTotal: preview.pricing.discountTotal + preview.couponDiscount,
+          taxTotal: preview.pricing.taxTotal,
+          shippingTotal: preview.shippingTotal,
+          grandTotal: preview.grandTotal,
+        },
         notes: dto.notes,
         affiliateId:              attribution?.affiliateId,
         affiliateAttributionId:   attribution?.attributionId,
         affiliateAttributionMethod: attribution?.method,
       } as any);
+      // Reservations are initially keyed to the cart because the order does not
+      // exist yet. Link them immediately so shipment fulfilment and cancellation
+      // settle the correct stock instead of allowing the TTL job to release it.
+      await inventoryService.attachReservationsToOrder(
+        preview.cart._id.toString(),
+        order._id.toString()
+      );
     } catch (err) {
       if (walletDebited) {
         try {

@@ -45,7 +45,7 @@ export type OrderStatus =
   | 'returned'
 
 // Mirrors the backend's PaymentMethod / PaymentStatus enums (src/shared/enums/index.ts).
-export type OrderPaymentMethod = 'razorpay' | 'upi' | 'cod' | 'wallet' | 'split' | 'cashfree'
+export type OrderPaymentMethod = 'razorpay' | 'upi' | 'cod' | 'wallet' | 'loyalty' | 'split' | 'cashfree'
 export type OrderPaymentStatus = 'pending' | 'success' | 'failed' | 'refunded' | 'partially_refunded'
 
 export interface OrderAddress {

@@ -1,7 +1,7 @@
 import { adminApiFetch } from './api'
 
 export type PaymentStatus = 'pending' | 'success' | 'failed' | 'refunded' | 'partially_refunded'
-export type PaymentMethod = 'cashfree' | 'razorpay' | 'upi' | 'cod' | 'wallet' | 'split'
+export type PaymentMethod = 'cashfree' | 'razorpay' | 'upi' | 'cod' | 'wallet' | 'loyalty' | 'split'
 
 interface BackendPayment {
   _id: string

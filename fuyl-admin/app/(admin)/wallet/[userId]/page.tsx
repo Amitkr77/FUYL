@@ -4,13 +4,17 @@ import { getCustomer } from '@/lib/customers'
 
 export default async function WalletDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ userId: string }>
+  searchParams: Promise<{ page?: string }>
 }) {
   const { userId } = await params
+  const requestedPage = Number((await searchParams).page ?? 1)
+  const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1
   const [balance, transactions, customer] = await Promise.all([
     getWalletBalance(userId),
-    getWalletTransactions(userId),
+    getWalletTransactions(userId, page),
     getCustomer(userId),
   ])
 
@@ -32,7 +36,7 @@ export default async function WalletDetailPage({
         </div>
       </div>
 
-      <WalletManager userId={userId} balance={balance} transactions={transactions} />
+      <WalletManager userId={userId} balance={balance} transactions={transactions.items} pagination={transactions.meta} />
     </div>
   )
 }

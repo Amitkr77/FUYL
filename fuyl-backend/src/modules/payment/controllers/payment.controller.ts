@@ -5,6 +5,8 @@ import { success, created, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
 import { createPaymentSchema, verifyPaymentSchema, refundSchema } from '../validators';
 import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
+import { orderService } from '../../order/services';
+import { ForbiddenError } from '../../../shared/errors';
 
 export class PaymentController {
   createPayment = [
@@ -33,6 +35,10 @@ export class PaymentController {
 
   listByOrder = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
+      const order = await orderService.getById(req.params.orderId);
+      if (req.user!.role === Roles.CUSTOMER && order.customerId.toString() !== req.user!.userId) {
+        return next(new ForbiddenError('Not your order'));
+      }
       return success(res, await paymentService.listByOrder(req.params.orderId));
     } catch (err) { next(err); }
   };

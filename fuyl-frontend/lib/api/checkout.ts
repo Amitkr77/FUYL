@@ -19,7 +19,7 @@ export type CheckoutPaymentMethod = 'cashfree' | 'cod'
 
 export interface CheckoutInput {
   shippingAddress:          CheckoutAddressInput
-  paymentMethod:            CheckoutPaymentMethod | 'wallet'
+  paymentMethod:            CheckoutPaymentMethod | 'wallet' | 'loyalty'
   couponCode?:              string
   walletRedemptionAmount?:  number
   loyaltyPointsToRedeem?:   number
@@ -64,15 +64,17 @@ export interface CheckoutPreview {
 }
 
 function mapPreview(raw: BackendPreview): CheckoutPreview {
+  const walletRedemption = raw.walletRedemption ?? 0
+  const loyaltyRedemption = raw.loyaltyRedemption ?? 0
   return {
     subtotal:              raw.pricing.subtotal,
     discountTotal:         raw.pricing.discountTotal + raw.couponDiscount,
     taxTotal:              raw.pricing.taxTotal,
     shippingTotal:         raw.shippingTotal ?? raw.pricing.shippingTotal,
     grandTotal:            raw.grandTotal,
-    walletRedemption:      raw.walletRedemption ?? 0,
-    remainingToPay:        raw.remainingToPay ?? raw.grandTotal,
-    loyaltyRedemption:     raw.loyaltyRedemption ?? 0,
+    walletRedemption,
+    remainingToPay:        raw.remainingToPay ?? Math.max(0, raw.grandTotal - walletRedemption - loyaltyRedemption),
+    loyaltyRedemption,
     loyaltyPointsToRedeem: raw.loyaltyPointsToRedeem ?? 0,
     cashback:              raw.cashback ?? { eligible: false, totalCashback: 0, policies: [] },
   }

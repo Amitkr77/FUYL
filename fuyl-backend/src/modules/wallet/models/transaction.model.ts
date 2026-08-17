@@ -32,6 +32,7 @@ export interface IWalletTransaction extends Document {
   balanceAfter: number;
   referenceType?: string;       // 'order' | 'subscription' | 'referral' | 'reward' | 'gift_card'
   referenceId?: mongoose.Types.ObjectId;
+  idempotencyKey?: string;
   description: string;
   expiresAt?: Date;             // for time-bounded credits (e.g. referral rewards)
   isReversed: boolean;
@@ -59,6 +60,7 @@ const WalletTransactionSchema = new Schema<IWalletTransaction>(
     balanceAfter: { type: Number, required: true },
     referenceType: { type: String },
     referenceId: { type: Schema.Types.ObjectId, refPath: 'referenceType' },
+    idempotencyKey: { type: String, unique: true, sparse: true },
     description: { type: String, required: true },
     expiresAt: { type: Date, index: true },
     isReversed: { type: Boolean, default: false, index: true },

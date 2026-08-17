@@ -15,6 +15,8 @@ export interface ILoyaltyTransaction extends Document {
   description: string;
   /** When these specific points expire (used for earn transactions). */
   expiresAt?: Date;
+  expiredAt?: Date;
+  expiredPoints?: number;
   /** Whether this transaction has been reversed by a later one. */
   isReversed: boolean;
   /** The transaction ID that reversed this one. */
@@ -34,6 +36,8 @@ const loyaltyTransactionSchema = new Schema<ILoyaltyTransaction>(
     referenceId:   { type: Schema.Types.ObjectId },
     description:   { type: String, required: true, trim: true },
     expiresAt:     { type: Date },
+    expiredAt:     { type: Date },
+    expiredPoints: { type: Number, min: 0 },
     isReversed:    { type: Boolean, default: false },
     reversedTxId:  { type: Schema.Types.ObjectId },
   },
@@ -52,6 +56,11 @@ loyaltyTransactionSchema.index(
     sparse: true,
     partialFilterExpression: { type: { $in: ['earn', 'redeem'] } },
   }
+);
+
+loyaltyTransactionSchema.index(
+  { type: 1, referenceId: 1 },
+  { unique: true, partialFilterExpression: { type: 'expire' } }
 );
 
 export const LoyaltyTransactionModel = mongoose.model<ILoyaltyTransaction>(

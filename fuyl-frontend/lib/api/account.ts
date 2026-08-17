@@ -92,7 +92,7 @@ function mapOrder(o: BackendOrder): Order {
     discountTotal: o.discountTotal,
     taxTotal: o.taxTotal,
     shipping: o.shippingTotal,
-    total: Math.max(0, o.grandTotal - Number(o.metadata?.loyaltyRedemption ?? 0)),
+    total: o.grandTotal,
     walletApplied: Number(o.metadata?.walletRedemption ?? 0),
     loyaltyApplied: Number(o.metadata?.loyaltyRedemption ?? 0),
     loyaltyPointsRedeemed: Number(o.metadata?.loyaltyPointsRedeemed ?? 0),

@@ -47,4 +47,5 @@ export const Schedules = {
   CART_ABANDONED: '*/30 * * * *',           // every 30 min
   ANALYTICS_FLUSH: '*/5 * * * *',           // every 5 min
   SHIPPING_TRACKING: '0 */3 * * *',         // every 3 hours — poll carrier scans
+  LOYALTY_EXPIRY: '30 1 * * *',             // daily 01:30
 } as const;

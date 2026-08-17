@@ -33,7 +33,7 @@ export default async function LoyaltyPage({
 
   if (tab === 'accounts') {
     try {
-      if (!userId) customerResults = await searchCustomers(q ?? '')
+      if (!userId && q?.trim() && q.trim().length >= 2) customerResults = await searchCustomers(q)
       if (userId) [transactions, account] = await Promise.all([getLoyaltyTransactions(userId), getLoyaltyAccount(userId)])
     } catch (err) {
       dataError = getErrorMessage(err, 'Could not load account data.')
@@ -132,7 +132,7 @@ export default async function LoyaltyPage({
           )}
 
           {/* Search results — list of matching customers to click */}
-          {!userId && !dataError && (
+          {!userId && !dataError && q?.trim() && q.trim().length >= 2 && (
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm divide-y divide-slate-50">
               <div className="flex items-center gap-2 px-5 py-3 text-sm font-semibold text-slate-700"><Users className="h-4 w-4 text-[#558476]" />{q ? `Results for “${q}”` : 'Recent customers'}</div>
               {customerResults.length === 0 ? (
@@ -154,6 +154,11 @@ export default async function LoyaltyPage({
                   </Link>
                 ))
               )}
+            </div>
+          )}
+          {!userId && !dataError && (!q?.trim() || q.trim().length < 2) && (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center text-sm text-slate-500">
+              Enter at least 2 characters of a customer name or email to manage loyalty points.
             </div>
           )}
 

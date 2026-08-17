@@ -9,7 +9,8 @@ import {
 import { eventBus, Events } from '../../../shared/services/eventBus.service';
 import { queueService } from '../../../shared/services/queue.service';
 import { logger } from '../../../config/logger';
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
+import { InventoryStockModel, StockMovementModel, StockReservationModel } from '../models';
 import {
   StockAdjustmentDTO,
   SetReorderDTO,
@@ -178,6 +179,88 @@ class InventoryService {
     const reserved: Array<{ productId: string; variantId?: string; quantity: number }> = [];
     const failed: Array<{ productId: string; variantId?: string; quantity: number; reason: string }> = [];
     const expiresAt = new Date(Date.now() + dto.ttlMinutes * 60 * 1000);
+    const referenceType = dto.cartId ? 'cart' : 'order';
+    const referenceId = dto.cartId ?? dto.orderId;
+    if (!referenceId) throw new BadRequestError('Either cartId or orderId required');
+
+    for (const item of dto.items) {
+      const idempotencyKey = `${referenceType}:${referenceId}:${item.productId}:${item.variantId ?? 'default'}:${item.sellerId}:default`;
+      const session = await mongoose.startSession();
+      try {
+        let reservationApplied = false;
+        await session.withTransaction(async () => {
+          const duplicate = await StockReservationModel.findOne({ idempotencyKey }).session(session);
+          if (duplicate) {
+            if (duplicate.quantity !== item.quantity || duplicate.status !== 'active') {
+              throw new ConflictError('An existing reservation for this cart no longer matches the requested quantity');
+            }
+            reservationApplied = true;
+            return;
+          }
+
+          const stock = await InventoryStockModel.findOneAndUpdate(
+            {
+              productId: new Types.ObjectId(item.productId),
+              variantId: item.variantId ? new Types.ObjectId(item.variantId) : { $exists: false },
+              sellerId: new Types.ObjectId(item.sellerId),
+              warehouseId: 'default',
+              available: { $gte: item.quantity },
+            },
+            { $inc: { reserved: item.quantity, available: -item.quantity } },
+            { new: false, session }
+          );
+          if (!stock) throw new ConflictError('Insufficient available stock');
+
+          await StockReservationModel.create([{
+            productId: new Types.ObjectId(item.productId),
+            variantId: item.variantId ? new Types.ObjectId(item.variantId) : undefined,
+            sellerId: new Types.ObjectId(item.sellerId),
+            cartId: dto.cartId ? new Types.ObjectId(dto.cartId) : undefined,
+            orderId: dto.orderId ? new Types.ObjectId(dto.orderId) : undefined,
+            userId: dto.userId ? new Types.ObjectId(dto.userId) : undefined,
+            quantity: item.quantity,
+            status: 'active',
+            expiresAt,
+            idempotencyKey,
+          }], { session });
+
+          await StockMovementModel.create([{
+            productId: new Types.ObjectId(item.productId),
+            variantId: item.variantId ? new Types.ObjectId(item.variantId) : undefined,
+            sellerId: new Types.ObjectId(item.sellerId),
+            warehouseId: 'default',
+            type: 'reservation',
+            quantity: item.quantity,
+            balanceBefore: stock.onHand,
+            balanceAfter: stock.onHand,
+            referenceType,
+            referenceId: new Types.ObjectId(referenceId),
+          }], { session });
+          reservationApplied = true;
+        });
+        if (reservationApplied) reserved.push({ productId: item.productId, variantId: item.variantId, quantity: item.quantity });
+      } catch (error: any) {
+        if (error?.code === 11000 && await StockReservationModel.exists({ idempotencyKey })) {
+          reserved.push({ productId: item.productId, variantId: item.variantId, quantity: item.quantity });
+        } else {
+          failed.push({ productId: item.productId, variantId: item.variantId, quantity: item.quantity, reason: error?.message ?? 'Reserve failed' });
+        }
+      } finally {
+        await session.endSession();
+      }
+    }
+
+    logger.info(`[inventory] reserved ${reserved.length} items, ${failed.length} failed`);
+    return { reserved, failed };
+  }
+
+  private async reserveStockLegacy(dto: ReserveStockDTO): Promise<{
+    reserved: Array<{ productId: string; variantId?: string; quantity: number }>;
+    failed: Array<{ productId: string; variantId?: string; quantity: number; reason: string }>;
+  }> {
+    const reserved: Array<{ productId: string; variantId?: string; quantity: number }> = [];
+    const failed: Array<{ productId: string; variantId?: string; quantity: number; reason: string }> = [];
+    const expiresAt = new Date(Date.now() + dto.ttlMinutes * 60 * 1000);
 
     for (const item of dto.items) {
       try {
@@ -248,6 +331,75 @@ class InventoryService {
   }
 
   async releaseReservations(dto: ReleaseReservationDTO): Promise<void> {
+    if (!dto.cartId && !dto.orderId) throw new BadRequestError('Either cartId or orderId required');
+    const referenceType = dto.cartId ? 'cart' : 'order';
+    const referenceId = dto.cartId ?? dto.orderId!;
+    const session = await mongoose.startSession();
+    let releasedCount = 0;
+    try {
+      await session.withTransaction(async () => {
+        const filter = dto.cartId
+          ? { cartId: new Types.ObjectId(dto.cartId), status: 'active' }
+          : { orderId: new Types.ObjectId(dto.orderId!), status: 'active' };
+        const reservations = await StockReservationModel.find(filter).session(session);
+        for (const reservation of reservations) {
+          const claim = await StockReservationModel.updateOne(
+            { _id: reservation._id, status: 'active' },
+            { $set: { status: 'released', releasedAt: new Date() } },
+            { session }
+          );
+          if (claim.modifiedCount !== 1) continue;
+
+          const stock = await InventoryStockModel.findOneAndUpdate(
+            {
+              productId: reservation.productId,
+              variantId: reservation.variantId ?? { $exists: false },
+              sellerId: reservation.sellerId,
+              warehouseId: reservation.warehouseId ?? 'default',
+              reserved: { $gte: reservation.quantity },
+            },
+            { $inc: { reserved: -reservation.quantity, available: reservation.quantity } },
+            { new: false, session }
+          );
+          if (!stock) throw new ConflictError(`Reserved stock is inconsistent for reservation ${reservation._id}`);
+          await StockMovementModel.create([{
+            productId: reservation.productId,
+            variantId: reservation.variantId,
+            sellerId: reservation.sellerId,
+            warehouseId: reservation.warehouseId,
+            type: 'release',
+            quantity: -reservation.quantity,
+            balanceBefore: stock.onHand,
+            balanceAfter: stock.onHand,
+            referenceType,
+            referenceId: new Types.ObjectId(referenceId),
+            note: 'Reservation released',
+          }], { session });
+          releasedCount += 1;
+        }
+      });
+    } finally {
+      await session.endSession();
+    }
+    logger.info(`[inventory] released ${releasedCount} reservations`);
+  }
+
+  async attachReservationsToOrder(cartId: string, orderId: string): Promise<number> {
+    const result = await StockReservationModel.updateMany(
+      {
+        cartId: new Types.ObjectId(cartId),
+        status: 'active',
+        $or: [{ orderId: { $exists: false } }, { orderId: new Types.ObjectId(orderId) }],
+      },
+      { $set: { orderId: new Types.ObjectId(orderId) } }
+    );
+    if (result.matchedCount === 0) {
+      throw new ConflictError(`No active inventory reservations found for cart ${cartId}`);
+    }
+    return result.modifiedCount;
+  }
+
+  private async releaseReservationsLegacy(dto: ReleaseReservationDTO): Promise<void> {
     if (!dto.cartId && !dto.orderId) {
       throw new BadRequestError('Either cartId or orderId required');
     }
@@ -295,31 +447,64 @@ class InventoryService {
    * When an order ships, convert reservation → permanent deduction from onHand.
    */
   async fulfillOrder(orderId: string, orderNumber?: string): Promise<void> {
-    const reservations = await reservationRepo.fulfillByOrder(orderId);
-    for (const r of reservations) {
-      const stock = await stockRepo.findOrCreate(r.productId, r.sellerId, r.variantId, r.warehouseId);
-      // Reduce reserved + onHand (this is the "ship out" effect)
-      const updated = await stockRepo.applyReserveDelta(stock._id, -r.quantity);
-      if (updated) {
-        const updated2 = await stockRepo.applyOnHandDelta(stock._id, -r.quantity);
-        if (updated2) {
-          await movementRepo.create({
-            productId: r.productId,
-            variantId: r.variantId,
-            sellerId: r.sellerId,
-            warehouseId: r.warehouseId,
+    const session = await mongoose.startSession();
+    let fulfilledCount = 0;
+    try {
+      await session.withTransaction(async () => {
+        const reservations = await StockReservationModel.find({
+          orderId: new Types.ObjectId(orderId),
+          status: 'active',
+        }).session(session);
+
+        for (const reservation of reservations) {
+          // Fulfilment reduces onHand and reserved by the same quantity, so
+          // available remains unchanged. One guarded stock write replaces the
+          // old two-write sequence that could fail halfway through.
+          const stock = await InventoryStockModel.findOneAndUpdate(
+            {
+              productId: reservation.productId,
+              variantId: reservation.variantId ?? { $exists: false },
+              sellerId: reservation.sellerId,
+              warehouseId: reservation.warehouseId ?? 'default',
+              reserved: { $gte: reservation.quantity },
+              onHand: { $gte: reservation.quantity },
+            },
+            { $inc: { reserved: -reservation.quantity, onHand: -reservation.quantity } },
+            { new: false, session }
+          );
+          if (!stock) {
+            throw new ConflictError(`Inventory changed before order ${orderNumber ?? orderId} could be fulfilled`);
+          }
+
+          const reservationClaim = await StockReservationModel.updateOne(
+            { _id: reservation._id, status: 'active' },
+            { $set: { status: 'fulfilled', fulfilledAt: new Date() } },
+            { session }
+          );
+          if (reservationClaim.modifiedCount !== 1) {
+            throw new ConflictError(`Reservation was already processed for order ${orderNumber ?? orderId}`);
+          }
+
+          await StockMovementModel.create([{
+            productId: reservation.productId,
+            variantId: reservation.variantId,
+            sellerId: reservation.sellerId,
+            warehouseId: reservation.warehouseId,
             type: 'order_out',
-            quantity: -r.quantity,
+            quantity: -reservation.quantity,
             balanceBefore: stock.onHand,
-            balanceAfter: updated2.onHand,
+            balanceAfter: stock.onHand - reservation.quantity,
             referenceType: 'order',
             referenceId: new Types.ObjectId(orderId),
             note: `Order ${orderNumber ?? 'shipment'} shipped`,
-          });
+          }], { session });
+          fulfilledCount += 1;
         }
-      }
+      });
+    } finally {
+      await session.endSession();
     }
-    logger.info(`[inventory] fulfilled order ${orderId} (${reservations.length} reservations)`);
+    logger.info(`[inventory] fulfilled order ${orderId} (${fulfilledCount} reservations)`);
   }
 
   // ─── Movement history ─────────────────────────────────────────
@@ -331,6 +516,58 @@ class InventoryService {
    * Scheduled job: expire stale reservations.
    */
   async expireStaleReservations(): Promise<number> {
+    const expired = await reservationRepo.findExpired();
+    let count = 0;
+    for (const candidate of expired) {
+      const session = await mongoose.startSession();
+      try {
+        let didExpire = false;
+        await session.withTransaction(async () => {
+          const reservation = await StockReservationModel.findOneAndUpdate(
+            { _id: candidate._id, status: 'active', orderId: { $exists: false }, expiresAt: { $lte: new Date() } },
+            { $set: { status: 'expired', releasedAt: new Date() } },
+            { new: true, session }
+          );
+          if (!reservation) return;
+          const stock = await InventoryStockModel.findOneAndUpdate(
+            {
+              productId: reservation.productId,
+              variantId: reservation.variantId ?? { $exists: false },
+              sellerId: reservation.sellerId,
+              warehouseId: reservation.warehouseId ?? 'default',
+              reserved: { $gte: reservation.quantity },
+            },
+            { $inc: { reserved: -reservation.quantity, available: reservation.quantity } },
+            { new: false, session }
+          );
+          if (!stock) throw new ConflictError(`Reserved stock is inconsistent for reservation ${reservation._id}`);
+          await StockMovementModel.create([{
+            productId: reservation.productId,
+            variantId: reservation.variantId,
+            sellerId: reservation.sellerId,
+            warehouseId: reservation.warehouseId,
+            type: 'release',
+            quantity: -reservation.quantity,
+            balanceBefore: stock.onHand,
+            balanceAfter: stock.onHand,
+            referenceType: 'reservation',
+            referenceId: reservation._id,
+            note: 'Reservation expired',
+          }], { session });
+          didExpire = true;
+        });
+        if (didExpire) count += 1;
+      } catch (error) {
+        logger.error(`[inventory] failed to expire reservation ${candidate._id}`, error);
+      } finally {
+        await session.endSession();
+      }
+    }
+    if (count > 0) logger.info(`[inventory] expired ${count} stale reservations`);
+    return count;
+  }
+
+  private async expireStaleReservationsLegacy(): Promise<number> {
     const expired = await reservationRepo.findExpired();
     let n = 0;
     for (const r of expired) {

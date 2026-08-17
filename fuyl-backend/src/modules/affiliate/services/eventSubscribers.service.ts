@@ -50,5 +50,17 @@ export function registerAffiliateEventSubscribers(): void {
     }
   });
 
+  eventBus.on<{
+    orderId: string;
+    totalRefunded: number;
+    paymentAmount: number;
+  }>(Events.PAYMENT_REFUNDED, async (event) => {
+    try {
+      await commissionService.adjustForRefund(event.orderId, event.totalRefunded, event.paymentAmount);
+    } catch (err) {
+      logger.error('[affiliate.event] PAYMENT_REFUNDED handler failed', err);
+    }
+  });
+
   logger.info('[affiliate.event] subscribers registered');
 }

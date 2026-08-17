@@ -7,6 +7,7 @@ import {
 import { ILoyaltyConfig } from '../models/loyaltyConfig.model';
 import { logger } from '../../../config/logger';
 import { BadRequestError, NotFoundError } from '../../../shared/errors';
+import { fromPaise, toPaise } from '../../../shared/utils';
 
 const configRepo = new LoyaltyConfigRepository();
 const accountRepo = new LoyaltyAccountRepository();
@@ -30,7 +31,12 @@ export class LoyaltyService {
       grandTotal: number;
     }
   ): number {
-    const { subtotal, discountTotal, shippingTotal, taxTotal, walletRedemption, grandTotal } = orderData;
+    const subtotal = toPaise(orderData.subtotal);
+    const discountTotal = toPaise(orderData.discountTotal);
+    const shippingTotal = toPaise(orderData.shippingTotal);
+    const taxTotal = toPaise(orderData.taxTotal);
+    const walletRedemption = toPaise(orderData.walletRedemption);
+    const grandTotal = toPaise(orderData.grandTotal);
     const discountedSubtotal = Math.max(0, subtotal - discountTotal);
 
     let base: number;
@@ -66,17 +72,20 @@ export class LoyaltyService {
       base = Math.max(0, base - walletRedemption);
     }
 
-    return Math.max(0, base);
+    return fromPaise(Math.max(0, Math.round(base)));
   }
 
   /** Calculate how many points to award for the given eligible base. */
   private computePoints(config: ILoyaltyConfig, eligibleBase: number): number {
-    return Math.floor(eligibleBase / config.earnSpend) * config.earnPoints;
+    const earnSpendPaise = toPaise(config.earnSpend);
+    if (earnSpendPaise <= 0) return 0;
+    return Math.floor(toPaise(eligibleBase) / earnSpendPaise) * config.earnPoints;
   }
 
   /** Convert a points amount into its monetary (₹) value. */
   computeRedemptionValue(config: ILoyaltyConfig, points: number): number {
-    return Math.floor(points / config.redeemPoints) * config.redeemValue;
+    if (config.redeemPoints <= 0) return 0;
+    return fromPaise(Math.floor(points / config.redeemPoints) * toPaise(config.redeemValue));
   }
 
   // ─── Customer-facing methods ────────────────────────────────────────────────
@@ -139,10 +148,12 @@ export class LoyaltyService {
 
       // Cap by maxRedeemPercent of order total
       if (config.maxRedeemPercent > 0 && orderTotal > 0) {
-        const maxMonetaryFromPercent = (orderTotal * config.maxRedeemPercent) / 100;
+        const maxMonetaryFromPercentPaise = Math.floor((toPaise(orderTotal) * config.maxRedeemPercent) / 100);
+        const redeemValuePaise = toPaise(config.redeemValue);
         // Convert the monetary cap back to points (how many blocks fit?)
-        const maxPointsFromPercent =
-          Math.floor(maxMonetaryFromPercent / config.redeemValue) * config.redeemPoints;
+        const maxPointsFromPercent = redeemValuePaise > 0
+          ? Math.floor(maxMonetaryFromPercentPaise / redeemValuePaise) * config.redeemPoints
+          : 0;
         pointsToRedeem = Math.min(pointsToRedeem, maxPointsFromPercent);
       }
 
@@ -266,9 +277,11 @@ export class LoyaltyService {
 
       // Cap by maxRedeemPercent
       if (config.maxRedeemPercent > 0 && input.orderTotal > 0) {
-        const maxMonetary = (input.orderTotal * config.maxRedeemPercent) / 100;
-        const maxPointsFromPercent =
-          Math.floor(maxMonetary / config.redeemValue) * config.redeemPoints;
+        const maxMonetaryPaise = Math.floor((toPaise(input.orderTotal) * config.maxRedeemPercent) / 100);
+        const redeemValuePaise = toPaise(config.redeemValue);
+        const maxPointsFromPercent = redeemValuePaise > 0
+          ? Math.floor(maxMonetaryPaise / redeemValuePaise) * config.redeemPoints
+          : 0;
         pointsToRedeem = Math.min(pointsToRedeem, maxPointsFromPercent);
       }
 

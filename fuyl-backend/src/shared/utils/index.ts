@@ -1,6 +1,8 @@
 import { Request } from 'express';
 import { PaginationInput } from '../validators';
 
+export * from './money';
+
 export function getPagination(req: Request): PaginationInput {
   return {
     page: parseInt(req.query.page as string) || 1,

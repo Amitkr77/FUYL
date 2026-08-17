@@ -11,9 +11,9 @@ export default async function WalletSearchPage({
   const { q } = await searchParams
   let results: Awaited<ReturnType<typeof searchCustomers>> = []
   let error = ''
-  {
+  if (q?.trim() && q.trim().length >= 2) {
     try {
-      results = await searchCustomers(q ?? '')
+      results = await searchCustomers(q)
     } catch (err) {
       error = getErrorMessage(err, 'Search failed.')
     }
@@ -47,7 +47,7 @@ export default async function WalletSearchPage({
         <div className="p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">{error}</div>
       )}
 
-      {!error && (
+      {!error && q?.trim() && q.trim().length >= 2 && (
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm divide-y divide-slate-50">
           <div className="flex items-center gap-2 px-5 py-3 text-sm font-semibold text-slate-700"><Users className="h-4 w-4 text-[#558476]" />{q ? `Results for “${q}”` : 'Recent customers'}</div>
           {results.length === 0 ? (
@@ -67,6 +67,11 @@ export default async function WalletSearchPage({
               </Link>
             ))
           )}
+        </div>
+      )}
+      {!error && (!q?.trim() || q.trim().length < 2) && (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center text-sm text-slate-500">
+          Enter at least 2 characters of a customer name or email to find a wallet.
         </div>
       )}
     </div>

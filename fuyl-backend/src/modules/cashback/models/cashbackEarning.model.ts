@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export type EarningStatus = 'pending' | 'credited' | 'reversed' | 'expired';
+export type EarningStatus = 'pending' | 'processing' | 'credited' | 'reversed' | 'expired';
 
 export interface ICashbackEarning extends Document {
   orderId: mongoose.Types.ObjectId;
@@ -34,7 +34,7 @@ const cashbackEarningSchema = new Schema<ICashbackEarning>(
     policyId:            { type: Schema.Types.ObjectId, ref: 'CashbackPolicy' },
     cashbackBase:        { type: Number, required: true, min: 0 },
     cashbackAmount:      { type: Number, required: true, min: 0 },
-    status:              { type: String, enum: ['pending', 'credited', 'reversed', 'expired'], default: 'pending' },
+    status:              { type: String, enum: ['pending', 'processing', 'credited', 'reversed', 'expired'], default: 'pending' },
     creditTiming:        { type: String, required: true },
     creditAfterDays:     { type: Number },
     scheduledCreditAt:   { type: Date, required: true, index: true },

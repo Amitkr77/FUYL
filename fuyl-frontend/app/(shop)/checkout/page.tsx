@@ -388,15 +388,20 @@ export default function CheckoutPage() {
   // retry — never creates a new order.
   const attemptPayment = async (order: { orderId: string; orderNumber: string }) => {
     try {
+      if (!token) {
+        setError('Your session expired. Please sign in again before paying for this order.')
+        setStep('error')
+        return
+      }
       const orderFullyCovered = preview !== null && preview.remainingToPay === 0
       const walletCoversAll = useWallet && orderFullyCovered
       // When loyalty alone (no wallet) covers the full order, no gateway is needed.
       // Use 'cod' so the backend marks it complete without attempting a charge.
       const loyaltyCoversAll = useLoyalty && !useWallet && orderFullyCovered
-      const method = walletCoversAll ? 'wallet' : loyaltyCoversAll ? 'cod' : paymentMethod
-      const payment = await createPayment(token!, order.orderId, method)
+      const method = walletCoversAll ? 'wallet' : loyaltyCoversAll ? 'loyalty' : paymentMethod
+      const payment = await createPayment(token, order.orderId, method)
 
-      if (payment.method === 'cod' || payment.method === 'wallet') {
+      if (payment.method === 'cod' || payment.method === 'wallet' || payment.method === 'loyalty') {
         await useCartStore.getState().syncCart()
         router.push(`/checkout/success?orderId=${order.orderId}`)
         return
@@ -414,7 +419,7 @@ export default function CheckoutPage() {
       })
 
       try {
-        await verifyPayment(token!, { cfOrderId: payment.cfOrderId })
+        await verifyPayment(token, { cfOrderId: payment.cfOrderId })
         await useCartStore.getState().syncCart()
         router.push(`/checkout/success?orderId=${order.orderId}`)
       } catch {
@@ -435,6 +440,11 @@ export default function CheckoutPage() {
 
   const handleConfirm = async () => {
     if (confirmingRef.current || !preview || previewLoading) return
+    if (!token) {
+      setError('Your session expired. Please sign in again before placing the order.')
+      setStep('error')
+      return
+    }
     confirmingRef.current = true
     setError('')
     setConfirming(true)
@@ -444,8 +454,8 @@ export default function CheckoutPage() {
       const orderFullyCovered = preview.remainingToPay === 0
       const walletCoversAll = useWallet && orderFullyCovered
       const loyaltyCoversAll = useLoyalty && !useWallet && orderFullyCovered
-      const method = walletCoversAll ? 'wallet' : loyaltyCoversAll ? 'cod' : paymentMethod
-      const order = await placeOrder(token!, {
+      const method = walletCoversAll ? 'wallet' : loyaltyCoversAll ? 'loyalty' : paymentMethod
+      const order = await placeOrder(token, {
         shippingAddress: address,
         paymentMethod: method,
         couponCode: appliedCoupon?.code,

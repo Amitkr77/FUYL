@@ -7,6 +7,7 @@ import { createOrderSchema, updateStatusSchema, cancelOrderSchema, createReturnS
 import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
 import { ForbiddenError, BadRequestError } from '../../../shared/errors';
 import { OrderStatus } from '../../../shared/enums';
+import { subscriptionService } from '../../subscription/services';
 
 export class OrderController {
   create = [
@@ -47,6 +48,10 @@ export class OrderController {
 
   listBySubscription = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
+      const subscription = await subscriptionService.getById(req.params.subscriptionId);
+      if (req.user!.role === Roles.CUSTOMER && subscription.customerId.toString() !== req.user!.userId) {
+        return next(new ForbiddenError('Not your subscription'));
+      }
       return success(res, await orderService.listBySubscription(req.params.subscriptionId));
     } catch (err) { next(err); }
   };
@@ -150,12 +155,24 @@ export class OrderController {
 
   // ─── Invoices ───────────────────────────────────────────────────
   listInvoicesByOrder = async (req: AuthedRequest, res: Response, next: NextFunction) => {
-    try { return success(res, await orderService.listInvoicesByOrder(req.params.id)); }
+    try {
+      const order = await orderService.getById(req.params.id);
+      if (req.user!.role === Roles.CUSTOMER && order.customerId.toString() !== req.user!.userId) {
+        return next(new ForbiddenError('Not your order'));
+      }
+      return success(res, await orderService.listInvoicesByOrder(req.params.id));
+    }
     catch (err) { next(err); }
   };
 
   getInvoice = async (req: AuthedRequest, res: Response, next: NextFunction) => {
-    try { return success(res, await orderService.getInvoice(req.params.id)); }
+    try {
+      const invoice = await orderService.getInvoice(req.params.id);
+      if (req.user!.role === Roles.CUSTOMER && invoice.customerId.toString() !== req.user!.userId) {
+        return next(new ForbiddenError('Not your invoice'));
+      }
+      return success(res, invoice);
+    }
     catch (err) { next(err); }
   };
 

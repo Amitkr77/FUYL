@@ -22,6 +22,7 @@ export class StockReservationRepository {
   async findExpired(): Promise<IStockReservation[]> {
     return StockReservationModel.find({
       status: 'active',
+      orderId: { $exists: false },
       expiresAt: { $lt: new Date() },
     });
   }

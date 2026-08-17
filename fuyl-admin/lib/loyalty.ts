@@ -1,4 +1,4 @@
-import { adminApiFetch } from './api'
+import { adminApiFetch, adminApiFetchPaginated } from './api'
 
 export type EligibleBase =
   | 'original_subtotal'
@@ -129,11 +129,10 @@ export async function getLoyaltyTransactions(
   limit = 30,
 ): Promise<{ items: LoyaltyTransaction[]; total: number }> {
   const qs = new URLSearchParams({ userId, page: String(page), limit: String(limit) })
-  const raw = await adminApiFetch<BackendTx[]>(
+  const result = await adminApiFetchPaginated<BackendTx>(
     `/admin/loyalty/transactions?${qs.toString()}`
   )
-  const records = Array.isArray(raw) ? raw : []
-  return { items: records.map(mapTx), total: records.length }
+  return { items: result.items.map(mapTx), total: result.meta.total }
 }
 
 export async function adminAdjustLoyalty(input: {

@@ -38,6 +38,7 @@ export const PaymentMethod = {
   UPI: 'upi',
   COD: 'cod',
   WALLET: 'wallet',
+  LOYALTY: 'loyalty',
   SPLIT: 'split',
 } as const;
 
@@ -132,6 +133,7 @@ export const CommissionEventType = {
   PAID:       'paid',
   CANCELLED:  'cancelled',
   REVERSED:   'reversed',
+  ADJUSTED:   'adjusted',
 } as const;
 
 export type EnumOf<T extends Record<string, string>> = T[keyof T];

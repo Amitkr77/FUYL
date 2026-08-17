@@ -9,6 +9,9 @@ import { WalletTxType, WalletTxSource } from '../models/transaction.model';
 import { eventBus, Events } from '../../../shared/services/eventBus.service';
 import { logger } from '../../../config/logger';
 import mongoose, { Types } from 'mongoose';
+import { WalletModel } from '../models/wallet.model';
+import { WalletTransactionModel } from '../models/transaction.model';
+import { fromPaise, toPaise } from '../../../shared/utils';
 
 const walletRepo = new WalletRepository();
 const txRepo = new WalletTransactionRepository();
@@ -29,6 +32,15 @@ export interface DebitInput extends Omit<CreditInput, 'amount'> {
 }
 
 export class WalletService {
+  private normalizeAmount(amount: number) {
+    return fromPaise(toPaise(amount));
+  }
+
+  private transactionKey(action: string, input: CreditInput) {
+    if (!input.referenceType || !input.referenceId) return undefined;
+    return `${action}:${input.source}:${input.referenceType}:${input.referenceId.toString()}`;
+  }
+
   async getOrCreateWallet(userId: string | Types.ObjectId) {
     return walletRepo.findOrCreateByUser(userId);
   }
@@ -47,6 +59,19 @@ export class WalletService {
 
   async getTransactions(userId: string | Types.ObjectId, limit = 50) {
     const transactions = await txRepo.findByUser(userId, {}, limit);
+    return this.enrichTransactions(transactions);
+  }
+
+  async getTransactionsPage(userId: string | Types.ObjectId, page = 1, limit = 20) {
+    const result = await txRepo.paginate(
+      { userId: new Types.ObjectId(userId.toString()) },
+      page,
+      limit
+    );
+    return { ...result, items: await this.enrichTransactions(result.items) };
+  }
+
+  private async enrichTransactions(transactions: any[]) {
     const reversalIds = transactions
       .map((tx) => (tx.metadata as any)?.originalTxId)
       .filter(Boolean);
@@ -72,6 +97,82 @@ export class WalletService {
   }
 
   async credit(input: CreditInput) {
+    return this.mutateBalance(input, 'credit');
+  }
+
+  async debit(input: DebitInput) {
+    return this.mutateBalance(input, 'debit');
+  }
+
+  private async mutateBalance(input: CreditInput, type: 'credit' | 'debit') {
+    const amount = this.normalizeAmount(input.amount);
+    if (amount <= 0) throw new BadRequestError(`${type === 'credit' ? 'Credit' : 'Debit'} amount must be positive`);
+    const key = this.transactionKey(type, input);
+    const session = await mongoose.startSession();
+    try {
+      let result: any;
+      await session.withTransaction(async () => {
+        if (key) {
+          const duplicate = await WalletTransactionModel.findOne({ idempotencyKey: key }).session(session);
+          if (duplicate) {
+            result = { wallet: await WalletModel.findById(duplicate.walletId).session(session), transaction: duplicate };
+            return;
+          }
+        }
+
+        const delta = type === 'credit' ? amount : -amount;
+        const userId = new Types.ObjectId(input.userId.toString());
+        let currentWallet = await WalletModel.findOne({ userId }).session(session);
+        if (!currentWallet && type === 'credit') {
+          [currentWallet] = await WalletModel.create([{ userId, balance: 0, currency: 'INR' }], { session });
+        }
+        if (!currentWallet) throw new BadRequestError('Insufficient wallet balance');
+        if (currentWallet.isFrozen) throw new ForbiddenError('Wallet is frozen');
+        const filter: Record<string, unknown> = { _id: currentWallet._id };
+        if (type === 'debit') filter.balance = { $gte: amount };
+        const update = type === 'credit'
+          ? { $inc: { balance: delta, totalLifetimeCredit: amount } }
+          : { $inc: { balance: delta, totalLifetimeDebit: amount } };
+        const wallet = await WalletModel.findOneAndUpdate(filter, update, {
+          new: true,
+          session,
+        });
+        if (!wallet) throw new BadRequestError('Insufficient wallet balance or wallet is frozen');
+
+        const balanceBefore = this.normalizeAmount(wallet.balance - delta);
+        const [transaction] = await WalletTransactionModel.create([{
+          walletId: wallet._id,
+          userId: wallet.userId,
+          type: type as WalletTxType,
+          source: input.source,
+          amount,
+          currency: wallet.currency,
+          balanceBefore,
+          balanceAfter: this.normalizeAmount(wallet.balance),
+          referenceType: input.referenceType,
+          referenceId: input.referenceId ? new Types.ObjectId(input.referenceId.toString()) : undefined,
+          idempotencyKey: key,
+          description: input.description,
+          expiresAt: input.expiresAt,
+          isReversed: false,
+          metadata: input.metadata,
+        }], { session });
+        result = { wallet, transaction };
+      });
+      logger.info(`[wallet] ${type}ed ₹${amount} for user ${input.userId} (source: ${input.source})`);
+      return result;
+    } catch (error: any) {
+      if (key && error?.code === 11000) {
+        const transaction = await WalletTransactionModel.findOne({ idempotencyKey: key });
+        if (transaction) return { wallet: await WalletModel.findById(transaction.walletId), transaction };
+      }
+      throw error;
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  private async creditLegacy(input: CreditInput) {
     if (input.amount <= 0) throw new BadRequestError('Credit amount must be positive');
 
     // Idempotency: a reference-bound credit (referral reward, refund, reversal)
@@ -119,7 +220,7 @@ export class WalletService {
     return { wallet: updated, transaction: tx };
   }
 
-  async debit(input: DebitInput) {
+  private async debitLegacy(input: DebitInput) {
     if (input.amount <= 0) throw new BadRequestError('Debit amount must be positive');
     const wallet = await this.getOrCreateWallet(input.userId);
     if (wallet.isFrozen) throw new ForbiddenError('Wallet is frozen');
@@ -155,6 +256,71 @@ export class WalletService {
    * (we cap at 0 and log a warning).
    */
   async reverse(transactionId: string | Types.ObjectId, reason: string): Promise<void> {
+    const original = await WalletTransactionModel.findById(transactionId);
+    if (!original) throw new NotFoundError('Wallet transaction');
+    if (original.type !== 'credit') throw new BadRequestError('Only credit transactions can be reversed');
+
+    let displayReason = reason;
+    const relatedOrderId = (original.metadata as any)?.orderId;
+    if (relatedOrderId) {
+      const { OrderModel } = await import('../../order/models/order.model');
+      const order = await OrderModel.findById(relatedOrderId).select('orderNumber').lean();
+      if (order?.orderNumber) displayReason = reason.replace(String(relatedOrderId), order.orderNumber);
+    }
+
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        const claimed = await WalletTransactionModel.findOneAndUpdate(
+          { _id: original._id, type: 'credit', isReversed: { $ne: true } },
+          { $set: { isReversed: true } },
+          { new: true, session }
+        );
+        if (!claimed) throw new ConflictError('Transaction already reversed');
+
+        const walletBefore = await WalletModel.findById(claimed.walletId).session(session);
+        if (!walletBefore) throw new NotFoundError('Wallet');
+        const requestedAmount = this.normalizeAmount(claimed.amount);
+        const debitAmount = Math.min(this.normalizeAmount(walletBefore.balance), requestedAmount);
+        const wallet = await WalletModel.findOneAndUpdate(
+          { _id: walletBefore._id, balance: { $gte: debitAmount } },
+          { $inc: { balance: -debitAmount, totalLifetimeDebit: debitAmount } },
+          { new: true, session }
+        );
+        if (!wallet) throw new Error('Failed to reverse wallet transaction');
+
+        const [reversal] = await WalletTransactionModel.create([{
+          walletId: wallet._id,
+          userId: wallet.userId,
+          type: 'reverse' as WalletTxType,
+          source: 'reversal' as WalletTxSource,
+          amount: debitAmount,
+          currency: wallet.currency,
+          balanceBefore: this.normalizeAmount(walletBefore.balance),
+          balanceAfter: this.normalizeAmount(wallet.balance),
+          referenceType: 'wallet_transaction',
+          referenceId: claimed._id,
+          idempotencyKey: `reverse:reversal:wallet_transaction:${claimed._id}`,
+          description: `Reversal: ${displayReason}`,
+          isReversed: false,
+          metadata: {
+            originalTxId: claimed._id,
+            reason: displayReason,
+            orderId: relatedOrderId,
+            requestedAmount,
+            uncollectedAmount: this.normalizeAmount(requestedAmount - debitAmount),
+          },
+        }], { session });
+        claimed.reversedByTxId = reversal._id;
+        await claimed.save({ session });
+      });
+      logger.info(`[wallet] reversed tx ${original._id} (${displayReason})`);
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  private async reverseLegacy(transactionId: string | Types.ObjectId, reason: string): Promise<void> {
     const original = await txRepo.findById(transactionId);
     if (!original) throw new NotFoundError('Wallet transaction');
     if (original.type !== 'credit') throw new BadRequestError('Only credit transactions can be reversed');
@@ -216,6 +382,59 @@ export class WalletService {
    * released when the order completes (→ debit + tx) or cancelled (→ release back to balance).
    */
   async hold(userId: string | Types.ObjectId, amount: number, referenceType: string, referenceId: string, description: string) {
+    const normalizedAmount = this.normalizeAmount(amount);
+    if (normalizedAmount <= 0) throw new BadRequestError('Hold amount must be positive');
+    const idempotencyKey = `hold:order_payment:${referenceType}:${referenceId}`;
+    const session = await mongoose.startSession();
+    try {
+      let result: any;
+      await session.withTransaction(async () => {
+        const duplicate = await WalletTransactionModel.findOne({ idempotencyKey }).session(session);
+        if (duplicate) {
+          result = { wallet: await WalletModel.findById(duplicate.walletId).session(session), transaction: duplicate };
+          return;
+        }
+        const wallet = await WalletModel.findOneAndUpdate(
+          {
+            userId: new Types.ObjectId(userId.toString()),
+            isFrozen: { $ne: true },
+            balance: { $gte: normalizedAmount },
+          },
+          { $inc: { balance: -normalizedAmount, heldBalance: normalizedAmount } },
+          { new: true, session }
+        );
+        if (!wallet) throw new BadRequestError('Insufficient wallet balance or wallet is frozen');
+        const balanceBefore = this.normalizeAmount(wallet.balance + normalizedAmount);
+        const [transaction] = await WalletTransactionModel.create([{
+          walletId: wallet._id,
+          userId: wallet.userId,
+          type: 'hold' as WalletTxType,
+          source: 'order_payment' as WalletTxSource,
+          amount: normalizedAmount,
+          currency: wallet.currency,
+          balanceBefore,
+          balanceAfter: this.normalizeAmount(wallet.balance),
+          referenceType,
+          referenceId: new Types.ObjectId(referenceId),
+          idempotencyKey,
+          description,
+          isReversed: false,
+        }], { session });
+        result = { wallet, transaction };
+      });
+      return result;
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        const transaction = await WalletTransactionModel.findOne({ idempotencyKey });
+        if (transaction) return { wallet: await WalletModel.findById(transaction.walletId), transaction };
+      }
+      throw error;
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  private async holdLegacy(userId: string | Types.ObjectId, amount: number, referenceType: string, referenceId: string, description: string) {
     if (amount <= 0) throw new BadRequestError('Hold amount must be positive');
     const wallet = await this.getOrCreateWallet(userId);
     if (wallet.isFrozen) throw new ForbiddenError('Wallet is frozen');
@@ -246,6 +465,63 @@ export class WalletService {
   }
 
   async releaseHold(transactionId: string | Types.ObjectId, reason: string) {
+    const idempotencyKey = `release:order_refund:wallet_transaction:${transactionId}`;
+    const session = await mongoose.startSession();
+    try {
+      let result: any;
+      await session.withTransaction(async () => {
+        const duplicate = await WalletTransactionModel.findOne({ idempotencyKey }).session(session);
+        if (duplicate) {
+          result = { wallet: await WalletModel.findById(duplicate.walletId).session(session), transaction: duplicate };
+          return;
+        }
+        const original = await WalletTransactionModel.findOneAndUpdate(
+          { _id: transactionId, type: 'hold', isReversed: { $ne: true } },
+          { $set: { isReversed: true } },
+          { new: true, session }
+        );
+        if (!original) throw new ConflictError('Hold transaction already released or not found');
+        const normalizedAmount = this.normalizeAmount(original.amount);
+        const walletBefore = await WalletModel.findById(original.walletId).session(session);
+        if (!walletBefore) throw new NotFoundError('Wallet');
+        const wallet = await WalletModel.findOneAndUpdate(
+          { _id: original.walletId, heldBalance: { $gte: normalizedAmount } },
+          { $inc: { balance: normalizedAmount, heldBalance: -normalizedAmount } },
+          { new: true, session }
+        );
+        if (!wallet) throw new Error('Failed to release hold — held balance lower than expected');
+        const [release] = await WalletTransactionModel.create([{
+          walletId: wallet._id,
+          userId: wallet.userId,
+          type: 'release' as WalletTxType,
+          source: 'order_refund' as WalletTxSource,
+          amount: normalizedAmount,
+          currency: wallet.currency,
+          balanceBefore: this.normalizeAmount(walletBefore.balance),
+          balanceAfter: this.normalizeAmount(wallet.balance),
+          referenceType: 'wallet_transaction',
+          referenceId: original._id,
+          idempotencyKey,
+          description: `Release: ${reason}`,
+          isReversed: false,
+        }], { session });
+        original.reversedByTxId = release._id;
+        await original.save({ session });
+        result = { wallet, transaction: release };
+      });
+      return result;
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        const transaction = await WalletTransactionModel.findOne({ idempotencyKey });
+        if (transaction) return { wallet: await WalletModel.findById(transaction.walletId), transaction };
+      }
+      throw error;
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  private async releaseHoldLegacy(transactionId: string | Types.ObjectId, reason: string) {
     const original = await txRepo.findById(transactionId);
     if (!original) throw new NotFoundError('Wallet transaction');
     if (original.type !== 'hold') throw new BadRequestError('Only hold transactions can be released');

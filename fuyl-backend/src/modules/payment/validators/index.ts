@@ -3,7 +3,7 @@ import { PaymentMethod } from '../../../shared/enums';
 
 export const createPaymentSchema = z.object({
   orderId: z.string().length(24),
-  method: z.enum([PaymentMethod.CASHFREE, PaymentMethod.COD, PaymentMethod.WALLET]),
+  method: z.enum([PaymentMethod.CASHFREE, PaymentMethod.COD, PaymentMethod.WALLET, PaymentMethod.LOYALTY]),
 });
 
 // Cashfree has no client-side signature — the client sends back the Cashfree

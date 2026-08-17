@@ -35,6 +35,7 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
   upi: "UPI",
   cod: "Cash on Delivery",
   wallet: "Wallet",
+  loyalty: "Loyalty Points",
   split: "Split Payment",
 };
 
@@ -467,14 +468,6 @@ export default function OrderDetailPage() {
                       </span>
                     </div>
                   )}
-                  {(order.loyaltyApplied ?? 0) > 0 && (
-                    <div className="flex justify-between text-body-sm">
-                      <span className="text-brand-muted">
-                        Loyalty points{order.loyaltyPointsRedeemed ? ` (${order.loyaltyPointsRedeemed.toLocaleString('en-IN')} pts)` : ''}
-                      </span>
-                      <span className="text-purple-600">-{formatPrice(order.loyaltyApplied ?? 0)}</span>
-                    </div>
-                  )}
                   {order.taxTotal > 0 && (
                     <div className="flex justify-between text-body-sm">
                       <span className="text-brand-muted">Tax</span>
@@ -492,7 +485,7 @@ export default function OrderDetailPage() {
                     </span>
                   </div>
                   <div className="flex justify-between text-body-md font-semibold text-brand-forest pt-3 mt-1 border-t border-brand-border">
-                    <span>Total</span>
+                    <span>Order total</span>
                     <span>{formatPrice(order.total)}</span>
                   </div>
                 </div>
@@ -517,20 +510,38 @@ export default function OrderDetailPage() {
                     </span>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <span className="text-brand-muted">Amount Paid</span>
+                    <span className="text-brand-muted">External payment</span>
                     <span className="text-brand-forest font-medium text-right">
                       {formatPrice(
-                        (payments[0]?.amount ?? order.total) +
-                        (order.paymentMethod === 'wallet' ? 0 : (order.walletApplied ?? 0))
+                        payments
+                          .filter((p) => ['success', 'refunded', 'partially_refunded'].includes(p.status) && !['wallet', 'loyalty'].includes(p.gateway))
+                          .reduce((sum, p) => sum + p.amount, 0)
                       )}
                     </span>
                   </div>
-                  {(order.walletApplied ?? 0) > 0 && order.paymentMethod !== 'wallet' && (
+                  {(order.walletApplied ?? 0) > 0 && (
                     <div className="flex justify-between gap-3 text-body-xs">
-                      <span className="text-brand-muted">Includes wallet</span>
+                      <span className="text-brand-muted">Wallet used</span>
                       <span className="text-brand-forest">{formatPrice(order.walletApplied ?? 0)}</span>
                     </div>
                   )}
+                  {(order.loyaltyApplied ?? 0) > 0 && (
+                    <div className="flex justify-between gap-3 text-body-xs">
+                      <span className="text-brand-muted">Loyalty used</span>
+                      <span className="text-brand-forest">{formatPrice(order.loyaltyApplied ?? 0)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between gap-3 border-t border-brand-border pt-2 mt-1">
+                    <span className="text-brand-muted">Amount due</span>
+                    <span className="text-brand-forest font-semibold">{formatPrice(Math.max(0,
+                      order.total -
+                      (order.walletApplied ?? 0) -
+                      (order.loyaltyApplied ?? 0) -
+                      payments
+                        .filter((p) => ['success', 'refunded', 'partially_refunded'].includes(p.status) && !['wallet', 'loyalty'].includes(p.gateway))
+                        .reduce((sum, p) => sum + p.amount, 0)
+                    ))}</span>
+                  </div>
                 </div>
                 {((payments[0]?.reference ?? order.razorpayPaymentId) ||
                   payments[0]?.capturedAt ||

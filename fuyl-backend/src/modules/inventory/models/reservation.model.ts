@@ -11,6 +11,7 @@ export interface IStockReservation extends Document {
   orderId?: Types.ObjectId;
   userId?: Types.ObjectId;
   quantity: number;
+  idempotencyKey?: string;
   status: ReservationStatus;
   expiresAt: Date;
   releasedAt?: Date;
@@ -30,6 +31,7 @@ const StockReservationSchema = new Schema<IStockReservation>(
     orderId: { type: Schema.Types.ObjectId, ref: 'Order', index: true, sparse: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User', index: true, sparse: true },
     quantity: { type: Number, required: true, min: 1 },
+    idempotencyKey: { type: String, unique: true, sparse: true },
     status: { type: String, enum: ['active', 'fulfilled', 'released', 'expired'], default: 'active', index: true },
     expiresAt: { type: Date, required: true, index: true },
     releasedAt: { type: Date },

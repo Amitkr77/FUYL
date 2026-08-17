@@ -1,11 +1,12 @@
 import { apiFetch } from './client'
 
-export type PaymentMethod = 'cashfree' | 'cod' | 'wallet'
+export type PaymentMethod = 'cashfree' | 'cod' | 'wallet' | 'loyalty'
 
 interface BackendCreatePaymentResult {
   payment: { _id: string }
   cod?: true
   wallet?: true
+  loyalty?: true
   cashfree?: {
     orderId: string
     paymentSessionId: string
@@ -18,6 +19,7 @@ interface BackendCreatePaymentResult {
 export type CreatePaymentResult =
   | { method: 'cod' }
   | { method: 'wallet' }
+  | { method: 'loyalty' }
   | {
       method: 'cashfree'
       cfOrderId: string
@@ -49,6 +51,7 @@ export async function createPayment(token: string, orderId: string, method: Paym
     }
   }
   if (raw.wallet) return { method: 'wallet' }
+  if (raw.loyalty) return { method: 'loyalty' }
   return { method: 'cod' }
 }
 

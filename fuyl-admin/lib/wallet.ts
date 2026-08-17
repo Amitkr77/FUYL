@@ -1,4 +1,4 @@
-import { adminApiFetch, AdminApiError } from './api'
+import { adminApiFetch, adminApiFetchPaginated, AdminApiError, type PaginationMeta } from './api'
 
 // ─── Customer search (reuses the existing admin customer-list endpoint) ────
 interface BackendCustomerHit {
@@ -74,13 +74,13 @@ export interface WalletTransaction {
   createdAt: string
 }
 
-export async function getWalletTransactions(userId: string): Promise<WalletTransaction[]> {
-  const raw = await adminApiFetch<BackendWalletTransaction[]>(`/admin/wallet/${userId}/transactions`)
-  return raw.map((t) => ({
+export async function getWalletTransactions(userId: string, page = 1, limit = 20): Promise<{ items: WalletTransaction[]; meta: PaginationMeta }> {
+  const result = await adminApiFetchPaginated<BackendWalletTransaction>(`/admin/wallet/${userId}/transactions?page=${page}&limit=${limit}`)
+  return { items: result.items.map((t) => ({
     id: t._id, type: t.type, source: t.source, amount: t.amount,
     balanceBefore: t.balanceBefore, balanceAfter: t.balanceAfter,
     description: t.description, createdAt: t.createdAt,
-  }))
+  })), meta: result.meta }
 }
 
 export async function adjustWallet(input: {

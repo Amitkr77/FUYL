@@ -11,6 +11,7 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
   upi: 'UPI',
   cod: 'Cash on Delivery',
   wallet: 'Wallet',
+  loyalty: 'Loyalty Points',
   split: 'Split Payment',
 }
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
@@ -33,6 +34,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       </div>
     )
   }
+
+  const capturedExternal = order.payments
+    .filter((payment) => ['success', 'refunded', 'partially_refunded'].includes(payment.status) && !['wallet', 'loyalty'].includes(payment.gateway))
+    .reduce((sum, payment) => sum + payment.amount, 0)
+  const refunded = order.payments.reduce((sum, payment) => sum + payment.refundedAmount, 0)
+  const amountDue = Math.max(0, order.total - order.walletApplied - order.loyaltyApplied - capturedExternal)
 
   return (
     <div className="space-y-5">
@@ -80,20 +87,6 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   <span>-{formatCurrency(order.discountTotal)}</span>
                 </div>
               )}
-              {order.walletApplied > 0 && (
-                <div className="flex justify-between text-sm text-emerald-600">
-                  <span>Wallet applied</span>
-                  <span>-{formatCurrency(order.walletApplied)}</span>
-                </div>
-              )}
-              {order.loyaltyApplied > 0 && (
-                <div className="flex justify-between text-sm text-purple-600">
-                  <span>
-                    Loyalty points{order.loyaltyPointsRedeemed > 0 ? ` (${order.loyaltyPointsRedeemed.toLocaleString('en-IN')} pts)` : ''}
-                  </span>
-                  <span>-{formatCurrency(order.loyaltyApplied)}</span>
-                </div>
-              )}
               <div className="flex justify-between text-sm text-slate-500">
                 <span>Shipping</span>
                 <span>{order.shippingTotal === 0 ? <span className="text-emerald-600">Free</span> : formatCurrency(order.shippingTotal)}</span>
@@ -103,7 +96,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <span>{formatCurrency(order.taxTotal)}</span>
               </div>
               <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-100">
-                <span>Total</span>
+                <span>Order total</span>
                 <span>{formatCurrency(order.total)}</span>
               </div>
             </div>
@@ -120,8 +113,15 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <span className="text-slate-900 font-medium text-right">{PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}</span>
               <span className="text-slate-500">Status</span>
               <span className="text-slate-900 font-medium text-right">{PAYMENT_STATUS_LABEL[order.paymentStatus] ?? order.paymentStatus}</span>
-              <span className="text-slate-500">Amount</span>
-              <span className="text-slate-900 font-medium text-right">{formatCurrency(order.payments[0]?.amount ?? order.total)}</span>
+              <span className="text-slate-500">External captured</span>
+              <span className="text-slate-900 font-medium text-right">{formatCurrency(capturedExternal)}</span>
+              <span className="text-slate-500">Wallet used</span>
+              <span className="text-slate-900 font-medium text-right">{formatCurrency(order.walletApplied)}</span>
+              <span className="text-slate-500">Loyalty used</span>
+              <span className="text-slate-900 font-medium text-right">{formatCurrency(order.loyaltyApplied)}</span>
+              <span className="text-slate-500">Amount due</span>
+              <span className="text-slate-900 font-semibold text-right">{formatCurrency(amountDue)}</span>
+              {refunded > 0 && <><span className="text-slate-500">Refunded</span><span className="text-rose-600 font-medium text-right">{formatCurrency(refunded)}</span></>}
             </div>
             {order.payments.length > 0 && (
               <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5">

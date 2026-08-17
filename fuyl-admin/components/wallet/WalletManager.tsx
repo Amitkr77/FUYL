@@ -5,6 +5,8 @@ import { Lock, Unlock, IndianRupee } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { WalletBalance, WalletTransaction } from '@/lib/wallet'
+import type { PaginationMeta } from '@/lib/api'
+import Link from 'next/link'
 import { adjustWalletAction, setWalletFrozenAction } from '@/app/(admin)/wallet/actions'
 
 const TX_VARIANT: Record<WalletTransaction['type'], 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
@@ -15,10 +17,12 @@ export function WalletManager({
   userId,
   balance,
   transactions,
+  pagination,
 }: {
   userId: string
   balance: WalletBalance
   transactions: WalletTransaction[]
+  pagination: PaginationMeta
 }) {
   const [amount, setAmount] = useState('')
   const [type, setType] = useState<'credit' | 'debit'>('credit')
@@ -61,11 +65,10 @@ export function WalletManager({
   return (
     <div className="space-y-5">
       {/* Balance cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard label="Balance" value={formatCurrency(balance.balance)} />
         <StatCard label="Held" value={formatCurrency(balance.heldBalance)} />
         <StatCard label="Pending" value={formatCurrency(balance.pendingBalance)} />
-        <StatCard label="Loyalty Points" value={String(balance.loyaltyPoints)} />
       </div>
 
       {balance.isFrozen && (
@@ -163,6 +166,16 @@ export function WalletManager({
             </tbody>
           </table>
         </div>
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-sm text-slate-500">
+            <span>{pagination.total.toLocaleString('en-IN')} transactions</span>
+            <div className="flex items-center gap-2">
+              {pagination.hasPrev ? <Link className="rounded border px-3 py-1.5 hover:bg-slate-50" href={`/wallet/${userId}?page=${pagination.page - 1}`}>Previous</Link> : <span className="rounded border px-3 py-1.5 opacity-40">Previous</span>}
+              <span>Page {pagination.page} of {pagination.totalPages}</span>
+              {pagination.hasNext ? <Link className="rounded border px-3 py-1.5 hover:bg-slate-50" href={`/wallet/${userId}?page=${pagination.page + 1}`}>Next</Link> : <span className="rounded border px-3 py-1.5 opacity-40">Next</span>}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

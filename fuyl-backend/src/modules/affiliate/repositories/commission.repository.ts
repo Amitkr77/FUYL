@@ -16,6 +16,10 @@ export class CommissionRepository {
     return CommissionModel.findOne({ orderId });
   }
 
+  async update(id: string | Types.ObjectId, patch: Partial<ICommission>): Promise<ICommission | null> {
+    return CommissionModel.findByIdAndUpdate(id, { $set: patch }, { new: true });
+  }
+
   async findByAffiliate(affiliateId: string | Types.ObjectId, filter: FilterQuery<ICommission> = {}) {
     return CommissionModel.find({ affiliateId, ...filter })
       .sort({ createdAt: -1 })

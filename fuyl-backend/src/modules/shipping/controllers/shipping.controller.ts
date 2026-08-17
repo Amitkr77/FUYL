@@ -6,7 +6,8 @@ import { success, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
 import { createShipmentSchema, updateShipmentStatusSchema } from '../validators';
 import { env } from '../../../config/env';
-import { UnauthorizedError } from '../../../shared/errors';
+import { ForbiddenError, UnauthorizedError } from '../../../shared/errors';
+import { orderService } from '../../order/services';
 import { logger } from '../../../config/logger';
 
 export class ShippingController {
@@ -39,12 +40,20 @@ export class ShippingController {
 
   getById = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      return success(res, await shippingService.getById(req.params.id));
+      const shipment = await shippingService.getById(req.params.id);
+      if (req.user!.role === Roles.CUSTOMER && shipment.customerId.toString() !== req.user!.userId) {
+        return next(new ForbiddenError('Not your shipment'));
+      }
+      return success(res, shipment);
     } catch (err) { next(err); }
   };
 
   listByOrder = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
+      const order = await orderService.getById(req.params.orderId);
+      if (req.user!.role === Roles.CUSTOMER && order.customerId.toString() !== req.user!.userId) {
+        return next(new ForbiddenError('Not your order'));
+      }
       return success(res, await shippingService.listByOrder(req.params.orderId));
     } catch (err) { next(err); }
   };

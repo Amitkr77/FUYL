@@ -9,6 +9,7 @@ import { NotFoundError, ConflictError, BadRequestError } from '../../../shared/e
 import { walletService } from '../../wallet/services/wallet.service';
 import { logger } from '../../../config/logger';
 import mongoose from 'mongoose';
+import { fromPaise, proratePaise, toPaise } from '../../../shared/utils';
 
 const commissionRepo = new CommissionRepository();
 const affiliateRepo  = new AffiliateRepository();
@@ -38,7 +39,7 @@ export class CommissionService {
     // Determine rate — tiered rates win over defaultRate if thresholds are met
     let rate = program.defaultRate;
     const base = program.commissionBase === 'grand_total' ? input.grandTotal : input.subtotal;
-    const baseAmount = base;
+    const baseAmount = fromPaise(toPaise(base));
 
     const sortedTiers = [...program.tiers].sort((a, b) => b.minOrderAmount - a.minOrderAmount);
     for (const tier of sortedTiers) {
@@ -48,7 +49,7 @@ export class CommissionService {
       }
     }
 
-    const amount = Math.round((baseAmount * rate) / 100 * 100) / 100;
+    const amount = fromPaise(Math.round((toPaise(baseAmount) * rate) / 100));
 
     const eligibleForApprovalAt = new Date(
       Date.now() + program.autoApproveAfterDays * 24 * 60 * 60 * 1000
@@ -176,7 +177,7 @@ export class CommissionService {
       throw new BadRequestError('All commissions were already paid by a concurrent request');
     }
 
-    const totalPaid = transitioned.reduce((sum, c) => sum + c.amount, 0);
+    const totalPaid = fromPaise(transitioned.reduce((sum, commission) => sum + toPaise(commission.amount), 0));
     const commissionIds = transitioned.map((c) => c._id.toString());
 
     await payoutRepo.create({
@@ -245,6 +246,67 @@ export class CommissionService {
     });
 
     logger.info(`[affiliate] commission ${commission._id} ${targetStatus}: ${reason}`);
+  }
+
+  /**
+   * Recalculate an unpaid commission from the cumulative refunded share.
+   * Using cumulative values makes duplicate/retried refund events idempotent.
+   * Paid commissions are flagged for reconciliation rather than silently
+   * debiting an affiliate wallet without a proper negative-balance ledger.
+   */
+  async adjustForRefund(orderId: string, totalRefunded: number, paymentAmount: number): Promise<void> {
+    const commission = await commissionRepo.findByOrderId(orderId);
+    if (!commission || paymentAmount <= 0) return;
+
+    const paymentPaise = toPaise(paymentAmount);
+    const refundedPaise = Math.min(paymentPaise, Math.max(0, toPaise(totalRefunded)));
+    if (refundedPaise >= paymentPaise) {
+      await this.cancel(orderId, 'Order payment fully refunded');
+      return;
+    }
+
+    const desiredBasePaise = proratePaise(
+      toPaise(commission.baseAmount),
+      paymentPaise - refundedPaise,
+      paymentPaise
+    );
+    const desiredBase = fromPaise(desiredBasePaise);
+    const desiredAmount = fromPaise(Math.round((desiredBasePaise * commission.snapshotRate) / 100));
+    const delta = fromPaise(toPaise(desiredAmount) - toPaise(commission.amount));
+    if (toPaise(delta) === 0) return;
+
+    if (commission.status === CommissionStatus.PAID) {
+      await commissionRepo.update(commission._id, {
+        metadata: {
+          ...(commission.metadata ?? {}),
+          refundAdjustmentPending: true,
+          totalRefunded,
+          paymentAmount,
+          desiredAmount,
+        },
+      });
+      logger.error('[affiliate] paid commission requires refund clawback reconciliation', {
+        orderId, commissionId: commission.id, currentAmount: commission.amount, desiredAmount,
+      });
+      return;
+    }
+
+    await commissionRepo.update(commission._id, {
+      baseAmount: desiredBase,
+      amount: desiredAmount,
+      metadata: { ...(commission.metadata ?? {}), totalRefunded, paymentAmount },
+    });
+    await commissionRepo.appendEvent({
+      commissionId: commission._id,
+      affiliateId: commission.affiliateId,
+      eventType: CommissionEventType.ADJUSTED,
+      amountDelta: delta,
+      note: `Adjusted after cumulative refund of ₹${totalRefunded}`,
+    });
+    await affiliateRepo.incrementStats(commission.affiliateId, {
+      totalRevenue: fromPaise(toPaise(desiredBase) - toPaise(commission.baseAmount)),
+      totalCommissionEarned: delta,
+    });
   }
 
   async listForAffiliate(

@@ -14,6 +14,7 @@ import { logger } from '../../../config/logger';
 import { nextNumber } from '../../order/utils/counter';
 import type { IPayment } from '../models/payment.model';
 import { Types } from 'mongoose';
+import { clampPaise, fromPaise, toPaise } from '../../../shared/utils';
 
 const paymentRepo = new PaymentRepository();
 const txRepo = new TransactionRepository();
@@ -31,7 +32,9 @@ export class PaymentService {
 
     const walletApplied = Number((order.metadata as any)?.walletRedemption ?? 0);
     const loyaltyApplied = Number((order.metadata as any)?.loyaltyRedemption ?? 0);
-    const amountDue = Math.max(0, Math.round((order.grandTotal - walletApplied - loyaltyApplied) * 100) / 100);
+    const amountDue = fromPaise(clampPaise(
+      toPaise(order.grandTotal) - toPaise(walletApplied) - toPaise(loyaltyApplied)
+    ));
 
     const paymentNumber = await nextNumber('PAY');
 
@@ -105,6 +108,40 @@ export class PaymentService {
       } catch (err) {
         throw new BadRequestError(err instanceof Error ? err.message : 'Wallet payment failed');
       }
+    }
+
+    if (method === PaymentMethod.LOYALTY) {
+      if (amountDue > 0 || loyaltyApplied <= 0) {
+        throw new BadRequestError('Order is not fully covered by loyalty points');
+      }
+      const payment = await paymentRepo.create({
+        paymentNumber,
+        orderId: new Types.ObjectId(orderId),
+        customerId: new Types.ObjectId(customerId),
+        amount: loyaltyApplied,
+        currency: order.currency,
+        method,
+        status: PaymentStatus.SUCCESS,
+        gateway: 'loyalty',
+        capturedAt: new Date(),
+        metadata: { walletApplied, loyaltyApplied },
+      });
+      await txRepo.create({
+        transactionNumber: await nextNumber('TXN'),
+        paymentId: payment._id,
+        orderId: payment.orderId,
+        customerId: payment.customerId,
+        type: 'capture',
+        amount: payment.amount,
+        currency: payment.currency,
+        method,
+        status: PaymentStatus.SUCCESS,
+        gateway: 'loyalty',
+        gatewayTransactionId: `loyalty-${orderId}`,
+        description: `Loyalty points payment for order ${order.orderNumber}`,
+      });
+      await orderService.updatePaymentStatus(orderId, PaymentStatus.SUCCESS);
+      return { payment, loyalty: true };
     }
 
     // Cashfree flow — create a Cashfree order and hand the session id to the
@@ -230,10 +267,15 @@ export class PaymentService {
     if (!payment) throw new NotFoundError('Payment');
     if (payment.status !== PaymentStatus.SUCCESS) throw new BadRequestError('Only successful payments can be refunded');
 
-    const refundAmount = opts.amount ?? payment.amount;
-    if (refundAmount > payment.amount - payment.refundedAmount) {
+    const paymentAmountPaise = toPaise(payment.amount);
+    const alreadyRefundedPaise = toPaise(payment.refundedAmount);
+    const refundAmountPaise = toPaise(opts.amount ?? payment.amount);
+    const refundablePaise = clampPaise(paymentAmountPaise - alreadyRefundedPaise);
+    if (refundAmountPaise <= 0) throw new BadRequestError('Refund amount must be greater than zero');
+    if (refundAmountPaise > refundablePaise) {
       throw new BadRequestError('Refund amount exceeds refundable balance');
     }
+    const refundAmount = fromPaise(refundAmountPaise);
 
     let cfRefundId: string | undefined;
     let razorpayRefundId: string | undefined;
@@ -253,7 +295,7 @@ export class PaymentService {
       // Legacy: orders paid via Razorpay before the Cashfree migration.
       try {
         const refund = await razorpayGateway.refund(payment.razorpayPaymentId, {
-          amount: Math.round(refundAmount * 100),
+          amount: refundAmountPaise,
           notes: { reason: opts.reason, actorId },
         });
         razorpayRefundId = refund.id;
@@ -281,13 +323,14 @@ export class PaymentService {
       });
     }
 
-    const newRefundedAmount = payment.refundedAmount + refundAmount;
-    const newStatus = newRefundedAmount >= payment.amount ? PaymentStatus.REFUNDED : PaymentStatus.PARTIALLY_REFUNDED;
+    const newRefundedAmountPaise = alreadyRefundedPaise + refundAmountPaise;
+    const newRefundedAmount = fromPaise(newRefundedAmountPaise);
+    const newStatus = newRefundedAmountPaise >= paymentAmountPaise ? PaymentStatus.REFUNDED : PaymentStatus.PARTIALLY_REFUNDED;
 
     const updated = await paymentRepo.update(payment._id, {
       status: newStatus,
       refundedAmount: newRefundedAmount,
-      refundedAt: newRefundedAmount >= payment.amount ? new Date() : undefined,
+      refundedAt: newRefundedAmountPaise >= paymentAmountPaise ? new Date() : undefined,
       cfRefundId,
       razorpayRefundId,
     });
@@ -314,6 +357,8 @@ export class PaymentService {
       paymentId: payment.id,
       userId: payment.customerId.toString(),
       amount: refundAmount,
+      totalRefunded: newRefundedAmount,
+      paymentAmount: payment.amount,
     });
 
     return updated;
