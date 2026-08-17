@@ -10,6 +10,7 @@ import { logger } from '../../../config/logger';
 import { Types } from 'mongoose';
 import { CreateDiscountDTO, UpdateDiscountDTO, ValidateCouponDTO } from '../validators';
 import { ICoupon } from '../models/discount.model';
+import { fromPaise, toPaise } from '../../../shared/utils';
 
 const discountRepo = new DiscountRepository();
 const redemptionRepo = new RedemptionRepository();
@@ -287,21 +288,20 @@ class DiscountService {
     if (coupon.discountType === 'buy_x_get_y') return this.computeBuyXGetYAmount(coupon, dto);
 
     if (coupon.scope === 'cart') {
-      let amount: number;
+      let amountPaise: number;
+      const cartSubtotalPaise = toPaise(dto.cartSubtotal);
       if (coupon.discountType === 'percent') {
-        amount = dto.cartSubtotal * (coupon.discountValue / 100);
+        amountPaise = Math.round((cartSubtotalPaise * coupon.discountValue) / 100);
       } else if (coupon.discountType === 'flat') {
-        amount = coupon.discountValue;
+        amountPaise = toPaise(coupon.discountValue);
       } else if (coupon.discountType === 'per_unit') {
-        amount = coupon.discountValue * (dto.itemCount ?? dto.items.reduce((s, i) => s + i.quantity, 0));
+        amountPaise = toPaise(coupon.discountValue) * (dto.itemCount ?? dto.items.reduce((s, i) => s + i.quantity, 0));
       } else {
-        amount = 0;
+        amountPaise = 0;
       }
-      // Cap discount at cart subtotal
-      amount = Math.min(amount, dto.cartSubtotal);
-      // Cap at maxDiscountAmount if set
-      if (coupon.maxDiscountAmount !== undefined) amount = Math.min(amount, coupon.maxDiscountAmount);
-      return amount;
+      amountPaise = Math.min(amountPaise, cartSubtotalPaise);
+      if (coupon.maxDiscountAmount !== undefined) amountPaise = Math.min(amountPaise, toPaise(coupon.maxDiscountAmount));
+      return fromPaise(amountPaise);
     }
 
     // For product/variant scope — sum matching items
@@ -311,13 +311,13 @@ class DiscountService {
         if (coupon.scope === 'variant') return coupon.targetIds?.some((t) => t.toString() === i.variantId);
         return false;
       })
-      .reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
+      .reduce((sum, i) => sum + toPaise(i.unitPrice) * i.quantity, 0);
 
-    let amount = 0;
+    let amountPaise = 0;
     if (coupon.discountType === 'percent') {
-      amount = matchingItemsTotal * (coupon.discountValue / 100);
+      amountPaise = Math.round((matchingItemsTotal * coupon.discountValue) / 100);
     } else if (coupon.discountType === 'flat') {
-      amount = Math.min(coupon.discountValue, matchingItemsTotal);
+      amountPaise = Math.min(toPaise(coupon.discountValue), matchingItemsTotal);
     } else if (coupon.discountType === 'per_unit') {
       const matchingQty = dto.items
         .filter((i) => {
@@ -326,11 +326,11 @@ class DiscountService {
           return false;
         })
         .reduce((s, i) => s + i.quantity, 0);
-      amount = coupon.discountValue * matchingQty;
+      amountPaise = toPaise(coupon.discountValue) * matchingQty;
     }
 
-    if (coupon.maxDiscountAmount !== undefined) amount = Math.min(amount, coupon.maxDiscountAmount);
-    return amount;
+    if (coupon.maxDiscountAmount !== undefined) amountPaise = Math.min(amountPaise, toPaise(coupon.maxDiscountAmount));
+    return fromPaise(amountPaise);
   }
 
   private getBuyXGetYSummary(coupon: ICoupon, dto: ValidateCouponDTO) {
@@ -354,9 +354,11 @@ class DiscountService {
       .flatMap((item) => Array.from({ length: item.quantity }, () => item.unitPrice))
       .sort((a, b) => a - b)
       .slice(0, summary.discountedUnits);
-    let amount = rewardUnitPrices.reduce((sum, price) => sum + price, 0) * (coupon.discountValue / 100);
-    if (coupon.maxDiscountAmount !== undefined) amount = Math.min(amount, coupon.maxDiscountAmount);
-    return Math.min(amount, dto.cartSubtotal);
+    let amountPaise = Math.round(
+      (rewardUnitPrices.reduce((sum, price) => sum + toPaise(price), 0) * coupon.discountValue) / 100
+    );
+    if (coupon.maxDiscountAmount !== undefined) amountPaise = Math.min(amountPaise, toPaise(coupon.maxDiscountAmount));
+    return fromPaise(Math.min(amountPaise, toPaise(dto.cartSubtotal)));
   }
 }
 

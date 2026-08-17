@@ -12,6 +12,7 @@ import { queueService } from '../../../shared/services/queue.service';
 import { logger } from '../../../config/logger';
 import mongoose, { Types } from 'mongoose';
 import { ICart, ICartItem } from '../models/cart.model';
+import { fromPaise, toPaise } from '../../../shared/utils';
 
 const cartRepo = new CartRepository();
 const catalogService = new CatalogService();
@@ -112,7 +113,10 @@ class CartService {
       const plan = await planRepo.findActiveByInterval(input.subscriptionInterval);
       subscriptionDiscountPercent = plan?.discountPercent ?? 0;
       if (subscriptionDiscountPercent > 0) {
-        unitPrice = Math.round(unitPrice * (1 - subscriptionDiscountPercent / 100) * 100) / 100;
+        const unitPricePaise = toPaise(unitPrice);
+        unitPrice = fromPaise(
+          Math.max(0, unitPricePaise - Math.round((unitPricePaise * subscriptionDiscountPercent) / 100))
+        );
       }
     }
 
@@ -296,17 +300,17 @@ class CartService {
    * Tax is currently 0% — wire to the pricing module when available.
    */
   private async recomputeTotals(cart: ICart): Promise<void> {
-    let subtotal = 0;
+    let subtotalPaise = 0;
     let itemCount = 0;
     for (const item of cart.items) {
-      subtotal += item.unitPrice * item.quantity;
+      subtotalPaise += toPaise(item.unitPrice) * item.quantity;
       itemCount += item.quantity;
     }
-    cart.subtotal = Math.round(subtotal * 100) / 100;
+    cart.subtotal = fromPaise(subtotalPaise);
     cart.itemCount = itemCount;
 
     // Coupon discount (already computed by discount module on apply)
-    cart.discountTotal = cart.couponDiscount ?? 0;
+    cart.discountTotal = fromPaise(toPaise(cart.couponDiscount ?? 0));
 
     // Tax — placeholder 0% until pricing module is wired
     cart.taxTotal = 0;
@@ -314,8 +318,10 @@ class CartService {
     // Shipping — placeholder 0 until shipping module
     cart.shippingTotal = 0;
 
-    cart.grandTotal = Math.max(0, cart.subtotal - cart.discountTotal + cart.taxTotal + cart.shippingTotal);
-    cart.grandTotal = Math.round(cart.grandTotal * 100) / 100;
+    cart.grandTotal = fromPaise(Math.max(
+      0,
+      subtotalPaise - toPaise(cart.discountTotal) + toPaise(cart.taxTotal) + toPaise(cart.shippingTotal)
+    ));
   }
 }
 

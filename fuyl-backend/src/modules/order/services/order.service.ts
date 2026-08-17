@@ -72,10 +72,10 @@ export class OrderService {
   async create(customerId: string, dto: CreateOrderDTO & CheckoutOrderAdjustments) {
     // Fetch product details + prices from catalog
     const items: any[] = [];
-    let subtotal = 0;
+    let subtotalPaise = 0;
     const sellerIds = new Set<string>();
 
-    let tax = 0;
+    let taxPaise = 0;
     for (const item of dto.items) {
       const product = await catalogService.getProduct(item.productId);
       if (!product.isPublished) throw new BadRequestError(`Product "${product.name}" is not available`);
@@ -87,9 +87,10 @@ export class OrderService {
       const quotedItem = dto.pricingSnapshot?.items.find((quoted) =>
         quoted.productId === item.productId && (quoted.variantId ?? '') === (item.variantId ?? '')
       );
-      const unitPrice = quotedItem?.appliedPrice ?? priceInfo.price;
-      const totalPrice = unitPrice * item.quantity;
-      subtotal += totalPrice;
+      const unitPrice = fromPaise(toPaise(quotedItem?.appliedPrice ?? priceInfo.price));
+      const totalPricePaise = toPaise(unitPrice) * item.quantity;
+      const totalPrice = fromPaise(totalPricePaise);
+      subtotalPaise += totalPricePaise;
       if (sellerId) sellerIds.add(sellerId);
 
       let itemTax = quotedItem?.taxAmount ?? 0;
@@ -101,7 +102,8 @@ export class OrderService {
         });
         itemTax = taxResult.totalTax;
       }
-      tax += itemTax;
+      itemTax = fromPaise(toPaise(itemTax));
+      taxPaise += toPaise(itemTax);
 
       items.push({
         productId: new mongoose.Types.ObjectId(item.productId),
@@ -121,12 +123,17 @@ export class OrderService {
     const orderNumber = await nextNumber('FUL');
     // Shipping charge is computed upstream by the checkout service (Shiprocket
     // rate for the destination pincode) and passed in; defaults to 0.
-    const shipping = dto.shippingTotal ?? 0;
-    const discountTotal = Math.min(
-      Math.max(0, dto.discountTotal ?? 0),
-      subtotal + tax
+    const shippingPaise = Math.max(0, toPaise(dto.shippingTotal ?? 0));
+    const discountPaise = Math.min(
+      Math.max(0, toPaise(dto.discountTotal ?? 0)),
+      subtotalPaise + taxPaise
     );
-    const grandTotal = Math.max(0, subtotal + shipping + tax - discountTotal);
+    const grandTotalPaise = Math.max(0, subtotalPaise + shippingPaise + taxPaise - discountPaise);
+    const subtotal = fromPaise(subtotalPaise);
+    const shipping = fromPaise(shippingPaise);
+    const tax = fromPaise(taxPaise);
+    const discountTotal = fromPaise(discountPaise);
+    const grandTotal = fromPaise(grandTotalPaise);
 
     const affiliateFields: Record<string, unknown> = {};
     if ((dto as any).affiliateId)              affiliateFields.affiliateId              = new mongoose.Types.ObjectId((dto as any).affiliateId);
@@ -178,7 +185,7 @@ export class OrderService {
     eventBus.publish(Events.ORDER_PLACED, {
       orderId: order.id,
       userId: customerId,
-      amount: Math.max(0, grandTotal - (dto.loyaltyRedemption ?? 0)),
+      amount: fromPaise(Math.max(0, grandTotalPaise - toPaise(dto.loyaltyRedemption ?? 0))),
       orderNumber,
       itemCount: items.length,
       paymentMethod: dto.paymentMethod,
@@ -196,10 +203,17 @@ export class OrderService {
    * Called by subscription.billing.service.spawnOrder().
    */
   async createFromSubscription(input: CreateFromSubscriptionInput) {
-    const unitPrice = input.unitPrice;
-    const discountedPrice = Math.round(unitPrice * (1 - input.discountPercent / 100) * 100) / 100;
-    const totalPrice = Math.round(discountedPrice * input.quantity * 100) / 100;
-    const shipping = 0; // TODO: wire to shipping module once it exists
+    const unitPricePaise = toPaise(input.unitPrice);
+    const discountPerUnitPaise = Math.round((unitPricePaise * input.discountPercent) / 100);
+    const discountedPricePaise = Math.max(0, unitPricePaise - discountPerUnitPaise);
+    const originalSubtotalPaise = unitPricePaise * input.quantity;
+    const discountTotalPaise = discountPerUnitPaise * input.quantity;
+    const totalPricePaise = discountedPricePaise * input.quantity;
+    const unitPrice = fromPaise(unitPricePaise);
+    const discountedPrice = fromPaise(discountedPricePaise);
+    const totalPrice = fromPaise(totalPricePaise);
+    const shippingPaise = 0;
+    const shipping = fromPaise(shippingPaise); // TODO: wire to shipping module once it exists
 
     const orderNumber = await nextNumber('FUL');
     const shippingAddr = input.shippingAddress;
@@ -210,16 +224,18 @@ export class OrderService {
     const variant = input.variantId ? await catalogService.getVariant(input.variantId) : null;
     const sellerId = await this.inventorySellerId(input.productId, input.variantId);
 
-    let tax = 0;
+    let taxPaise = 0;
     if (product.isTaxable) {
       const taxResult = await pricingService.computeTax(discountedPrice, input.quantity, {
         sellerId,
         state: shippingAddr?.state,
         country: shippingAddr?.country,
       });
-      tax = taxResult.totalTax;
+      taxPaise = toPaise(taxResult.totalTax);
     }
-    const grandTotal = totalPrice + shipping + tax;
+    const tax = fromPaise(taxPaise);
+    const grandTotal = fromPaise(totalPricePaise + shippingPaise + taxPaise);
+    const discountTotal = fromPaise(discountTotalPaise);
 
     const order = await orderRepo.create({
       orderNumber,
@@ -233,7 +249,7 @@ export class OrderService {
         quantity: input.quantity,
         unitPrice: discountedPrice,
         totalPrice,
-        discount: Math.round((unitPrice - discountedPrice) * input.quantity * 100) / 100,
+        discount: discountTotal,
         tax,
         currency: 'INR',
         image: product.media?.find((m: any) => m.isPrimary)?.url ?? product.media?.[0]?.url,
@@ -241,8 +257,8 @@ export class OrderService {
       }],
       status: OrderStatus.CONFIRMED,        // subscription orders auto-confirm
       currency: 'INR',
-      subtotal: totalPrice,
-      discountTotal: Math.round((unitPrice - discountedPrice) * input.quantity * 100) / 100,
+      subtotal: fromPaise(originalSubtotalPaise),
+      discountTotal,
       taxTotal: tax,
       shippingTotal: shipping,
       grandTotal,
