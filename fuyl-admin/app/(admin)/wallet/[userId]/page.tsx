@@ -1,5 +1,6 @@
 import { getWalletBalance, getWalletTransactions } from '@/lib/wallet'
 import { WalletManager } from '@/components/wallet/WalletManager'
+import { getCustomer } from '@/lib/customers'
 
 export default async function WalletDetailPage({
   params,
@@ -7,9 +8,10 @@ export default async function WalletDetailPage({
   params: Promise<{ userId: string }>
 }) {
   const { userId } = await params
-  const [balance, transactions] = await Promise.all([
+  const [balance, transactions, customer] = await Promise.all([
     getWalletBalance(userId),
-    getWalletTransactions(userId).catch(() => []),
+    getWalletTransactions(userId),
+    getCustomer(userId),
   ])
 
   if (!balance) {
@@ -25,8 +27,8 @@ export default async function WalletDetailPage({
     <div className="space-y-5">
       <div className="flex items-center gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Customer Wallet</h2>
-          <p className="text-sm text-slate-500">Manage balance and transaction history</p>
+          <h2 className="text-xl font-bold text-slate-900">{customer?.name ?? 'Customer'} Wallet</h2>
+          <p className="text-sm text-slate-500">{customer?.email ?? 'Manage balance and transaction history'}</p>
         </div>
       </div>
 

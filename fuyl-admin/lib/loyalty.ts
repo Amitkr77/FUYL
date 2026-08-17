@@ -41,6 +41,12 @@ export interface LoyaltyTransaction {
   createdAt: string
 }
 
+export interface LoyaltyAccount {
+  balance: number
+  lifetimeEarned: number
+  lifetimeRedeemed: number
+}
+
 interface BackendConfig {
   _id: string
   earnSpend: number
@@ -82,12 +88,12 @@ function mapTx(t: BackendTx): LoyaltyTransaction {
 }
 
 export async function getActiveLoyaltyConfig(): Promise<LoyaltyConfig | null> {
-  try {
-    const raw = await adminApiFetch<BackendConfig | null>('/admin/loyalty/config')
-    return raw ? mapConfig(raw) : null
-  } catch {
-    return null
-  }
+  const raw = await adminApiFetch<BackendConfig | null>('/admin/loyalty/config')
+  return raw ? mapConfig(raw) : null
+}
+
+export async function getLoyaltyAccount(userId: string): Promise<LoyaltyAccount> {
+  return adminApiFetch<LoyaltyAccount>(`/admin/loyalty/accounts/${userId}`)
 }
 
 export interface LoyaltyConfigInput {

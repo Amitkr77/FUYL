@@ -13,9 +13,9 @@ export interface CustomerHit {
   email: string
 }
 
-export async function searchCustomers(query: string): Promise<CustomerHit[]> {
-  if (!query.trim()) return []
-  const qs = new URLSearchParams({ search: query, limit: '10' })
+export async function searchCustomers(query = ''): Promise<CustomerHit[]> {
+  const qs = new URLSearchParams({ limit: '12' })
+  if (query.trim()) qs.set('search', query.trim())
   const raw = await adminApiFetch<BackendCustomerHit[]>(`/admin/customers?${qs.toString()}`)
   return raw.map((c) => ({ id: c.id, name: c.name, email: c.email }))
 }
@@ -46,8 +46,9 @@ function mapBalance(w: BackendWalletBalance): WalletBalance {
 export async function getWalletBalance(userId: string): Promise<WalletBalance | null> {
   try {
     return mapBalance(await adminApiFetch<BackendWalletBalance>(`/admin/wallet/${userId}`))
-  } catch {
-    return null
+  } catch (err) {
+    if (err instanceof AdminApiError && err.status === 404) return null
+    throw err
   }
 }
 

@@ -44,6 +44,7 @@ export interface CheckoutOrderAdjustments {
   discountTotal?: number;
   couponCode?: string;
   walletRedemption?: number;
+  loyaltyRedemptionReference?: string;
 }
 
 export class OrderService {
@@ -139,6 +140,7 @@ export class OrderService {
       metadata: {
         couponCode: dto.couponCode,
         walletRedemption: dto.walletRedemption ?? 0,
+        loyaltyRedemptionReference: dto.loyaltyRedemptionReference,
       },
       ...affiliateFields,
     });

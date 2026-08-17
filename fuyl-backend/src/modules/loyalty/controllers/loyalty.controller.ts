@@ -113,6 +113,15 @@ export class LoyaltyController {
     },
   ];
 
+  getAccount = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        return success(res, await loyaltyService.getAccount(req.params.userId));
+      } catch (err) { next(err); }
+    },
+  ];
+
   /** POST /admin/loyalty/adjust */
   adminAdjust = [
     requirePermission(Permissions.DISCOUNTS_MANAGE),

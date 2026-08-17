@@ -17,6 +17,7 @@ router.patch('/admin/loyalty/config/:id',  loyaltyController.updateConfig);
 
 // ─── Admin: transactions / manual adjust ─────────────────────────────────────
 router.get('/admin/loyalty/transactions',  loyaltyController.getTransactions);
+router.get('/admin/loyalty/accounts/:userId', loyaltyController.getAccount);
 router.post('/admin/loyalty/adjust',       loyaltyController.adminAdjust);
 
 export default router;

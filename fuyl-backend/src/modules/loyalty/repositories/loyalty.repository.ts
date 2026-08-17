@@ -11,6 +11,11 @@ export class LoyaltyConfigRepository {
     return LoyaltyConfigModel.findOne({ isActive: true }).sort({ updatedAt: -1 });
   }
 
+  /** Latest config for admin editing, including an inactive programme. */
+  async findLatest(): Promise<ILoyaltyConfig | null> {
+    return LoyaltyConfigModel.findOne().sort({ updatedAt: -1 });
+  }
+
   async create(data: Partial<ILoyaltyConfig>): Promise<ILoyaltyConfig> {
     return LoyaltyConfigModel.create(data);
   }

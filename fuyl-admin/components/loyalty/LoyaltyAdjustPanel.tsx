@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import Badge from '@/components/ui/Badge'
 import { formatDate } from '@/lib/utils'
-import type { LoyaltyTransaction, LoyaltyTxType } from '@/lib/loyalty'
+import type { LoyaltyAccount, LoyaltyTransaction, LoyaltyTxType } from '@/lib/loyalty'
 import { adjustLoyaltyPointsAction } from '@/app/(admin)/loyalty/actions'
 
 const TX_VARIANT: Record<LoyaltyTxType, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
@@ -16,15 +16,13 @@ const TX_VARIANT: Record<LoyaltyTxType, 'success' | 'warning' | 'danger' | 'info
 
 export function LoyaltyAdjustPanel({
   userId,
+  account,
   transactions,
 }: {
   userId: string
+  account: LoyaltyAccount
   transactions: LoyaltyTransaction[]
 }) {
-  // Current balance is the most-recent transaction's balanceAfter (list is newest-first).
-  const currentBalance = transactions[0]?.balanceAfter ?? 0
-  const lifetimeEarned  = transactions.filter((t) => t.points > 0).reduce((s, t) => s + t.points, 0)
-  const lifetimeRedeemed = Math.abs(transactions.filter((t) => t.type === 'redeem').reduce((s, t) => s + t.points, 0))
 
   const [points, setPoints] = useState('')
   const [description, setDescription] = useState('')
@@ -51,9 +49,9 @@ export function LoyaltyAdjustPanel({
     <div className="space-y-5">
       {/* Balance summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard label="Current Balance" value={`${currentBalance.toLocaleString('en-IN')} pts`} />
-        <StatCard label="Lifetime Earned" value={`${lifetimeEarned.toLocaleString('en-IN')} pts`} />
-        <StatCard label="Lifetime Redeemed" value={`${lifetimeRedeemed.toLocaleString('en-IN')} pts`} />
+        <StatCard label="Current Balance" value={`${account.balance.toLocaleString('en-IN')} pts`} />
+        <StatCard label="Lifetime Earned" value={`${account.lifetimeEarned.toLocaleString('en-IN')} pts`} />
+        <StatCard label="Lifetime Redeemed" value={`${account.lifetimeRedeemed.toLocaleString('en-IN')} pts`} />
       </div>
 
       {/* Manual adjust form */}

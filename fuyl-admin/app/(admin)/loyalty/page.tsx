@@ -1,8 +1,8 @@
 import Link from 'next/link'
-import { Search, AlertCircle, Info } from 'lucide-react'
+import { Search, AlertCircle, Info, Users, X } from 'lucide-react'
 import { LoyaltyConfigForm } from '@/components/loyalty/LoyaltyConfigForm'
 import { LoyaltyAdjustPanel } from '@/components/loyalty/LoyaltyAdjustPanel'
-import { getActiveLoyaltyConfig, getLoyaltyTransactions } from '@/lib/loyalty'
+import { getActiveLoyaltyConfig, getLoyaltyTransactions, getLoyaltyAccount } from '@/lib/loyalty'
 import { searchCustomers } from '@/lib/wallet'
 import { getErrorMessage } from '@/lib/api'
 
@@ -28,12 +28,13 @@ export default async function LoyaltyPage({
 
   let customerResults: Awaited<ReturnType<typeof searchCustomers>> = []
   let transactions: Awaited<ReturnType<typeof getLoyaltyTransactions>> = { items: [], total: 0 }
+  let account: Awaited<ReturnType<typeof getLoyaltyAccount>> | null = null
   let dataError = ''
 
   if (tab === 'accounts') {
     try {
-      if (q && !userId) customerResults = await searchCustomers(q)
-      if (userId)        transactions    = await getLoyaltyTransactions(userId)
+      if (!userId) customerResults = await searchCustomers(q ?? '')
+      if (userId) [transactions, account] = await Promise.all([getLoyaltyTransactions(userId), getLoyaltyAccount(userId)])
     } catch (err) {
       dataError = getErrorMessage(err, 'Could not load account data.')
     }
@@ -107,7 +108,8 @@ export default async function LoyaltyPage({
           {/* Customer search form */}
           <form action="/loyalty" className="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
             <input type="hidden" name="tab" value="accounts" />
-            <div className="relative max-w-md">
+            <div className="flex max-w-2xl gap-2">
+              <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
@@ -116,6 +118,9 @@ export default async function LoyaltyPage({
                 placeholder="Search customers by name or email…"
                 className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent"
               />
+              </div>
+              <button className="rounded-lg bg-[#558476] px-4 text-sm font-medium text-white hover:bg-[#457366]">Search</button>
+              {q && <Link href="/loyalty?tab=accounts" className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 text-sm text-slate-600"><X className="h-4 w-4" /> Clear</Link>}
             </div>
           </form>
 
@@ -127,8 +132,9 @@ export default async function LoyaltyPage({
           )}
 
           {/* Search results — list of matching customers to click */}
-          {q && !userId && (
+          {!userId && !dataError && (
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm divide-y divide-slate-50">
+              <div className="flex items-center gap-2 px-5 py-3 text-sm font-semibold text-slate-700"><Users className="h-4 w-4 text-[#558476]" />{q ? `Results for “${q}”` : 'Recent customers'}</div>
               {customerResults.length === 0 ? (
                 <p className="px-5 py-10 text-center text-slate-400 text-sm">
                   No customers matched &quot;{q}&quot;.
@@ -167,15 +173,10 @@ export default async function LoyaltyPage({
                   </span>
                 )}
               </div>
-              <LoyaltyAdjustPanel userId={userId} transactions={transactions.items} />
+              {account && <LoyaltyAdjustPanel userId={userId} account={account} transactions={transactions.items} />}
             </div>
           )}
 
-          {!q && !userId && (
-            <p className="text-sm text-slate-400 text-center py-10">
-              Search for a customer above to view and manage their loyalty points.
-            </p>
-          )}
         </div>
       )}
     </div>

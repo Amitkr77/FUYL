@@ -320,11 +320,12 @@ export class LoyaltyService {
     }
   }
 
-  async reverseEarn(orderId: string, userId: string): Promise<void> {
+  async reverseEarn(orderId: string, userId: string, trigger: 'cancel' | 'refund' = 'cancel'): Promise<void> {
     try {
       const config = await configRepo.findActive();
-      if (config && !config.reverseOnCancel) {
-        logger.info('[loyalty] reverseEarn skipped — reverseOnCancel=false', { orderId });
+      const shouldReverse = trigger === 'refund' ? config?.reverseOnRefund : config?.reverseOnCancel;
+      if (config && !shouldReverse) {
+        logger.info(`[loyalty] reverseEarn skipped — ${trigger} reversal disabled`, { orderId });
         return;
       }
 
@@ -350,7 +351,7 @@ export class LoyaltyService {
         balanceAfter,
         referenceType: 'order',
         referenceId:   new mongoose.Types.ObjectId(orderId),
-        description:   `Reversed earn of ${pointsToReverse} points — order cancelled`,
+        description:   `Reversed earn of ${pointsToReverse} points — order ${trigger === 'refund' ? 'returned/refunded' : 'cancelled'}`,
       });
 
       await txRepo.markReversed(earnTx._id.toString(), reverseTx._id.toString());
@@ -405,6 +406,15 @@ export class LoyaltyService {
     }
   }
 
+  async getAccount(userId: string) {
+    const account = await accountRepo.findOrCreateByUser(userId);
+    return {
+      balance: account.balance,
+      lifetimeEarned: account.lifetimeEarned,
+      lifetimeRedeemed: account.lifetimeRedeemed,
+    };
+  }
+
   async adminAdjust(userId: string, points: number, description: string): Promise<void> {
     try {
       const account = await accountRepo.findOrCreateByUser(userId);
@@ -437,7 +447,8 @@ export class LoyaltyService {
 
   async getConfig(): Promise<ILoyaltyConfig | null> {
     try {
-      return configRepo.findActive();
+      // Admins must still be able to edit/reactivate an inactive config.
+      return configRepo.findLatest();
     } catch (err) {
       logger.error('[loyalty] getConfig failed', { err });
       throw err;

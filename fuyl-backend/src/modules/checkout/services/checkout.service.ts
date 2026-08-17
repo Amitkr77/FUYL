@@ -310,6 +310,9 @@ class CheckoutService {
         discountTotal: preview.pricing.discountTotal + preview.couponDiscount,
         couponCode: preview.coupon?.valid ? preview.coupon.couponCode : undefined,
         walletRedemption: preview.walletRedemption,
+        // Redemption is debited before an order id exists. Persist its cart
+        // reference so cancellation/return can reliably locate and restore it.
+        loyaltyRedemptionReference: loyaltyDebited ? preview.cart._id.toString() : undefined,
         notes: dto.notes,
         affiliateId:              attribution?.affiliateId,
         affiliateAttributionId:   attribution?.attributionId,

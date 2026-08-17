@@ -8,7 +8,7 @@ export const createConfigSchema = z.object({
   earnSpend:               z.number().positive().default(100),
   earnPoints:              z.number().int().positive().default(10),
   redeemPoints:            z.number().int().positive().default(100),
-  redeemValue:             z.number().min(0).default(10),
+  redeemValue:             z.number().positive().default(10),
   minRedeemPoints:         z.number().int().min(0).default(500),
   maxRedeemPointsPerOrder: z.number().int().min(0).default(0),
   maxRedeemPercent:        z.number().min(0).max(100).default(0),

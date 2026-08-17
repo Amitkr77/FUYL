@@ -10,6 +10,14 @@ import { logger } from '../../../config/logger';
  * - ORDER_RETURNED   → same as ORDER_CANCELLED
  */
 export function registerLoyaltyEventSubscribers(): void {
+  const reverseOrderRedemption = async (orderId: string, userId: string) => {
+    // New checkouts persist the pre-order (cart) reference used by redeemPoints.
+    // Fall back to the order id for older/directly-created records.
+    const { orderService } = await import('../../order/services/order.service');
+    const order = await orderService.getById(orderId);
+    const reference = (order.metadata as any)?.loyaltyRedemptionReference ?? orderId;
+    await loyaltyService.reverseRedeem(reference, userId);
+  };
   eventBus.on<{
     orderId: string;
     userId: string;
@@ -66,12 +74,12 @@ export function registerLoyaltyEventSubscribers(): void {
 
   eventBus.on<{ orderId: string; userId: string }>(Events.ORDER_CANCELLED, async (event) => {
     try {
-      await loyaltyService.reverseEarn(event.orderId, event.userId);
+      await loyaltyService.reverseEarn(event.orderId, event.userId, 'cancel');
     } catch (err) {
       logger.error('[loyalty.event] ORDER_CANCELLED reverseEarn failed', { orderId: event.orderId, err });
     }
     try {
-      await loyaltyService.reverseRedeem(event.orderId, event.userId);
+      await reverseOrderRedemption(event.orderId, event.userId);
     } catch (err) {
       logger.error('[loyalty.event] ORDER_CANCELLED reverseRedeem failed', { orderId: event.orderId, err });
     }
@@ -79,12 +87,12 @@ export function registerLoyaltyEventSubscribers(): void {
 
   eventBus.on<{ orderId: string; userId: string }>(Events.ORDER_RETURNED, async (event) => {
     try {
-      await loyaltyService.reverseEarn(event.orderId, event.userId);
+      await loyaltyService.reverseEarn(event.orderId, event.userId, 'refund');
     } catch (err) {
       logger.error('[loyalty.event] ORDER_RETURNED reverseEarn failed', { orderId: event.orderId, err });
     }
     try {
-      await loyaltyService.reverseRedeem(event.orderId, event.userId);
+      await reverseOrderRedemption(event.orderId, event.userId);
     } catch (err) {
       logger.error('[loyalty.event] ORDER_RETURNED reverseRedeem failed', { orderId: event.orderId, err });
     }
