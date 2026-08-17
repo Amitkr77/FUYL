@@ -50,6 +50,7 @@ interface BackendOrder {
   status: OrderStatus
   items: BackendOrderItem[]
   subtotal: number
+  discountTotal: number
   taxTotal: number
   shippingTotal: number
   grandTotal: number
@@ -61,6 +62,11 @@ interface BackendOrder {
   carrier?: string
   paymentMethod?: string
   paymentStatus?: string
+  metadata?: {
+    walletRedemption?: number
+    loyaltyRedemption?: number
+    loyaltyPointsRedeemed?: number
+  }
 }
 
 interface BackendOrderPayment {
@@ -100,8 +106,12 @@ export interface AdminOrder {
 export interface AdminOrderDetail extends AdminOrder {
   items: { name: string; quantity: number; unitPrice: number; totalPrice: number; image?: string }[]
   subtotal: number
+  discountTotal: number
   taxTotal: number
   shippingTotal: number
+  walletApplied: number
+  loyaltyApplied: number
+  loyaltyPointsRedeemed: number
   address: BackendAddress
   timeline: { status: OrderStatus; at: string; note?: string }[]
   trackingNumber?: string
@@ -113,6 +123,7 @@ export interface AdminOrderDetail extends AdminOrder {
 }
 
 function mapOrder(o: BackendOrder): AdminOrder {
+  const loyaltyRedemption = Number(o.metadata?.loyaltyRedemption ?? 0)
   return {
     id:           o._id,
     orderNumber:  o.orderNumber,
@@ -121,7 +132,7 @@ function mapOrder(o: BackendOrder): AdminOrder {
     phone:        o.shippingAddress?.phone ?? '',
     date:         o.placedAt,
     itemCount:    o.items.length,
-    total:        o.grandTotal,
+    total:        Math.max(0, o.grandTotal - loyaltyRedemption),
     status:       o.status,
   }
 }
@@ -157,16 +168,20 @@ export async function getAdminOrder(id: string): Promise<AdminOrderDetail | null
       items: o.items.map((i) => ({
         name: i.name, quantity: i.quantity, unitPrice: i.unitPrice, totalPrice: i.totalPrice, image: i.image,
       })),
-      subtotal:      o.subtotal,
-      taxTotal:      o.taxTotal,
-      shippingTotal: o.shippingTotal,
-      address:       o.shippingAddress,
-      timeline:      o.timeline ?? [],
-      trackingNumber: o.trackingNumber,
-      trackingUrl:    o.trackingUrl,
-      carrier:        o.carrier,
-      paymentMethod: o.paymentMethod ?? 'unknown',
-      paymentStatus: o.paymentStatus ?? 'pending',
+      subtotal:              o.subtotal,
+      discountTotal:         o.discountTotal ?? 0,
+      taxTotal:              o.taxTotal,
+      shippingTotal:         o.shippingTotal,
+      walletApplied:         Number(o.metadata?.walletRedemption ?? 0),
+      loyaltyApplied:        Number(o.metadata?.loyaltyRedemption ?? 0),
+      loyaltyPointsRedeemed: Number(o.metadata?.loyaltyPointsRedeemed ?? 0),
+      address:               o.shippingAddress,
+      timeline:              o.timeline ?? [],
+      trackingNumber:        o.trackingNumber,
+      trackingUrl:           o.trackingUrl,
+      carrier:               o.carrier,
+      paymentMethod:         o.paymentMethod ?? 'unknown',
+      paymentStatus:         o.paymentStatus ?? 'pending',
       payments,
     }
   } catch {

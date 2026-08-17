@@ -74,6 +74,26 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <span>Subtotal</span>
                 <span>{formatCurrency(order.subtotal)}</span>
               </div>
+              {order.discountTotal > 0 && (
+                <div className="flex justify-between text-sm text-emerald-600">
+                  <span>Discount</span>
+                  <span>-{formatCurrency(order.discountTotal)}</span>
+                </div>
+              )}
+              {order.walletApplied > 0 && (
+                <div className="flex justify-between text-sm text-emerald-600">
+                  <span>Wallet applied</span>
+                  <span>-{formatCurrency(order.walletApplied)}</span>
+                </div>
+              )}
+              {order.loyaltyApplied > 0 && (
+                <div className="flex justify-between text-sm text-purple-600">
+                  <span>
+                    Loyalty points{order.loyaltyPointsRedeemed > 0 ? ` (${order.loyaltyPointsRedeemed.toLocaleString('en-IN')} pts)` : ''}
+                  </span>
+                  <span>-{formatCurrency(order.loyaltyApplied)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm text-slate-500">
                 <span>Shipping</span>
                 <span>{order.shippingTotal === 0 ? <span className="text-emerald-600">Free</span> : formatCurrency(order.shippingTotal)}</span>
