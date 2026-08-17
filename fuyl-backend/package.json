@@ -15,7 +15,7 @@
     "seed": "tsx src/database/seed/index.ts",
     "seed:affiliate": "tsx scripts/seed-affiliate.ts",
     "create-admin": "tsx scripts/create-admin.ts",
-  "cashfree-check": "tsx scripts/cashfree-sandbox-check.ts",
+    "cashfree-check": "tsx scripts/cashfree-sandbox-check.ts",
     "migrate-certifications": "tsx scripts/migrate-certifications.ts",
     "migrate:discounts": "tsx scripts/migrate-discount-terminology.ts",
     "typecheck": "tsc --noEmit"
@@ -40,6 +40,7 @@
     "nodemailer": "^6.9.13",
     "rate-limit-redis": "^4.3.1",
     "razorpay": "^2.9.4",
+    "resend": "^6.20.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
     "twilio": "^4.23.0",

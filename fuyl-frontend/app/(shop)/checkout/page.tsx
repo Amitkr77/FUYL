@@ -16,6 +16,7 @@ import { useCartStore } from '@/lib/store/cartStore'
 import { useCart } from '@/lib/hooks/useCart'
 import { previewCheckout, placeOrder, type CheckoutAddressInput, type CheckoutPaymentMethod, type CheckoutPreview } from '@/lib/api/checkout'
 import { getWalletBalance } from '@/lib/api/wallet'
+import { getLoyaltyBalance, type LoyaltyBalance } from '@/lib/api/loyalty'
 import { getAddresses, type Address } from '@/lib/api/customer'
 import { checkEmailExists, checkoutIdentify } from '@/lib/api/account'
 import { createPayment, verifyPayment } from '@/lib/api/payment'
@@ -121,6 +122,8 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
   const [useWallet, setUseWallet] = useState(false)
+  const [loyaltyBalance, setLoyaltyBalance] = useState<LoyaltyBalance | null>(null)
+  const [useLoyalty, setUseLoyalty] = useState(false)
 
   // Guest checkout — resolves to a real account inline, without ever
   // sending the shopper to a separate login/register page (see
@@ -232,6 +235,14 @@ export default function CheckoutPage() {
       .catch(() => {})
   }, [token])
 
+  // Fetch loyalty balance once after auth resolves — reset on logout.
+  useEffect(() => {
+    if (!token) { startTransition(() => { setLoyaltyBalance(null); setUseLoyalty(false) }); return }
+    getLoyaltyBalance(token)
+      .then((lb) => { if (lb.canRedeem && lb.balance > 0) startTransition(() => setLoyaltyBalance(lb)) })
+      .catch(() => {})
+  }, [token])
+
   // Nothing to check out — send back to cart, unless we just successfully
   // ordered (which empties the cart and would otherwise bounce this screen away
   // right as we're navigating to the success page).
@@ -263,6 +274,7 @@ export default function CheckoutPage() {
     let cancelled = false
     startTransition(() => { setPreview(null); setPreviewLoading(true); setPreviewError('') })
     const walletAmount = useWallet ? (walletBalance ?? 0) : 0
+    const loyaltyPoints = useLoyalty ? (loyaltyBalance?.balance ?? 0) : 0
     const t = setTimeout(async () => {
       try {
         const result = await previewCheckout(token, {
@@ -270,6 +282,7 @@ export default function CheckoutPage() {
           paymentMethod,
           couponCode: appliedCoupon?.code,
           walletRedemptionAmount: walletAmount > 0 ? walletAmount : undefined,
+          loyaltyPointsToRedeem: loyaltyPoints > 0 ? loyaltyPoints : undefined,
         })
         if (!cancelled) setPreview(result)
       } catch (err) {
@@ -283,7 +296,7 @@ export default function CheckoutPage() {
     }, 500)
     return () => { cancelled = true; clearTimeout(t) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, address, paymentMethod, appliedCoupon?.code, previewRetry, useWallet, walletBalance])
+  }, [token, address, paymentMethod, appliedCoupon?.code, previewRetry, useWallet, walletBalance, useLoyalty, loyaltyBalance])
 
   const set = (k: keyof CheckoutAddressInput) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setAddress((a) => ({ ...a, [k]: e.target.value }))
@@ -375,8 +388,12 @@ export default function CheckoutPage() {
   // retry — never creates a new order.
   const attemptPayment = async (order: { orderId: string; orderNumber: string }) => {
     try {
-      const walletCoversAll = preview !== null && preview.remainingToPay === 0
-      const method = useWallet && walletCoversAll ? 'wallet' : paymentMethod
+      const orderFullyCovered = preview !== null && preview.remainingToPay === 0
+      const walletCoversAll = useWallet && orderFullyCovered
+      // When loyalty alone (no wallet) covers the full order, no gateway is needed.
+      // Use 'cod' so the backend marks it complete without attempting a charge.
+      const loyaltyCoversAll = useLoyalty && !useWallet && orderFullyCovered
+      const method = walletCoversAll ? 'wallet' : loyaltyCoversAll ? 'cod' : paymentMethod
       const payment = await createPayment(token!, order.orderId, method)
 
       if (payment.method === 'cod' || payment.method === 'wallet') {
@@ -423,13 +440,17 @@ export default function CheckoutPage() {
     setConfirming(true)
     try {
       const walletAmount = useWallet ? (walletBalance ?? 0) : 0
-      const walletCoversAll = preview.remainingToPay === 0
-      const method = useWallet && walletCoversAll ? 'wallet' : paymentMethod
+      const loyaltyPoints = useLoyalty ? (loyaltyBalance?.balance ?? 0) : 0
+      const orderFullyCovered = preview.remainingToPay === 0
+      const walletCoversAll = useWallet && orderFullyCovered
+      const loyaltyCoversAll = useLoyalty && !useWallet && orderFullyCovered
+      const method = walletCoversAll ? 'wallet' : loyaltyCoversAll ? 'cod' : paymentMethod
       const order = await placeOrder(token!, {
         shippingAddress: address,
         paymentMethod: method,
         couponCode: appliedCoupon?.code,
         walletRedemptionAmount: walletAmount > 0 ? walletAmount : undefined,
+        loyaltyPointsToRedeem: loyaltyPoints > 0 ? loyaltyPoints : undefined,
       })
       orderPlacedRef.current = true
       setPlacedOrder(order)
@@ -701,6 +722,40 @@ export default function CheckoutPage() {
                 </div>
               )}
 
+              {token && loyaltyBalance !== null && loyaltyBalance.canRedeem && (
+                <div className="space-y-3 mb-8">
+                  <h2 className="text-display-md font-display">Loyalty Points</h2>
+                  <label className="flex items-center justify-between gap-4 p-4 rounded-xl border cursor-pointer transition-colors border-brand-border has-checked:border-brand-teal has-checked:bg-brand-sage/20">
+                    <div>
+                      <p className="text-body-sm font-semibold text-brand-forest">Redeem loyalty points</p>
+                      <p className="text-body-xs text-brand-muted">
+                        {loyaltyBalance.balance} pts · worth {formatPrice(loyaltyBalance.redeemableValue)}
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={useLoyalty}
+                      onChange={(e) => setUseLoyalty(e.target.checked)}
+                    />
+                    <div
+                      className={`relative shrink-0 w-10 h-6 rounded-full transition-colors pointer-events-none ${useLoyalty ? 'bg-brand-teal' : 'bg-brand-border'}`}
+                      aria-hidden="true"
+                    >
+                      <div className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${useLoyalty ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+                    </div>
+                  </label>
+                  {useLoyalty && preview && preview.loyaltyPointsToRedeem > 0 && (
+                    <p className="text-body-xs text-brand-muted px-1">
+                      {preview.loyaltyPointsToRedeem} pts ({formatPrice(preview.loyaltyRedemption)}) will be applied to this order.
+                      {preview.remainingToPay > 0
+                        ? ` Pay ${formatPrice(preview.remainingToPay)} via ${paymentMethod === 'cashfree' ? 'card / UPI' : 'cash on delivery'}.`
+                        : ' Your points cover this order fully — no additional payment needed.'}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <StickyActionBar>
                 <Button
                   variant="primary"
@@ -858,6 +913,7 @@ export default function CheckoutPage() {
             displayDiscount={displayDiscount}
             displayTotal={displayTotal}
             walletRedemption={preview?.walletRedemption ?? 0}
+            loyaltyRedemption={preview?.loyaltyRedemption ?? 0}
             defaultExpanded={step === 'review'}
           />
         </div>

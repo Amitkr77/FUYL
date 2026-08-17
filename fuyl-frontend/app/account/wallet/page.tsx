@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuthStore } from '@/lib/store/authStore'
 import { formatPrice } from '@/lib/utils/formatPrice'
 import { getWalletBalance, getWalletTransactions, type WalletBalance, type WalletTransaction } from '@/lib/api/wallet'
+import { getLoyaltyBalance, type LoyaltyBalance } from '@/lib/api/loyalty'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { getErrorMessage } from '@/lib/api/client'
 
@@ -49,18 +50,23 @@ function WalletSkeleton() {
 
 export default function WalletPage() {
   const { token, user } = useAuthStore()
-  const [balance, setBalance]         = useState<WalletBalance | null>(null)
+  const [balance, setBalance]           = useState<WalletBalance | null>(null)
   const [transactions, setTransactions] = useState<WalletTransaction[]>([])
-  const [isLoading, setLoading]       = useState(true)
-  const [error, setError]             = useState<string | null>(null)
+  const [loyalty, setLoyalty]           = useState<LoyaltyBalance | null>(null)
+  const [isLoading, setLoading]         = useState(true)
+  const [error, setError]               = useState<string | null>(null)
 
   useEffect(() => {
     if (!token) return
     startTransition(() => setLoading(true))
-    Promise.all([getWalletBalance(token), getWalletTransactions(token)])
-      .then(([b, t]) => { setBalance(b); setTransactions(t) })
+    Promise.all([
+      getWalletBalance(token),
+      getWalletTransactions(token),
+      getLoyaltyBalance(token).catch(() => null),
+    ])
+      .then(([b, t, lb]) => { setBalance(b); setTransactions(t); setLoyalty(lb) })
       .catch((err) => setError(getErrorMessage(err, 'Failed to load wallet')))
-      .finally(() => setLoading(false))
+      .finally(() => startTransition(() => setLoading(false)))
   }, [token])
 
   if (!user) {
@@ -97,10 +103,21 @@ export default function WalletPage() {
               <p className="text-label mb-1.5" style={{ color: 'var(--color-brand-muted)' }}>Available Balance</p>
               <p className="text-display-md font-display">{formatPrice(balance.balance)}</p>
             </div>
-            <div className="border rounded-sm p-5" style={{ borderColor: 'var(--color-brand-border)' }}>
+            <Link
+              href="/account/loyalty"
+              className="border rounded-sm p-5 block transition-colors hover:bg-brand-cream"
+              style={{ borderColor: 'var(--color-brand-border)' }}
+            >
               <p className="text-label mb-1.5" style={{ color: 'var(--color-brand-muted)' }}>Loyalty Points</p>
-              <p className="text-display-md font-display">{balance.loyaltyPoints}</p>
-            </div>
+              <p className="text-display-md font-display">
+                {loyalty ? loyalty.balance.toLocaleString('en-IN') : '—'} pts
+              </p>
+              {loyalty && loyalty.redeemableValue > 0 && (
+                <p className="text-body-xs mt-1" style={{ color: 'var(--color-brand-muted)' }}>
+                  Worth {formatPrice(loyalty.redeemableValue)} →
+                </p>
+              )}
+            </Link>
             {balance.heldBalance > 0 && (
               <div className="border rounded-sm p-5 col-span-2" style={{ borderColor: 'var(--color-brand-border)' }}>
                 <p className="text-label mb-1.5" style={{ color: 'var(--color-brand-muted)' }}>Held (pending orders)</p>

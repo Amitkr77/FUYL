@@ -14,18 +14,14 @@ export function registerCashbackEventSubscribers(): void {
     orderId: string;
     userId: string;
     subtotal: number;
-    discountedSubtotal: number;
-    walletRedemption: number;
     couponCode?: string;
   }>(Events.ORDER_PLACED, async (event) => {
     try {
       await cashbackService.createEarnings({
-        orderId:            event.orderId,
-        userId:             event.userId,
-        subtotal:           event.subtotal,
-        discountedSubtotal: event.discountedSubtotal,
-        walletRedemption:   event.walletRedemption,
-        couponCode:         event.couponCode,
+        orderId:   event.orderId,
+        userId:    event.userId,
+        subtotal:  event.subtotal,
+        couponCode: event.couponCode,
       });
     } catch (err) {
       logger.error('[cashback.event] ORDER_PLACED handler failed', { orderId: event.orderId, err });

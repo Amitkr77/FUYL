@@ -18,10 +18,11 @@ export interface CheckoutAddressInput {
 export type CheckoutPaymentMethod = 'cashfree' | 'cod'
 
 export interface CheckoutInput {
-  shippingAddress:        CheckoutAddressInput
-  paymentMethod:          CheckoutPaymentMethod | 'wallet'
-  couponCode?:            string
-  walletRedemptionAmount?: number
+  shippingAddress:          CheckoutAddressInput
+  paymentMethod:            CheckoutPaymentMethod | 'wallet'
+  couponCode?:              string
+  walletRedemptionAmount?:  number
+  loyaltyPointsToRedeem?:   number
 }
 
 interface BackendPreview {
@@ -42,31 +43,38 @@ interface BackendPreview {
   // Wallet fields — only present when walletRedemptionAmount > 0 in the request.
   walletRedemption?: number
   remainingToPay?: number
+  // Loyalty fields — only present when loyaltyPointsToRedeem > 0 in the request.
+  loyaltyRedemption?: number
+  loyaltyPointsToRedeem?: number
   pricing: { subtotal: number; discountTotal: number; taxTotal: number; shippingTotal: number }
   cashback?: { eligible: boolean; totalCashback: number; policies: Array<{ name: string; cashbackAmount: number; creditTiming: string }> }
 }
 
 export interface CheckoutPreview {
-  subtotal:         number
-  discountTotal:    number
-  taxTotal:         number
-  shippingTotal:    number
-  grandTotal:       number
-  walletRedemption: number
-  remainingToPay:   number
+  subtotal:              number
+  discountTotal:         number
+  taxTotal:              number
+  shippingTotal:         number
+  grandTotal:            number
+  walletRedemption:      number
+  remainingToPay:        number
+  loyaltyRedemption:     number
+  loyaltyPointsToRedeem: number
   cashback: { eligible: boolean; totalCashback: number; policies: Array<{ name: string; cashbackAmount: number; creditTiming: string }> }
 }
 
 function mapPreview(raw: BackendPreview): CheckoutPreview {
   return {
-    subtotal:         raw.pricing.subtotal,
-    discountTotal:    raw.pricing.discountTotal + raw.couponDiscount,
-    taxTotal:         raw.pricing.taxTotal,
-    shippingTotal:    raw.shippingTotal ?? raw.pricing.shippingTotal,
-    grandTotal:       raw.grandTotal,
-    walletRedemption: raw.walletRedemption ?? 0,
-    remainingToPay:   raw.remainingToPay ?? raw.grandTotal,
-    cashback:         raw.cashback ?? { eligible: false, totalCashback: 0, policies: [] },
+    subtotal:              raw.pricing.subtotal,
+    discountTotal:         raw.pricing.discountTotal + raw.couponDiscount,
+    taxTotal:              raw.pricing.taxTotal,
+    shippingTotal:         raw.shippingTotal ?? raw.pricing.shippingTotal,
+    grandTotal:            raw.grandTotal,
+    walletRedemption:      raw.walletRedemption ?? 0,
+    remainingToPay:        raw.remainingToPay ?? raw.grandTotal,
+    loyaltyRedemption:     raw.loyaltyRedemption ?? 0,
+    loyaltyPointsToRedeem: raw.loyaltyPointsToRedeem ?? 0,
+    cashback:              raw.cashback ?? { eligible: false, totalCashback: 0, policies: [] },
   }
 }
 

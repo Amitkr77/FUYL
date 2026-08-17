@@ -25,6 +25,7 @@ import {
   Star,
   Link2,
   CreditCard,
+  Award,
 } from "lucide-react";
 import { logout } from "@/app/(admin)/actions";
 
@@ -65,6 +66,7 @@ const navSections: NavSection[] = [
       { label: "Affiliates", href: "/affiliates", icon: Link2 },
       { label: "Referrals", href: "/referrals", icon: Gift },
       { label: "Wallet", href: "/wallet", icon: Wallet },
+      { label: "Loyalty Points", href: "/loyalty", icon: Award },
       { label: "Newsletter", href: "/newsletter", icon: Mail },
     ],
   },

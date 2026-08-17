@@ -104,6 +104,15 @@ export const env = {
     webhookSecret: process.env.SHIPROCKET_WEBHOOK_SECRET ?? '',
   },
 
+  resend: {
+    apiKey: process.env.RESEND_API_KEY ?? '',
+    // Sender address — must be from a domain verified in your Resend account.
+    from: process.env.RESEND_FROM ?? process.env.SMTP_FROM ?? 'no-reply@fuyl.com',
+  },
+
+  // Kept for local development with a real SMTP server (e.g. Mailpit/Mailtrap).
+  // On deployed environments (Render, Railway, etc.) use RESEND_API_KEY instead —
+  // those platforms block outbound SMTP ports, causing ETIMEDOUT on connection.
   smtp: {
     host: process.env.SMTP_HOST ?? '',
     port: parseInt(process.env.SMTP_PORT ?? '587', 10),

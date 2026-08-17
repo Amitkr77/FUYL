@@ -20,6 +20,7 @@ interface OrderSummaryProps {
   displayDiscount: number
   displayTotal: number
   walletRedemption?: number
+  loyaltyRedemption?: number
   /** Auto-expand the mobile accordion — used on the Review step so items are visible before placing the order */
   defaultExpanded?: boolean
 }
@@ -37,7 +38,7 @@ const TRUST_BADGES = [
 // `order` class — see app/(shop)/checkout/page.tsx.
 export function OrderSummary({
   items, subtotal, token, appliedCoupon, onApplyCoupon, onRemoveCoupon,
-  preview, previewLoading, displayDiscount, displayTotal, walletRedemption = 0, defaultExpanded = false,
+  preview, previewLoading, displayDiscount, displayTotal, walletRedemption = 0, loyaltyRedemption = 0, defaultExpanded = false,
 }: OrderSummaryProps) {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0)
@@ -111,6 +112,12 @@ export function OrderSummary({
             <div className="flex justify-between text-body-sm text-emerald-600">
               <span>Wallet Applied</span>
               <span>-{formatPrice(walletRedemption)}</span>
+            </div>
+          )}
+          {loyaltyRedemption > 0 && (
+            <div className="flex justify-between text-body-sm text-purple-600">
+              <span>Points Applied</span>
+              <span>-{formatPrice(loyaltyRedemption)}</span>
             </div>
           )}
           <div className="flex justify-between text-body-sm">

@@ -39,6 +39,7 @@ export const checkoutSchema = z.object({
   razorpayOrderId: z.string().optional(),
   razorpaySignature: z.string().optional(),
   walletRedemptionAmount: z.number().min(0).optional(),   // for split: amount to debit from wallet
+  loyaltyPointsToRedeem: z.number().int().min(0).optional(), // loyalty points to redeem on this order
   notes: z.string().max(500).optional(),
 });
 

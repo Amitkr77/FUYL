@@ -27,12 +27,9 @@ export interface CashbackPreviewResult {
 export interface PlaceCashbackInput {
   orderId: string;
   userId: string;
-  /** Pre-discount subtotal from the pricing quote. */
+  /** Original pre-discount subtotal — this IS the cashback base (business rule: cashback is
+   * always calculated on the original order value, regardless of discount or wallet payment). */
   subtotal: number;
-  /** Merchandise subtotal after all price and coupon discounts. */
-  discountedSubtotal?: number;
-  /** Wallet-paid portion (Option B: excluded from cashback base). */
-  walletRedemption: number;
   couponCode?: string;
   items?: CashbackLineItem[];
 }
@@ -51,13 +48,13 @@ export class CashbackService {
   async preview(input: {
     userId: string;
     subtotal: number;
-    discountedSubtotal?: number;
-    walletRedemption: number;
     couponCode?: string;
     items?: CashbackLineItem[];
   }): Promise<CashbackPreviewResult> {
-    const merchandiseBase = input.discountedSubtotal ?? input.subtotal;
-    const cashbackBase = Math.max(0, merchandiseBase - input.walletRedemption);
+    // Business rule: cashback base is always the original order value before discount
+    // and before wallet payment. Neither the discount nor the wallet redemption reduces
+    // the cashback the customer earns.
+    const cashbackBase = input.subtotal;
     const applicablePolicies = await this.resolveApplicablePolicies(
       input.userId,
       cashbackBase,
@@ -91,8 +88,9 @@ export class CashbackService {
    * scheduled for later (delivery event or cron job).
    */
   async createEarnings(input: PlaceCashbackInput): Promise<void> {
-    const merchandiseBase = input.discountedSubtotal ?? input.subtotal;
-    const cashbackBase = Math.max(0, merchandiseBase - input.walletRedemption);
+    // Business rule: cashback base is always the original order value before discount
+    // and before wallet payment.
+    const cashbackBase = input.subtotal;
     const policies = await this.resolveApplicablePolicies(
       input.userId,
       cashbackBase,

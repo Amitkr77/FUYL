@@ -7,6 +7,7 @@ import { walletService } from '../../wallet/services/wallet.service';
 import { catalogService } from '../../catalog/services/catalog.service';
 import { shippingService } from '../../shipping/services/shipping.service';
 import { cashbackService } from '../../cashback/services/cashback.service';
+import { loyaltyService } from '../../loyalty/services/loyalty.service';
 import { trackingService } from '../../affiliate/services/tracking.service';
 import {
   BadRequestError,
@@ -102,6 +103,18 @@ class CheckoutService {
       walletRedemption = dto.walletRedemptionAmount;
     }
 
+    // 3b. Preview loyalty points redemption (monetary value only — not debited yet)
+    let loyaltyRedemption = 0;
+    let loyaltyPointsToRedeem = 0;
+    if (dto.loyaltyPointsToRedeem && dto.loyaltyPointsToRedeem > 0) {
+      const loyaltyPreview = await loyaltyService.previewRedemption(userId, quote.grandTotal - couponDiscount).catch(() => null);
+      if (loyaltyPreview?.canRedeem) {
+        loyaltyPointsToRedeem = Math.min(dto.loyaltyPointsToRedeem, loyaltyPreview.pointsToRedeem);
+        const config = await loyaltyService.getConfig();
+        if (config) loyaltyRedemption = loyaltyService.computeRedemptionValue(config, loyaltyPointsToRedeem);
+      }
+    }
+
     // 4. Shipping charge (Shiprocket rate for the destination pincode).
     const shippingResult = await this.computeShipping(cart, shippingAddress, dto.paymentMethod);
     if (!shippingResult.serviceable) {
@@ -114,28 +127,22 @@ class CheckoutService {
 
     const grandTotal = quote.grandTotal - couponDiscount + shippingCharge;
     if (walletRedemption > grandTotal) walletRedemption = grandTotal;
-    const remainingAfterWallet = Math.max(0, grandTotal - walletRedemption);
+    // Loyalty deduction comes after wallet, cannot exceed remaining amount
+    if (loyaltyRedemption > grandTotal - walletRedemption) loyaltyRedemption = Math.max(0, grandTotal - walletRedemption);
+    const remainingAfterWallet = Math.max(0, grandTotal - walletRedemption - loyaltyRedemption);
 
-    // 5. Cashback preview — show customer what they'll earn on this order
-    const cashbackItems = await Promise.all(cart.items.map(async (item) => {
-      const product = await catalogService.getProduct(item.productId.toString());
-      return {
-        productId: item.productId.toString(),
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-      };
+    // 5. Cashback preview — show customer what they'll earn on this order.
+    // Cashback is calculated on the original subtotal (before discount and wallet).
+    const cashbackItems = cart.items.map((item) => ({
+      productId: item.productId.toString(),
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
     }));
-    const discountedSubtotal = Math.max(
-      0,
-      quote.subtotal - quote.discountTotal - couponDiscount
-    );
     const cashbackPreview = await cashbackService.preview({
       userId,
-      subtotal:        quote.subtotal,
-      discountedSubtotal,
-      walletRedemption,
-      couponCode:      dto.couponCode ?? (cart as any).couponCode,
-      items: cashbackItems,
+      subtotal:   quote.subtotal,
+      couponCode: dto.couponCode ?? (cart as any).couponCode,
+      items:      cashbackItems,
     }).catch(() => ({ eligible: false, policies: [], totalCashback: 0 }));
 
     return {
@@ -147,6 +154,8 @@ class CheckoutService {
       couponDiscount,
       shippingDiscount: Math.round(shippingDiscount * 100) / 100,
       walletRedemption,
+      loyaltyRedemption: Math.round(loyaltyRedemption * 100) / 100,
+      loyaltyPointsToRedeem,
       shippingTotal: Math.round(shippingCharge * 100) / 100,
       grandTotal: Math.round(grandTotal * 100) / 100,
       remainingToPay: Math.round(remainingAfterWallet * 100) / 100,
@@ -257,6 +266,7 @@ class CheckoutService {
     // this boundary — once the order exists and payment is captured, those
     // failures must NOT reverse the order/payment (behavior unchanged).
     let walletDebited = false;
+    let loyaltyDebited = false;
     let order;
     try {
       // 2. Debit wallet if split payment
@@ -270,6 +280,17 @@ class CheckoutService {
           referenceId: preview.cart._id.toString(),
         });
         walletDebited = true;
+      }
+
+      // 2b. Debit loyalty points if redemption requested
+      if ((preview as any).loyaltyPointsToRedeem > 0) {
+        await loyaltyService.redeemPoints({
+          userId,
+          orderId: preview.cart._id.toString(), // temp ref — updated after order creation
+          pointsRequested: (preview as any).loyaltyPointsToRedeem,
+          orderTotal: preview.grandTotal,
+        });
+        loyaltyDebited = true;
       }
 
       // 3. Razorpay payment confirmation is handled asynchronously by the
@@ -306,12 +327,17 @@ class CheckoutService {
             referenceId: preview.cart._id.toString(),
           });
         } catch (compErr) {
-          // The debit could not be reversed — must be reconciled manually.
           logger.error('[checkout] CRITICAL: wallet debit could not be auto-reversed', {
-            userId,
-            amount: preview.walletRedemption,
-            cartId: preview.cart._id.toString(),
-            error: compErr,
+            userId, amount: preview.walletRedemption, cartId: preview.cart._id.toString(), error: compErr,
+          });
+        }
+      }
+      if (loyaltyDebited) {
+        try {
+          await loyaltyService.reverseRedeem(preview.cart._id.toString(), userId);
+        } catch (compErr) {
+          logger.error('[checkout] CRITICAL: loyalty debit could not be auto-reversed', {
+            userId, cartId: preview.cart._id.toString(), error: compErr,
           });
         }
       }

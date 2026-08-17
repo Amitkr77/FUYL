@@ -162,7 +162,6 @@ export class OrderService {
       paymentMethod: dto.paymentMethod,
       subtotal,
       discountTotal,
-      discountedSubtotal: Math.max(0, subtotal - discountTotal),
       walletRedemption: dto.walletRedemption ?? 0,
       couponCode: dto.couponCode,
     });
@@ -356,7 +355,17 @@ export class OrderService {
         orderNumber: order.orderNumber, carrier: dto.carrier,
       });
     } else if (dto.status === OrderStatus.DELIVERED) {
-      eventBus.publish(Events.ORDER_DELIVERED, { orderId, userId: order.customerId.toString(), orderNumber: order.orderNumber });
+      eventBus.publish(Events.ORDER_DELIVERED, {
+        orderId,
+        userId:           order.customerId.toString(),
+        orderNumber:      order.orderNumber,
+        subtotal:         order.subtotal,
+        discountTotal:    order.discountTotal,
+        shippingTotal:    order.shippingTotal,
+        taxTotal:         order.taxTotal,
+        walletRedemption: (order.metadata as any)?.walletRedemption ?? 0,
+        grandTotal:       order.grandTotal,
+      });
     } else if (dto.status === OrderStatus.COMPLETED) {
       eventBus.publish(Events.ORDER_COMPLETED, {
         orderId, userId: order.customerId.toString(), amount: order.grandTotal, orderNumber: order.orderNumber,

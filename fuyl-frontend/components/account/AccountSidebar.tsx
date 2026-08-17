@@ -10,6 +10,7 @@ import {
   Heart,
   LogOut,
   Link2,
+  Award,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { User } from '@/types/user'
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { label: 'Orders', href: '/account/orders', icon: Package, exact: false },
   { label: 'Subscriptions', href: '/account/subscriptions', icon: RotateCcw, exact: false },
   { label: 'Wallet', href: '/account/wallet', icon: WalletIcon, exact: false },
+  { label: 'Loyalty', href: '/account/loyalty', icon: Award, exact: false },
   { label: 'Addresses', href: '/account/addresses', icon: MapPin, exact: false },
   { label: 'Wishlist', href: '/account/wishlist', icon: Heart, exact: false },
   { label: 'Affiliate', href: '/account/affiliate', icon: Link2, exact: false },

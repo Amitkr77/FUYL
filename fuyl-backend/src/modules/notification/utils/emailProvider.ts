@@ -1,32 +1,5 @@
-import nodemailer, { Transporter } from 'nodemailer';
 import { env } from '../../../config/env';
 import { logger } from '../../../config/logger';
-
-let transporter: Transporter | null = null;
-
-function getTransporter(): Transporter {
-  if (transporter) return transporter;
-  // BUG FIXED (found live end-to-end testing): this only checked
-  // `env.smtp.host`, unlike the SMS/push providers which check their whole
-  // credential set before deciding to stub. A host set without matching
-  // user/pass (e.g. a partially-filled .env) made nodemailer attempt a real
-  // SMTP connection with empty auth, which fails hard with "Missing
-  // credentials for PLAIN" instead of degrading gracefully — every order
-  // confirmation email failed outright rather than just being logged.
-  if (!env.smtp.host || !env.smtp.user || !env.smtp.pass) {
-    // Use a stub transport when SMTP not fully configured (logs to console)
-    logger.warn('[notification] SMTP not fully configured — using stub transport');
-    transporter = nodemailer.createTransport({ jsonTransport: true });
-    return transporter;
-  }
-  transporter = nodemailer.createTransport({
-    host: env.smtp.host,
-    port: env.smtp.port,
-    secure: env.smtp.port === 465,
-    auth: { user: env.smtp.user, pass: env.smtp.pass },
-  });
-  return transporter;
-}
 
 export interface EmailMessage {
   to: string;
@@ -34,6 +7,79 @@ export interface EmailMessage {
   html: string;
   text?: string;
   from?: string;
+}
+
+// ─── Resend (production / deployed environments) ─────────────────────────────
+// Cloud platforms (Render, Railway, Fly.io, etc.) block outbound SMTP ports
+// (25, 465, 587), which causes ETIMEDOUT at connection time. Resend sends over
+// HTTPS, bypassing that restriction entirely.
+
+async function sendViaResend(msg: EmailMessage): Promise<{ providerMessageId: string }> {
+  const { Resend } = await import('resend');
+  const client = new Resend(env.resend.apiKey);
+
+  const { data, error } = await client.emails.send({
+    from:    msg.from ?? env.resend.from,
+    to:      msg.to,
+    subject: msg.subject,
+    html:    msg.html,
+    ...(msg.text ? { text: msg.text } : {}),
+  });
+
+  if (error) {
+    throw new Error(`[resend] ${error.message}`);
+  }
+
+  return { providerMessageId: data!.id };
+}
+
+// ─── Nodemailer / SMTP (local dev only) ──────────────────────────────────────
+// Use this when running locally with Mailpit, Mailtrap, or a real mail server.
+// Never used on Render/Railway — SMTP ports are blocked there; set
+// RESEND_API_KEY instead.
+
+async function sendViaSMTP(msg: EmailMessage): Promise<{ providerMessageId: string }> {
+  const nodemailer = (await import('nodemailer')).default;
+  const transporter = nodemailer.createTransport({
+    host:   env.smtp.host,
+    port:   env.smtp.port,
+    secure: env.smtp.port === 465,
+    auth:   { user: env.smtp.user, pass: env.smtp.pass },
+  });
+  const info = await transporter.sendMail({
+    from:    msg.from ?? env.smtp.from,
+    to:      msg.to,
+    subject: msg.subject,
+    html:    msg.html,
+    text:    msg.text,
+  });
+  return { providerMessageId: info.messageId };
+}
+
+// ─── Stub (no provider configured) ───────────────────────────────────────────
+
+async function sendStub(msg: EmailMessage): Promise<{ providerMessageId: string }> {
+  logger.info('[notification] STUB email (no provider configured)', {
+    to:      msg.to,
+    subject: msg.subject,
+  });
+  return { providerMessageId: `stub-${Date.now()}` };
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+// Priority: Resend (RESEND_API_KEY set) → SMTP (all SMTP vars set) → stub log.
+
+export async function sendEmail(msg: EmailMessage): Promise<{ providerMessageId: string }> {
+  if (env.resend.apiKey) {
+    return sendViaResend(msg);
+  }
+
+  if (env.smtp.host && env.smtp.user && env.smtp.pass) {
+    return sendViaSMTP(msg);
+  }
+
+  logger.warn('[notification] No email provider configured (set RESEND_API_KEY or SMTP_HOST/USER/PASS)');
+  return sendStub(msg);
 }
 
 /**
@@ -61,16 +107,4 @@ export function htmlToText(html: string): string {
     .map((line) => line.trim())
     .join('\n')
     .trim();
-}
-
-export async function sendEmail(msg: EmailMessage): Promise<{ providerMessageId: string }> {
-  const t = getTransporter();
-  const info = await t.sendMail({
-    from: msg.from ?? env.smtp.from,
-    to: msg.to,
-    subject: msg.subject,
-    html: msg.html,
-    text: msg.text,
-  });
-  return { providerMessageId: info.messageId };
 }
