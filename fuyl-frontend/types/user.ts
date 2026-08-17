@@ -77,6 +77,9 @@ export interface Order {
   taxTotal: number
   shipping: number
   total: number
+  walletApplied?: number
+  loyaltyApplied?: number
+  loyaltyPointsRedeemed?: number
   paymentMethod: OrderPaymentMethod
   paymentStatus: OrderPaymentStatus
   razorpayPaymentId?: string

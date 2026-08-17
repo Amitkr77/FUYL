@@ -56,6 +56,11 @@ interface BackendOrder {
   cancelledAt?: string
   cancelledReason?: string
   notes?: string
+  metadata?: {
+    walletRedemption?: number
+    loyaltyRedemption?: number
+    loyaltyPointsRedeemed?: number
+  }
 }
 
 function mapUser(u: BackendUser): User {
@@ -87,7 +92,10 @@ function mapOrder(o: BackendOrder): Order {
     discountTotal: o.discountTotal,
     taxTotal: o.taxTotal,
     shipping: o.shippingTotal,
-    total: o.grandTotal,
+    total: Math.max(0, o.grandTotal - Number(o.metadata?.loyaltyRedemption ?? 0)),
+    walletApplied: Number(o.metadata?.walletRedemption ?? 0),
+    loyaltyApplied: Number(o.metadata?.loyaltyRedemption ?? 0),
+    loyaltyPointsRedeemed: Number(o.metadata?.loyaltyPointsRedeemed ?? 0),
     paymentMethod: o.paymentMethod,
     paymentStatus: o.paymentStatus,
     razorpayPaymentId: o.razorpayPaymentId,

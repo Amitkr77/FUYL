@@ -29,20 +29,26 @@ export class PaymentService {
     if (order.customerId.toString() !== customerId) throw new BadRequestError('Not your order');
     if (order.paymentStatus === PaymentStatus.SUCCESS) throw new ConflictError('Order already paid');
 
+    const walletApplied = Number((order.metadata as any)?.walletRedemption ?? 0);
+    const loyaltyApplied = Number((order.metadata as any)?.loyaltyRedemption ?? 0);
+    const amountDue = Math.max(0, Math.round((order.grandTotal - walletApplied - loyaltyApplied) * 100) / 100);
+
     const paymentNumber = await nextNumber('PAY');
 
     if (method === PaymentMethod.COD) {
       // COD: no upfront payment — confirm the order immediately so the customer
       // never sees "Pending" status on a successfully placed COD order.
+      const fullyCovered = amountDue === 0;
       const payment = await paymentRepo.create({
         paymentNumber,
         orderId: new Types.ObjectId(orderId),
         customerId: new Types.ObjectId(customerId),
-        amount: order.grandTotal,
+        amount: amountDue,
         currency: order.currency,
         method,
-        status: PaymentStatus.PENDING,
-        gateway: 'cod',
+        status: fullyCovered ? PaymentStatus.SUCCESS : PaymentStatus.PENDING,
+        gateway: fullyCovered ? 'loyalty' : 'cod',
+        capturedAt: fullyCovered ? new Date() : undefined,
         attemptedAt: new Date(),
       });
       await txRepo.create({
@@ -54,39 +60,31 @@ export class PaymentService {
         amount: payment.amount,
         currency: payment.currency,
         method,
-        status: PaymentStatus.PENDING,
-        gateway: 'cod',
+        status: fullyCovered ? PaymentStatus.SUCCESS : PaymentStatus.PENDING,
+        gateway: fullyCovered ? 'loyalty' : 'cod',
         description: `COD payment for order ${order.orderNumber}`,
       });
       // Auto-confirm — no prepayment needed for COD
       await orderService.updateStatus(orderId, { status: 'confirmed' as any, note: 'Order confirmed (Cash on Delivery)' });
+      if (fullyCovered) await orderService.updatePaymentStatus(orderId, PaymentStatus.SUCCESS);
       return { payment, cod: true };
     }
 
     if (method === PaymentMethod.WALLET) {
       // Wallet payment — debit immediately
-      const { WalletService } = await import('../../wallet/services/wallet.service');
-      const walletService = new WalletService();
       try {
-        const result = await walletService.debit({
-          userId: customerId,
-          amount: order.grandTotal,
-          source: 'order_payment',
-          description: `Payment for order ${order.orderNumber}`,
-          referenceType: 'order',
-          referenceId: orderId,
-        });
+        if (amountDue > 0) throw new BadRequestError(`₹${amountDue} is still due and requires another payment method`);
         const payment = await paymentRepo.create({
           paymentNumber,
           orderId: new Types.ObjectId(orderId),
           customerId: new Types.ObjectId(customerId),
-          amount: order.grandTotal,
+          amount: walletApplied,
           currency: order.currency,
           method,
           status: PaymentStatus.SUCCESS,
           gateway: 'wallet',
           capturedAt: new Date(),
-          metadata: { walletTransactionId: result.transaction._id },
+          metadata: { walletApplied, loyaltyApplied },
         });
         await txRepo.create({
           transactionNumber: await nextNumber('TXN'),
@@ -99,7 +97,7 @@ export class PaymentService {
           method,
           status: PaymentStatus.SUCCESS,
           gateway: 'wallet',
-          gatewayTransactionId: result.transaction._id.toString(),
+          gatewayTransactionId: `wallet-${orderId}`,
           description: `Wallet payment for order ${order.orderNumber}`,
         });
         await orderService.updatePaymentStatus(orderId, PaymentStatus.SUCCESS);
@@ -115,7 +113,7 @@ export class PaymentService {
     const cfOrderId = paymentNumber;
     const cfOrder = await cashfreeGateway.createOrder({
       orderId: cfOrderId,
-      amount: order.grandTotal, // rupees — Cashfree does NOT use paise
+      amount: amountDue, // rupees — Cashfree does NOT use paise
       currency: order.currency,
       customer: {
         id: customerId,
@@ -133,7 +131,7 @@ export class PaymentService {
       paymentNumber,
       orderId: new Types.ObjectId(orderId),
       customerId: new Types.ObjectId(customerId),
-      amount: order.grandTotal,
+      amount: amountDue,
       currency: order.currency,
       method,
       status: PaymentStatus.PENDING,
@@ -163,7 +161,7 @@ export class PaymentService {
       cashfree: {
         orderId: cfOrderId,
         paymentSessionId: cfOrder.payment_session_id,
-        amount: order.grandTotal,
+        amount: amountDue,
         currency: order.currency,
         mode: env.cashfree.mode,
       },

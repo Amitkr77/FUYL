@@ -903,7 +903,10 @@ export default function CheckoutPage() {
         <div className="order-1 lg:order-2 lg:sticky lg:top-24">
           <OrderSummary
             items={items}
-            subtotal={subtotal}
+            // Once the server preview exists it is the locked source of truth.
+            // The live cart is converted/cleared during payment processing and
+            // must not make the visible order subtotal jump to ₹0.
+            subtotal={preview?.subtotal ?? subtotal}
             token={token ?? undefined}
             appliedCoupon={appliedCoupon}
             onApplyCoupon={setAppliedCoupon}

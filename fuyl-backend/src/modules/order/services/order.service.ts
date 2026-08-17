@@ -45,6 +45,8 @@ export interface CheckoutOrderAdjustments {
   couponCode?: string;
   walletRedemption?: number;
   loyaltyRedemptionReference?: string;
+  loyaltyRedemption?: number;
+  loyaltyPointsRedeemed?: number;
 }
 
 export class OrderService {
@@ -141,6 +143,8 @@ export class OrderService {
         couponCode: dto.couponCode,
         walletRedemption: dto.walletRedemption ?? 0,
         loyaltyRedemptionReference: dto.loyaltyRedemptionReference,
+        loyaltyRedemption: dto.loyaltyRedemption ?? 0,
+        loyaltyPointsRedeemed: dto.loyaltyPointsRedeemed ?? 0,
       },
       ...affiliateFields,
     });
@@ -158,7 +162,7 @@ export class OrderService {
     eventBus.publish(Events.ORDER_PLACED, {
       orderId: order.id,
       userId: customerId,
-      amount: grandTotal,
+      amount: Math.max(0, grandTotal - (dto.loyaltyRedemption ?? 0)),
       orderNumber,
       itemCount: items.length,
       paymentMethod: dto.paymentMethod,

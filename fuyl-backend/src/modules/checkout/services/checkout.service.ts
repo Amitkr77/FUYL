@@ -110,7 +110,7 @@ class CheckoutService {
       const loyaltyPreview = await loyaltyService.previewRedemption(userId, quote.grandTotal - couponDiscount).catch(() => null);
       if (loyaltyPreview?.canRedeem) {
         loyaltyPointsToRedeem = Math.min(dto.loyaltyPointsToRedeem, loyaltyPreview.pointsToRedeem);
-        const config = await loyaltyService.getConfig();
+        const config = await loyaltyService.getActiveConfig();
         if (config) loyaltyRedemption = loyaltyService.computeRedemptionValue(config, loyaltyPointsToRedeem);
       }
     }
@@ -128,7 +128,21 @@ class CheckoutService {
     const grandTotal = quote.grandTotal - couponDiscount + shippingCharge;
     if (walletRedemption > grandTotal) walletRedemption = grandTotal;
     // Loyalty deduction comes after wallet, cannot exceed remaining amount
-    if (loyaltyRedemption > grandTotal - walletRedemption) loyaltyRedemption = Math.max(0, grandTotal - walletRedemption);
+    const maxLoyaltyValue = Math.max(0, grandTotal - walletRedemption);
+    if (loyaltyRedemption > maxLoyaltyValue) {
+      const config = await loyaltyService.getActiveConfig();
+      if (config) {
+        // Only whole redemption blocks are legal. Reduce both the monetary
+        // deduction and point debit together so the customer is never charged
+        // more points than the amount shown in checkout.
+        const blocks = Math.floor(maxLoyaltyValue / config.redeemValue);
+        loyaltyPointsToRedeem = Math.min(loyaltyPointsToRedeem, blocks * config.redeemPoints);
+        loyaltyRedemption = loyaltyService.computeRedemptionValue(config, loyaltyPointsToRedeem);
+      } else {
+        loyaltyPointsToRedeem = 0;
+        loyaltyRedemption = 0;
+      }
+    }
     const remainingAfterWallet = Math.max(0, grandTotal - walletRedemption - loyaltyRedemption);
 
     // 5. Cashback preview — show customer what they'll earn on this order.
@@ -313,6 +327,8 @@ class CheckoutService {
         // Redemption is debited before an order id exists. Persist its cart
         // reference so cancellation/return can reliably locate and restore it.
         loyaltyRedemptionReference: loyaltyDebited ? preview.cart._id.toString() : undefined,
+        loyaltyRedemption: preview.loyaltyRedemption,
+        loyaltyPointsRedeemed: loyaltyDebited ? preview.loyaltyPointsToRedeem : 0,
         notes: dto.notes,
         affiliateId:              attribution?.affiliateId,
         affiliateAttributionId:   attribution?.attributionId,

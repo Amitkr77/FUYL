@@ -129,10 +129,11 @@ export async function getLoyaltyTransactions(
   limit = 30,
 ): Promise<{ items: LoyaltyTransaction[]; total: number }> {
   const qs = new URLSearchParams({ userId, page: String(page), limit: String(limit) })
-  const raw = await adminApiFetch<{ items: BackendTx[]; total: number }>(
+  const raw = await adminApiFetch<BackendTx[]>(
     `/admin/loyalty/transactions?${qs.toString()}`
   )
-  return { items: (raw.items ?? []).map(mapTx), total: raw.total ?? 0 }
+  const records = Array.isArray(raw) ? raw : []
+  return { items: records.map(mapTx), total: records.length }
 }
 
 export async function adminAdjustLoyalty(input: {

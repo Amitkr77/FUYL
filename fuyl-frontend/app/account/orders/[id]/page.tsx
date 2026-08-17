@@ -467,6 +467,14 @@ export default function OrderDetailPage() {
                       </span>
                     </div>
                   )}
+                  {(order.loyaltyApplied ?? 0) > 0 && (
+                    <div className="flex justify-between text-body-sm">
+                      <span className="text-brand-muted">
+                        Loyalty points{order.loyaltyPointsRedeemed ? ` (${order.loyaltyPointsRedeemed.toLocaleString('en-IN')} pts)` : ''}
+                      </span>
+                      <span className="text-purple-600">-{formatPrice(order.loyaltyApplied ?? 0)}</span>
+                    </div>
+                  )}
                   {order.taxTotal > 0 && (
                     <div className="flex justify-between text-body-sm">
                       <span className="text-brand-muted">Tax</span>
@@ -511,9 +519,18 @@ export default function OrderDetailPage() {
                   <div className="flex justify-between gap-3">
                     <span className="text-brand-muted">Amount Paid</span>
                     <span className="text-brand-forest font-medium text-right">
-                      {formatPrice(payments[0]?.amount ?? order.total)}
+                      {formatPrice(
+                        (payments[0]?.amount ?? order.total) +
+                        (order.paymentMethod === 'wallet' ? 0 : (order.walletApplied ?? 0))
+                      )}
                     </span>
                   </div>
+                  {(order.walletApplied ?? 0) > 0 && order.paymentMethod !== 'wallet' && (
+                    <div className="flex justify-between gap-3 text-body-xs">
+                      <span className="text-brand-muted">Includes wallet</span>
+                      <span className="text-brand-forest">{formatPrice(order.walletApplied ?? 0)}</span>
+                    </div>
+                  )}
                 </div>
                 {((payments[0]?.reference ?? order.razorpayPaymentId) ||
                   payments[0]?.capturedAt ||

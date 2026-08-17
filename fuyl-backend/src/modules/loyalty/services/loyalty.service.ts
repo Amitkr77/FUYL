@@ -455,6 +455,11 @@ export class LoyaltyService {
     }
   }
 
+  /** Operational checkout config; unlike the admin editor this excludes inactive records. */
+  async getActiveConfig(): Promise<ILoyaltyConfig | null> {
+    return configRepo.findActive();
+  }
+
   async createConfig(data: Partial<ILoyaltyConfig>): Promise<ILoyaltyConfig> {
     try {
       return configRepo.create(data);
