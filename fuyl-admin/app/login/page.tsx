@@ -35,11 +35,12 @@ export default function LoginPage() {
           </div> */}
           <Link href="/" className="inline-flex justify-center rounded-2xl bg-white px-6 py-4 mb-12 shadow-sm">
             <Image
-              src="/images/logo.webp"
+              src="/logo.webp"
               alt="FUYL"
               width={260}
               height={124}
               priority
+              unoptimized
               className="h-auto w-64 object-contain"
             />
           </Link>
@@ -79,7 +80,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <Link href="/" className="inline-flex lg:hidden mb-10" aria-label="FUYL home">
-            <Image src="/images/logo.webp" alt="FUYL" width={180} height={86} priority className="h-auto w-44 object-contain" />
+            <Image src="/logo.webp" alt="FUYL" width={180} height={86} priority unoptimized className="h-auto w-44 object-contain" />
           </Link>
 
           <div className="mb-8">
