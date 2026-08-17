@@ -338,8 +338,13 @@ class InventoryService {
     let releasedCount = 0;
     try {
       await session.withTransaction(async () => {
+        // When releasing by cartId, only release reservations that have NOT yet
+        // been promoted to an order (orderId absent). Reservations with an orderId
+        // are order-level holds that must survive until the order ships or is
+        // cancelled — releasing them here would silently restore available stock
+        // and leave the order with no inventory hold to fulfil against.
         const filter = dto.cartId
-          ? { cartId: new Types.ObjectId(dto.cartId), status: 'active' }
+          ? { cartId: new Types.ObjectId(dto.cartId), status: 'active', orderId: { $exists: false } }
           : { orderId: new Types.ObjectId(dto.orderId!), status: 'active' };
         const reservations = await StockReservationModel.find(filter).session(session);
         for (const reservation of reservations) {
