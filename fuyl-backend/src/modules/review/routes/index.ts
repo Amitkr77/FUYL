@@ -15,11 +15,12 @@ router.get('/reviews/health', (_req, res) => {
 // Public (browse reviews on a product)
 router.get('/reviews/product/:productId', authOptional, reviewController.listByProduct);
 router.get('/reviews/product/:productId/summary', authOptional, reviewController.getRatingSummary);
-router.get('/reviews/:id', authOptional, reviewController.getById);
 
-// Authenticated
+// Authenticated — must be before /reviews/:id or Express matches 'mine' as the :id param
 router.post('/reviews', authRequired, reviewController.create);
 router.get('/reviews/mine', authRequired, reviewController.listMine);
+
+router.get('/reviews/:id', authOptional, reviewController.getById);
 router.patch('/reviews/:id', authRequired, reviewController.update);
 router.delete('/reviews/:id', authRequired, reviewController.delete);
 router.post('/reviews/:id/helpful', authRequired, reviewController.markHelpful);
