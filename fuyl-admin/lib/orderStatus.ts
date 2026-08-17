@@ -34,3 +34,19 @@ export const MANUAL_STATUS_OPTIONS: OrderStatus[] = [
   'pending', 'confirmed', 'packed', 'dispatched', 'in_transit',
   'shipped', 'delivered', 'completed', 'cancelled',
 ]
+
+// Valid next statuses from each state — mirrors backend VALID_NEXT in order.service.ts.
+// 'cancelled' is included for early-stage orders; the action handler routes it
+// to the cancel endpoint instead of the status-update endpoint.
+export const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  pending:          ['confirmed', 'cancelled'],
+  confirmed:        ['packed', 'cancelled'],
+  packed:           ['dispatched', 'shipped', 'cancelled'],
+  dispatched:       ['in_transit', 'shipped', 'cancelled'],
+  in_transit:       ['shipped', 'delivered', 'cancelled'],
+  shipped:          ['delivered'],
+  delivered:        ['completed'],
+  completed:        [],
+  cancelled:        [],
+  returned:         [],
+}

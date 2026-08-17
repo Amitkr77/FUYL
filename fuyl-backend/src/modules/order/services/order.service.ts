@@ -352,8 +352,35 @@ export class OrderService {
 
   async updateStatus(orderId: string, dto: UpdateStatusDTO, actorId?: string) {
     const order = await this.getById(orderId);
-    if (order.status === OrderStatus.CANCELLED || order.status === OrderStatus.COMPLETED) {
-      throw new ConflictError(`Cannot change status of order in ${order.status} state`);
+
+    // Terminal states can never move.
+    if ([OrderStatus.CANCELLED, OrderStatus.COMPLETED, OrderStatus.RETURNED].includes(order.status as any)) {
+      throw new ConflictError(`Cannot change status of a ${order.status} order`);
+    }
+
+    // Enforce forward-only transitions. Every status has exactly one set of
+    // valid next statuses — going backwards or skipping ahead is rejected so
+    // the order timeline is always a monotonically advancing audit trail.
+    const VALID_NEXT: Record<string, string[]> = {
+      [OrderStatus.PENDING]:           [OrderStatus.CONFIRMED],
+      [OrderStatus.CONFIRMED]:         [OrderStatus.PACKED],
+      [OrderStatus.PACKED]:            [OrderStatus.DISPATCHED, OrderStatus.SHIPPED],
+      [OrderStatus.DISPATCHED]:        [OrderStatus.IN_TRANSIT, OrderStatus.SHIPPED],
+      [OrderStatus.IN_TRANSIT]:        [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.SHIPPED, OrderStatus.DELIVERED],
+      [OrderStatus.OUT_FOR_DELIVERY]:  [OrderStatus.DELIVERED],
+      [OrderStatus.SHIPPED]:           [OrderStatus.DELIVERED],
+      [OrderStatus.DELIVERED]:         [OrderStatus.COMPLETED],
+    };
+    // Cancellation uses its own endpoint (POST /orders/:id/cancel).
+    if (dto.status === OrderStatus.CANCELLED) {
+      throw new BadRequestError('Use the cancel endpoint to cancel an order');
+    }
+    const allowed = VALID_NEXT[order.status] ?? [];
+    if (!allowed.includes(dto.status)) {
+      throw new BadRequestError(
+        `Order cannot move from "${order.status}" to "${dto.status}". ` +
+        (allowed.length ? `Allowed next: ${allowed.join(', ')}.` : 'No further transitions available.'),
+      );
     }
 
     const patch: Partial<typeof order> = {};
@@ -370,8 +397,6 @@ export class OrderService {
         break;
       case OrderStatus.DELIVERED: patch.deliveredAt = now; break;
       case OrderStatus.COMPLETED: patch.completedAt = now; break;
-      case OrderStatus.CANCELLED:
-        throw new BadRequestError('Use the cancel endpoint to cancel an order');
     }
 
     const updated = await orderRepo.appendTimeline(orderId, {

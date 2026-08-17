@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { CheckCircle2, AlertCircle, Circle } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import type { AdminOrderDetail } from '@/lib/orders'
-import { type OrderStatus, MANUAL_STATUS_OPTIONS, STATUS_FLOW, ORDER_STATUS_LABEL } from '@/lib/orderStatus'
+import { type OrderStatus, ALLOWED_TRANSITIONS, STATUS_FLOW, ORDER_STATUS_LABEL } from '@/lib/orderStatus'
 import { updateOrderStatusAction } from '@/app/(admin)/orders/actions'
 
 const statusVariant = (s: OrderStatus): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
@@ -18,14 +18,17 @@ const statusVariant = (s: OrderStatus): 'success' | 'warning' | 'danger' | 'info
 }
 
 export function OrderStatusPanel({ order }: { order: AdminOrderDetail }) {
-  const [status, setStatus] = useState<OrderStatus>(order.status)
+  const [status, setStatus] = useState<OrderStatus>(
+    (ALLOWED_TRANSITIONS[order.status]?.[0] ?? order.status) as OrderStatus
+  )
   const [note, setNote] = useState('')
   const [trackingNumber, setTrackingNumber] = useState(order.trackingNumber ?? '')
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
 
-  const isTerminal = order.status === 'cancelled' || order.status === 'completed'
+  const nextOptions = ALLOWED_TRANSITIONS[order.status] ?? []
+  const isTerminal  = nextOptions.length === 0
 
   const hasChanges =
     status !== order.status ||
@@ -62,7 +65,7 @@ export function OrderStatusPanel({ order }: { order: AdminOrderDetail }) {
 
         {isTerminal ? (
           <p className="text-sm text-slate-400">
-            Order is {ORDER_STATUS_LABEL[order.status]} — status can no longer be changed.
+            Order is <span className="font-medium">{ORDER_STATUS_LABEL[order.status]}</span> — no further status changes allowed.
           </p>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
@@ -85,7 +88,7 @@ export function OrderStatusPanel({ order }: { order: AdminOrderDetail }) {
               onChange={(e) => setStatus(e.target.value as OrderStatus)}
               className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#558476]"
             >
-              {MANUAL_STATUS_OPTIONS.map((s) => (
+              {nextOptions.map((s) => (
                 <option key={s} value={s}>{ORDER_STATUS_LABEL[s]}</option>
               ))}
             </select>
