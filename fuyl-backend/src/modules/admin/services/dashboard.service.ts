@@ -11,6 +11,7 @@ import { CouponRedemptionModel } from '../../discount/models/redemption.model';
 import { AnalyticsEventModel } from '../../analytics/models/event.model';
 import { InventoryStockModel } from '../../inventory/models/stock.model';
 import { logger } from '../../../config/logger';
+import { fromPaise, toPaise } from '../../../shared/utils';
 
 class AdminDashboardService {
   /**
@@ -81,9 +82,9 @@ class AdminDashboardService {
         count1d: orders1d,
       },
       revenue: {
-        last30d: revenue30d[0]?.total ?? 0,
-        last7d: revenue7d[0]?.total ?? 0,
-        last1d: revenue1d[0]?.total ?? 0,
+        last30d: fromPaise(toPaise(revenue30d[0]?.total ?? 0)),
+        last7d: fromPaise(toPaise(revenue7d[0]?.total ?? 0)),
+        last1d: fromPaise(toPaise(revenue1d[0]?.total ?? 0)),
       },
       subscriptions: {
         active: subscriptionsActive,

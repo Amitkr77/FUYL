@@ -19,6 +19,8 @@ export type WalletTxSource =
   | 'withdrawal'
   | 'admin_adjustment'
   | 'milestone_bonus'
+  | 'affiliate_commission'
+  | 'affiliate_clawback'
   | 'reversal';
 
 export interface IWalletTransaction extends Document {
@@ -50,7 +52,8 @@ const WalletTransactionSchema = new Schema<IWalletTransaction>(
     source: {
       type: String,
       enum: ['referral', 'subscription_cashback', 'order_cashback', 'order_payment', 'order_refund',
-             'discount', 'gift_card', 'topup', 'withdrawal', 'admin_adjustment', 'milestone_bonus', 'reversal'],
+             'discount', 'gift_card', 'topup', 'withdrawal', 'admin_adjustment', 'milestone_bonus',
+             'affiliate_commission', 'affiliate_clawback', 'reversal'],
       required: true,
       index: true,
     },

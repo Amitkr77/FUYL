@@ -1,6 +1,7 @@
 import { AnalyticsEventModel, AnalyticsMetricModel } from '../models/event.model';
 import { CartModel } from '../../cart/models/cart.model';
 import { OrderModel } from '../../order/models/order.model';
+import { fromPaise, toPaise } from '../../../shared/utils';
 
 function dateRange(days: number, from?: string, to?: string): { since: Date; until: Date } {
   const until = to ? new Date(to) : new Date();
@@ -30,7 +31,13 @@ class AnalyticsQueryService {
       ]),
     ]);
 
-    return { since, until, eventsByType, totalsByType, revenueTotal: revenueTotal[0]?.total ?? 0 };
+    return {
+      since,
+      until,
+      eventsByType,
+      totalsByType: totalsByType.map((row) => ({ ...row, total: fromPaise(toPaise(row.total ?? 0)) })),
+      revenueTotal: fromPaise(toPaise(revenueTotal[0]?.total ?? 0)),
+    };
   }
 
   /** Time-series for a specific event (supports custom date range). */
@@ -47,7 +54,7 @@ class AnalyticsQueryService {
       },
       { $sort: { _id: 1 } },
     ]);
-    return series.map((s) => ({ date: s._id, count: s.count, value: s.value }));
+    return series.map((s) => ({ date: s._id, count: s.count, value: fromPaise(toPaise(s.value ?? 0)) }));
   }
 
   /** Revenue timeseries grouped by day/week/month. */
@@ -65,7 +72,7 @@ class AnalyticsQueryService {
       },
       { $sort: { _id: 1 } },
     ]);
-    return series.map((s) => ({ date: s._id, revenue: s.revenue, orders: s.orders }));
+    return series.map((s) => ({ date: s._id, revenue: fromPaise(toPaise(s.revenue ?? 0)), orders: s.orders }));
   }
 
   /** Count of abandoned carts (not converted, has items, idle > 1 hour). */
@@ -250,7 +257,7 @@ class AnalyticsQueryService {
       { $sort: { revenue: -1 } },
       { $limit: limit },
     ]);
-    return results.map((r) => ({ name: r._id as string, revenue: r.revenue, unitsSold: r.unitsSold }));
+    return results.map((r) => ({ name: r._id as string, revenue: fromPaise(toPaise(r.revenue ?? 0)), unitsSold: r.unitsSold }));
   }
 
   /** Recent events for the admin activity feed. */

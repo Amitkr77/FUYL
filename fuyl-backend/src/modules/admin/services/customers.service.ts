@@ -2,6 +2,7 @@ import { UserModel } from '../../identity/models/user.model';
 import { OrderModel } from '../../order/models/order.model';
 import { RoleEnum, OrderStatus } from '../../../shared/enums';
 import { NotFoundError } from '../../../shared/errors';
+import { fromPaise, toPaise } from '../../../shared/utils';
 
 class AdminCustomersService {
   /**
@@ -39,7 +40,7 @@ class AdminCustomersService {
         phone: u.phone,
         joined: u.createdAt,
         orders: stats?.orders ?? 0,
-        totalSpent: stats?.totalSpent ?? 0,
+        totalSpent: fromPaise(toPaise(stats?.totalSpent ?? 0)),
       };
     });
 
@@ -53,7 +54,7 @@ class AdminCustomersService {
     const orders = await OrderModel.find({ customerId: id }).sort({ placedAt: -1 });
     const totalSpent = orders
       .filter((o) => o.status !== OrderStatus.CANCELLED)
-      .reduce((sum, o) => sum + o.grandTotal, 0);
+      .reduce((sum, order) => sum + toPaise(order.grandTotal), 0);
 
     return {
       id: user._id,
@@ -62,13 +63,13 @@ class AdminCustomersService {
       phone: user.phone,
       joined: user.createdAt,
       ordersCount: orders.length,
-      totalSpent,
+      totalSpent: fromPaise(totalSpent),
       orders: orders.map((o) => ({
         id: o._id,
         orderNumber: o.orderNumber,
         date: o.placedAt,
         itemCount: o.items.length,
-        total: o.grandTotal,
+        total: fromPaise(toPaise(o.grandTotal)),
         status: o.status,
       })),
     };

@@ -5,6 +5,7 @@ import { CommissionStatus } from '../../../shared/enums';
 import { AffiliateModel } from '../models/affiliate.model';
 import { AffiliateAttributionModel } from '../models/attribution.model';
 import mongoose from 'mongoose';
+import { fromPaise, toPaise } from '../../../shared/utils';
 
 export type PerformanceTab = 'referrals' | 'commission' | 'sales' | 'clicks';
 
@@ -32,10 +33,21 @@ export class PerformanceService {
       AffiliateModel.countDocuments({ ...(params.programId ? { programId: params.programId } : {}), ...(params.affiliateId ? { _id: params.affiliateId } : {}), createdAt: { $gte: from, $lte: to } }),
       AffiliateModel.countDocuments({ ...(params.programId ? { programId: params.programId } : {}), ...(params.affiliateId ? { _id: params.affiliateId } : {}) }),
     ]);
+    for (const row of commissionRows) {
+      row.sales = fromPaise(toPaise(row.sales ?? 0));
+      row.commission = fromPaise(toPaise(row.commission ?? 0));
+    }
+    for (const row of statusRows) row.total = fromPaise(toPaise(row.total ?? 0));
+    for (const row of topAffiliates) {
+      row.sales = fromPaise(toPaise(row.sales ?? 0));
+      row.commission = fromPaise(toPaise(row.commission ?? 0));
+    }
     const commissions = new Map(commissionRows.map(r => [r._id, r])); const clicks = new Map(clickRows.map(r => [r._id, r.clicks]));
     const series=[]; const cursor=new Date(from); cursor.setHours(0,0,0,0); while(cursor<=to){const date=cursor.toISOString().slice(0,10);const c=commissions.get(date);series.push({date,clicks:clicks.get(date)??0,referrals:c?.referrals??0,sales:c?.sales??0,commission:c?.commission??0});cursor.setDate(cursor.getDate()+1)}
-    const totals=series.reduce((a,d)=>({clicks:a.clicks+d.clicks,referrals:a.referrals+d.referrals,sales:a.sales+d.sales,commission:a.commission+d.commission}),{clicks:0,referrals:0,sales:0,commission:0});
-    return { range: { from: params.from, to: params.to }, totals: { ...totals, affiliates: totalAffiliateCount, newAffiliates: registered, conversionRate: totals.clicks ? totals.referrals / totals.clicks * 100 : 0, averageOrderValue: totals.referrals ? totals.sales / totals.referrals : 0, commissionPerClick: totals.clicks ? totals.commission / totals.clicks : 0, returnOnCommission: totals.commission ? totals.sales / totals.commission : 0 }, series, commissionBreakdown: statusRows.map(r=>({status:r._id,count:r.count,total:r.total})), attributionBreakdown: methodRows.map(r=>({method:r._id,count:r.count})), topAffiliates };
+    const totals=series.reduce((a,d)=>({clicks:a.clicks+d.clicks,referrals:a.referrals+d.referrals,salesPaise:a.salesPaise+toPaise(d.sales),commissionPaise:a.commissionPaise+toPaise(d.commission)}),{clicks:0,referrals:0,salesPaise:0,commissionPaise:0});
+    const sales = fromPaise(totals.salesPaise);
+    const commission = fromPaise(totals.commissionPaise);
+    return { range: { from: params.from, to: params.to }, totals: { clicks: totals.clicks, referrals: totals.referrals, sales, commission, affiliates: totalAffiliateCount, newAffiliates: registered, conversionRate: totals.clicks ? totals.referrals / totals.clicks * 100 : 0, averageOrderValue: totals.referrals ? fromPaise(Math.round(totals.salesPaise / totals.referrals)) : 0, commissionPerClick: totals.clicks ? fromPaise(Math.round(totals.commissionPaise / totals.clicks)) : 0, returnOnCommission: commission ? sales / commission : 0 }, series, commissionBreakdown: statusRows.map(r=>({status:r._id,count:r.count,total:r.total})), attributionBreakdown: methodRows.map(r=>({method:r._id,count:r.count})), topAffiliates };
   }
   /**
    * Returns a time-series array (one entry per day) for the requested tab.
@@ -182,7 +194,7 @@ export class PerformanceService {
 
   private rowsToMap(rows: { _id: string; value: number }[]): Map<string, number> {
     const map = new Map<string, number>();
-    for (const row of rows) map.set(row._id, row.value);
+    for (const row of rows) map.set(row._id, fromPaise(toPaise(row.value)));
     return map;
   }
 

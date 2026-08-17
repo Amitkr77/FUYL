@@ -2,6 +2,7 @@ import { FilterQuery, Types } from 'mongoose';
 import { CommissionModel, ICommission } from '../models/commission.model';
 import { CommissionEventModel } from '../models/commission-event.model';
 import { CommissionStatus, CommissionEventType } from '../../../shared/enums';
+import { fromPaise, toPaise } from '../../../shared/utils';
 
 export class CommissionRepository {
   async create(data: Partial<ICommission>): Promise<ICommission> {
@@ -65,7 +66,7 @@ export class CommissionRepository {
       },
     ]);
     const result: Record<string, { count: number; total: number }> = {};
-    for (const row of agg) result[row._id] = { count: row.count, total: row.total };
+    for (const row of agg) result[row._id] = { count: row.count, total: fromPaise(toPaise(row.total ?? 0)) };
     return result;
   }
 

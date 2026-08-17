@@ -1,6 +1,7 @@
 import { FilterQuery, Types } from 'mongoose';
 import { IOrder, OrderModel } from '../models/order.model';
 import { OrderStatus } from '../../../shared/enums';
+import { fromPaise, toPaise } from '../../../shared/utils';
 
 export class OrderRepository {
   async create(data: Partial<IOrder>): Promise<IOrder> {
@@ -91,7 +92,7 @@ export class OrderRepository {
     ]);
     return {
       pending, confirmed, shipped, delivered, completed, cancelled,
-      revenue: revenueAgg[0]?.total ?? 0,
+      revenue: fromPaise(toPaise(revenueAgg[0]?.total ?? 0)),
     };
   }
 }

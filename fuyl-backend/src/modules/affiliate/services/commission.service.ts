@@ -180,26 +180,58 @@ export class CommissionService {
     const totalPaid = fromPaise(transitioned.reduce((sum, commission) => sum + toPaise(commission.amount), 0));
     const commissionIds = transitioned.map((c) => c._id.toString());
 
-    await payoutRepo.create({
+    const payout = await payoutRepo.create({
       affiliateId: affiliate._id,
       commissionIds: transitioned.map((c) => c._id),
       amount: totalPaid,
-      status: 'paid',
+      status: affiliate.userId ? 'processing' : 'paid',
       paymentMethod: affiliate.userId ? 'wallet_credit' : affiliate.paymentInfo?.upi ? 'upi' : 'bank_transfer',
-      paidAt: now,
+      paidAt: affiliate.userId ? undefined : now,
       initiatedBy: new mongoose.Types.ObjectId(actorId),
     });
 
     // If the affiliate has a linked user account, credit their wallet
     if (affiliate.userId) {
-      await walletService.credit({
-        userId:        affiliate.userId.toString(),
-        amount:        totalPaid,
-        source:        'affiliate_commission' as any,
-        description:   `Affiliate commission payout (${commissionIds.length} orders)`,
-        referenceType: 'affiliate',
-        referenceId:   affiliateId,
-      });
+      try {
+        const walletResult = await walletService.credit({
+          userId:        affiliate.userId.toString(),
+          amount:        totalPaid,
+          source:        'affiliate_commission',
+          description:   `Affiliate commission payout (${commissionIds.length} orders)`,
+          referenceType: 'affiliate_payout',
+          referenceId:   payout._id,
+        });
+        await payoutRepo.update(payout._id, {
+          status: 'paid',
+          paidAt: new Date(),
+          providerRef: walletResult.transaction._id.toString(),
+        });
+      } catch (error: any) {
+        await payoutRepo.update(payout._id, {
+          status: 'failed',
+          failedAt: new Date(),
+          failureReason: error?.message ?? 'Wallet credit failed',
+        });
+        await Promise.all(transitioned.map(async (commission) => {
+          const restored = await commissionRepo.claimTransition(
+            commission._id,
+            CommissionStatus.PAID,
+            CommissionStatus.PAYABLE,
+            { paidAt: undefined }
+          );
+          if (restored) {
+            await commissionRepo.appendEvent({
+              commissionId: commission._id,
+              affiliateId: commission.affiliateId,
+              eventType: CommissionEventType.ADJUSTED,
+              amountDelta: commission.amount,
+              actorId,
+              note: 'Payout wallet credit failed; commission restored to payable',
+            });
+          }
+        }));
+        throw error;
+      }
     }
 
     // Update paid stat
@@ -260,7 +292,7 @@ export class CommissionService {
 
     const paymentPaise = toPaise(paymentAmount);
     const refundedPaise = Math.min(paymentPaise, Math.max(0, toPaise(totalRefunded)));
-    if (refundedPaise >= paymentPaise) {
+    if (refundedPaise >= paymentPaise && commission.status !== CommissionStatus.PAID) {
       await this.cancel(orderId, 'Order payment fully refunded');
       return;
     }
@@ -276,18 +308,61 @@ export class CommissionService {
     if (toPaise(delta) === 0) return;
 
     if (commission.status === CommissionStatus.PAID) {
-      await commissionRepo.update(commission._id, {
-        metadata: {
-          ...(commission.metadata ?? {}),
-          refundAdjustmentPending: true,
-          totalRefunded,
-          paymentAmount,
-          desiredAmount,
-        },
-      });
-      logger.error('[affiliate] paid commission requires refund clawback reconciliation', {
-        orderId, commissionId: commission.id, currentAmount: commission.amount, desiredAmount,
-      });
+      const affiliate = await affiliateRepo.findById(commission.affiliateId.toString());
+      const clawbackAmount = fromPaise(Math.abs(toPaise(delta)));
+      if (!affiliate?.userId || delta >= 0) {
+        await commissionRepo.update(commission._id, {
+          metadata: { ...(commission.metadata ?? {}), refundAdjustmentPending: true, totalRefunded, paymentAmount, desiredAmount, clawbackAmount },
+        });
+        logger.error('[affiliate] paid commission requires manual clawback reconciliation', { orderId, commissionId: commission.id, clawbackAmount });
+        return;
+      }
+      try {
+        const { OrderModel } = await import('../../order/models/order.model');
+        const order = await OrderModel.findById(orderId).select('orderNumber').lean();
+        const walletResult = await walletService.debit({
+          userId: affiliate.userId.toString(),
+          amount: clawbackAmount,
+          source: 'affiliate_clawback',
+          description: `Affiliate commission clawback for order ${order?.orderNumber ?? orderId}`,
+          referenceType: `affiliate_clawback_${toPaise(desiredAmount)}`,
+          referenceId: commission._id,
+          metadata: { orderId, commissionId: commission._id.toString(), totalRefunded, paymentAmount },
+        });
+        await commissionRepo.update(commission._id, {
+          baseAmount: desiredBase,
+          amount: desiredAmount,
+          metadata: {
+            ...(commission.metadata ?? {}),
+            refundAdjustmentPending: false,
+            totalRefunded,
+            paymentAmount,
+            desiredAmount,
+            clawbackTransactionId: walletResult.transaction._id,
+          },
+        });
+        await commissionRepo.appendEvent({
+          commissionId: commission._id,
+          affiliateId: commission.affiliateId,
+          eventType: CommissionEventType.ADJUSTED,
+          amountDelta: delta,
+          note: `Clawed back ₹${clawbackAmount} after cumulative refund`,
+        });
+        await affiliateRepo.incrementStats(commission.affiliateId, {
+          totalRevenue: fromPaise(toPaise(desiredBase) - toPaise(commission.baseAmount)),
+          totalCommissionEarned: delta,
+          totalCommissionPaid: delta,
+        });
+      } catch (error: any) {
+        await commissionRepo.update(commission._id, {
+          metadata: {
+            ...(commission.metadata ?? {}), refundAdjustmentPending: true,
+            totalRefunded, paymentAmount, desiredAmount, clawbackAmount,
+            clawbackFailureReason: error?.message ?? 'Wallet debit failed',
+          },
+        });
+        logger.error('[affiliate] affiliate wallet could not cover commission clawback', { orderId, commissionId: commission.id, clawbackAmount, error });
+      }
       return;
     }
 

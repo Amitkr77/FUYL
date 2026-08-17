@@ -3,7 +3,8 @@ export type Paise = number & { readonly __paise: unique symbol };
 
 export function toPaise(rupees: number): Paise {
   if (!Number.isFinite(rupees)) throw new TypeError('Money amount must be finite');
-  return Math.round((rupees + Number.EPSILON) * 100) as Paise;
+  const roundingNudge = Math.sign(rupees) * Number.EPSILON;
+  return Math.round((rupees + roundingNudge) * 100) as Paise;
 }
 
 export function fromPaise(paise: number): number {
