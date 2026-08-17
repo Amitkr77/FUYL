@@ -2,14 +2,14 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { Search, Edit2, Archive, AlertTriangle, ChevronDown, X, PackageOpen } from 'lucide-react'
+import { Search, Edit2, Archive, ChevronDown, X, PackageOpen } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import { formatCurrency } from '@/lib/utils'
 import type { AdminProduct, ProductStatus } from '@/lib/products'
 import { archiveProductAction } from '@/app/(admin)/products/actions'
 
 type TabFilter = 'all' | ProductStatus
-type SortKey = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'stock-asc' | 'stock-desc'
+type SortKey = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc'
 
 const TABS: { label: string; value: TabFilter }[] = [
   { label: 'All',      value: 'all'      },
@@ -23,23 +23,13 @@ const SORT_OPTIONS: { label: string; value: SortKey }[] = [
   { label: 'Name Z → A',          value: 'name-desc'  },
   { label: 'Price: Low → High',   value: 'price-asc'  },
   { label: 'Price: High → Low',   value: 'price-desc' },
-  { label: 'Stock: Low → High',   value: 'stock-asc'  },
-  { label: 'Stock: High → Low',   value: 'stock-desc' },
 ]
 
-// Merges `status` + `isPublished` into a single, unambiguous label.
-// Showing two separate badges (Active + Hidden) was confusing; one badge is clearer.
 function unifiedStatus(status: ProductStatus, isPublished: boolean) {
   if (status === 'archived') return { label: 'Archived', variant: 'danger'   as const }
   if (status === 'draft')    return { label: 'Draft',    variant: 'default'  as const }
   if (!isPublished)          return { label: 'Hidden',   variant: 'warning'  as const }
   return                            { label: 'Active',   variant: 'success'  as const }
-}
-
-function stockLevel(stock: number): 'out' | 'low' | 'ok' {
-  if (stock === 0)  return 'out'
-  if (stock < 20)   return 'low'
-  return 'ok'
 }
 
 function sorted(products: AdminProduct[], key: SortKey): AdminProduct[] {
@@ -49,8 +39,6 @@ function sorted(products: AdminProduct[], key: SortKey): AdminProduct[] {
       case 'name-desc':  return b.name.localeCompare(a.name)
       case 'price-asc':  return a.price - b.price
       case 'price-desc': return b.price - a.price
-      case 'stock-asc':  return a.stock - b.stock
-      case 'stock-desc': return b.stock - a.stock
     }
   })
 }
@@ -192,7 +180,6 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
               <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Product</th>
               <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3 hidden md:table-cell">Variants / SKU</th>
               <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Price</th>
-              <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Stock</th>
               <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Status</th>
               <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Actions</th>
             </tr>
@@ -201,7 +188,7 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
           <tbody className="divide-y divide-slate-50">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-5 py-16 text-center">
+                <td colSpan={5} className="px-5 py-16 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center">
                       <PackageOpen className="w-6 h-6 text-slate-400" />
@@ -231,7 +218,6 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
               </tr>
             ) : (
               filtered.map((product) => {
-                const stock   = stockLevel(product.stock)
                 const status  = unifiedStatus(product.status, product.isPublished)
                 const isConfirming = confirmingId === product.id
                 const isArchiving  = isPending && archivingId === product.id
@@ -294,22 +280,6 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
                         <p className="text-xs text-slate-400 line-through mt-0.5">
                           {formatCurrency(product.compareAtPrice)}
                         </p>
-                      )}
-                    </td>
-
-                    {/* Stock */}
-                    <td className="px-5 py-3.5">
-                      {stock === 'out' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-50 text-rose-600 text-xs font-semibold border border-rose-100">
-                          Out of stock
-                        </span>
-                      ) : stock === 'low' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-100">
-                          <AlertTriangle className="w-3 h-3 flex-shrink-0" />
-                          {product.stock} left
-                        </span>
-                      ) : (
-                        <span className="text-sm text-slate-700 font-medium">{product.stock}</span>
                       )}
                     </td>
 

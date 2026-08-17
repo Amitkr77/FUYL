@@ -33,7 +33,7 @@ export default async function ProductsPage() {
           <h2 className="text-xl font-bold text-slate-900">Products</h2>
           <p className="text-sm text-slate-500 mt-0.5">Manage your product catalog, pricing, and variants</p>
         </div>
-        <div className="flex items-center gap-2"><CsvExportButton filename="products" columns={[{key:'name',label:'Product'},{key:'status',label:'Status'},{key:'price',label:'Price'},{key:'stock',label:'Stock'},{key:'sku',label:'SKU'}]} rows={products} /><Link
+        <div className="flex items-center gap-2"><CsvExportButton filename="products" columns={[{key:'name',label:'Product'},{key:'status',label:'Status'},{key:'price',label:'Price'},{key:'sku',label:'SKU'}]} rows={products} /><Link
           href="/products/new"
           className="flex items-center gap-2 px-4 py-2 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
         >
