@@ -5,27 +5,13 @@ interface ProductBadgesProps {
   badge?: string
 }
 
-// Map product tags to display badges
-const TAG_MAP: Record<string, string> = {
-  'vegetarian':   '🌿 100% Veg',
-  'veg':          '🌿 100% Veg',
-  'free-shipping':'Free Shipping',
-  'made-in-india':'Made in India',
-  'no-artificial-colour': 'No Artificial Colour',
-}
-
 export function ProductBadges({ tags = [], badge }: ProductBadgesProps) {
-  const displayBadges: string[] = []
+  const all = Array.from(new Set([
+    ...(badge ? [badge] : []),
+    ...tags,
+  ]))
 
-  if (badge) displayBadges.push(badge)
-  tags.forEach((tag) => {
-    if (TAG_MAP[tag]) displayBadges.push(TAG_MAP[tag])
-  })
-
-  // Always show these FUYL-specific badges
-  const staticBadges = ['🌿 100% Veg', 'Free Shipping', 'Made in India']
-
-  const all = Array.from(new Set([...displayBadges, ...staticBadges]))
+  if (all.length === 0) return null
 
   return (
     <div className="flex flex-wrap gap-2">

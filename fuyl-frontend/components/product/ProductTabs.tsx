@@ -26,8 +26,9 @@ const FORMULA_HIGHLIGHTS = [
 ]
 
 export function ProductTabs({ product, descriptionHtml }: ProductTabsProps) {
-  const tabs = ['Description', 'Ingredients', 'Delivery'] as const
-  const [active, setActive] = useState<string>(tabs[0])
+  const hasIngredients = product.ingredients && product.ingredients.length > 0
+  const tabs = ['Description', ...(hasIngredients ? ['Ingredients'] : []), 'Delivery'] as const
+  const [active, setActive] = useState<string>('Description')
 
   return (
     <div className="mt-10">
