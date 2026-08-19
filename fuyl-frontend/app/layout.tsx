@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 // failure, so a catalog/API hiccup never breaks the nav.
 async function getShopNavItems(): Promise<NavItem[]> {
   try {
-    const products = await getProducts({ limit: 2 })
+    const products = await getProducts({})
     // Not force-uppercased here — desktop's MegaMenu already applies
     // `uppercase` via CSS, but the mobile nav renders labels as-is.
     return products.map((p) => ({ label: p.name, href: `/products/${p.slug}` }))
