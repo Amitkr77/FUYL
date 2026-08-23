@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { setSessionCookie } from '@/lib/auth'
 
 const API_URL = process.env.API_URL || 'http://localhost:4000/api/v1'
-const ADMIN_ROLES = ['admin', 'super_admin']
+const ADMIN_ROLES = ['admin', 'super_admin', 'staff']
 
 export async function login(
   prevState: { error: string } | null,
@@ -67,7 +67,7 @@ export async function login(
   await setSessionCookie({
     userId:  user._id,
     email:   user.email,
-    role:    user.role as 'admin' | 'super_admin',
+    role:    user.role as 'admin' | 'super_admin' | 'staff',
     accessToken,
     refreshToken,
   })

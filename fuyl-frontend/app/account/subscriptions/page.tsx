@@ -11,6 +11,7 @@ import {
 } from '@/lib/api/subscriptions'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Spinner } from '@/components/ui/Spinner'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 const STATUS_COLOR: Record<Subscription['status'], string> = {
   active: '#10B981', paused: '#F59E0B', past_due: '#B91C1C',
@@ -126,17 +127,24 @@ export default function SubscriptionsPage() {
                     )}
                     <div>
                       <p className="text-body-md font-semibold">{s.productName}</p>
-                      <p className="text-body-xs" style={{ color: 'var(--color-brand-muted)' }}>
+                      <p className="text-body-xs flex items-center" style={{ color: 'var(--color-brand-muted)' }}>
                         Every {s.intervalCount > 1 ? `${s.intervalCount} ` : ''}{s.interval} · {formatPrice(s.finalPrice)}
+                        <InfoTooltip text="Your order is placed and charged automatically at this frequency. You will receive a reminder before each delivery. You can pause, skip, or cancel at any time." side="bottom" />
                       </p>
                     </div>
                   </div>
-                  <span
-                    className="text-body-xs font-semibold uppercase tracking-wide px-2 py-1 rounded-sm whitespace-nowrap"
-                    style={{ color: STATUS_COLOR[s.status], background: `${STATUS_COLOR[s.status]}1A` }}
-                  >
-                    {s.status.replace('_', ' ')}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span
+                      className="text-body-xs font-semibold uppercase tracking-wide px-2 py-1 rounded-sm whitespace-nowrap"
+                      style={{ color: STATUS_COLOR[s.status], background: `${STATUS_COLOR[s.status]}1A` }}
+                    >
+                      {s.status.replace('_', ' ')}
+                    </span>
+                    <InfoTooltip
+                      text="Active: running normally. Paused: deliveries stopped by you, resume anytime. Past due: payment failed — update your payment method. Pending: being set up. Cancelled/Expired: no longer active."
+                      side="bottom"
+                    />
+                  </div>
                 </div>
 
                 {s.consecutiveFailures > 0 && (
@@ -164,9 +172,12 @@ export default function SubscriptionsPage() {
                         <ActionButton disabled={rowBusy} loading={busyKey === `${s.id}:pause`} onClick={() => runAction(`${s.id}:pause`, (t) => pauseSubscription(t, s.id))}>
                           Pause
                         </ActionButton>
-                        <ActionButton disabled={rowBusy} loading={busyKey === `${s.id}:skip`} onClick={() => runAction(`${s.id}:skip`, (t) => skipNextDelivery(t, s.id))}>
-                          Skip Next Delivery
-                        </ActionButton>
+                        <div className="flex items-center gap-1">
+                          <ActionButton disabled={rowBusy} loading={busyKey === `${s.id}:skip`} onClick={() => runAction(`${s.id}:skip`, (t) => skipNextDelivery(t, s.id))}>
+                            Skip Next Delivery
+                          </ActionButton>
+                          <InfoTooltip text="Skipping moves your next delivery date forward by one cycle. Your subscription remains active and continues on the cycle after the skipped one." side="top" />
+                        </div>
                       </>
                     )}
                     {s.status === 'paused' && (

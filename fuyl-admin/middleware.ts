@@ -39,7 +39,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const session = await verifySession(token)
-  if (!session || !['admin', 'super_admin'].includes(session.role)) {
+  if (!session || !['admin', 'super_admin', 'staff'].includes(session.role)) {
     const response = NextResponse.redirect(new URL('/login', request.url))
     response.cookies.delete(SESSION_COOKIE)
     return response

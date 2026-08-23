@@ -7,6 +7,7 @@ import { formatPrice } from '@/lib/utils/formatPrice'
 import { getWalletBalance, getWalletTransactions, type WalletBalance, type WalletTransaction } from '@/lib/api/wallet'
 import { getLoyaltyBalance, type LoyaltyBalance } from '@/lib/api/loyalty'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { getErrorMessage } from '@/lib/api/client'
 
 const TYPE_LABEL: Record<WalletTransaction['type'], string> = {
@@ -100,7 +101,10 @@ export default function WalletPage() {
 
           <div className="grid grid-cols-2 gap-4 mb-10">
             <div className="border rounded-sm p-5" style={{ borderColor: 'var(--color-brand-border)' }}>
-              <p className="text-label mb-1.5" style={{ color: 'var(--color-brand-muted)' }}>Available Balance</p>
+              <p className="text-label mb-1.5 flex items-center" style={{ color: 'var(--color-brand-muted)' }}>
+                Available Balance
+                <InfoTooltip text="Your wallet balance can be used at checkout. It is credited from referral rewards, return refunds, cashback earnings, and promotional credits. Unlike loyalty points, wallet balance has no minimum to use." />
+              </p>
               <p className="text-display-md font-display">{formatPrice(balance.balance)}</p>
             </div>
             <Link
@@ -108,7 +112,10 @@ export default function WalletPage() {
               className="border rounded-sm p-5 block transition-colors hover:bg-brand-cream"
               style={{ borderColor: 'var(--color-brand-border)' }}
             >
-              <p className="text-label mb-1.5" style={{ color: 'var(--color-brand-muted)' }}>Loyalty Points</p>
+              <p className="text-label mb-1.5 flex items-center" style={{ color: 'var(--color-brand-muted)' }}>
+                Loyalty Points
+                <InfoTooltip text="Loyalty points are separate from your wallet balance. Points are earned on purchases and can only be redeemed for order discounts — they cannot be transferred to your wallet." side="bottom" />
+              </p>
               <p className="text-display-md font-display">
                 {loyalty ? loyalty.balance.toLocaleString('en-IN') : '—'} pts
               </p>
@@ -120,13 +127,22 @@ export default function WalletPage() {
             </Link>
             {balance.heldBalance > 0 && (
               <div className="border rounded-sm p-5 col-span-2" style={{ borderColor: 'var(--color-brand-border)' }}>
-                <p className="text-label mb-1.5" style={{ color: 'var(--color-brand-muted)' }}>Held (pending orders)</p>
+                <p className="text-label mb-1.5 flex items-center" style={{ color: 'var(--color-brand-muted)' }}>
+                  Held (pending orders)
+                  <InfoTooltip text="This amount is temporarily reserved for active orders paid with your wallet. It is released back to your available balance if an order is cancelled, or deducted once the order is confirmed." side="bottom" />
+                </p>
                 <p className="text-body-lg">{formatPrice(balance.heldBalance)}</p>
               </div>
             )}
           </div>
 
-          <h2 className="text-label mb-4" style={{ color: 'var(--color-brand-muted)' }}>Transaction History</h2>
+          <h2 className="text-label mb-4 flex items-center" style={{ color: 'var(--color-brand-muted)' }}>
+            Transaction History
+            <InfoTooltip
+              text="Credit: money added to your wallet. Debit: money spent at checkout. Held: amount reserved for a pending order. Released: held amount returned after cancellation. Reversed: a credit that was rolled back."
+              side="right"
+            />
+          </h2>
           {transactions.length === 0 ? (
             <p className="text-body-md" style={{ color: 'var(--color-brand-muted)' }}>No transactions yet.</p>
           ) : (

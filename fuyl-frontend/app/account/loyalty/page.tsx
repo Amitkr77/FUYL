@@ -11,6 +11,7 @@ import {
   type LoyaltyTransaction,
 } from '@/lib/api/loyalty'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { getErrorMessage } from '@/lib/api/client'
 
 const TX_LABEL: Record<LoyaltyTransaction['type'], string> = {
@@ -109,7 +110,10 @@ export default function LoyaltyPage() {
           {/* Balance overview */}
           <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="border rounded-sm p-5 col-span-2 sm:col-span-1" style={{ borderColor: 'var(--color-brand-border)' }}>
-              <p className="text-label mb-1.5" style={{ color: 'var(--color-brand-muted)' }}>Points Balance</p>
+              <p className="text-label mb-1.5 flex items-center" style={{ color: 'var(--color-brand-muted)' }}>
+                Points Balance
+                <InfoTooltip text="You earn loyalty points on every delivered order. Points are automatically added to your account once delivery is confirmed. Use them at checkout for an instant discount." />
+              </p>
               <p className="text-display-md font-display">{balance.balance.toLocaleString('en-IN')} pts</p>
               {balance.redeemableValue > 0 && (
                 <p className="text-body-xs mt-1" style={{ color: 'var(--color-brand-muted)' }}>
@@ -118,11 +122,17 @@ export default function LoyaltyPage() {
               )}
             </div>
             <div className="border rounded-sm p-5" style={{ borderColor: 'var(--color-brand-border)' }}>
-              <p className="text-label mb-1.5" style={{ color: 'var(--color-brand-muted)' }}>Lifetime Earned</p>
+              <p className="text-label mb-1.5 flex items-center" style={{ color: 'var(--color-brand-muted)' }}>
+                Lifetime Earned
+                <InfoTooltip text="Total points you have ever earned across all orders, including points that were later redeemed or expired." side="bottom" />
+              </p>
               <p className="text-display-sm font-display">{balance.lifetimeEarned.toLocaleString('en-IN')} pts</p>
             </div>
             <div className="border rounded-sm p-5" style={{ borderColor: 'var(--color-brand-border)' }}>
-              <p className="text-label mb-1.5" style={{ color: 'var(--color-brand-muted)' }}>Lifetime Redeemed</p>
+              <p className="text-label mb-1.5 flex items-center" style={{ color: 'var(--color-brand-muted)' }}>
+                Lifetime Redeemed
+                <InfoTooltip text="Total points you have applied at checkout as discounts. Each redemption converts points to an instant rupee discount on your order." side="bottom" />
+              </p>
               <p className="text-display-sm font-display">{balance.lifetimeRedeemed.toLocaleString('en-IN')} pts</p>
             </div>
           </div>
@@ -182,7 +192,13 @@ export default function LoyaltyPage() {
           )}
 
           {/* Transaction history */}
-          <h2 className="text-label mb-4" style={{ color: 'var(--color-brand-muted)' }}>Transaction History</h2>
+          <h2 className="text-label mb-4 flex items-center" style={{ color: 'var(--color-brand-muted)' }}>
+            Transaction History
+            <InfoTooltip
+              text="Earned: points added after order delivery. Redeemed: points applied at checkout. Reversed: points rolled back if an order is cancelled. Expired: points that passed their validity date. Adjusted: manual correction by support."
+              side="right"
+            />
+          </h2>
           {transactions.length === 0 ? (
             <p className="text-body-md" style={{ color: 'var(--color-brand-muted)' }}>No transactions yet.</p>
           ) : (
