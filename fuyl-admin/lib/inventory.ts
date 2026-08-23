@@ -81,4 +81,63 @@ export async function adjustStock(input: AdjustStockInput): Promise<void> {
   await adminApiFetch('/inventory/adjust', { method: 'POST', body: input })
 }
 
+export interface WarehouseLocation {
+  id: string
+  name: string
+  code: string
+  address?: {
+    line1?: string
+    line2?: string
+    city?: string
+    state?: string
+    postalCode?: string
+    country?: string
+  }
+  isActive: boolean
+  isDefault: boolean
+}
+
+interface BackendLocation {
+  _id: string
+  name: string
+  code: string
+  address?: WarehouseLocation['address']
+  isActive: boolean
+  isDefault: boolean
+}
+
+function mapLocation(l: BackendLocation): WarehouseLocation {
+  return { id: l._id, name: l.name, code: l.code, address: l.address, isActive: l.isActive, isDefault: l.isDefault }
+}
+
+export async function listLocations(): Promise<WarehouseLocation[]> {
+  const raw = await adminApiFetch<BackendLocation[]>('/inventory/locations')
+  return raw.map(mapLocation)
+}
+
+export async function createLocation(data: { name: string; code: string; address?: WarehouseLocation['address']; isDefault?: boolean }): Promise<WarehouseLocation> {
+  const raw = await adminApiFetch<BackendLocation>('/inventory/locations', { method: 'POST', body: data })
+  return mapLocation(raw)
+}
+
+export async function updateLocation(id: string, data: Partial<WarehouseLocation>): Promise<WarehouseLocation> {
+  const raw = await adminApiFetch<BackendLocation>(`/inventory/locations/${id}`, { method: 'PUT', body: data })
+  return mapLocation(raw)
+}
+
+export async function deleteLocation(id: string): Promise<void> {
+  await adminApiFetch(`/inventory/locations/${id}`, { method: 'DELETE' })
+}
+
+export interface ConsumptionStats {
+  dailyRate: number
+  totalUnits: number
+  days: number
+  byDay: Array<{ date: string; units: number }>
+}
+
+export async function getConsumptionStats(days = 30): Promise<ConsumptionStats> {
+  return adminApiFetch<ConsumptionStats>(`/inventory/stats/consumption?days=${days}`)
+}
+
 export { AdminApiError }

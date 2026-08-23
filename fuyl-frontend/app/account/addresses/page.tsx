@@ -8,6 +8,19 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Spinner } from '@/components/ui/Spinner'
 import { getErrorMessage } from '@/lib/api/client'
 
+const COUNTRIES: { code: string; name: string; phoneCode: string }[] = [
+  { code: 'IN', name: 'India',          phoneCode: '+91' },
+  { code: 'US', name: 'United States',  phoneCode: '+1'  },
+  { code: 'GB', name: 'United Kingdom', phoneCode: '+44' },
+  { code: 'AE', name: 'UAE',            phoneCode: '+971'},
+  { code: 'SG', name: 'Singapore',      phoneCode: '+65' },
+  { code: 'CA', name: 'Canada',         phoneCode: '+1'  },
+  { code: 'AU', name: 'Australia',      phoneCode: '+61' },
+  { code: 'NZ', name: 'New Zealand',    phoneCode: '+64' },
+]
+
+const COUNTRY_MAP = new Map(COUNTRIES.map((c) => [c.code, c]))
+
 const emptyForm: AddressInput = {
   name: '', label: '', line1: '', line2: '', city: '', state: '', postalCode: '', country: 'IN',
   phone: '', isDefault: false, isBilling: false, isShipping: true,
@@ -141,7 +154,35 @@ export default function AddressesPage() {
           <Field label="Name" required value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} />
           <div className="grid grid-cols-2 gap-3">
             <Field label="Label (e.g. Home)" required value={form.label} onChange={(v) => setForm((f) => ({ ...f, label: v }))} />
-            <Field label="Phone" value={form.phone ?? ''} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
+            {/* Phone with country-code prefix */}
+            <div>
+              <label className="block text-label mb-1.5" style={{ color: 'var(--color-brand-muted)' }}>
+                Phone
+              </label>
+              <div className="flex">
+                <select
+                  value={form.country}
+                  onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))}
+                  className="h-11 pl-2 pr-1 text-body-sm border-y border-l rounded-l-sm outline-none"
+                  style={{ borderColor: 'var(--color-brand-border)', background: 'var(--color-brand-cream)' }}
+                  aria-label="Country code"
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>{COUNTRY_MAP.get(c.code)?.phoneCode} {c.name}</option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  value={form.phone ?? ''}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="9876543210"
+                  className="flex-1 h-11 px-3 text-body-sm border rounded-r-sm outline-none transition-colors"
+                  style={{ borderColor: 'var(--color-brand-border)' }}
+                  onFocus={(e) => e.currentTarget.style.borderColor = 'var(--color-brand-berry)'}
+                  onBlur={(e)  => e.currentTarget.style.borderColor = 'var(--color-brand-border)'}
+                />
+              </div>
+            </div>
           </div>
           <Field label="Address Line 1" required value={form.line1} onChange={(v) => setForm((f) => ({ ...f, line1: v }))} />
           <Field label="Address Line 2 (optional)" value={form.line2 ?? ''} onChange={(v) => setForm((f) => ({ ...f, line2: v }))} />
@@ -149,6 +190,20 @@ export default function AddressesPage() {
             <Field label="City" required value={form.city} onChange={(v) => setForm((f) => ({ ...f, city: v }))} />
             <Field label="State" required value={form.state} onChange={(v) => setForm((f) => ({ ...f, state: v }))} />
             <Field label="Postal Code" required value={form.postalCode} onChange={(v) => setForm((f) => ({ ...f, postalCode: v }))} />
+          </div>
+          {/* Country selector (separate from phone prefix) */}
+          <div>
+            <label className="block text-label mb-1.5" style={{ color: 'var(--color-brand-muted)' }}>Country</label>
+            <select
+              value={form.country}
+              onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))}
+              className="w-full h-11 px-3 text-body-sm border rounded-sm outline-none transition-colors"
+              style={{ borderColor: 'var(--color-brand-border)' }}
+            >
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.name}</option>
+              ))}
+            </select>
           </div>
           <label className="flex items-center gap-2 text-body-sm pt-2">
             <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm((f) => ({ ...f, isDefault: e.target.checked }))} />

@@ -1,6 +1,7 @@
 import { InventoryStockRepository } from '../repositories/stock.repository';
 import { StockMovementRepository } from '../repositories/movement.repository';
 import { StockReservationRepository } from '../repositories/reservation.repository';
+import { WarehouseLocationModel } from '../models/location.model';
 import {
   BadRequestError,
   NotFoundError,
@@ -515,6 +516,62 @@ class InventoryService {
   // ─── Movement history ─────────────────────────────────────────
   async listMovements(filter: Record<string, unknown> = {}, page = 1, limit = 50) {
     return movementRepo.paginate(filter, page, limit);
+  }
+
+  /**
+   * Consumption rate stats: units sold (order_out) aggregated per day
+   * over the last `days` days. Returns daily totals and the average daily rate.
+   */
+  async getConsumptionStats(days = 30): Promise<{
+    dailyRate: number;
+    totalUnits: number;
+    days: number;
+    byDay: Array<{ date: string; units: number }>;
+  }> {
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const rows = await StockMovementModel.aggregate([
+      { $match: { type: 'order_out', createdAt: { $gte: since } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          units: { $sum: { $abs: '$quantity' } },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+    const totalUnits = rows.reduce((s: number, r: { units: number }) => s + r.units, 0);
+    return {
+      dailyRate: days > 0 ? Math.round((totalUnits / days) * 10) / 10 : 0,
+      totalUnits,
+      days,
+      byDay: rows.map((r: { _id: string; units: number }) => ({ date: r._id, units: r.units })),
+    };
+  }
+
+  // ─── Warehouse locations ──────────────────────────────────────
+  async listLocations() {
+    return WarehouseLocationModel.find({}).sort({ isDefault: -1, name: 1 });
+  }
+
+  async createLocation(data: { name: string; code: string; address?: object; isDefault?: boolean }) {
+    if (data.isDefault) {
+      await WarehouseLocationModel.updateMany({}, { $set: { isDefault: false } });
+    }
+    return WarehouseLocationModel.create(data);
+  }
+
+  async updateLocation(id: string, data: Partial<{ name: string; address: object; isActive: boolean; isDefault: boolean }>) {
+    if (data.isDefault) {
+      await WarehouseLocationModel.updateMany({ _id: { $ne: id } }, { $set: { isDefault: false } });
+    }
+    return WarehouseLocationModel.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true });
+  }
+
+  async deleteLocation(id: string) {
+    const loc = await WarehouseLocationModel.findById(id);
+    if (!loc) throw new NotFoundError('Location not found');
+    if (loc.isDefault) throw new BadRequestError('Cannot delete the default location');
+    return WarehouseLocationModel.findByIdAndDelete(id);
   }
 
   /**

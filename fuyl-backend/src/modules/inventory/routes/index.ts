@@ -19,6 +19,15 @@ router.put('/inventory/reorder/:productId', authRequired, authorize(Roles.ADMIN,
 router.post('/inventory/reserve', authRequired, inventoryController.reserve);
 router.post('/inventory/release', authRequired, inventoryController.release);
 
+// Warehouse locations
+router.get('/inventory/locations',        authRequired, authorize(Roles.ADMIN, Roles.SUPER_ADMIN), inventoryController.listLocations);
+router.post('/inventory/locations',       authRequired, authorize(Roles.ADMIN, Roles.SUPER_ADMIN), inventoryController.createLocation);
+router.put('/inventory/locations/:id',    authRequired, authorize(Roles.ADMIN, Roles.SUPER_ADMIN), inventoryController.updateLocation);
+router.delete('/inventory/locations/:id', authRequired, authorize(Roles.ADMIN, Roles.SUPER_ADMIN), inventoryController.deleteLocation);
+
+// Stats
+router.get('/inventory/stats/consumption', authRequired, authorize(Roles.ADMIN, Roles.SUPER_ADMIN), inventoryController.consumptionStats);
+
 // Movements
 router.get('/inventory/movements', authRequired, authorize(Roles.ADMIN, Roles.SUPER_ADMIN), inventoryController.listMovements);
 

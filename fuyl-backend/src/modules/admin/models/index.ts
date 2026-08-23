@@ -1,2 +1,1 @@
-// admin module has no dedicated collections
-export {};
+export * from './siteSettings.model';

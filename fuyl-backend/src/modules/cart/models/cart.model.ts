@@ -13,6 +13,7 @@ export interface ICartItem {
   currency: string;
   isSubscribable: boolean;
   isTaxable: boolean;        // snapshot from Product.isTaxable at add-time
+  taxRate?: number;          // snapshot from Product.taxRate at add-time
   addedAt: Date;
   // Subscription context (if user added as subscription)
   subscriptionInterval?: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly';
@@ -59,6 +60,7 @@ const CartItemSchema = new Schema<ICartItem>(
     currency: { type: String, default: 'INR' },
     isSubscribable: { type: Boolean, default: false },
     isTaxable: { type: Boolean, default: true },
+    taxRate: { type: Number, min: 0, max: 100 },
     addedAt: { type: Date, default: Date.now },
     subscriptionInterval: { type: String, enum: ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly'] },
     subscriptionDiscountPercent: { type: Number, min: 0, max: 100 },

@@ -74,6 +74,7 @@ export interface Product {
   variants: ProductVariant[]
   tags: string[]
   available: boolean
+  isTaxable: boolean
   isSubscribable: boolean
   rating?: number
   reviewCount?: number

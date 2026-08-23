@@ -105,3 +105,16 @@ export async function placeOrder(token: string, input: CheckoutInput): Promise<P
   const raw = await apiFetch<BackendPlaceOrderResult>('/checkout/place-order', { method: 'POST', body: input, token })
   return { orderId: raw.order._id, orderNumber: raw.order.orderNumber, grandTotal: raw.grandTotal }
 }
+
+export interface PaymentConfig {
+  onlinePaymentEnabled: boolean
+  codEnabled: boolean
+}
+
+export async function getPaymentConfig(): Promise<PaymentConfig> {
+  try {
+    return await apiFetch<PaymentConfig>('/settings/payment', { cache: 'no-store' })
+  } catch {
+    return { onlinePaymentEnabled: true, codEnabled: true }
+  }
+}

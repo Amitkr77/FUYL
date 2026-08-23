@@ -24,6 +24,7 @@ export interface QuoteItemInput {
   sellerId?: string;
   isSubscription?: boolean;
   isTaxable?: boolean;
+  taxRate?: number;              // product-level GST % fallback (used when no global tax rules match)
   customerRole?: string;
   state?: string;
   country?: string;
@@ -269,6 +270,13 @@ class PricingService {
         }
         lineTaxPaise += amountPaise;
         taxBreakdown.push({ code: rule.code, rate: rule.rate, type: rule.type, amount: fromPaise(amountPaise) });
+      }
+
+      // Fallback: if no tax rules applied but the product has a taxRate, use it directly.
+      if (lineTaxPaise === 0 && item.isTaxable !== false && item.taxRate && item.taxRate > 0) {
+        const amountPaise = Math.round(discountedSubtotalPaise * (item.taxRate / 100));
+        lineTaxPaise = amountPaise;
+        taxBreakdown.push({ code: 'GST', rate: item.taxRate, type: 'percent', amount: fromPaise(amountPaise) });
       }
 
       const lineTotalPaise = discountedSubtotalPaise + lineTaxPaise;

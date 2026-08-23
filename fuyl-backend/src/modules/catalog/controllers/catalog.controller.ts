@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthedRequest } from '../../../shared/middleware/auth.middleware';
 import { catalogService } from '../services';
+import { eventBus, Events } from '../../../shared/services/eventBus.service';
 import { success, created, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
 import {
@@ -37,8 +38,11 @@ export class CatalogController {
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     validate(createProductSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
-      try { return created(res, serializeProduct(await catalogService.createProduct(req.body), req)); }
-      catch (err) { next(err); }
+      try {
+        const product = await catalogService.createProduct(req.body);
+        void eventBus.publish(Events.PRODUCT_CREATED, { productId: product._id.toString(), sellerId: req.user!.userId });
+        return created(res, serializeProduct(product, req));
+      } catch (err) { next(err); }
     },
   ];
 
@@ -124,7 +128,11 @@ export class CatalogController {
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     validate(createVariantSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
-      try { return created(res, await catalogService.createVariant(req.body)); }
+      try {
+        const variant = await catalogService.createVariant(req.body);
+        void eventBus.publish(Events.VARIANT_CREATED, { productId: variant.productId.toString(), variantId: variant._id.toString(), sellerId: req.user!.userId });
+        return created(res, variant);
+      }
       catch (err) { next(err); }
     },
   ];

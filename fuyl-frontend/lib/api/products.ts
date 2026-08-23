@@ -33,6 +33,7 @@ interface BackendProduct {
   // when a variant doesn't carry its own weight.
   shipping?: { weight?: number; weightUnit?: string }
   tagIds?: string[]
+  isTaxable: boolean
   isPublished: boolean
   isSubscribable: boolean
   ratingAverage: number
@@ -139,7 +140,10 @@ async function mapVariantsWithStock(productId: string, variants: BackendVariant[
     const stock = await getProductStock(productId, variant._id)
     // No inventory row means inventory is not being tracked for this variant;
     // otherwise zero available stock must make the option unavailable.
-    return mapVariant(variant, variant.isActive && (stock === null || stock > 0))
+    return {
+      ...mapVariant(variant, variant.isActive && (stock === null || stock > 0)),
+      availableQty: stock ?? undefined,
+    }
   }))
 }
 
@@ -153,7 +157,7 @@ async function getTagNames(tagIds?: string[]): Promise<string[]> {
   return tagIds.map((id) => byId.get(id)).filter((name): name is string => Boolean(name))
 }
 
-function mapProduct(raw: BackendProduct, variants: ProductVariant[], tags: string[]): Product {
+function mapProduct(raw: BackendProduct, variants: ProductVariant[], tags: string[], totalStock?: number | null): Product {
   const { price, compareAtPrice } = effectivePrice(raw.basePrice, raw.salePrice, raw.compareAtPrice)
 
   // Variants are optional on the backend (admin/products can be created with
@@ -195,7 +199,8 @@ function mapProduct(raw: BackendProduct, variants: ProductVariant[], tags: strin
     images:         mapImages(raw.media),
     variants:       effectiveVariants,
     tags,
-    available:      raw.isPublished,
+    available:      raw.isPublished && (totalStock === undefined || totalStock === null || totalStock > 0),
+    isTaxable:      raw.isTaxable,
     isSubscribable: raw.isSubscribable,
     rating:         raw.ratingAverage,
     reviewCount:    raw.ratingCount,
@@ -291,11 +296,14 @@ export async function getProducts(params?: {
   // to avoid an extra stock-check per variant — the backend re-validates at cart-add time.
   return Promise.all(items.map(async (raw) => {
     try {
-      const variants = await apiFetch<BackendVariant[]>(`/catalog/products/${raw._id}/variants`, {
-        tags:       [`product-${raw.seo.slug}-variants`],
-        revalidate: 300,
-      })
-      return mapProduct(raw, variants.map((v) => mapVariant(v)), [])
+      const [variants, totalStock] = await Promise.all([
+        apiFetch<BackendVariant[]>(`/catalog/products/${raw._id}/variants`, {
+          tags:       [`product-${raw.seo.slug}-variants`],
+          revalidate: 300,
+        }),
+        getProductStock(raw._id),
+      ])
+      return mapProduct(raw, variants.map((v) => mapVariant(v)), [], totalStock)
     } catch {
       return mapProduct(raw, [], [])
     }

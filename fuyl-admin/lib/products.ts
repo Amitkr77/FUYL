@@ -34,6 +34,8 @@ export interface ProductInfoBlock {
 
 export type WeightUnit = 'g' | 'kg' | 'lb' | 'oz'
 
+export type ShippingMode = 'calculated' | 'fixed' | 'free'
+
 export interface ShippingInfo {
   isPhysical: boolean
   packageType?: string
@@ -41,6 +43,8 @@ export interface ShippingInfo {
   weightUnit: WeightUnit
   countryOfOrigin?: string
   hsCode?: string
+  shippingMode?: ShippingMode
+  fixedShippingRate?: number
 }
 
 const DEFAULT_SHIPPING: ShippingInfo = { isPhysical: true, weightUnit: 'g' }
@@ -107,6 +111,7 @@ export interface AdminProduct {
   unitPriceValue?:  number
   unitPriceUnit?:   string
   isTaxable:        boolean
+  taxRate?:         number
   costPerItem?:     number
   profit?:          number   // computed by the backend, only present for a privileged (admin) requester
   margin?:          number
@@ -148,6 +153,7 @@ export interface AdminProductInput {
   unitPriceValue?:  number
   unitPriceUnit?:   string
   isTaxable:        boolean
+  taxRate?:         number
   costPerItem?:     number
   ingredients:    string[]
   benefits:       string[]
@@ -175,6 +181,7 @@ interface BackendProduct {
   additionalPrices?: AdditionalPrice[]
   unitPrice?: { value: number; unit: string }
   isTaxable: boolean
+  taxRate?: number
   costPerItem?: number
   profit?: number
   margin?: number
@@ -292,6 +299,7 @@ function productBody(input: AdminProductInput) {
       ? { value: input.unitPriceValue, unit: input.unitPriceUnit }
       : undefined,
     isTaxable:         input.isTaxable,
+    taxRate:           input.taxRate,
     costPerItem:       input.costPerItem,
     ingredients:       input.ingredients,
     benefits:          input.benefits,
@@ -383,6 +391,7 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
       unitPriceValue:   p.unitPrice?.value,
       unitPriceUnit:    p.unitPrice?.unit,
       isTaxable:        p.isTaxable,
+      taxRate:          p.taxRate,
       costPerItem:      p.costPerItem,
       profit:           p.profit,
       margin:           p.margin,

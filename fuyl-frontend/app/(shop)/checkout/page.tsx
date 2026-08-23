@@ -14,7 +14,7 @@ import { CouponInput, type AppliedCoupon } from '@/components/checkout/CouponInp
 import { useAuthStore } from '@/lib/store/authStore'
 import { useCartStore } from '@/lib/store/cartStore'
 import { useCart } from '@/lib/hooks/useCart'
-import { previewCheckout, placeOrder, type CheckoutAddressInput, type CheckoutPaymentMethod, type CheckoutPreview } from '@/lib/api/checkout'
+import { previewCheckout, placeOrder, getPaymentConfig, type CheckoutAddressInput, type CheckoutPaymentMethod, type CheckoutPreview, type PaymentConfig } from '@/lib/api/checkout'
 import { getWalletBalance } from '@/lib/api/wallet'
 import { getLoyaltyBalance, type LoyaltyBalance } from '@/lib/api/loyalty'
 import { getAddresses, type Address } from '@/lib/api/customer'
@@ -114,6 +114,7 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState<CheckoutAddressInput>(EMPTY_ADDRESS)
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<AddressField, string>>>({})
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('cashfree')
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig>({ onlinePaymentEnabled: true, codEnabled: true })
   const [preview, setPreview] = useState<CheckoutPreview | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState('')
@@ -226,6 +227,22 @@ export default function CheckoutPage() {
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
+
+  // Fetch payment method config once on mount
+  useEffect(() => {
+    getPaymentConfig().then((cfg) => {
+      startTransition(() => {
+        setPaymentConfig(cfg)
+        // If current selection is no longer allowed, switch to the other method
+        if (!cfg.onlinePaymentEnabled && !cfg.codEnabled) return
+        setPaymentMethod((m) => {
+          if (m === 'cashfree' && !cfg.onlinePaymentEnabled) return 'cod'
+          if (m === 'cod' && !cfg.codEnabled) return 'cashfree'
+          return m
+        })
+      })
+    }).catch(() => {})
+  }, [])
 
   // Fetch wallet balance once after auth resolves — reset when user logs out.
   useEffect(() => {
@@ -697,7 +714,14 @@ export default function CheckoutPage() {
 
               <div className="space-y-3 mb-8">
                 <h2 className="text-display-md font-display">Payment Method</h2>
-                <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
+                <PaymentMethodPicker
+                  value={paymentMethod}
+                  onChange={setPaymentMethod}
+                  enabledMethods={new Set([
+                    ...(paymentConfig.onlinePaymentEnabled ? ['cashfree' as const] : []),
+                    ...(paymentConfig.codEnabled ? ['cod' as const] : []),
+                  ])}
+                />
               </div>
 
               {token && walletBalance !== null && walletBalance > 0 && (

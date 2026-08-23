@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { authRequired } from '../../../shared/middleware/auth.middleware';
 import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
 import { adminController } from '../controllers';
+import { SiteSettingsModel } from '../models';
+import { success } from '../../../shared/responses';
 
 const router = Router();
 
@@ -23,6 +25,33 @@ router.get('/admin/customers', adminController.listCustomers);
 router.get('/admin/customers/:id', adminController.getCustomer);
 router.get('/admin/recent-activity', adminController.recentActivity);
 router.get('/admin/system-health', adminController.systemHealth);
+
+// Public payment config — no auth required (tells the storefront which methods are available)
+router.get('/settings/payment', async (_req, res, next) => {
+  try {
+    const s = await SiteSettingsModel.findOne({});
+    const payment = s?.payment ?? { onlinePaymentEnabled: true, codEnabled: true };
+    return success(res, payment);
+  } catch (err) { next(err); }
+});
+
+// Site settings (singleton — GET returns the current config, PUT merges a patch)
+router.get('/admin/settings', async (_req, res, next) => {
+  try {
+    const settings = await SiteSettingsModel.findOne({}) ?? await SiteSettingsModel.create({});
+    return success(res, settings);
+  } catch (err) { next(err); }
+});
+router.put('/admin/settings/payment', async (req, res, next) => {
+  try {
+    const settings = await SiteSettingsModel.findOneAndUpdate(
+      {},
+      { $set: { payment: req.body } },
+      { new: true, upsert: true, runValidators: true }
+    );
+    return success(res, settings);
+  } catch (err) { next(err); }
+});
 
 // Health
 router.get('/admin/health', (_req, res) => {

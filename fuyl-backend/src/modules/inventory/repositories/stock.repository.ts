@@ -70,7 +70,9 @@ export class InventoryStockRepository {
     id: string | Types.ObjectId,
     patch: Partial<IInventoryStock>
   ): Promise<IInventoryStock | null> {
-    return InventoryStockModel.findByIdAndUpdate(id, { $set: patch }, { new: true });
+    // runValidators ensures the schema min:0 constraints on onHand/reserved/available
+    // are enforced even for findByIdAndUpdate — otherwise $set bypasses them.
+    return InventoryStockModel.findByIdAndUpdate(id, { $set: patch }, { new: true, runValidators: true });
   }
 
   /**

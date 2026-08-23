@@ -1,16 +1,24 @@
-import { AlertCircle, Boxes, AlertTriangle, PackageX, PackageCheck } from 'lucide-react'
+import { AlertCircle, Boxes, AlertTriangle, PackageX, PackageCheck, TrendingDown } from 'lucide-react'
 import { InventoryTable } from '@/components/inventory/InventoryTable'
-import { listInventory } from '@/lib/inventory'
+import { LocationManager } from '@/components/inventory/LocationManager'
+import { listInventory, getConsumptionStats, listLocations } from '@/lib/inventory'
 import { getErrorMessage } from '@/lib/api'
 import { CsvExportButton } from '@/components/ui/CsvExportButton'
 
 export default async function InventoryPage() {
   let stock: Awaited<ReturnType<typeof listInventory>> = []
+  let consumption: Awaited<ReturnType<typeof getConsumptionStats>> | null = null
+  let locations: Awaited<ReturnType<typeof listLocations>> = []
   let error = ''
   try {
-    stock = await listInventory()
+    ;[stock, consumption, locations] = await Promise.all([
+      listInventory(),
+      getConsumptionStats(30),
+      listLocations(),
+    ])
   } catch (err) {
     error = getErrorMessage(err, 'Could not load inventory.')
+    try { stock = await listInventory() } catch { /* ignore */ }
   }
 
   // Unique products (a product with 3 variants creates 3 rows)
@@ -51,12 +59,50 @@ export default async function InventoryPage() {
         ))}
       </div>
 
+      {/* Consumption rate */}
+      {consumption && (
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingDown className="w-4 h-4 text-slate-400" />
+            <h3 className="text-sm font-semibold text-slate-900">Consumption Rate — last 30 days</h3>
+          </div>
+          <div className="flex items-end gap-8 mb-4">
+            <div>
+              <p className="text-2xl font-bold text-slate-800">{consumption.dailyRate}</p>
+              <p className="text-xs text-slate-400 mt-0.5">units / day</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-800">{consumption.totalUnits}</p>
+              <p className="text-xs text-slate-400 mt-0.5">total units sold</p>
+            </div>
+          </div>
+          {/* Sparkline bar chart */}
+          {consumption.byDay.length > 0 && (() => {
+            const max = Math.max(...consumption.byDay.map((d) => d.units), 1)
+            return (
+              <div className="flex items-end gap-0.5 h-12">
+                {consumption.byDay.map((d) => (
+                  <div
+                    key={d.date}
+                    title={`${d.date}: ${d.units} units`}
+                    className="flex-1 bg-emerald-400 rounded-sm opacity-80 hover:opacity-100 transition-opacity"
+                    style={{ height: `${Math.max(2, (d.units / max) * 100)}%` }}
+                  />
+                ))}
+              </div>
+            )
+          })()}
+        </div>
+      )}
+
       {error && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
       )}
+
+      <LocationManager initialLocations={locations} />
 
       <InventoryTable stock={stock} />
     </div>

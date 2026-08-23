@@ -42,6 +42,8 @@ export interface IProductInfoBlock {
 // Shipping/customs attributes live on the PRODUCT (not just Variant) because
 // variants are optional — a product with zero variants still needs a weight
 // for logistics (see checkout.service.ts computeCartWeight's fallback).
+export type ShippingMode = 'calculated' | 'fixed' | 'free';
+
 export interface IProductShippingInfo {
   isPhysical: boolean;
   packageType?: string;
@@ -49,6 +51,8 @@ export interface IProductShippingInfo {
   weightUnit: 'g' | 'kg' | 'lb' | 'oz';
   countryOfOrigin?: string;
   hsCode?: string;           // Harmonized System code, for customs declarations
+  shippingMode?: ShippingMode; // calculated (default) | fixed | free
+  fixedShippingRate?: number;  // used when shippingMode === 'fixed' (in rupees)
 }
 
 export interface IProduct extends Document {
@@ -67,6 +71,7 @@ export interface IProduct extends Document {
   additionalPrices?: { label: string; price: number }[];
   unitPrice?: { value: number; unit: string };
   isTaxable: boolean;
+  taxRate?: number;              // GST % applied when isTaxable is true (e.g. 18 = 18%)
   costPerItem?: number;          // admin-only — never serialize on public routes
   currency: string;
   isSubscribable: boolean;
@@ -136,6 +141,7 @@ const ProductSchema = new Schema<IProduct>(
       unit: { type: String, trim: true, maxlength: 40 },
     },
     isTaxable: { type: Boolean, default: true },
+    taxRate: { type: Number, min: 0, max: 100 },
     costPerItem: { type: Number, min: 0 },
     currency: { type: String, default: 'INR' },
     isSubscribable: { type: Boolean, default: false, index: true },
@@ -184,6 +190,8 @@ const ProductSchema = new Schema<IProduct>(
       weightUnit: { type: String, enum: ['g', 'kg', 'lb', 'oz'], default: 'g' },
       countryOfOrigin: { type: String, trim: true, maxlength: 100 },
       hsCode: { type: String, trim: true, maxlength: 30 },
+      shippingMode: { type: String, enum: ['calculated', 'fixed', 'free'], default: 'calculated' },
+      fixedShippingRate: { type: Number, min: 0 },
     },
     status: {
       type: String,

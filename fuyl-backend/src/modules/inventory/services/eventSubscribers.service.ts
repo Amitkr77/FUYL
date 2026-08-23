@@ -1,6 +1,9 @@
 import { inventoryService } from './inventory.service';
 import { eventBus, Events } from '../../../shared/services/eventBus.service';
 import { logger } from '../../../config/logger';
+import { InventoryStockRepository } from '../repositories/stock.repository';
+
+const stockRepo = new InventoryStockRepository();
 
 /**
  * Wires up inventory module to react to order lifecycle events.
@@ -23,6 +26,26 @@ export function registerInventoryEventSubscribers(): void {
       await inventoryService.releaseReservations({ orderId: event.orderId });
     } catch (err) {
       logger.error('[inventory.event] ORDER_CANCELLED handler failed', err);
+    }
+  });
+
+  // ─── Product created → seed a zero-stock record so it appears in inventory ──
+  eventBus.on<{ productId: string; sellerId: string }>(Events.PRODUCT_CREATED, async (event) => {
+    try {
+      await stockRepo.findOrCreate(event.productId, event.sellerId);
+      logger.info(`[inventory.event] seeded stock record for product ${event.productId}`);
+    } catch (err) {
+      logger.error('[inventory.event] PRODUCT_CREATED handler failed', err);
+    }
+  });
+
+  // ─── Variant created → seed a zero-stock record for the variant ───────────
+  eventBus.on<{ productId: string; variantId: string; sellerId: string }>(Events.VARIANT_CREATED, async (event) => {
+    try {
+      await stockRepo.findOrCreate(event.productId, event.sellerId, event.variantId);
+      logger.info(`[inventory.event] seeded stock record for variant ${event.variantId}`);
+    } catch (err) {
+      logger.error('[inventory.event] VARIANT_CREATED handler failed', err);
     }
   });
 

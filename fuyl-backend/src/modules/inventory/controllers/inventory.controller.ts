@@ -96,6 +96,31 @@ export class InventoryController {
     },
   ];
 
+  // ─── Warehouse locations ──────────────────────────────────────
+  listLocations = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try { return success(res, await inventoryService.listLocations()); } catch (err) { next(err); }
+  };
+
+  createLocation = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try { return success(res, await inventoryService.createLocation(req.body)); } catch (err) { next(err); }
+  };
+
+  updateLocation = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try { return success(res, await inventoryService.updateLocation(req.params.id, req.body)); } catch (err) { next(err); }
+  };
+
+  deleteLocation = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try { await inventoryService.deleteLocation(req.params.id); return success(res, { deleted: true }); } catch (err) { next(err); }
+  };
+
+  // ─── Stats ────────────────────────────────────────────────────
+  consumptionStats = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const days = Math.min(Number(req.query.days ?? 30), 365);
+      return success(res, await inventoryService.getConsumptionStats(days));
+    } catch (err) { next(err); }
+  };
+
   // ─── Movement history (seller/admin) ──────────────────────────
   listMovements = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {

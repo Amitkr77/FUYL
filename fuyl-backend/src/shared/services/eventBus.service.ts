@@ -137,6 +137,9 @@ export const Events = {
 
   CART_ABANDONED: 'cart.abandoned',
   REVIEW_SUBMITTED: 'review.submitted',
+
+  PRODUCT_CREATED: 'product.created',
+  VARIANT_CREATED: 'variant.created',
 } as const;
 
 export type EventType = typeof Events[keyof typeof Events];

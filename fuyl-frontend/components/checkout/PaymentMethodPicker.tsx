@@ -26,12 +26,17 @@ const METHODS: {
 interface PaymentMethodPickerProps {
   value: CheckoutPaymentMethod
   onChange: (method: CheckoutPaymentMethod) => void
+  /** When provided, only show methods whose value is in this set */
+  enabledMethods?: Set<CheckoutPaymentMethod>
 }
 
-export function PaymentMethodPicker({ value, onChange }: PaymentMethodPickerProps) {
+export function PaymentMethodPicker({ value, onChange, enabledMethods }: PaymentMethodPickerProps) {
+  const visible = enabledMethods
+    ? METHODS.filter((m) => enabledMethods.has(m.value))
+    : METHODS
   return (
     <div className="space-y-3">
-      {METHODS.map((m) => {
+      {visible.map((m) => {
         const active = value === m.value
         return (
           <label

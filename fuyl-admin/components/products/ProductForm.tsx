@@ -76,6 +76,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
     unitPriceValue:   product?.unitPriceValue,
     unitPriceUnit:    product?.unitPriceUnit ?? '',
     isTaxable:        product?.isTaxable ?? true,
+    taxRate:          product?.taxRate,
     costPerItem:      product?.costPerItem,
     ingredients:      product?.ingredients ?? [],
     benefits:         product?.benefits ?? [],
@@ -83,7 +84,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
     certifications:   product?.certifications ?? [],
     supplementInfo:   product?.supplementInfo ?? {},
     infoBlocks:       product?.infoBlocks ?? [],
-    shipping:         product?.shipping ?? ({ isPhysical: true, weightUnit: 'g' } as ShippingInfo),
+    shipping:         product?.shipping ?? ({ isPhysical: true, weightUnit: 'g', shippingMode: 'calculated' } as ShippingInfo),
     seo:              product?.seo ?? ({ slug: '' } as SeoInfo),
   })
   const set = (k: Partial<typeof form>) => setForm((f) => ({ ...f, ...k }))
@@ -526,18 +527,46 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 items-center pt-1">
-              <div>
-                <label className={labelCls}>Cost per Item (₹)</label>
-                <input type="number" value={form.costPerItem ?? ''} onChange={(e) => set({ costPerItem: e.target.value ? Number(e.target.value) : undefined })}
-                  placeholder="Admin only" className={inputCls} />
-              </div>
+            <div>
+              <label className={labelCls}>Cost per Item (₹)</label>
+              <input type="number" value={form.costPerItem ?? ''} onChange={(e) => set({ costPerItem: e.target.value ? Number(e.target.value) : undefined })}
+                placeholder="Admin only" className={inputCls} />
+            </div>
+
+            <div className="rounded-lg border border-slate-200 px-4 py-3 space-y-3">
               <Toggle
                 checked={form.isTaxable}
-                onChange={(v) => set({ isTaxable: v })}
-                label="Charge tax"
-                description="Apply tax rules to this product at checkout"
+                onChange={(v) => set({ isTaxable: v, taxRate: v ? form.taxRate : undefined })}
+                label="Charge tax on this product"
+                description="When on, tax is added at checkout. When off, price is shown as inclusive of all taxes."
               />
+              {form.isTaxable && (
+                <div className="flex items-center gap-3 pl-1">
+                  <div className="flex-1">
+                    <label className={labelCls}>GST Rate (%)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.5}
+                        value={form.taxRate ?? ''}
+                        onChange={(e) => set({ taxRate: e.target.value ? Number(e.target.value) : undefined })}
+                        placeholder="e.g. 18"
+                        className={inputCls}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium pointer-events-none">%</span>
+                    </div>
+                    <p className={helpCls}>Applied when no global tax rules match. Leave blank to use global tax rules only.</p>
+                  </div>
+                  {form.taxRate != null && form.taxRate > 0 && (
+                    <div className="text-right text-xs text-slate-500 whitespace-nowrap">
+                      <span className="block text-slate-400">Tax on ₹{form.price}</span>
+                      <span className="font-semibold text-slate-700">+₹{((form.price * form.taxRate) / 100).toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {profit != null && (
@@ -779,6 +808,47 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
 
                 {form.shipping.isPhysical && (
                   <>
+                    {/* Shipping charge mode */}
+                    <div className="rounded-lg border border-slate-200 p-4 space-y-3">
+                      <p className="text-sm font-medium text-slate-700">Shipping charge</p>
+                      <div className="space-y-2">
+                        {([
+                          { value: 'calculated', label: 'Calculated', desc: 'Rate quoted by carrier (Shiprocket) based on weight and destination' },
+                          { value: 'fixed',      label: 'Fixed rate',  desc: 'A flat charge set by you, regardless of weight' },
+                          { value: 'free',       label: 'Free / Inclusive', desc: 'No shipping charge — included in the product price' },
+                        ] as const).map((opt) => (
+                          <label key={opt.value} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${form.shipping.shippingMode === opt.value ? 'border-[#558476] bg-[#558476]/5' : 'border-slate-200 hover:border-slate-300'}`}>
+                            <input
+                              type="radio"
+                              name="shippingMode"
+                              value={opt.value}
+                              checked={form.shipping.shippingMode === opt.value}
+                              onChange={() => setShipping({ shippingMode: opt.value })}
+                              className="mt-0.5 accent-[#558476]"
+                            />
+                            <div>
+                              <p className="text-sm font-medium text-slate-800">{opt.label}</p>
+                              <p className="text-xs text-slate-500 mt-0.5">{opt.desc}</p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                      {form.shipping.shippingMode === 'fixed' && (
+                        <div className="pt-1">
+                          <label className={labelCls}>Fixed shipping rate (₹)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            step={0.5}
+                            value={form.shipping.fixedShippingRate ?? ''}
+                            onChange={(e) => setShipping({ fixedShippingRate: e.target.value ? Number(e.target.value) : undefined })}
+                            placeholder="e.g. 50"
+                            className={inputCls}
+                          />
+                        </div>
+                      )}
+                    </div>
+
                     <div>
                       <label className={labelCls}>Package</label>
                       <input

@@ -133,6 +133,7 @@ class CartService {
       currency: priceInfo.currency,
       isSubscribable: product.isSubscribable,
       isTaxable: product.isTaxable,
+      taxRate: product.taxRate,
       addedAt: new Date(),
       subscriptionInterval: input.subscriptionInterval,
       subscriptionDiscountPercent,

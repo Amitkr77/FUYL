@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Save, Eye, EyeOff, Copy, CheckCircle2, Zap, AlertCircle } from 'lucide-react'
+import { Save, Eye, EyeOff, Zap, AlertCircle, CreditCard } from 'lucide-react'
 import { changePasswordAction } from './actions'
 
-type SettingsTab = 'general' | 'security' | 'notifications' | 'integrations'
+type SettingsTab = 'general' | 'security' | 'notifications' | 'integrations' | 'payments'
 
 const TABS: { label: string; value: SettingsTab }[] = [
   { label: 'General', value: 'general' },
+  { label: 'Payments', value: 'payments' },
   { label: 'Security', value: 'security' },
   { label: 'Notifications', value: 'notifications' },
   { label: 'Integrations', value: 'integrations' },
@@ -232,6 +233,172 @@ function NotificationsTab() {
   )
 }
 
+function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      onClick={() => onChange(!enabled)}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#558476] focus:ring-offset-2 ${
+        enabled ? 'bg-[#558476]' : 'bg-slate-200'
+      }`}
+    >
+      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+    </button>
+  )
+}
+
+function PaymentsTab() {
+  const [settings, setSettings] = useState({
+    onlinePaymentEnabled: true,
+    codEnabled: true,
+    codMinOrderAmount: '',
+    codMaxOrderAmount: '',
+  })
+  const [saved, setSaved]   = useState(false)
+  const [error, setError]   = useState('')
+  const [isPending, start]  = useTransition()
+
+  const load = async () => {
+    try {
+      const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
+      const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
+      const res = await fetch(`${API}/admin/settings`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const p = data?.data?.payment ?? {}
+        setSettings({
+          onlinePaymentEnabled: p.onlinePaymentEnabled ?? true,
+          codEnabled:           p.codEnabled ?? true,
+          codMinOrderAmount:    p.codMinOrderAmount != null ? String(p.codMinOrderAmount) : '',
+          codMaxOrderAmount:    p.codMaxOrderAmount != null ? String(p.codMaxOrderAmount) : '',
+        })
+      }
+    } catch { /* ignore — use defaults */ }
+  }
+
+  // Load on mount
+  useState(() => { load() })
+
+  const handleSave = () => {
+    setError('')
+    setSaved(false)
+    start(async () => {
+      try {
+        const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
+        const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
+        const body = {
+          onlinePaymentEnabled: settings.onlinePaymentEnabled,
+          codEnabled:           settings.codEnabled,
+          codMinOrderAmount:    settings.codMinOrderAmount ? Number(settings.codMinOrderAmount) : undefined,
+          codMaxOrderAmount:    settings.codMaxOrderAmount ? Number(settings.codMaxOrderAmount) : undefined,
+        }
+        const res = await fetch(`${API}/admin/settings/payment`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(body),
+        })
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}))
+          throw new Error(d?.message ?? 'Failed to save')
+        }
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+      } catch (e: any) {
+        setError(e?.message ?? 'Failed to save payment settings')
+      }
+    })
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <CreditCard className="w-4 h-4 text-slate-400" />
+          <h3 className="text-sm font-semibold text-slate-900">Payment Methods</h3>
+        </div>
+        <div className="space-y-5">
+          {/* Online payment toggle */}
+          <div className="flex items-start justify-between gap-4 pb-5 border-b border-slate-100">
+            <div>
+              <p className="text-sm font-medium text-slate-900">Online Payment (Razorpay)</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Allow customers to pay via UPI, credit/debit card, net banking, and wallets
+              </p>
+            </div>
+            <Toggle enabled={settings.onlinePaymentEnabled} onChange={(v) => setSettings((s) => ({ ...s, onlinePaymentEnabled: v }))} />
+          </div>
+
+          {/* COD toggle */}
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-slate-900">Cash on Delivery (COD)</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Allow customers to pay cash when their order is delivered
+              </p>
+            </div>
+            <Toggle enabled={settings.codEnabled} onChange={(v) => setSettings((s) => ({ ...s, codEnabled: v }))} />
+          </div>
+
+          {/* COD order limits */}
+          {settings.codEnabled && (
+            <div className="grid grid-cols-2 gap-4 pt-2 pl-4 border-l-2 border-slate-100">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">Min order for COD (₹)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={settings.codMinOrderAmount}
+                  onChange={(e) => setSettings((s) => ({ ...s, codMinOrderAmount: e.target.value }))}
+                  placeholder="No minimum"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#558476]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">Max order for COD (₹)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={settings.codMaxOrderAmount}
+                  onChange={(e) => setSettings((s) => ({ ...s, codMaxOrderAmount: e.target.value }))}
+                  placeholder="No maximum"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#558476]"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <div className="flex items-center gap-2 p-3 mt-4 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {error}
+          </div>
+        )}
+        {saved && (
+          <div className="p-3 mt-4 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm">
+            Payment settings saved.
+          </div>
+        )}
+
+        <div className="mt-5 flex justify-end">
+          <button
+            onClick={handleSave}
+            disabled={isPending}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" />
+            {isPending ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function IntegrationsTab() {
   return (
     <div className="space-y-4">
@@ -259,6 +426,7 @@ export default function SettingsPage() {
 
   const tabContent = {
     general: <GeneralTab />,
+    payments: <PaymentsTab />,
     security: <SecurityTab />,
     notifications: <NotificationsTab />,
     integrations: <IntegrationsTab />,

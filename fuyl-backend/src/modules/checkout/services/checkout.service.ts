@@ -1,3 +1,4 @@
+import { SiteSettingsModel } from '../../admin/models/siteSettings.model';
 import { cartService } from '../../cart/services/cart.service';
 import { orderService } from '../../order/services/order.service';
 import { inventoryService } from '../../inventory/services/inventory.service';
@@ -38,6 +39,18 @@ class CheckoutService {
     const cart = await this.resolveCart(userId, dto.cartId);
     if (cart.items.length === 0) throw new BadRequestError('Cart is empty');
 
+    // Validate that the chosen payment method is enabled in site settings
+    const siteSettings = await SiteSettingsModel.findOne({});
+    if (siteSettings) {
+      const { onlinePaymentEnabled, codEnabled } = siteSettings.payment;
+      if (dto.paymentMethod === PaymentMethod.COD && !codEnabled) {
+        throw new BadRequestError('Cash on Delivery is currently not available');
+      }
+      if (dto.paymentMethod !== PaymentMethod.COD && !onlinePaymentEnabled) {
+        throw new BadRequestError('Online payment is currently not available');
+      }
+    }
+
     const shippingAddress = await this.resolveAddress(userId, dto.shippingAddressId, dto.shippingAddress);
     const billingAddress = dto.billingAddress
       ? dto.billingAddress
@@ -52,6 +65,7 @@ class CheckoutService {
       quantity: i.quantity,
       basePrice: i.unitPrice,
       isTaxable: i.isTaxable,
+      taxRate: (i as any).taxRate,
     }));
     const quote = await pricingService.quote(quoteItems, {
       state: shippingAddress.state,
@@ -186,22 +200,70 @@ class CheckoutService {
     };
   }
 
-  /** Shiprocket shipping charge for the cart's weight to the destination pincode. */
+  /**
+   * Shipping charge for the cart.
+   *
+   * Per-product shippingMode takes priority over carrier calculation:
+   *   free     → item contributes ₹0 and 0g to totals
+   *   fixed    → item contributes fixedShippingRate (once, not × qty)
+   *   calculated (default) → weight is added to the carrier quote pool
+   *
+   * When the cart has a mix of fixed and calculated items, the carrier quote
+   * covers only the calculated items' weight; fixed charges are summed
+   * separately and added on top.
+   */
   private async computeShipping(
     cart: { items: Array<{ productId: unknown; variantId?: unknown; quantity: number }> },
     shippingAddress: unknown,
     paymentMethod: string,
   ): Promise<{ serviceable: boolean; cost: number }> {
-    // Saved addresses use `postalCode`, inline checkout addresses use `pincode`.
     const addr = shippingAddress as { pincode?: string; postalCode?: string };
     const pincode = addr.pincode ?? addr.postalCode;
-    if (!pincode) return { serviceable: true, cost: 0 };
 
-    const weightGrams = await this.computeCartWeight(cart);
+    let fixedTotal = 0;
+    let calculatedWeightGrams = 0;
+    let hasCalculatedItems = false;
+
+    for (const item of cart.items) {
+      let product: Awaited<ReturnType<typeof catalogService.getProduct>> | null = null;
+      try { product = await catalogService.getProduct(String(item.productId)); } catch { /* not found */ }
+
+      const mode = product?.shippingInfo?.shippingMode ?? 'calculated';
+
+      if (mode === 'free' || product?.shippingInfo?.isPhysical === false) {
+        // free shipping or digital — contributes nothing
+        continue;
+      }
+
+      if (mode === 'fixed') {
+        fixedTotal += product?.shippingInfo?.fixedShippingRate ?? 0;
+        continue;
+      }
+
+      // calculated — add weight to the carrier pool
+      hasCalculatedItems = true;
+      let unitWeight = 500;
+      if (item.variantId) {
+        try {
+          const v = await catalogService.getVariant(item.variantId.toString());
+          if (v?.weight) unitWeight = v.weight;
+        } catch { /* fall back */ }
+      } else if (product?.shippingInfo?.weight) {
+        unitWeight = toGrams(product.shippingInfo.weight, product.shippingInfo.weightUnit);
+      }
+      calculatedWeightGrams += unitWeight * item.quantity;
+    }
+
+    // No carrier quote needed when there are no calculated items
+    if (!hasCalculatedItems || !pincode) {
+      return { serviceable: true, cost: fixedTotal };
+    }
+
+    const weightGrams = Math.max(100, calculatedWeightGrams);
     const paymentMode = paymentMethod === PaymentMethod.COD ? 'COD' : 'Prepaid';
     const quote = await shippingService.quoteRate({ pincode, weightGrams, paymentMode });
     if (quote.serviceable === false) return { serviceable: false, cost: 0 };
-    return { serviceable: true, cost: quote.cost ?? 0 };
+    return { serviceable: true, cost: (quote.cost ?? 0) + fixedTotal };
   }
 
   /**

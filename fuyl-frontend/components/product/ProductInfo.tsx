@@ -126,9 +126,11 @@ export function ProductInfo({ product, plans }: ProductInfoProps) {
           </div>
         )}
 
-        <p className="text-body-xs text-brand-muted">
-          M.R.P. (Inclusive of all taxes)
-        </p>
+        {!product.isTaxable && (
+          <p className="text-body-xs text-brand-muted">
+            M.R.P. (Inclusive of all taxes)
+          </p>
+        )}
 
         {netContent && (
           <p className="text-body-xs text-brand-muted">Net Qty: {netContent}</p>
