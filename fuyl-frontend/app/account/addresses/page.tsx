@@ -94,7 +94,7 @@ export default function AddressesPage() {
     try {
       // Prepend the selected country's phone code to the number before saving
       const phoneCode = COUNTRY_MAP.get(form.country)?.phoneCode ?? ''
-      const phoneDigits = form.phone.trim().replace(/^\+/, '') // strip any existing + in case user typed it
+      const phoneDigits = (form.phone ?? '').trim().replace(/^\+/, '') // strip any existing + in case user typed it
       const fullPhone = phoneDigits ? `${phoneCode}${phoneDigits}` : ''
       const payload = { ...form, phone: fullPhone }
       const updated = isEditing === 'new'

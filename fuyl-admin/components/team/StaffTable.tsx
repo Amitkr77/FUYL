@@ -2,12 +2,23 @@
 
 import { useState, useMemo } from 'react'
 import { Plus, Pencil, UserX, UserCheck, X, Check, Eye, EyeOff, Search } from 'lucide-react'
+import type { StaffMember } from '@/lib/staff'
 import {
-  listStaff, createStaff, updateStaff, deleteStaff,
-  ALL_PERMISSIONS, type StaffMember,
-} from '@/lib/staff'
+  listStaffAction, createStaffAction, updateStaffAction, deleteStaffAction,
+} from '@/app/(admin)/team/actions'
 import { formatDateTime } from '@/lib/utils'
 import { Pagination } from '@/components/ui/Pagination'
+
+const ALL_PERMISSIONS = [
+  { key: 'wallet:manage',         label: 'Wallet',        group: 'Finance' },
+  { key: 'discounts:manage',      label: 'Discounts',     group: 'Marketing' },
+  { key: 'inventory:manage',      label: 'Inventory',     group: 'Commerce' },
+  { key: 'shipping:manage',       label: 'Shipping',      group: 'Commerce' },
+  { key: 'returns:manage',        label: 'Returns',       group: 'Commerce' },
+  { key: 'subscriptions:manage',  label: 'Subscriptions', group: 'Commerce' },
+  { key: 'referrals:manage',      label: 'Referrals',     group: 'Marketing' },
+  { key: 'customers:manage',      label: 'Customers',     group: 'Commerce' },
+] as const
 
 const PERMISSION_GROUPS = Array.from(
   new Set(ALL_PERMISSIONS.map((p) => p.group))
@@ -46,7 +57,7 @@ export function StaffTable({ initialStaff }: { initialStaff: StaffMember[] }) {
   const [memberPage,   setMemberPage]   = useState(1)
   const MEMBER_PAGE_SIZE = 10
 
-  const refresh = () => listStaff().then(setStaff).catch(() => {})
+  const refresh = () => listStaffAction().then(setStaff).catch(() => {})
 
   const filteredStaff = useMemo(() => {
     const term = memberSearch.trim().toLowerCase()
@@ -106,12 +117,10 @@ export function StaffTable({ initialStaff }: { initialStaff: StaffMember[] }) {
     setSaving(true)
     setError('')
     try {
-      if (editId) {
-        const { email: _e, password: _p, ...patch } = form
-        await updateStaff(editId, patch)
-      } else {
-        await createStaff(form)
-      }
+      const result = editId
+        ? await updateStaffAction(editId, (({ email: _e, password: _p, ...patch }) => patch)(form))
+        : await createStaffAction(form)
+      if ('error' in result) { setError(result.error); return }
       await refresh()
       setIsAdding(false)
     } catch (e: any) {
@@ -124,11 +133,10 @@ export function StaffTable({ initialStaff }: { initialStaff: StaffMember[] }) {
   const handleToggleActive = async (member: StaffMember) => {
     if (!confirm(`${member.isActive ? 'Deactivate' : 'Reactivate'} ${member.email}?`)) return
     try {
-      if (member.isActive) {
-        await deleteStaff(member.id)
-      } else {
-        await updateStaff(member.id, { isActive: true })
-      }
+      const result = member.isActive
+        ? await deleteStaffAction(member.id)
+        : await updateStaffAction(member.id, { isActive: true })
+      if ('error' in result) { setError(result.error); return }
       await refresh()
     } catch (e: any) {
       setError(e?.message ?? 'Failed to update')
