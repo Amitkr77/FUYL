@@ -4,6 +4,22 @@ import { verifySession, SESSION_COOKIE } from '@/lib/session'
 const PUBLIC_PATHS = ['/login']
 const STATIC_PATHS = ['/_next', '/favicon.ico']
 
+// Routes that require a specific permission for staff members.
+// Admin and super_admin bypass all of these checks.
+const ROUTE_PERMISSIONS: { prefix: string; permission: string }[] = [
+  { prefix: '/wallet',             permission: 'wallet:manage' },
+  { prefix: '/discounts-cashback', permission: 'discounts:manage' },
+  { prefix: '/inventory',          permission: 'inventory:manage' },
+  { prefix: '/shipping',           permission: 'shipping:manage' },
+  { prefix: '/returns',            permission: 'returns:manage' },
+  { prefix: '/subscriptions',      permission: 'subscriptions:manage' },
+  { prefix: '/referrals',          permission: 'referrals:manage' },
+  { prefix: '/customers',          permission: 'customers:manage' },
+]
+
+// Routes staff can always reach even with zero permissions.
+const STAFF_PUBLIC_ROUTES = ['/dashboard']
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -43,6 +59,21 @@ export async function middleware(request: NextRequest) {
     const response = NextResponse.redirect(new URL('/login', request.url))
     response.cookies.delete(SESSION_COOKIE)
     return response
+  }
+
+  // Staff members may only access routes their permissions grant them.
+  // Admin and super_admin have implicit full access.
+  if (session.role === 'staff') {
+    if (!STAFF_PUBLIC_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'))) {
+      const permissions: string[] = session.permissions ?? []
+      const routePermission = ROUTE_PERMISSIONS.find(
+        (r) => pathname === r.prefix || pathname.startsWith(r.prefix + '/')
+      )
+      if (!routePermission || !permissions.includes(routePermission.permission)) {
+        // Authenticated but not authorised — send to dashboard, not login.
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+    }
   }
 
   return NextResponse.next()

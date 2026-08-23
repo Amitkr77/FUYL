@@ -29,11 +29,16 @@ import {
   Users2,
 } from "lucide-react";
 import { logout } from "@/app/(admin)/actions";
+import type { SessionInfo } from "@/components/layout/AdminShell";
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  /** Permission key required for staff to see this item. Undefined = admin/super_admin only. */
+  permission?: string;
+  /** If true, all authenticated staff can see this regardless of permissions. */
+  staffPublic?: boolean;
 }
 
 interface NavSection {
@@ -44,38 +49,38 @@ interface NavSection {
 const navSections: NavSection[] = [
   {
     title: "Overview",
-    items: [{ label: "Dashboard", href: "/dashboard", icon: LayoutDashboard }],
+    items: [{ label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, staffPublic: true }],
   },
   {
     title: "Commerce",
     items: [
-      { label: "Products", href: "/products", icon: Package },
-      { label: "Orders", href: "/orders", icon: ShoppingCart },
-      { label: "Customers", href: "/customers", icon: Users },
-      { label: "Inventory", href: "/inventory", icon: Boxes },
-      { label: "Payments", href: "/payments", icon: CreditCard },
-      { label: "Shipping", href: "/shipping", icon: Truck },
-      { label: "Returns", href: "/returns", icon: Undo2 },
-      { label: "Reviews", href: "/reviews", icon: Star },
+      { label: "Products",   href: "/products",   icon: Package },
+      { label: "Orders",     href: "/orders",     icon: ShoppingCart },
+      { label: "Customers",  href: "/customers",  icon: Users,      permission: "customers:manage" },
+      { label: "Inventory",  href: "/inventory",  icon: Boxes,      permission: "inventory:manage" },
+      { label: "Payments",   href: "/payments",   icon: CreditCard },
+      { label: "Shipping",   href: "/shipping",   icon: Truck,      permission: "shipping:manage" },
+      { label: "Returns",    href: "/returns",    icon: Undo2,      permission: "returns:manage" },
+      { label: "Reviews",    href: "/reviews",    icon: Star },
     ],
   },
   {
     title: "Growth",
     items: [
-      { label: "Subscriptions", href: "/subscriptions", icon: Repeat },
-      { label: "Discount & Cashback", href: "/discounts-cashback", icon: Tag },
-      { label: "Affiliates", href: "/affiliates", icon: Link2 },
-      { label: "Referrals", href: "/referrals", icon: Gift },
-      { label: "Wallet", href: "/wallet", icon: Wallet },
-      { label: "Loyalty Points", href: "/loyalty", icon: Award },
-      { label: "Newsletter", href: "/newsletter", icon: Mail },
+      { label: "Subscriptions",     href: "/subscriptions",     icon: Repeat,  permission: "subscriptions:manage" },
+      { label: "Discount & Cashback", href: "/discounts-cashback", icon: Tag,  permission: "discounts:manage" },
+      { label: "Affiliates",        href: "/affiliates",        icon: Link2 },
+      { label: "Referrals",         href: "/referrals",         icon: Gift,    permission: "referrals:manage" },
+      { label: "Wallet",            href: "/wallet",            icon: Wallet,  permission: "wallet:manage" },
+      { label: "Loyalty Points",    href: "/loyalty",           icon: Award },
+      { label: "Newsletter",        href: "/newsletter",        icon: Mail },
     ],
   },
   {
     title: "Content",
     items: [
       { label: "Website Pages", href: "/content", icon: FileText },
-      { label: "Blog", href: "/blog", icon: Newspaper },
+      { label: "Blog",          href: "/blog",    icon: Newspaper },
     ],
   },
   {
@@ -85,7 +90,7 @@ const navSections: NavSection[] = [
   {
     title: "System",
     items: [
-      { label: "Team", href: "/team", icon: Users2 },
+      { label: "Team",     href: "/team",     icon: Users2 },
       { label: "Settings", href: "/settings", icon: Settings },
     ],
   },
@@ -93,13 +98,31 @@ const navSections: NavSection[] = [
 
 interface SidebarProps {
   onClose?: () => void;
+  sessionInfo: SessionInfo;
 }
 
-export default function Sidebar({ onClose }: SidebarProps) {
+function isItemVisible(item: NavItem, role: string, permissions: string[]): boolean {
+  if (role === "admin" || role === "super_admin") return true;
+  // Staff
+  if (item.staffPublic) return true;
+  if (item.permission) return permissions.includes(item.permission);
+  return false; // admin-only route — hidden for staff
+}
+
+function getRoleLabel(role: string): string {
+  if (role === "super_admin") return "Super Admin";
+  if (role === "admin") return "Administrator";
+  return "Staff";
+}
+
+export default function Sidebar({ onClose, sessionInfo }: SidebarProps) {
   const pathname = usePathname();
+  const { email, role, permissions } = sessionInfo;
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
+
+  const initial = email ? email[0].toUpperCase() : "?";
 
   return (
     <div className="flex flex-col h-full bg-[#12291F] w-60">
@@ -138,50 +161,54 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 scrollbar-hide space-y-6">
-        {navSections.map((section) => (
-          <div key={section.title}>
-            <p className="px-3 mb-1.5 text-[10px] font-semibold text-white/30 uppercase tracking-[0.2em]">
-              {section.title}
-            </p>
-            <ul className="space-y-0.5">
-              {section.items.map((item) => {
-                const active = isActive(item.href);
-                const Icon = item.icon;
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={onClose}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 relative ${
-                        active
-                          ? "bg-white/10 text-white border-l-2 border-[#558476] pl-[10px]"
-                          : "text-white/60 hover:bg-white/5 hover:text-white"
-                      }`}
-                    >
-                      <Icon
-                        className={`w-4 h-4 flex-shrink-0 ${active ? "text-[#558476]" : ""}`}
-                      />
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
+        {navSections.map((section) => {
+          const visibleItems = section.items.filter((item) =>
+            isItemVisible(item, role, permissions)
+          );
+          if (visibleItems.length === 0) return null;
+          return (
+            <div key={section.title}>
+              <p className="px-3 mb-1.5 text-[10px] font-semibold text-white/30 uppercase tracking-[0.2em]">
+                {section.title}
+              </p>
+              <ul className="space-y-0.5">
+                {visibleItems.map((item) => {
+                  const active = isActive(item.href);
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        onClick={onClose}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 relative ${
+                          active
+                            ? "bg-white/10 text-white border-l-2 border-[#558476] pl-[10px]"
+                            : "text-white/60 hover:bg-white/5 hover:text-white"
+                        }`}
+                      >
+                        <Icon
+                          className={`w-4 h-4 flex-shrink-0 ${active ? "text-[#558476]" : ""}`}
+                        />
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
       </nav>
 
       {/* Bottom user info */}
       <div className="border-t border-white/10 p-4 space-y-3">
         <div className="flex items-center gap-3 px-1">
           <div className="w-8 h-8 rounded-full bg-[#558476] flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-xs font-bold">A</span>
+            <span className="text-white text-xs font-bold">{initial}</span>
           </div>
           <div className="min-w-0">
-            <p className="text-white text-xs font-medium truncate">
-              admin@fuyl.in
-            </p>
-            <p className="text-white/40 text-[11px]">Administrator</p>
+            <p className="text-white text-xs font-medium truncate">{email}</p>
+            <p className="text-white/40 text-[11px]">{getRoleLabel(role)}</p>
           </div>
         </div>
         <form action={logout}>

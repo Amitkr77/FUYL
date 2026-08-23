@@ -6,6 +6,18 @@ import { setSessionCookie } from '@/lib/auth'
 const API_URL = process.env.API_URL || 'http://localhost:4000/api/v1'
 const ADMIN_ROLES = ['admin', 'super_admin', 'staff']
 
+/** Decode (not verify) the JWT payload to extract embedded permissions. */
+function decodeJwtPermissions(token: string): string[] {
+  try {
+    const b64 = token.split('.')[1]
+    const json = Buffer.from(b64, 'base64url').toString('utf-8')
+    const payload = JSON.parse(json) as Record<string, unknown>
+    return Array.isArray(payload.permissions) ? (payload.permissions as string[]) : []
+  } catch {
+    return []
+  }
+}
+
 export async function login(
   prevState: { error: string } | null,
   formData: FormData
@@ -65,9 +77,10 @@ export async function login(
   }
 
   await setSessionCookie({
-    userId:  user._id,
-    email:   user.email,
-    role:    user.role as 'admin' | 'super_admin' | 'staff',
+    userId:      user._id,
+    email:       user.email,
+    role:        user.role as 'admin' | 'super_admin' | 'staff',
+    permissions: decodeJwtPermissions(accessToken),
     accessToken,
     refreshToken,
   })
