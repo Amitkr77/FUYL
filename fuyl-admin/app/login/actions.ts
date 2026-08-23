@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { setSessionCookie } from '@/lib/auth'
+import { getStaffLandingPath } from '@/lib/access-control'
 
 const API_URL = process.env.API_URL || 'http://localhost:4000/api/v1'
 const ADMIN_ROLES = ['admin', 'super_admin', 'staff']
@@ -76,14 +77,15 @@ export async function login(
     return { error: 'Login succeeded but no session could be established. Please try again.' }
   }
 
+  const permissions = decodeJwtPermissions(accessToken)
   await setSessionCookie({
     userId:      user._id,
     email:       user.email,
     role:        user.role as 'admin' | 'super_admin' | 'staff',
-    permissions: decodeJwtPermissions(accessToken),
+    permissions,
     accessToken,
     refreshToken,
   })
 
-  redirect('/dashboard')
+  redirect(user.role === 'staff' ? getStaffLandingPath(permissions) : '/dashboard')
 }

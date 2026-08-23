@@ -49,7 +49,7 @@ interface NavSection {
 const navSections: NavSection[] = [
   {
     title: "Overview",
-    items: [{ label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, staffPublic: true }],
+    items: [{ label: "Dashboard", href: "/dashboard", icon: LayoutDashboard }],
   },
   {
     title: "Commerce",
