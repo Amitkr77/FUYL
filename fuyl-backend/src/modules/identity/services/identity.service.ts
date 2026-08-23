@@ -564,7 +564,9 @@ export class IdentityService {
     permissions?: string[];
     isActive?: boolean;
   }) {
-    const updated = await userRepo.update(id, data);
+    const { role, ...rest } = data;
+    const updatePayload = role ? { ...rest, role: role as 'admin' } : rest;
+    const updated = await userRepo.update(id, updatePayload);
     if (!updated) throw new NotFoundError('Staff member');
     return updated;
   }

@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Monitor, Smartphone, Tablet, MapPin, Clock, ChevronDown, Search, Users } from 'lucide-react'
 import type { UserActivityRow } from '@/lib/analytics'
+import { Pagination } from '@/components/ui/Pagination'
 
 function DeviceIcon({ type }: { type: string }) {
   if (type === 'Mobile') return <Smartphone className="w-3.5 h-3.5" />
@@ -19,10 +20,13 @@ function formatDuration(ms: number): string {
 
 type SessionFilter = 'all' | 'users' | 'guests'
 
+const PAGE_SIZE = 20
+
 export default function UserActivityTable({ data }: { data: UserActivityRow[] }) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [search,   setSearch]   = useState('')
   const [filter,   setFilter]   = useState<SessionFilter>('all')
+  const [page,     setPage]     = useState(1)
 
   const filtered = useMemo(() => {
     return data.filter((row) => {
@@ -39,6 +43,10 @@ export default function UserActivityTable({ data }: { data: UserActivityRow[] })
       )
     })
   }, [data, search, filter])
+
+  const pageCount  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const curPage    = Math.min(page, pageCount)
+  const paged      = filtered.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE)
 
   const authCount  = data.filter((r) =>  r.userId).length
   const guestCount = data.filter((r) => !r.userId).length
@@ -65,7 +73,7 @@ export default function UserActivityTable({ data }: { data: UserActivityRow[] })
               <button
                 key={f}
                 type="button"
-                onClick={() => setFilter(f)}
+                onClick={() => { setFilter(f); setPage(1) }}
                 className={`px-2.5 py-1 rounded-md capitalize transition-colors ${
                   filter === f
                     ? 'bg-white text-slate-800 shadow-sm'
@@ -84,7 +92,7 @@ export default function UserActivityTable({ data }: { data: UserActivityRow[] })
               type="search"
               placeholder="Search sessions…"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               className="pl-8 pr-3 h-8 w-44 text-xs border border-slate-200 rounded-lg bg-slate-50 outline-none focus:bg-white focus:border-[#558476] focus:ring-2 focus:ring-[#558476]/20 transition-all placeholder:text-slate-400"
             />
           </div>
@@ -107,7 +115,7 @@ export default function UserActivityTable({ data }: { data: UserActivityRow[] })
             </p>
           </div>
         ) : (
-          filtered.map((row) => {
+          paged.map((row) => {
             const isOpen = expanded === row.sessionId
             return (
               <div key={row.sessionId}>
@@ -218,12 +226,9 @@ export default function UserActivityTable({ data }: { data: UserActivityRow[] })
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       {data.length > 0 && (
-        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
-          <p className="text-xs text-slate-400 tabular-nums">
-            Showing <span className="font-medium text-slate-600">{filtered.length}</span> of{' '}
-            <span className="font-medium text-slate-600">{data.length}</span> sessions
-          </p>
-          <div className="flex items-center gap-2 text-xs text-slate-400">
+        <div>
+          <Pagination page={curPage} pageCount={pageCount} total={filtered.length} pageSize={PAGE_SIZE} onPage={setPage} />
+          <div className="px-5 py-2 border-t border-slate-50 bg-slate-50/50 flex items-center justify-end gap-3 text-xs text-slate-400">
             <span className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[#558476]" />
               {authCount} auth

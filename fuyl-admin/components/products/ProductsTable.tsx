@@ -7,6 +7,7 @@ import Badge from '@/components/ui/Badge'
 import { formatCurrency } from '@/lib/utils'
 import type { AdminProduct, ProductStatus } from '@/lib/products'
 import { archiveProductAction } from '@/app/(admin)/products/actions'
+import { Pagination } from '@/components/ui/Pagination'
 
 type TabFilter = 'all' | ProductStatus
 type SortKey = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc'
@@ -47,9 +48,11 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
   const [activeTab,   setActiveTab]   = useState<TabFilter>('all')
   const [search,      setSearch]      = useState('')
   const [sortKey,     setSortKey]     = useState<SortKey>('name-asc')
+  const [page,        setPage]        = useState(1)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [archivingId,  setArchivingId]  = useState<string | null>(null)
   const [isPending,    startTransition] = useTransition()
+  const PAGE_SIZE = 15
 
   const hasFilters = search !== ''
 
@@ -58,15 +61,21 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
       if (activeTab !== 'all' && p.status !== activeTab) return false
       if (search) {
         const q = search.toLowerCase()
-        const matchName = p.name.toLowerCase().includes(q)
-        // Search across all variant SKUs, not just the first one
-        const matchSku  = p.variants.some((v) => v.sku.toLowerCase().includes(q))
-        if (!matchName && !matchSku) return false
+        const matchName  = p.name.toLowerCase().includes(q)
+        const matchSku   = p.variants.some((v) => v.sku.toLowerCase().includes(q))
+        const matchBrand = (p.brand ?? '').toLowerCase().includes(q)
+        const matchTags  = p.tags.some((t) => t.toLowerCase().includes(q))
+        const matchDesc  = (p.shortDescription ?? '').toLowerCase().includes(q)
+        if (!matchName && !matchSku && !matchBrand && !matchTags && !matchDesc) return false
       }
       return true
     }),
     sortKey
   )
+
+  const pageCount  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const curPage    = Math.min(page, pageCount)
+  const paged      = filtered.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE)
 
   const tabCount = (tab: TabFilter) =>
     tab === 'all' ? products.length : products.filter((p) => p.status === tab).length
@@ -80,7 +89,7 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
     })
   }
 
-  const clearFilters = () => { setSearch(''); setActiveTab('all') }
+  const clearFilters = () => { setSearch(''); setActiveTab('all'); setPage(1) }
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
@@ -90,7 +99,7 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
         {TABS.map((tab) => (
           <button
             key={tab.value}
-            onClick={() => setActiveTab(tab.value)}
+            onClick={() => { setActiveTab(tab.value); setPage(1) }}
             className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap rounded-t-lg transition-colors border-b-2 -mb-px ${
               activeTab === tab.value
                 ? 'text-[#558476] border-[#558476]'
@@ -118,14 +127,14 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search by name or SKU…"
+            placeholder="Search by name, SKU, brand, tags…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#558476]/30 focus:border-[#558476] placeholder:text-slate-400 transition-shadow"
           />
           {search && (
             <button
-              onClick={() => setSearch('')}
+              onClick={() => { setSearch(''); setPage(1) }}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               aria-label="Clear search"
             >
@@ -217,7 +226,7 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
                 </td>
               </tr>
             ) : (
-              filtered.map((product) => {
+              paged.map((product) => {
                 const status  = unifiedStatus(product.status, product.isPublished)
                 const isConfirming = confirmingId === product.id
                 const isArchiving  = isPending && archivingId === product.id
@@ -337,15 +346,13 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
         </table>
       </div>
 
-      {/* Footer count */}
-      {filtered.length > 0 && (
-        <div className="px-5 py-3 border-t border-slate-100">
-          <p className="text-xs text-slate-400">
-            {filtered.length} product{filtered.length !== 1 ? 's' : ''}
-            {hasFilters || activeTab !== 'all' ? ' matching current filters' : ' total'}
-          </p>
-        </div>
-      )}
+      <Pagination
+        page={curPage}
+        pageCount={pageCount}
+        total={filtered.length}
+        pageSize={PAGE_SIZE}
+        onPage={setPage}
+      />
     </div>
   )
 }

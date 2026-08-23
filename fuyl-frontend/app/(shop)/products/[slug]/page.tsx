@@ -155,7 +155,6 @@ export default async function ProductPage({ params }: Props) {
 
         {/* Reviews */}
         <ReviewsWidget
-          productId={product.id}
           reviews={reviews}
           averageRating={averageRating}
           totalCount={totalCount}

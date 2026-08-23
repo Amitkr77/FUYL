@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import type { StockRow, AdjustmentType } from '@/lib/inventory'
 import { adjustStockAction } from '@/app/(admin)/inventory/actions'
+import { Pagination } from '@/components/ui/Pagination'
 
 // ─── Adjustment type helpers ────────────────────────────────────────────────
 
@@ -211,11 +212,14 @@ function StockBadge({ available, reorderThreshold }: { available: number; reorde
 
 // ─── Main table ──────────────────────────────────────────────────────────────
 
+const PAGE_SIZE = 20
+
 export function InventoryTable({ stock }: { stock: StockRow[] }) {
   const [search,    setSearch]    = useState('')
   const [filter,    setFilter]    = useState<StockLevel>('all')
   const [openRow,   setOpenRow]   = useState<string | null>(null)   // row.id of adjust form
   const [expanded,  setExpanded]  = useState<Set<string>>(new Set()) // productIds
+  const [page,      setPage]      = useState(1)
 
   const allGroups = groupByProduct(stock)
 
@@ -234,6 +238,10 @@ export function InventoryTable({ stock }: { stock: StockRow[] }) {
     if (filter === 'low') return g.hasLow
     return true
   })
+
+  const pageCount  = Math.max(1, Math.ceil(groups.length / PAGE_SIZE))
+  const curPage    = Math.min(page, pageCount)
+  const pagedGroups = groups.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE)
 
   const toggleExpanded = (productId: string) => {
     setExpanded((prev) => {
@@ -257,7 +265,7 @@ export function InventoryTable({ stock }: { stock: StockRow[] }) {
         {TABS.map((tab) => (
           <button
             key={tab.value}
-            onClick={() => setFilter(tab.value)}
+            onClick={() => { setFilter(tab.value); setPage(1) }}
             className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap rounded-t-lg transition-colors border-b-2 -mb-px ${
               filter === tab.value
                 ? 'text-[#558476] border-[#558476]'
@@ -284,11 +292,11 @@ export function InventoryTable({ stock }: { stock: StockRow[] }) {
             type="text"
             placeholder="Search products…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#558476]/30 focus:border-[#558476] placeholder:text-slate-400"
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <button onClick={() => { setSearch(''); setPage(1) }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
               <X className="w-3.5 h-3.5" />
             </button>
           )}
@@ -332,7 +340,7 @@ export function InventoryTable({ stock }: { stock: StockRow[] }) {
                       </p>
                     </div>
                     {(search || filter !== 'all') && (
-                      <button onClick={() => { setSearch(''); setFilter('all') }} className="text-xs text-[#558476] hover:underline">
+                      <button onClick={() => { setSearch(''); setFilter('all'); setPage(1) }} className="text-xs text-[#558476] hover:underline">
                         Clear filters
                       </button>
                     )}
@@ -340,7 +348,7 @@ export function InventoryTable({ stock }: { stock: StockRow[] }) {
                 </td>
               </tr>
             ) : (
-              groups.map((group) => {
+              pagedGroups.map((group) => {
                 const isExpanded   = expanded.has(group.productId)
                 const hasVariants  = group.rows.length > 1 || group.rows[0]?.variantName !== null
                 const singleRow    = group.rows[0]
@@ -473,17 +481,13 @@ export function InventoryTable({ stock }: { stock: StockRow[] }) {
         </table>
       </div>
 
-      {/* Footer */}
-      {groups.length > 0 && (
-        <div className="px-5 py-3 border-t border-slate-100">
-          <p className="text-xs text-slate-400">
-            {groups.length} product{groups.length !== 1 ? 's' : ''}
-            {' · '}
-            {stock.length} stock record{stock.length !== 1 ? 's' : ''}
-            {(search || filter !== 'all') ? ' matching current filters' : ' total'}
-          </p>
-        </div>
-      )}
+      <Pagination
+        page={curPage}
+        pageCount={pageCount}
+        total={groups.length}
+        pageSize={PAGE_SIZE}
+        onPage={setPage}
+      />
     </div>
   )
 }

@@ -345,7 +345,7 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
   const sellerId = await requireSellerId()
 
   const [products, stockRows, tags] = await Promise.all([
-    adminApiFetch<BackendProduct[]>('/admin/catalog/products?limit=50'),
+    adminApiFetch<BackendProduct[]>('/admin/catalog/products?limit=200'),
     adminApiFetch<BackendStock[]>(`/inventory/mine?sellerId=${sellerId}&limit=200`).catch(() => [] as BackendStock[]),
     getTags(),
   ])

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import Badge from '@/components/ui/Badge'
 import type { Discount, DiscountStatus } from '@/lib/discounts'
 import { updateDiscountStatusAction, deleteDiscountAction } from '@/app/(admin)/discounts-cashback/actions'
+import { Pagination } from '@/components/ui/Pagination'
 
 const statuses: DiscountStatus[] = ['draft', 'active', 'paused', 'ended']
 
@@ -28,9 +29,12 @@ function summary(discount: Discount): string {
   return `${value} off ${coupon.scope === 'cart' ? 'order' : coupon.scope}`
 }
 
+const PAGE_SIZE = 15
+
 export function DiscountsTable({ discounts }: { discounts: Discount[] }) {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
+  const [page, setPage] = useState(1)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState('')
   const visible = useMemo(() => discounts.filter((discount) => {
@@ -38,6 +42,10 @@ export function DiscountsTable({ discounts }: { discounts: Discount[] }) {
     return (filter === 'all' || status === filter) &&
       `${discount.name} ${discount.coupons.map((c) => c.code).join(' ')}`.toLowerCase().includes(query.toLowerCase())
   }), [discounts, filter, query])
+
+  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
+  const curPage   = Math.min(page, pageCount)
+  const paged     = visible.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE)
 
   const updateStatus = (id: string, status: DiscountStatus) => startTransition(async () => {
     const result = await updateDiscountStatusAction(id, status)
@@ -54,13 +62,13 @@ export function DiscountsTable({ discounts }: { discounts: Discount[] }) {
 
   return <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
     <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center">
-      <select value={filter} onChange={(e) => setFilter(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+      <select value={filter} onChange={(e) => { setFilter(e.target.value); setPage(1) }} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
         <option value="all">All</option><option value="active">Active</option><option value="scheduled">Scheduled</option>
         <option value="draft">Draft</option><option value="paused">Paused</option><option value="expired">Expired</option>
       </select>
       <label className="flex flex-1 items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
         <Search className="h-4 w-4 text-slate-400" />
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search and filter" className="w-full bg-transparent text-sm outline-none" />
+        <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(1) }} placeholder="Search and filter" className="w-full bg-transparent text-sm outline-none" />
       </label>
     </div>
     {error && <p className="border-b border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
@@ -68,7 +76,7 @@ export function DiscountsTable({ discounts }: { discounts: Discount[] }) {
       <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500"><tr>
         <th className="px-4 py-3">Title</th><th>Status</th><th>Method</th><th>Eligibility</th><th>Type</th><th>Used</th><th />
       </tr></thead>
-      <tbody className="divide-y divide-slate-100">{visible.length === 0 ? <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">No discounts found.</td></tr> : visible.map((discount) => {
+      <tbody className="divide-y divide-slate-100">{visible.length === 0 ? <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">No discounts found.</td></tr> : paged.map((discount) => {
         const status = effectiveStatus(discount)
         const used = discount.coupons.reduce((sum, coupon) => sum + (coupon.redemptionsCount ?? 0), 0)
         return <tr key={discount.id} className="hover:bg-slate-50/70">
@@ -79,5 +87,6 @@ export function DiscountsTable({ discounts }: { discounts: Discount[] }) {
         </tr>
       })}</tbody>
     </table></div>
+    <Pagination page={curPage} pageCount={pageCount} total={visible.length} pageSize={PAGE_SIZE} onPage={setPage} />
   </div>
 }

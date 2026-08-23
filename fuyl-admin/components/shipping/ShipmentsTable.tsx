@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { Search, ExternalLink, RefreshCw } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import { formatDate } from '@/lib/utils'
 import type { Shipment, ShipmentStatus } from '@/lib/shipping'
 import { updateShipmentStatusAction, syncShipmentTrackingAction, reattemptShipmentAction } from '@/app/(admin)/shipping/actions'
+import { Pagination } from '@/components/ui/Pagination'
 
 const TERMINAL_STATUSES: ShipmentStatus[] = ['delivered', 'returned_to_origin', 'cancelled']
 
@@ -25,6 +26,8 @@ const NEXT_ACTION: Partial<Record<ShipmentStatus, { label: string; next: Shipmen
   in_transit: { label: 'Out for Delivery', next: 'out_for_delivery' },
   out_for_delivery: { label: 'Mark Delivered', next: 'delivered' },
 }
+
+const PAGE_SIZE = 10
 
 function RowActions({ s }: { s: Shipment }) {
   const [isPending, startTransition] = useTransition()
@@ -114,6 +117,8 @@ function RowActions({ s }: { s: Shipment }) {
 
 export function ShipmentsTable({ shipments }: { shipments: Shipment[] }) {
   const [search, setSearch] = useState('')
+  const [sort, setSort]     = useState('newest')
+  const [page, setPage]     = useState(1)
 
   const filtered = shipments.filter((s) =>
     !search ||
@@ -121,18 +126,36 @@ export function ShipmentsTable({ shipments }: { shipments: Shipment[] }) {
     s.recipientName.toLowerCase().includes(search.toLowerCase())
   )
 
+  const sorted = useMemo(() => [...filtered].sort((a, b) => {
+    if (sort === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    if (sort === 'status') return a.status.localeCompare(b.status)
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  }), [filtered, sort])
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const curPage   = Math.min(page, pageCount)
+  const paged     = sorted.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE)
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
-      <div className="p-4 border-b border-slate-100">
-        <div className="relative max-w-sm">
+      <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="relative max-w-sm w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search by tracking # or recipient..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent"
           />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-400">{sorted.length} result{sorted.length !== 1 ? 's' : ''}</span>
+          <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1) }}
+            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="status">Status A→Z</option>
+          </select>
         </div>
       </div>
       <div className="overflow-x-auto">
@@ -148,10 +171,10 @@ export function ShipmentsTable({ shipments }: { shipments: Shipment[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {filtered.length === 0 ? (
+            {paged.length === 0 ? (
               <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-400 text-sm">No shipments found.</td></tr>
             ) : (
-              filtered.map((s) => (
+              paged.map((s) => (
                 <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-5 py-4">
                     <p className="text-sm font-medium text-slate-900">{s.shipmentNumber}</p>
@@ -178,6 +201,7 @@ export function ShipmentsTable({ shipments }: { shipments: Shipment[] }) {
           </tbody>
         </table>
       </div>
+      <Pagination page={curPage} pageCount={pageCount} total={sorted.length} pageSize={PAGE_SIZE} onPage={setPage} />
     </div>
   )
 }

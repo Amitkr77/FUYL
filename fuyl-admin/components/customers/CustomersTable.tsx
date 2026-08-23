@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Eye, Search, X } from 'lucide-react'
+import { Eye, Search, X } from 'lucide-react'
+import { Pagination } from '@/components/ui/Pagination'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Customer } from '@/lib/customers'
 
@@ -39,6 +40,6 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
     <div className="overflow-x-auto"><table className="w-full min-w-[760px]"><thead><tr className="border-b border-slate-100 bg-slate-50/50">{['Customer', 'Contact', 'Orders', 'Lifetime value', 'Joined', ''].map((h) => <th key={h} className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">{h}</th>)}</tr></thead><tbody className="divide-y divide-slate-50">
       {visible.length === 0 ? <tr><td colSpan={6} className="px-5 py-14 text-center"><p className="text-sm font-medium text-slate-600">No customers found</p><p className="text-xs text-slate-400 mt-1">Try another segment or search term.</p></td></tr> : visible.map((customer, index) => <tr key={customer.id} className="hover:bg-slate-50/60"><td className="px-5 py-4"><div className="flex items-center gap-3"><div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${COLORS[index % COLORS.length]}`}>{initials(customer.name)}</div><div><Link href={`/customers/${customer.id}`} className="text-sm font-semibold text-slate-900 hover:text-[#558476]">{customer.name}</Link>{customer.orders > 1 && <p className="text-[11px] text-violet-600 font-medium">Repeat customer</p>}</div></div></td><td className="px-5 py-4"><p className="text-sm text-slate-600">{customer.email}</p><p className="text-xs text-slate-400">{customer.phone || 'No phone'}</p></td><td className="px-5 py-4 text-sm text-slate-700 font-medium">{customer.orders}</td><td className="px-5 py-4 text-sm font-semibold text-slate-900">{formatCurrency(customer.totalSpent)}</td><td className="px-5 py-4 text-sm text-slate-500">{formatDate(customer.joined)}</td><td className="px-5 py-4"><Link href={`/customers/${customer.id}`} aria-label={`View ${customer.name}`} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-white"><Eye className="w-3.5 h-3.5" />View</Link></td></tr>)}
     </tbody></table></div>
-    {filtered.length > pageSize && <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between"><p className="text-xs text-slate-500">Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} of {filtered.length}</p><div className="flex gap-1"><button aria-label="Previous page" disabled={currentPage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="p-2 border border-slate-200 rounded-lg disabled:opacity-40"><ChevronLeft className="w-4 h-4" /></button><button aria-label="Next page" disabled={currentPage === pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))} className="p-2 border border-slate-200 rounded-lg disabled:opacity-40"><ChevronRight className="w-4 h-4" /></button></div></div>}
+    <Pagination page={currentPage} pageCount={pageCount} total={filtered.length} pageSize={pageSize} onPage={setPage} />
   </div>
 }

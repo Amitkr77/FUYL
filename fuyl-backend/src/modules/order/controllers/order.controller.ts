@@ -107,6 +107,7 @@ export class OrderController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const order = await orderService.updateStatus(req.params.id, req.body, req.user!.userId);
+        if (!order) throw new Error('Order not found');
         logAudit({
           actorId:     req.user!.userId,
           actorEmail:  req.user!.email ?? '',

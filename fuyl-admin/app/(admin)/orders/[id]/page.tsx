@@ -131,7 +131,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   <p key={i} className="text-xs text-slate-500">
                     <span className="capitalize">{p.gateway}</span> · {formatCurrency(p.amount)} · <span className="capitalize">{p.status}</span>
                     {p.reference ? ` · Ref: ${p.reference}` : ''}
-                    {p.capturedAt ? ` · ${formatDate(p.capturedAt)}` : ''}
+                    {p.capturedAt ? ` · ${formatDateTime(p.capturedAt)}` : ''}
                     {p.refundedAmount > 0 ? ` · Refunded ${formatCurrency(p.refundedAmount)}` : ''}
                   </p>
                 ))}
@@ -208,7 +208,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     </div>
                     <div>
                       <p className="text-sm font-medium text-slate-900 capitalize">{event.status}</p>
-                      <p className="text-xs text-slate-400">{formatDate(event.at)}{event.note ? ` — ${event.note}` : ''}</p>
+                      <p className="text-xs text-slate-400">{formatDateTime(event.at)}{event.note ? ` — ${event.note}` : ''}</p>
                     </div>
                   </div>
                 ))}

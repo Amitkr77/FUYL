@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react'
 import { Search, Download, Send, Trash2 } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
+import { Pagination } from '@/components/ui/Pagination'
 import { formatDate } from '@/lib/utils'
 import type { Subscriber, NewsletterStatus } from '@/lib/newsletter'
 import { resendVerificationAction, deleteSubscriberAction } from '@/app/(admin)/newsletter/actions'
@@ -38,9 +39,12 @@ function toCsv(rows: Subscriber[]): string {
   return [header.map(escape).join(','), ...lines].join('\r\n')
 }
 
+const PAGE_SIZE = 20
+
 export function NewsletterTable({ subscribers }: { subscribers: Subscriber[] }) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | NewsletterStatus>('all')
+  const [page, setPage] = useState(1)
   const [pending, startTransition] = useTransition()
   const [busyId, setBusyId] = useState<string | null>(null)
   const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
@@ -54,6 +58,10 @@ export function NewsletterTable({ subscribers }: { subscribers: Subscriber[] }) 
       }),
     [subscribers, search, statusFilter],
   )
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const curPage   = Math.min(page, pageCount)
+  const paged     = filtered.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE)
 
   const handleExport = () => {
     const csv = toCsv(filtered)
@@ -106,14 +114,14 @@ export function NewsletterTable({ subscribers }: { subscribers: Subscriber[] }) 
             type="text"
             placeholder="Search by email..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent"
           />
         </div>
 
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as 'all' | NewsletterStatus)}
+          onChange={(e) => { setStatusFilter(e.target.value as 'all' | NewsletterStatus); setPage(1) }}
           className="text-sm border border-slate-200 rounded-lg bg-slate-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent"
         >
           {STATUS_FILTERS.map((f) => (
@@ -166,7 +174,7 @@ export function NewsletterTable({ subscribers }: { subscribers: Subscriber[] }) 
                 </td>
               </tr>
             ) : (
-              filtered.map((s) => (
+              paged.map((s) => (
                 <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-5 py-4 text-sm font-medium text-slate-900">{s.email}</td>
                   <td className="px-5 py-4">
@@ -208,6 +216,7 @@ export function NewsletterTable({ subscribers }: { subscribers: Subscriber[] }) 
           </tbody>
         </table>
       </div>
+      <Pagination page={curPage} pageCount={pageCount} total={filtered.length} pageSize={PAGE_SIZE} onPage={setPage} />
     </div>
   )
 }

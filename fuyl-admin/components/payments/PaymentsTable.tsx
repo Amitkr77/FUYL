@@ -9,6 +9,7 @@ import {
 import Badge from '@/components/ui/Badge'
 import type { Payment, PaymentStatus } from '@/lib/payments'
 import { refundPaymentAction } from '@/app/(admin)/payments/actions'
+import { Pagination } from '@/components/ui/Pagination'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -192,10 +193,13 @@ function sortPayments(payments: Payment[], key: SortKey): Payment[] {
   })
 }
 
+const PAGE_SIZE = 15
+
 export function PaymentsTable({ payments }: { payments: Payment[] }) {
   const [activeTab, setActiveTab] = useState<TabFilter>('all')
   const [search,    setSearch]    = useState('')
   const [sortKey,   setSortKey]   = useState<SortKey>('date-desc')
+  const [page,      setPage]      = useState(1)
   const [refundingId, setRefundingId] = useState<string | null>(null)
 
   const tabCount = (tab: TabFilter) =>
@@ -219,6 +223,10 @@ export function PaymentsTable({ payments }: { payments: Payment[] }) {
     sortKey,
   )
 
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const curPage   = Math.min(page, pageCount)
+  const paged     = filtered.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE)
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
 
@@ -227,7 +235,7 @@ export function PaymentsTable({ payments }: { payments: Payment[] }) {
         {TABS.map((tab) => (
           <button
             key={tab.value}
-            onClick={() => setActiveTab(tab.value)}
+            onClick={() => { setActiveTab(tab.value); setPage(1) }}
             className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap rounded-t-lg transition-colors border-b-2 -mb-px ${
               activeTab === tab.value
                 ? 'text-[#558476] border-[#558476]'
@@ -254,11 +262,11 @@ export function PaymentsTable({ payments }: { payments: Payment[] }) {
             type="text"
             placeholder="Search payment # or order ID…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#558476]/30 focus:border-[#558476] placeholder:text-slate-400"
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <button onClick={() => { setSearch(''); setPage(1) }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
               <X className="w-3.5 h-3.5" />
             </button>
           )}
@@ -268,7 +276,7 @@ export function PaymentsTable({ payments }: { payments: Payment[] }) {
           <div className="relative">
             <select
               value={sortKey}
-              onChange={(e) => setSortKey(e.target.value as SortKey)}
+              onChange={(e) => { setSortKey(e.target.value as SortKey); setPage(1) }}
               className="appearance-none h-9 pl-3 pr-8 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#558476]/30 cursor-pointer"
             >
               {SORT_OPTIONS.map((o) => (
@@ -278,7 +286,7 @@ export function PaymentsTable({ payments }: { payments: Payment[] }) {
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
           </div>
           {hasFilters && (
-            <button onClick={() => setSearch('')} className="h-9 px-3 text-sm text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors">
+            <button onClick={() => { setSearch(''); setPage(1) }} className="h-9 px-3 text-sm text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors">
               Clear
             </button>
           )}
@@ -324,7 +332,7 @@ export function PaymentsTable({ payments }: { payments: Payment[] }) {
                     </div>
                     {(hasFilters || activeTab !== 'all') && (
                       <button
-                        onClick={() => { setSearch(''); setActiveTab('all') }}
+                        onClick={() => { setSearch(''); setActiveTab('all'); setPage(1) }}
                         className="text-xs text-[#558476] hover:underline"
                       >
                         Clear filters
@@ -334,7 +342,7 @@ export function PaymentsTable({ payments }: { payments: Payment[] }) {
                 </td>
               </tr>
             ) : (
-              filtered.map((payment) => {
+              paged.map((payment) => {
                 const statusCfg      = STATUS_CONFIG[payment.status]
                 const isRefunding    = refundingId === payment.id
                 const canRefund      = payment.status === 'success' && payment.refundedAmount < payment.amount
@@ -446,15 +454,13 @@ export function PaymentsTable({ payments }: { payments: Payment[] }) {
         </table>
       </div>
 
-      {/* Footer */}
-      {filtered.length > 0 && (
-        <div className="px-5 py-3 border-t border-slate-100">
-          <p className="text-xs text-slate-400">
-            {filtered.length} payment{filtered.length !== 1 ? 's' : ''}
-            {hasFilters || activeTab !== 'all' ? ' matching current filters' : ' total'}
-          </p>
-        </div>
-      )}
+      <Pagination
+        page={curPage}
+        pageCount={pageCount}
+        total={filtered.length}
+        pageSize={PAGE_SIZE}
+        onPage={setPage}
+      />
     </div>
   )
 }

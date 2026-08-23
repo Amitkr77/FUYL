@@ -1,11 +1,12 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import { Star, ShieldCheck, Flag } from 'lucide-react'
+import { Star, ShieldCheck, Flag, Search, X } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import { formatDate } from '@/lib/utils'
 import type { AdminReview, ReviewStatus } from '@/lib/reviews'
 import { moderateReviewAction } from '@/app/(admin)/reviews/actions'
+import { Pagination } from '@/components/ui/Pagination'
 
 const STATUS_VARIANT: Record<ReviewStatus, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
   pending: 'warning',
@@ -21,6 +22,8 @@ const TABS: { value: ReviewStatus | 'all'; label: string }[] = [
   { value: 'rejected', label: 'Rejected' },
   { value: 'all', label: 'All' },
 ]
+
+const PAGE_SIZE = 10
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -77,6 +80,9 @@ function RowActions({ r }: { r: AdminReview }) {
 
 export function ReviewsTable({ reviews }: { reviews: AdminReview[] }) {
   const [tab, setTab] = useState<ReviewStatus | 'all'>('pending')
+  const [search, setSearch] = useState('')
+  const [sort, setSort] = useState('newest')
+  const [page, setPage] = useState(1)
 
   const counts = useMemo(() => {
     const c: Record<ReviewStatus, number> = { pending: 0, approved: 0, rejected: 0, flagged: 0 }
@@ -84,7 +90,25 @@ export function ReviewsTable({ reviews }: { reviews: AdminReview[] }) {
     return c
   }, [reviews])
 
-  const filtered = tab === 'all' ? reviews : reviews.filter((r) => r.status === tab)
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    let rows = tab === 'all' ? reviews : reviews.filter((r) => r.status === tab)
+    if (term) rows = rows.filter((r) =>
+      r.authorName.toLowerCase().includes(term) ||
+      r.productName.toLowerCase().includes(term) ||
+      (r.title ?? '').toLowerCase().includes(term) ||
+      r.body.toLowerCase().includes(term)
+    )
+    return [...rows].sort((a, b) => {
+      if (sort === 'oldest')  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      if (sort === 'highest') return b.rating - a.rating
+      if (sort === 'lowest')  return a.rating - b.rating
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
+  }, [reviews, tab, search, sort])
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const curPage   = Math.min(page, pageCount)
+  const paged     = filtered.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE)
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
@@ -93,7 +117,7 @@ export function ReviewsTable({ reviews }: { reviews: AdminReview[] }) {
         {TABS.map((t) => (
           <button
             key={t.value}
-            onClick={() => setTab(t.value)}
+            onClick={() => { setTab(t.value); setPage(1) }}
             className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               tab === t.value
                 ? 'border-[#558476] text-[#558476]'
@@ -110,6 +134,30 @@ export function ReviewsTable({ reviews }: { reviews: AdminReview[] }) {
         ))}
       </div>
 
+      {/* Search + sort toolbar */}
+      <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            placeholder="Search author, product, content…"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#558476]/30"
+          />
+          {search && <button onClick={() => { setSearch(''); setPage(1) }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"><X className="w-3.5 h-3.5" /></button>}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-400">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
+          <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1) }}
+            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="highest">Highest rated</option>
+            <option value="lowest">Lowest rated</option>
+          </select>
+        </div>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -122,10 +170,10 @@ export function ReviewsTable({ reviews }: { reviews: AdminReview[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {filtered.length === 0 ? (
+            {paged.length === 0 ? (
               <tr><td colSpan={5} className="px-5 py-10 text-center text-slate-400 text-sm">No reviews here.</td></tr>
             ) : (
-              filtered.map((r) => (
+              paged.map((r) => (
                 <tr key={r.id} className="hover:bg-slate-50/50 transition-colors align-top">
                   <td className="px-5 py-4 max-w-sm">
                     <div className="flex items-center gap-2 mb-1">
@@ -157,6 +205,7 @@ export function ReviewsTable({ reviews }: { reviews: AdminReview[] }) {
           </tbody>
         </table>
       </div>
+      <Pagination page={curPage} pageCount={pageCount} total={filtered.length} pageSize={PAGE_SIZE} onPage={setPage} />
     </div>
   )
 }
