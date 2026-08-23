@@ -49,6 +49,11 @@ export interface IProductShippingInfo {
   packageType?: string;
   weight?: number;
   weightUnit: 'g' | 'kg' | 'lb' | 'oz';
+  // Dimensions in centimetres — used to compute volumetric weight
+  // (L × W × H / 5000) for carriers that bill by whichever is higher.
+  length?: number;
+  width?: number;
+  height?: number;
   countryOfOrigin?: string;
   hsCode?: string;           // Harmonized System code, for customs declarations
   shippingMode?: ShippingMode; // calculated (default) | fixed | free
@@ -188,6 +193,9 @@ const ProductSchema = new Schema<IProduct>(
       packageType: { type: String, trim: true, maxlength: 60 },
       weight: { type: Number, min: 0 },
       weightUnit: { type: String, enum: ['g', 'kg', 'lb', 'oz'], default: 'g' },
+      length: { type: Number, min: 0 },
+      width:  { type: Number, min: 0 },
+      height: { type: Number, min: 0 },
       countryOfOrigin: { type: String, trim: true, maxlength: 100 },
       hsCode: { type: String, trim: true, maxlength: 30 },
       shippingMode: { type: String, enum: ['calculated', 'fixed', 'free'], default: 'calculated' },

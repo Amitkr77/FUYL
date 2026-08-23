@@ -4,17 +4,21 @@ import { LocationManager } from '@/components/inventory/LocationManager'
 import { listInventory, getConsumptionStats, listLocations } from '@/lib/inventory'
 import { getErrorMessage } from '@/lib/api'
 import { CsvExportButton } from '@/components/ui/CsvExportButton'
+import { ActivityFeed } from '@/components/ui/ActivityFeed'
+import { getAuditLogs, type AuditLogEntry } from '@/lib/auditLog'
 
 export default async function InventoryPage() {
   let stock: Awaited<ReturnType<typeof listInventory>> = []
   let consumption: Awaited<ReturnType<typeof getConsumptionStats>> | null = null
   let locations: Awaited<ReturnType<typeof listLocations>> = []
+  let auditLogs: AuditLogEntry[] = []
   let error = ''
   try {
-    ;[stock, consumption, locations] = await Promise.all([
+    ;[stock, consumption, locations, auditLogs] = await Promise.all([
       listInventory(),
       getConsumptionStats(30),
       listLocations(),
+      getAuditLogs({ section: 'inventory', limit: 20 }).catch(() => []),
     ])
   } catch (err) {
     error = getErrorMessage(err, 'Could not load inventory.')
@@ -42,7 +46,7 @@ export default async function InventoryPage() {
         <p className="text-sm text-slate-500 mt-0.5">
           Track on-hand stock, reserved units, and reorder levels across all products and variants
         </p>
-      </div><CsvExportButton filename="inventory" columns={[{key:'productName',label:'Product'},{key:'variantName',label:'Variant'},{key:'variantSku',label:'SKU'},{key:'onHand',label:'On hand'},{key:'reserved',label:'Reserved'},{key:'available',label:'Available'},{key:'reorderThreshold',label:'Reorder at'}]} rows={stock} /></div>
+      </div><CsvExportButton filename="inventory" dateKey="updatedAt" columns={[{key:'productName',label:'Product'},{key:'variantName',label:'Variant'},{key:'variantSku',label:'SKU'},{key:'onHand',label:'On hand'},{key:'reserved',label:'Reserved'},{key:'available',label:'Available'},{key:'reorderThreshold',label:'Reorder at'},{key:'updatedAt',label:'Updated'}]} rows={stock} /></div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -105,6 +109,7 @@ export default async function InventoryPage() {
       <LocationManager initialLocations={locations} />
 
       <InventoryTable stock={stock} />
+      <ActivityFeed logs={auditLogs} />
     </div>
   )
 }

@@ -26,6 +26,7 @@ import {
   Link2,
   CreditCard,
   Award,
+  Users2,
 } from "lucide-react";
 import { logout } from "@/app/(admin)/actions";
 
@@ -83,7 +84,10 @@ const navSections: NavSection[] = [
   },
   {
     title: "System",
-    items: [{ label: "Settings", href: "/settings", icon: Settings }],
+    items: [
+      { label: "Team", href: "/team", icon: Users2 },
+      { label: "Settings", href: "/settings", icon: Settings },
+    ],
   },
 ];
 

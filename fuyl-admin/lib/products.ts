@@ -41,6 +41,9 @@ export interface ShippingInfo {
   packageType?: string
   weight?: number
   weightUnit: WeightUnit
+  length?: number
+  width?: number
+  height?: number
   countryOfOrigin?: string
   hsCode?: string
   shippingMode?: ShippingMode

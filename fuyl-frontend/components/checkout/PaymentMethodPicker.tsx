@@ -34,6 +34,15 @@ export function PaymentMethodPicker({ value, onChange, enabledMethods }: Payment
   const visible = enabledMethods
     ? METHODS.filter((m) => enabledMethods.has(m.value))
     : METHODS
+
+  if (visible.length === 0) {
+    return (
+      <div className="p-4 rounded-xl border border-brand-border text-center">
+        <p className="text-body-sm text-brand-muted">No payment methods are currently available. Please contact support.</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-3">
       {visible.map((m) => {

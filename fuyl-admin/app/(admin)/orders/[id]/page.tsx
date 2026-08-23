@@ -3,7 +3,7 @@ import { ArrowRight, Package, Truck, MapPin, User, ClipboardList, CheckCircle2, 
 import { getAdminOrder } from '@/lib/orders'
 import { OrderStatusPanel } from '@/components/orders/OrderStatusPanel'
 import { BookShipmentPanel } from '@/components/shipping/BookShipmentPanel'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDateTime } from '@/lib/utils'
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   cashfree: 'Card / UPI / Netbanking',
@@ -47,7 +47,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       <div className="flex items-center gap-3">
         <div>
           <h2 className="text-xl font-bold text-slate-900">{order.orderNumber}</h2>
-          <p className="text-sm text-slate-500 mt-0.5">Placed on {formatDate(order.date)}</p>
+          <p className="text-sm text-slate-500 mt-0.5">Placed on {formatDateTime(order.date)}</p>
         </div>
       </div>
 

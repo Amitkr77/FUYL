@@ -20,6 +20,7 @@ import {
 } from '../validators';
 import { env } from '../../../config/env';
 import { BadRequestError } from '../../../shared/errors';
+import { logAudit } from '../../admin/services/auditLog.service';
 
 export class IdentityController {
   register = [
@@ -203,6 +204,59 @@ export class IdentityController {
   listSessions = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
       return success(res, await identityService.listSessions(req.user!.userId));
+    } catch (err) { next(err); }
+  };
+
+  // ─── Staff management ──────────────────────────────────────────
+  listStaff = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try { return success(res, await identityService.listStaff()); } catch (err) { next(err); }
+  };
+
+  createStaff = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const member = await identityService.createStaff(req.body);
+      logAudit({
+        actorId:     req.user!.userId,
+        actorEmail:  req.user!.email ?? '',
+        actorName:   req.user!.email ?? '',
+        section:     'team',
+        action:      'created',
+        targetId:    member.id,
+        targetLabel: member.email,
+        detail:      `Role: ${member.role}`,
+      });
+      return success(res, member);
+    } catch (err) { next(err); }
+  };
+
+  updateStaff = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const member = await identityService.updateStaff(req.params.id, req.body);
+      logAudit({
+        actorId:     req.user!.userId,
+        actorEmail:  req.user!.email ?? '',
+        actorName:   req.user!.email ?? '',
+        section:     'team',
+        action:      req.body.isActive === true ? 'reactivated' : req.body.isActive === false ? 'deactivated' : 'updated',
+        targetId:    member.id,
+        targetLabel: member.email,
+      });
+      return success(res, member);
+    } catch (err) { next(err); }
+  };
+
+  deleteStaff = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await identityService.deleteStaff(req.params.id, req.user!.userId);
+      logAudit({
+        actorId:     req.user!.userId,
+        actorEmail:  req.user!.email ?? '',
+        actorName:   req.user!.email ?? '',
+        section:     'team',
+        action:      'deactivated',
+        targetId:    req.params.id,
+      });
+      return success(res, result);
     } catch (err) { next(err); }
   };
 

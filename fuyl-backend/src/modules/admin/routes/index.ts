@@ -3,7 +3,8 @@ import { authRequired } from '../../../shared/middleware/auth.middleware';
 import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
 import { adminController } from '../controllers';
 import { SiteSettingsModel } from '../models';
-import { success } from '../../../shared/responses';
+import { success, paginate } from '../../../shared/responses';
+import { queryAuditLogs } from '../services/auditLog.service';
 
 const router = Router();
 
@@ -50,6 +51,17 @@ router.put('/admin/settings/payment', async (req, res, next) => {
       { new: true, upsert: true, runValidators: true }
     );
     return success(res, settings);
+  } catch (err) { next(err); }
+});
+
+// Audit logs
+router.get('/admin/audit-logs', async (req, res, next) => {
+  try {
+    const section = req.query.section as string | undefined;
+    const page  = parseInt(req.query.page  as string) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    const result = await queryAuditLogs({ section, page, limit });
+    return paginate(res, result.items, result.total, result.page, result.limit);
   } catch (err) { next(err); }
 });
 

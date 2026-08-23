@@ -3,12 +3,18 @@ import { OrdersTable, ExportButton } from '@/components/orders/OrdersTable'
 import { listAdminOrders } from '@/lib/orders'
 import { getErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
+import { ActivityFeed } from '@/components/ui/ActivityFeed'
+import { getAuditLogs, type AuditLogEntry } from '@/lib/auditLog'
 
 export default async function OrdersPage() {
   let orders: Awaited<ReturnType<typeof listAdminOrders>> = []
+  let auditLogs: AuditLogEntry[] = []
   let error = ''
   try {
-    orders = await listAdminOrders()
+    ;[orders, auditLogs] = await Promise.all([
+      listAdminOrders(),
+      getAuditLogs({ section: 'orders', limit: 20 }).catch(() => []),
+    ])
   } catch (err) {
     error = getErrorMessage(err, 'Could not load orders.')
   }
@@ -51,6 +57,7 @@ export default async function OrdersPage() {
       )}
 
       <OrdersTable orders={orders} />
+      <ActivityFeed logs={auditLogs} />
     </div>
   )
 }

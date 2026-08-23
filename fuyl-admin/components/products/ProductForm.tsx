@@ -879,6 +879,40 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                       </div>
                     </div>
 
+                    {/* Dimensions + volumetric weight */}
+                    <div>
+                      <label className={labelCls}>Dimensions (cm) — for volumetric weight</label>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <input type="number" min={0} value={form.shipping.length ?? ''}
+                            onChange={(e) => setShipping({ length: e.target.value ? Number(e.target.value) : undefined })}
+                            placeholder="Length" className={inputCls} />
+                          <p className={helpCls}>L</p>
+                        </div>
+                        <div>
+                          <input type="number" min={0} value={form.shipping.width ?? ''}
+                            onChange={(e) => setShipping({ width: e.target.value ? Number(e.target.value) : undefined })}
+                            placeholder="Width" className={inputCls} />
+                          <p className={helpCls}>W</p>
+                        </div>
+                        <div>
+                          <input type="number" min={0} value={form.shipping.height ?? ''}
+                            onChange={(e) => setShipping({ height: e.target.value ? Number(e.target.value) : undefined })}
+                            placeholder="Height" className={inputCls} />
+                          <p className={helpCls}>H</p>
+                        </div>
+                      </div>
+                      {form.shipping.length && form.shipping.width && form.shipping.height && (
+                        <p className={helpCls}>
+                          Volumetric weight:{' '}
+                          <strong>
+                            {Math.round((form.shipping.length * form.shipping.width * form.shipping.height) / 5000)} g
+                          </strong>{' '}
+                          (L × W × H ÷ 5000). Carrier bills the higher of actual vs. volumetric.
+                        </p>
+                      )}
+                    </div>
+
                     <div className="pt-2 border-t border-slate-100">
                       <Collapsible title="Customs Information" defaultOpen={false}>
                         <div className="grid grid-cols-2 gap-4">

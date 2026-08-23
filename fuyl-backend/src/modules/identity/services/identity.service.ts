@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { UserRepository } from '../repositories/user.repository';
+import { UserModel } from '../models/user.model';
 import { RefreshTokenRepository } from '../repositories/refreshToken.repository';
 import {
   hashPassword,
@@ -519,6 +520,60 @@ export class IdentityService {
 
   async listSessions(userId: string) {
     return refreshRepo.listActiveForUser(userId);
+  }
+
+  // ─── Staff management ─────────────────────────────────────────
+  async listStaff() {
+    return UserModel.find(
+      { role: { $in: ['admin', 'super_admin', 'staff'] }, isDeleted: false },
+      { passwordHash: 0, phoneHash: 0 }
+    ).sort({ createdAt: -1 });
+  }
+
+  async createStaff(data: {
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    role: 'admin' | 'staff';
+    permissions: string[];
+    password: string;
+  }) {
+    if (data.role !== 'admin' && data.role !== 'staff') {
+      throw new ForbiddenError('Invalid role — only admin or staff can be assigned');
+    }
+    const existing = await userRepo.findByEmail(data.email);
+    if (existing) throw new ConflictError('A user with this email already exists');
+    const passwordHash = await hashPassword(data.password);
+    return UserModel.create({
+      email: data.email,
+      emailLower: data.email.toLowerCase(),
+      firstName: data.firstName,
+      lastName: data.lastName,
+      passwordHash,
+      role: data.role,
+      permissions: data.permissions,
+      isActive: true,
+      isEmailVerified: true,
+    });
+  }
+
+  async updateStaff(id: string, data: {
+    firstName?: string;
+    lastName?: string;
+    role?: 'admin' | 'staff';
+    permissions?: string[];
+    isActive?: boolean;
+  }) {
+    const updated = await userRepo.update(id, data);
+    if (!updated) throw new NotFoundError('Staff member');
+    return updated;
+  }
+
+  async deleteStaff(id: string, requesterId: string) {
+    if (id === requesterId) throw new BadRequestError('Cannot deactivate your own account');
+    const updated = await userRepo.update(id, { isActive: false });
+    if (!updated) throw new NotFoundError('Staff member');
+    return updated;
   }
 
   private async issueTokens(

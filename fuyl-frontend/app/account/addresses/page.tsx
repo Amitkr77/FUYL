@@ -66,9 +66,16 @@ export default function AddressesPage() {
 
   const startNew = () => { setForm(emptyForm); setEditing('new'); setFormError(null) }
   const startEdit = (a: Address) => {
+    // Strip the stored country code prefix from the phone before putting it in the input
+    const countryEntry = COUNTRY_MAP.get(a.country ?? 'IN')
+    const storedPhone = a.phone ?? ''
+    const phoneCode = countryEntry?.phoneCode ?? ''
+    const phoneDigits = phoneCode && storedPhone.startsWith(phoneCode)
+      ? storedPhone.slice(phoneCode.length)
+      : storedPhone
     setForm({
       name: a.name, label: a.label, line1: a.line1, line2: a.line2 ?? '', city: a.city, state: a.state,
-      postalCode: a.postalCode, country: a.country, phone: a.phone ?? '',
+      postalCode: a.postalCode, country: a.country ?? 'IN', phone: phoneDigits,
       isDefault: a.isDefault, isBilling: a.isBilling, isShipping: a.isShipping,
       deliveryInstructions: a.deliveryInstructions,
     })
@@ -85,9 +92,14 @@ export default function AddressesPage() {
     setSaving(true)
     setFormError(null)
     try {
+      // Prepend the selected country's phone code to the number before saving
+      const phoneCode = COUNTRY_MAP.get(form.country)?.phoneCode ?? ''
+      const phoneDigits = form.phone.trim().replace(/^\+/, '') // strip any existing + in case user typed it
+      const fullPhone = phoneDigits ? `${phoneCode}${phoneDigits}` : ''
+      const payload = { ...form, phone: fullPhone }
       const updated = isEditing === 'new'
-        ? await addAddress(token, form)
-        : await updateAddress(token, isEditing!, form)
+        ? await addAddress(token, payload)
+        : await updateAddress(token, isEditing!, payload)
       setAddresses(updated)
       setEditing(null)
     } catch (err) {

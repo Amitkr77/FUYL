@@ -4,12 +4,18 @@ import { ProductsTable } from '@/components/products/ProductsTable'
 import { listAdminProducts } from '@/lib/products'
 import { getErrorMessage } from '@/lib/api'
 import { CsvExportButton } from '@/components/ui/CsvExportButton'
+import { ActivityFeed } from '@/components/ui/ActivityFeed'
+import { getAuditLogs, type AuditLogEntry } from '@/lib/auditLog'
 
 export default async function ProductsPage() {
   let products: Awaited<ReturnType<typeof listAdminProducts>> = []
+  let auditLogs: AuditLogEntry[] = []
   let error = ''
   try {
-    products = await listAdminProducts()
+    ;[products, auditLogs] = await Promise.all([
+      listAdminProducts(),
+      getAuditLogs({ section: 'products', limit: 20 }).catch(() => []),
+    ])
   } catch (err) {
     error = getErrorMessage(err, 'Could not load products.')
   }
@@ -65,6 +71,7 @@ export default async function ProductsPage() {
       )}
 
       <ProductsTable products={products} />
+      <ActivityFeed logs={auditLogs} />
     </div>
   )
 }

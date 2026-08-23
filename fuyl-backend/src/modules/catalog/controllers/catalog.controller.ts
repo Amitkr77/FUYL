@@ -10,6 +10,7 @@ import {
   createAttributeSchema, createTagSchema, createCollectionSchema,
 } from '../validators';
 import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
+import { logAudit } from '../../admin/services/auditLog.service';
 
 // getProduct/getProductBySlug are the SAME route both the storefront and the
 // admin panel call (there's no separate admin single-product GET) — so
@@ -41,6 +42,15 @@ export class CatalogController {
       try {
         const product = await catalogService.createProduct(req.body);
         void eventBus.publish(Events.PRODUCT_CREATED, { productId: product._id.toString(), sellerId: req.user!.userId });
+        logAudit({
+          actorId:     req.user!.userId,
+          actorEmail:  req.user!.email ?? '',
+          actorName:   req.user!.email ?? '',
+          section:     'products',
+          action:      'created',
+          targetId:    product._id.toString(),
+          targetLabel: (product as any).name ?? req.body.name,
+        });
         return created(res, serializeProduct(product, req));
       } catch (err) { next(err); }
     },
@@ -60,7 +70,19 @@ export class CatalogController {
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     validate(updateProductSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
-      try { return success(res, serializeProduct(await catalogService.updateProduct(req.params.id, req.body), req)); }
+      try {
+        const product = await catalogService.updateProduct(req.params.id, req.body);
+        logAudit({
+          actorId:     req.user!.userId,
+          actorEmail:  req.user!.email ?? '',
+          actorName:   req.user!.email ?? '',
+          section:     'products',
+          action:      'updated',
+          targetId:    req.params.id,
+          targetLabel: (product as any).name ?? req.body.name,
+        });
+        return success(res, serializeProduct(product, req));
+      }
       catch (err) { next(err); }
     },
   ];
@@ -68,7 +90,18 @@ export class CatalogController {
   deleteProduct = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
-      try { await catalogService.deleteProduct(req.params.id); return success(res, { deleted: true }); }
+      try {
+        await catalogService.deleteProduct(req.params.id);
+        logAudit({
+          actorId:     req.user!.userId,
+          actorEmail:  req.user!.email ?? '',
+          actorName:   req.user!.email ?? '',
+          section:     'products',
+          action:      'deleted',
+          targetId:    req.params.id,
+        });
+        return success(res, { deleted: true });
+      }
       catch (err) { next(err); }
     },
   ];
@@ -76,7 +109,19 @@ export class CatalogController {
   publishProduct = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
-      try { return success(res, await catalogService.publish(req.params.id)); }
+      try {
+        const product = await catalogService.publish(req.params.id);
+        logAudit({
+          actorId:     req.user!.userId,
+          actorEmail:  req.user!.email ?? '',
+          actorName:   req.user!.email ?? '',
+          section:     'products',
+          action:      'published',
+          targetId:    req.params.id,
+          targetLabel: (product as any).name,
+        });
+        return success(res, product);
+      }
       catch (err) { next(err); }
     },
   ];
@@ -84,7 +129,19 @@ export class CatalogController {
   unpublishProduct = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
-      try { return success(res, await catalogService.unpublish(req.params.id)); }
+      try {
+        const product = await catalogService.unpublish(req.params.id);
+        logAudit({
+          actorId:     req.user!.userId,
+          actorEmail:  req.user!.email ?? '',
+          actorName:   req.user!.email ?? '',
+          section:     'products',
+          action:      'unpublished',
+          targetId:    req.params.id,
+          targetLabel: (product as any).name,
+        });
+        return success(res, product);
+      }
       catch (err) { next(err); }
     },
   ];

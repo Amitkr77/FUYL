@@ -35,6 +35,12 @@ router.patch(
   identityController.setPermissions
 );
 
+// Staff management
+router.get('/admin/staff',        authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), identityController.listStaff);
+router.post('/admin/staff',       authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), identityController.createStaff);
+router.patch('/admin/staff/:id',  authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), identityController.updateStaff);
+router.delete('/admin/staff/:id', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), identityController.deleteStaff);
+
 // Health
 router.get('/identity/health', (_req, res) => {
   res.json({ success: true, module: 'identity', status: 'active' });

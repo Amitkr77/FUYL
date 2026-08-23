@@ -10,6 +10,7 @@ import {
   reserveStockSchema,
   releaseReservationSchema,
 } from '../validators';
+import { logAudit } from '../../admin/services/auditLog.service';
 
 export class InventoryController {
   // ─── Stock queries (any auth) ─────────────────────────────────
@@ -53,6 +54,17 @@ export class InventoryController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const updated = await inventoryService.adjustStock(req.body, req.user?.userId);
+        if (req.user) {
+          logAudit({
+            actorId:     req.user.userId,
+            actorEmail:  req.user.email ?? '',
+            actorName:   req.user.email ?? '',
+            section:     'inventory',
+            action:      'adjusted',
+            targetId:    req.body.productId,
+            detail:      `Delta: ${req.body.delta > 0 ? '+' : ''}${req.body.delta} — ${req.body.reason ?? req.body.type ?? ''}`,
+          });
+        }
         return success(res, updated);
       } catch (err) { next(err); }
     },
@@ -116,7 +128,7 @@ export class InventoryController {
   // ─── Stats ────────────────────────────────────────────────────
   consumptionStats = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      const days = Math.min(Number(req.query.days ?? 30), 365);
+      const days = Math.max(1, Math.min(Number(req.query.days) || 30, 365));
       return success(res, await inventoryService.getConsumptionStats(days));
     } catch (err) { next(err); }
   };

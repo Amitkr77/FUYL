@@ -20,7 +20,7 @@ export interface IWarehouseLocation extends Document {
 const WarehouseLocationSchema = new Schema<IWarehouseLocation>(
   {
     name:    { type: String, required: true, trim: true },
-    code:    { type: String, required: true, trim: true, unique: true, uppercase: true },
+    code:    { type: String, required: true, trim: true, unique: true, uppercase: true, match: [/^[A-Z0-9_-]+$/, 'Code may only contain letters, digits, hyphens, and underscores'] },
     address: {
       line1:      { type: String, trim: true },
       line2:      { type: String, trim: true },

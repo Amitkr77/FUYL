@@ -8,6 +8,7 @@ import { authorize, requirePermission, Permissions, Roles } from '../../../share
 import { ForbiddenError, BadRequestError } from '../../../shared/errors';
 import { OrderStatus } from '../../../shared/enums';
 import { subscriptionService } from '../../subscription/services';
+import { logAudit } from '../../admin/services/auditLog.service';
 
 export class OrderController {
   create = [
@@ -105,7 +106,18 @@ export class OrderController {
     validate(updateStatusSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        return success(res, await orderService.updateStatus(req.params.id, req.body, req.user!.userId));
+        const order = await orderService.updateStatus(req.params.id, req.body, req.user!.userId);
+        logAudit({
+          actorId:     req.user!.userId,
+          actorEmail:  req.user!.email ?? '',
+          actorName:   req.user!.email ?? '',
+          section:     'orders',
+          action:      'status_changed',
+          targetId:    order._id?.toString(),
+          targetLabel: `Order #${(order as any).orderNumber ?? req.params.id}`,
+          detail:      `Status → ${req.body.status}${req.body.note ? ` — ${req.body.note}` : ''}`,
+        });
+        return success(res, order);
       } catch (err) { next(err); }
     },
   ];
