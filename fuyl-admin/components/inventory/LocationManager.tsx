@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import { MapPin, Plus, Pencil, Trash2, Star, X, Check } from 'lucide-react'
+import type { WarehouseLocation } from '@/lib/inventory'
 import {
-  listLocations,
-  createLocation,
-  updateLocation,
-  deleteLocation,
-  type WarehouseLocation,
-} from '@/lib/inventory'
+  listLocationsAction,
+  createLocationAction,
+  updateLocationAction,
+  deleteLocationAction,
+} from '@/app/(admin)/inventory/actions'
 
 interface Props {
   initialLocations: WarehouseLocation[]
@@ -30,7 +30,7 @@ export function LocationManager({ initialLocations }: Props) {
   const [error, setError]         = useState('')
 
   const refresh = () =>
-    listLocations().then(setLocations).catch(() => {})
+    listLocationsAction().then(setLocations).catch(() => {})
 
   const openAdd = () => {
     setForm(emptyForm)
@@ -65,11 +65,10 @@ export function LocationManager({ initialLocations }: Props) {
     setSaving(true)
     setError('')
     try {
-      if (editId) {
-        await updateLocation(editId, form)
-      } else {
-        await createLocation(form)
-      }
+      const result = editId
+        ? await updateLocationAction(editId, form)
+        : await createLocationAction(form)
+      if ('error' in result) { setError(result.error); return }
       await refresh()
       setIsAdding(false)
     } catch (e: any) {
@@ -82,7 +81,8 @@ export function LocationManager({ initialLocations }: Props) {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this location? Stock records at this location will remain but will no longer have a named location.')) return
     try {
-      await deleteLocation(id)
+      const result = await deleteLocationAction(id)
+      if ('error' in result) { setError(result.error); return }
       await refresh()
     } catch (e: any) {
       setError(e?.message ?? 'Failed to delete location')
