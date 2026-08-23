@@ -18,6 +18,7 @@ const ALL_PERMISSIONS = [
   { key: 'subscriptions:manage',  label: 'Subscriptions', group: 'Commerce' },
   { key: 'referrals:manage',      label: 'Referrals',     group: 'Marketing' },
   { key: 'customers:manage',      label: 'Customers',     group: 'Commerce' },
+  { key: 'loyalty:manage',        label: 'Loyalty Points', group: 'Marketing' },
 ] as const
 
 const PERMISSION_GROUPS = Array.from(

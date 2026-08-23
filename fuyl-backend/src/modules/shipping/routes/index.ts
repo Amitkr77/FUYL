@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authRequired } from '../../../shared/middleware/auth.middleware';
+import { requirePermission, Permissions } from '../../../shared/middleware/rbac.middleware';
 import { shippingController } from '../controllers';
 
 const router = Router();
@@ -37,10 +38,10 @@ router.patch('/shipping/shipments/:id/status', authRequired, shippingController.
 router.get('/shipping/orders/:orderId/shipments', authRequired, shippingController.listByOrder);
 
 // Admin
-router.get('/admin/shipping', authRequired, shippingController.listAllForAdmin);
-router.get('/admin/shipping/stats', authRequired, shippingController.stats);
-router.post('/admin/shipping/:id/sync', authRequired, shippingController.syncTracking);
-router.post('/admin/shipping/:id/reattempt', authRequired, shippingController.reattempt);
-router.get('/admin/shipping/:id/label', authRequired, shippingController.label);
+router.get('/admin/shipping', authRequired, requirePermission(Permissions.SHIPPING_MANAGE), shippingController.listAllForAdmin);
+router.get('/admin/shipping/stats', authRequired, requirePermission(Permissions.SHIPPING_MANAGE), shippingController.stats);
+router.post('/admin/shipping/:id/sync', authRequired, requirePermission(Permissions.SHIPPING_MANAGE), shippingController.syncTracking);
+router.post('/admin/shipping/:id/reattempt', authRequired, requirePermission(Permissions.SHIPPING_MANAGE), shippingController.reattempt);
+router.get('/admin/shipping/:id/label', authRequired, requirePermission(Permissions.SHIPPING_MANAGE), shippingController.label);
 
 export default router;

@@ -3,7 +3,7 @@ import { AuthedRequest } from '../../../shared/middleware/auth.middleware';
 import { cashbackService } from '../services/cashback.service';
 import { success, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
-import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
+import { requirePermission, Permissions } from '../../../shared/middleware/rbac.middleware';
 import {
   createPolicySchema,
   updatePolicySchema,
@@ -27,7 +27,7 @@ export class CashbackController {
   // ─── Admin: policy management ─────────────────────────────────────────────
 
   listPolicies = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.DISCOUNTS_MANAGE),
     validate(listPoliciesSchema, 'query'),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
@@ -44,7 +44,7 @@ export class CashbackController {
   ];
 
   getPolicy = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.DISCOUNTS_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         return success(res, await cashbackService.getPolicy(req.params.id));
@@ -86,7 +86,7 @@ export class CashbackController {
   // ─── Admin: earning audit ─────────────────────────────────────────────────
 
   listEarnings = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.DISCOUNTS_MANAGE),
     validate(listEarningsSchema, 'query'),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {

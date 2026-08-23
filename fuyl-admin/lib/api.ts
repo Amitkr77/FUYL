@@ -1,4 +1,5 @@
 import { getSession, setSessionCookie, clearSessionCookie } from './auth'
+import { decodeJwt } from 'jose'
 
 const API_URL = process.env.API_URL || 'http://localhost:4000/api/v1'
 
@@ -103,7 +104,21 @@ async function refreshAccessToken(session: Awaited<ReturnType<typeof getSession>
   try {
     const res = await rawFetch('/auth/refresh', { method: 'POST', body: { refreshToken: session.refreshToken } })
     const data = await parseResponse<{ accessToken: string; refreshToken: string }>(res)
-    await setSessionCookie({ ...session, accessToken: data.accessToken, refreshToken: data.refreshToken })
+    const claims = decodeJwt(data.accessToken)
+    const role = typeof claims.role === 'string' && ['admin', 'super_admin', 'staff'].includes(claims.role)
+      ? claims.role as 'admin' | 'super_admin' | 'staff'
+      : session.role
+    const permissions = Array.isArray(claims.permissions)
+      ? claims.permissions.filter((permission): permission is string => typeof permission === 'string')
+      : []
+    await setSessionCookie({
+      ...session,
+      role,
+      permissions,
+      email: typeof claims.email === 'string' ? claims.email : session.email,
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+    })
     return data.accessToken
   } catch {
     await clearSessionCookie()

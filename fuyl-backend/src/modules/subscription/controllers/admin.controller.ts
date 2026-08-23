@@ -2,14 +2,13 @@ import { Response, NextFunction } from 'express';
 import { AuthedRequest } from '../../../shared/middleware/auth.middleware';
 import { SubscriptionRepository } from '../repositories/subscription.repository';
 import { success, paginate } from '../../../shared/responses';
-import { authorize } from '../../../shared/middleware/rbac.middleware';
-import { Roles } from '../../../shared/middleware/rbac.middleware';
+import { requirePermission, Permissions } from '../../../shared/middleware/rbac.middleware';
 
 const subRepo = new SubscriptionRepository();
 
 export class AdminSubscriptionController {
   dashboard = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.SUBSCRIPTIONS_MANAGE),
     async (_req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const stats = await subRepo.statsForAdmin();
@@ -19,7 +18,7 @@ export class AdminSubscriptionController {
   ];
 
   list = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.SUBSCRIPTIONS_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;

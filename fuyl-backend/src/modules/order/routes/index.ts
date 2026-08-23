@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authRequired } from '../../../shared/middleware/auth.middleware';
-import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
+import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
 import { orderController } from '../controllers';
 
 const router = Router();
@@ -27,8 +27,8 @@ router.patch('/admin/orders/:id/status', authRequired, authorize(Roles.SUPER_ADM
 router.get('/admin/orders/stats', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), orderController.stats);
 router.post('/admin/orders/:id/invoices', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), orderController.generateInvoice);
 
-router.get('/admin/orders/returns', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), orderController.listAllReturns);
-router.patch('/admin/orders/returns/:id', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), orderController.updateReturn);
+router.get('/admin/orders/returns', authRequired, requirePermission(Permissions.RETURNS_MANAGE), orderController.listAllReturns);
+router.patch('/admin/orders/returns/:id', authRequired, requirePermission(Permissions.RETURNS_MANAGE), orderController.updateReturn);
 
 // Health
 router.get('/order/health', (_req, res) => {

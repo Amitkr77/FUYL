@@ -15,6 +15,7 @@ export function authorize(...roles: string[]) {
 export const Roles = {
   SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
+  STAFF: 'staff',
   CUSTOMER: 'customer',
 } as const;
 
@@ -36,6 +37,7 @@ export const Permissions = {
   SUBSCRIPTIONS_MANAGE: 'subscriptions:manage',
   REFERRALS_MANAGE: 'referrals:manage',
   CUSTOMERS_MANAGE: 'customers:manage',
+  LOYALTY_MANAGE: 'loyalty:manage',
 } as const;
 
 export type Permission = typeof Permissions[keyof typeof Permissions];

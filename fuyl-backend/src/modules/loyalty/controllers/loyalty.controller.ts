@@ -3,7 +3,7 @@ import { AuthedRequest } from '../../../shared/middleware/auth.middleware';
 import { loyaltyService } from '../services/loyalty.service';
 import { success, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
-import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
+import { requirePermission, Permissions } from '../../../shared/middleware/rbac.middleware';
 import {
   createConfigSchema,
   updateConfigSchema,
@@ -49,7 +49,7 @@ export class LoyaltyController {
 
   /** GET /admin/loyalty/config */
   getConfig = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.LOYALTY_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const config = await loyaltyService.getConfig();
@@ -60,7 +60,7 @@ export class LoyaltyController {
 
   /** GET /admin/loyalty/configs */
   listConfigs = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.LOYALTY_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const configs = await loyaltyService.listConfigs();
@@ -71,7 +71,7 @@ export class LoyaltyController {
 
   /** POST /admin/loyalty/config */
   createConfig = [
-    requirePermission(Permissions.DISCOUNTS_MANAGE),
+    requirePermission(Permissions.LOYALTY_MANAGE),
     validate(createConfigSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
@@ -83,7 +83,7 @@ export class LoyaltyController {
 
   /** PATCH /admin/loyalty/config/:id */
   updateConfig = [
-    requirePermission(Permissions.DISCOUNTS_MANAGE),
+    requirePermission(Permissions.LOYALTY_MANAGE),
     validate(updateConfigSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
@@ -97,7 +97,7 @@ export class LoyaltyController {
 
   /** GET /admin/loyalty/transactions?userId&page&limit */
   getTransactions = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.LOYALTY_MANAGE),
     validate(listTransactionsSchema, 'query'),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
@@ -114,7 +114,7 @@ export class LoyaltyController {
   ];
 
   getAccount = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.LOYALTY_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         return success(res, await loyaltyService.getAccount(req.params.userId));
@@ -124,7 +124,7 @@ export class LoyaltyController {
 
   /** POST /admin/loyalty/adjust */
   adminAdjust = [
-    requirePermission(Permissions.DISCOUNTS_MANAGE),
+    requirePermission(Permissions.LOYALTY_MANAGE),
     validate(adminAdjustSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authRequired } from '../../../shared/middleware/auth.middleware';
-import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
+import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
 import { adminController } from '../controllers';
 import { SiteSettingsModel } from '../models';
 import { success, paginate } from '../../../shared/responses';
@@ -8,24 +8,18 @@ import { queryAuditLogs } from '../services/auditLog.service';
 
 const router = Router();
 
-// All admin routes require admin/super_admin.
-// IMPORTANT: this must be scoped to '/admin' specifically. router.use(mw)
-// with no path applies to every request that reaches this router's
-// dispatch — and since adminRouter itself is mounted with no prefix
-// (matches everything), an unscoped call here rejected every request that
-// didn't match one of the ~15 routers mounted before it, before it ever
-// reached any router mounted after it (subscription, referral, upload,
-// content, marketing — including the Razorpay webhook routes, which can
-// never carry a Bearer token). Confirmed live: /posts, /uploads/health,
-// /marketing/health all 401'd with "Missing Authorization header" until
-// this was scoped.
-router.use('/admin', authRequired, authorize(Roles.ADMIN, Roles.SUPER_ADMIN));
+// Per-route guards — previously a blanket router.use('/admin', authorize(admin,super_admin))
+// was used here which blocked all staff. Routes now use the narrowest guard
+// that fits: requirePermission() already passes admin/super_admin through
+// automatically and checks the permission only for staff.
+const adminOnly = [authRequired, authorize(Roles.ADMIN, Roles.SUPER_ADMIN)];
+const anyStaff  = [authRequired, authorize(Roles.ADMIN, Roles.SUPER_ADMIN, Roles.STAFF)];
 
-router.get('/admin/overview', adminController.overview);
-router.get('/admin/customers', adminController.listCustomers);
-router.get('/admin/customers/:id', adminController.getCustomer);
-router.get('/admin/recent-activity', adminController.recentActivity);
-router.get('/admin/system-health', adminController.systemHealth);
+router.get('/admin/overview',         ...anyStaff,  adminController.overview);
+router.get('/admin/recent-activity',  ...anyStaff,  adminController.recentActivity);
+router.get('/admin/customers',        authRequired, requirePermission(Permissions.CUSTOMERS_MANAGE), adminController.listCustomers);
+router.get('/admin/customers/:id',    authRequired, requirePermission(Permissions.CUSTOMERS_MANAGE), adminController.getCustomer);
+router.get('/admin/system-health',    ...adminOnly, adminController.systemHealth);
 
 // Public payment config — no auth required (tells the storefront which methods are available)
 router.get('/settings/payment', async (_req, res, next) => {
@@ -37,13 +31,13 @@ router.get('/settings/payment', async (_req, res, next) => {
 });
 
 // Site settings (singleton — GET returns the current config, PUT merges a patch)
-router.get('/admin/settings', async (_req, res, next) => {
+router.get('/admin/settings', ...adminOnly, async (_req, res, next) => {
   try {
     const settings = await SiteSettingsModel.findOne({}) ?? await SiteSettingsModel.create({});
     return success(res, settings);
   } catch (err) { next(err); }
 });
-router.put('/admin/settings/payment', async (req, res, next) => {
+router.put('/admin/settings/payment', ...adminOnly, async (req, res, next) => {
   try {
     const settings = await SiteSettingsModel.findOneAndUpdate(
       {},
@@ -55,7 +49,7 @@ router.put('/admin/settings/payment', async (req, res, next) => {
 });
 
 // Audit logs
-router.get('/admin/audit-logs', async (req, res, next) => {
+router.get('/admin/audit-logs', ...adminOnly, async (req, res, next) => {
   try {
     const section = req.query.section as string | undefined;
     const page  = parseInt(req.query.page  as string) || 1;

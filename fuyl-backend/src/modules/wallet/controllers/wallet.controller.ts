@@ -4,7 +4,7 @@ import { walletService } from '../services';
 import { success, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
 import { adjustBalanceSchema, freezeWalletSchema } from '../validators';
-import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
+import { requirePermission, Permissions } from '../../../shared/middleware/rbac.middleware';
 
 export class WalletController {
   getMyBalance = async (req: AuthedRequest, res: Response, next: NextFunction) => {
@@ -22,7 +22,7 @@ export class WalletController {
 
   // ─── Admin ──────────────────────────────────────────────────────
   getUserBalance = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.WALLET_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         return success(res, await walletService.getBalance(req.params.userId));
@@ -31,7 +31,7 @@ export class WalletController {
   ];
 
   listUserTransactions = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.WALLET_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;

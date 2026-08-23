@@ -4,7 +4,7 @@ import { programService } from '../services/program.service';
 import { success, created, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
 import { createProgramSchema, updateProgramSchema, reviewFraudSchema } from '../validators';
-import { authorize, Roles } from '../../../shared/middleware/rbac.middleware';
+import { requirePermission, Permissions } from '../../../shared/middleware/rbac.middleware';
 import { ReferralRepository } from '../repositories/referral.repository';
 import { FraudFlagRepository } from '../repositories/fraudFlag.repository';
 import { ReferralStatus } from '../../../shared/enums';
@@ -15,7 +15,7 @@ const fraudFlagRepo = new FraudFlagRepository();
 export class AdminReferralController {
   // Programs
   createProgram = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.REFERRALS_MANAGE),
     validate(createProgramSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
@@ -25,7 +25,7 @@ export class AdminReferralController {
   ];
 
   listPrograms = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.REFERRALS_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
@@ -37,7 +37,7 @@ export class AdminReferralController {
   ];
 
   getProgram = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.REFERRALS_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         return success(res, await programService.get(req.params.id));
@@ -46,7 +46,7 @@ export class AdminReferralController {
   ];
 
   updateProgram = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.REFERRALS_MANAGE),
     validate(updateProgramSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
@@ -56,7 +56,7 @@ export class AdminReferralController {
   ];
 
   deactivateProgram = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.REFERRALS_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         await programService.deactivate(req.params.id);
@@ -67,7 +67,7 @@ export class AdminReferralController {
 
   // Stats
   stats = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.REFERRALS_MANAGE),
     async (_req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         return success(res, await referralRepo.statsForAdmin());
@@ -76,7 +76,7 @@ export class AdminReferralController {
   ];
 
   listAll = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.REFERRALS_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
@@ -92,7 +92,7 @@ export class AdminReferralController {
 
   // Moderation
   listFraudFlags = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.REFERRALS_MANAGE),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
@@ -104,7 +104,7 @@ export class AdminReferralController {
   ];
 
   listPendingFraud = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.REFERRALS_MANAGE),
     async (_req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         return success(res, await fraudFlagRepo.findPending(100));
@@ -113,7 +113,7 @@ export class AdminReferralController {
   ];
 
   reviewFraudFlag = [
-    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    requirePermission(Permissions.REFERRALS_MANAGE),
     validate(reviewFraudSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {

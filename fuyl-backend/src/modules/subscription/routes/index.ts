@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authRequired, authOptional } from '../../../shared/middleware/auth.middleware';
-import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
+import { requirePermission, Permissions } from '../../../shared/middleware/rbac.middleware';
 import { planController, subscriptionController, adminSubscriptionController } from '../controllers';
 import { cashfreeSubscriptionWebhookHandler } from '../controllers';
 
@@ -25,13 +25,13 @@ router.get('/subscriptions/:id/events', authRequired, subscriptionController.lis
 
 // ─── Admin: plans ──────────────────────────────────────────────────
 router.post('/admin/subscription/plans', authRequired, requirePermission(Permissions.SUBSCRIPTIONS_MANAGE), planController.create);
-router.get('/admin/subscription/plans', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), planController.list);
-router.get('/admin/subscription/plans/:id', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), planController.get);
+router.get('/admin/subscription/plans', authRequired, requirePermission(Permissions.SUBSCRIPTIONS_MANAGE), planController.list);
+router.get('/admin/subscription/plans/:id', authRequired, requirePermission(Permissions.SUBSCRIPTIONS_MANAGE), planController.get);
 router.patch('/admin/subscription/plans/:id', authRequired, requirePermission(Permissions.SUBSCRIPTIONS_MANAGE), planController.update);
 router.delete('/admin/subscription/plans/:id', authRequired, requirePermission(Permissions.SUBSCRIPTIONS_MANAGE), planController.deactivate);
 
 // ─── Admin: dashboard ──────────────────────────────────────────────
-router.get('/admin/subscription/dashboard', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), adminSubscriptionController.dashboard);
-router.get('/admin/subscription', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), adminSubscriptionController.list);
+router.get('/admin/subscription/dashboard', authRequired, requirePermission(Permissions.SUBSCRIPTIONS_MANAGE), adminSubscriptionController.dashboard);
+router.get('/admin/subscription', authRequired, requirePermission(Permissions.SUBSCRIPTIONS_MANAGE), adminSubscriptionController.list);
 
 export default router;

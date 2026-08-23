@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authRequired, authOptional } from '../../../shared/middleware/auth.middleware';
-import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
+import { requirePermission, Permissions } from '../../../shared/middleware/rbac.middleware';
 import { discountController } from '../controllers';
 
 const router = Router();
@@ -18,12 +18,12 @@ router.get('/discounts/my-redemptions', authRequired, discountController.listMyR
 
 // Admin: Discounts
 router.post('/admin/discounts', authRequired, requirePermission(Permissions.DISCOUNTS_MANAGE), discountController.createDiscount);
-router.get('/admin/discounts', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), discountController.listDiscounts);
-router.get('/admin/discounts/:id', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), discountController.getDiscount);
+router.get('/admin/discounts', authRequired, requirePermission(Permissions.DISCOUNTS_MANAGE), discountController.listDiscounts);
+router.get('/admin/discounts/:id', authRequired, requirePermission(Permissions.DISCOUNTS_MANAGE), discountController.getDiscount);
 router.patch('/admin/discounts/:id', authRequired, requirePermission(Permissions.DISCOUNTS_MANAGE), discountController.updateDiscount);
 router.delete('/admin/discounts/:id', authRequired, requirePermission(Permissions.DISCOUNTS_MANAGE), discountController.deleteDiscount);
-router.get('/admin/discount-redemptions', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), discountController.listRedemptions);
-router.get('/admin/discount-stats', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), discountController.stats);
+router.get('/admin/discount-redemptions', authRequired, requirePermission(Permissions.DISCOUNTS_MANAGE), discountController.listRedemptions);
+router.get('/admin/discount-stats', authRequired, requirePermission(Permissions.DISCOUNTS_MANAGE), discountController.stats);
 
 // Admin: Redemptions + stats
 

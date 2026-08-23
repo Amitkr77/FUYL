@@ -512,7 +512,12 @@ export class IdentityService {
    * Takes effect on the user's next login/refresh — permissions are baked
    * into the access token at issuance, same as `role` already is.
    */
-  async setPermissions(userId: string, permissions: string[]) {
+  async setPermissions(userId: string, permissions: string[], requester: JwtPayload) {
+    const target = await userRepo.findById(userId);
+    if (!target) throw new NotFoundError('User');
+    if (target.role === 'super_admin' && requester.role !== 'super_admin') {
+      throw new ForbiddenError('Only a super admin can modify a super admin');
+    }
     const updated = await userRepo.update(userId, { permissions });
     if (!updated) throw new NotFoundError('User');
     return updated;
@@ -537,9 +542,12 @@ export class IdentityService {
     role: 'admin' | 'staff';
     permissions: string[];
     password: string;
-  }) {
+  }, requester: JwtPayload) {
     if (data.role !== 'admin' && data.role !== 'staff') {
       throw new ForbiddenError('Invalid role — only admin or staff can be assigned');
+    }
+    if (data.role === 'admin' && requester.role !== 'super_admin') {
+      throw new ForbiddenError('Only a super admin can create another administrator');
     }
     const existing = await userRepo.findByEmail(data.email);
     if (existing) throw new ConflictError('A user with this email already exists');
@@ -563,7 +571,18 @@ export class IdentityService {
     role?: 'admin' | 'staff';
     permissions?: string[];
     isActive?: boolean;
-  }) {
+  }, requester: JwtPayload) {
+    const target = await userRepo.findById(id);
+    if (!target) throw new NotFoundError('Staff member');
+    if (target.role === 'super_admin' && requester.role !== 'super_admin') {
+      throw new ForbiddenError('Only a super admin can modify a super admin');
+    }
+    if (data.role === 'admin' && target.role !== 'admin' && requester.role !== 'super_admin') {
+      throw new ForbiddenError('Only a super admin can promote staff to administrator');
+    }
+    if (id === requester.userId && (data.isActive === false || (data.role && data.role !== requester.role))) {
+      throw new BadRequestError('Cannot deactivate or change your own role');
+    }
     const { role, ...rest } = data;
     const updatePayload = role ? { ...rest, role: role as 'admin' } : rest;
     const updated = await userRepo.update(id, updatePayload);
@@ -571,8 +590,13 @@ export class IdentityService {
     return updated;
   }
 
-  async deleteStaff(id: string, requesterId: string) {
-    if (id === requesterId) throw new BadRequestError('Cannot deactivate your own account');
+  async deleteStaff(id: string, requester: JwtPayload) {
+    if (id === requester.userId) throw new BadRequestError('Cannot deactivate your own account');
+    const target = await userRepo.findById(id);
+    if (!target) throw new NotFoundError('Staff member');
+    if (target.role === 'super_admin' && requester.role !== 'super_admin') {
+      throw new ForbiddenError('Only a super admin can deactivate a super admin');
+    }
     const updated = await userRepo.update(id, { isActive: false });
     if (!updated) throw new NotFoundError('Staff member');
     return updated;

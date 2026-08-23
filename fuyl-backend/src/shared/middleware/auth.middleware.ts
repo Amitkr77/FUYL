@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../../config/env';
 import { UnauthorizedError } from '../errors';
+import { UserModel } from '../../modules/identity/models/user.model';
 
 export interface JwtPayload {
   userId: string;
@@ -23,7 +24,7 @@ export interface AuthedRequest extends Request {
 }
 
 export function authenticate(required: boolean = true) {
-  return (req: AuthedRequest, _res: Response, next: NextFunction) => {
+  return async (req: AuthedRequest, _res: Response, next: NextFunction) => {
     const header = req.headers.authorization;
     if (!header) {
       if (required) return next(new UnauthorizedError('Missing Authorization header'));
@@ -43,6 +44,20 @@ export function authenticate(required: boolean = true) {
         return next(new UnauthorizedError('Invalid or expired token'));
       }
       if (payload.impersonatedAffiliateId && !req.originalUrl.includes('/affiliate/')) return next(new UnauthorizedError('Affiliate impersonation tokens are restricted to affiliate routes'));
+      // Privileged claims must reflect the account's current database state.
+      // Without this lookup, disabling a staff member or revoking a permission
+      // leaves their old JWT authorised until it expires.
+      if (['staff', 'admin', 'super_admin'].includes(payload.role)) {
+        const user = await UserModel.findById(payload.userId)
+          .select('email role permissions isActive isDeleted')
+          .lean();
+        if (!user || !user.isActive || user.isDeleted || !['staff', 'admin', 'super_admin'].includes(user.role)) {
+          return next(new UnauthorizedError('Account is inactive or no longer has admin access'));
+        }
+        payload.email = user.email;
+        payload.role = user.role;
+        payload.permissions = user.permissions ?? [];
+      }
       req.user = payload;
       next();
     } catch {

@@ -64,6 +64,23 @@ export const setPermissionsSchema = z.object({
   permissions: z.array(z.enum(PERMISSION_VALUES)),
 });
 
+export const createStaffSchema = z.object({
+  email: z.string().email(),
+  firstName: z.string().trim().min(1).max(80).optional(),
+  lastName: z.string().trim().min(1).max(80).optional(),
+  role: z.enum(['admin', 'staff']),
+  permissions: z.array(z.enum(PERMISSION_VALUES)).default([]),
+  password: z.string().min(8).max(128),
+}).strict();
+
+export const updateStaffSchema = z.object({
+  firstName: z.string().trim().min(1).max(80).optional(),
+  lastName: z.string().trim().min(1).max(80).optional(),
+  role: z.enum(['admin', 'staff']).optional(),
+  permissions: z.array(z.enum(PERMISSION_VALUES)).optional(),
+  isActive: z.boolean().optional(),
+}).strict().refine((value) => Object.keys(value).length > 0, 'At least one field is required');
+
 // ─── Checkout identify (guest → account, without a separate register page) ──
 export const emailExistsSchema = z.object({
   email: z.string().email(),

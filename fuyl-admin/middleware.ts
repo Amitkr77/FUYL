@@ -15,6 +15,7 @@ const ROUTE_PERMISSIONS: { prefix: string; permission: string }[] = [
   { prefix: '/subscriptions',      permission: 'subscriptions:manage' },
   { prefix: '/referrals',          permission: 'referrals:manage' },
   { prefix: '/customers',          permission: 'customers:manage' },
+  { prefix: '/loyalty',            permission: 'loyalty:manage' },
 ]
 
 // Routes staff can always reach even with zero permissions.

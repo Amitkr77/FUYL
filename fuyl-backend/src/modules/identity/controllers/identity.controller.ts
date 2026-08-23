@@ -17,6 +17,8 @@ import {
   checkoutIdentifySchema,
   otpRequestSchema,
   otpVerifySchema,
+  createStaffSchema,
+  updateStaffSchema,
 } from '../validators';
 import { env } from '../../../config/env';
 import { BadRequestError } from '../../../shared/errors';
@@ -196,7 +198,7 @@ export class IdentityController {
     validate(setPermissionsSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        return success(res, await identityService.setPermissions(req.params.id, req.body.permissions));
+        return success(res, await identityService.setPermissions(req.params.id, req.body.permissions, req.user!));
       } catch (err) { next(err); }
     },
   ];
@@ -212,9 +214,9 @@ export class IdentityController {
     try { return success(res, await identityService.listStaff()); } catch (err) { next(err); }
   };
 
-  createStaff = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+  createStaff = [validate(createStaffSchema), async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      const member = await identityService.createStaff(req.body);
+      const member = await identityService.createStaff(req.body, req.user!);
       logAudit({
         actorId:     req.user!.userId,
         actorEmail:  req.user!.email ?? '',
@@ -227,11 +229,11 @@ export class IdentityController {
       });
       return success(res, member);
     } catch (err) { next(err); }
-  };
+  }];
 
-  updateStaff = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+  updateStaff = [validate(updateStaffSchema), async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      const member = await identityService.updateStaff(req.params.id, req.body);
+      const member = await identityService.updateStaff(req.params.id, req.body, req.user!);
       logAudit({
         actorId:     req.user!.userId,
         actorEmail:  req.user!.email ?? '',
@@ -243,11 +245,11 @@ export class IdentityController {
       });
       return success(res, member);
     } catch (err) { next(err); }
-  };
+  }];
 
   deleteStaff = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      const result = await identityService.deleteStaff(req.params.id, req.user!.userId);
+      const result = await identityService.deleteStaff(req.params.id, req.user!);
       logAudit({
         actorId:     req.user!.userId,
         actorEmail:  req.user!.email ?? '',
