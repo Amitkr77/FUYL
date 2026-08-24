@@ -239,17 +239,17 @@ export default function OrderDetailPage() {
             </div>
           )}
 
+          {/* Delivery Progress — full width across all 3 columns */}
+          {order.status !== "cancelled" && order.status !== "returned" && (
+            <Card className="mb-6 lg:mb-8">
+              <OrderProgress status={order.status} />
+            </Card>
+          )}
+          {orderReturn && <ReturnProgress value={orderReturn} />}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
             {/* ─── Main column ─── */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Progress tracker */}
-              {order.status !== "cancelled" && order.status !== "returned" && (
-                <Card>
-                  <OrderProgress status={order.status} />
-                </Card>
-              )}
-              {orderReturn && <ReturnProgress value={orderReturn} />}
-
               {/* Cancel — only while the order hasn't left the warehouse */}
               {token &&
                 ["pending", "confirmed", "ready_to_ship", "packed", "on_hold"].includes(order.status) && (
