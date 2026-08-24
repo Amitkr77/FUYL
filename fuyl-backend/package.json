@@ -20,6 +20,8 @@
     "cashfree-check": "tsx scripts/cashfree-sandbox-check.ts",
     "migrate-certifications": "tsx scripts/migrate-certifications.ts",
     "migrate:discounts": "tsx scripts/migrate-discount-terminology.ts",
+    "migrate:orders": "tsx scripts/migrate-order-workflow.ts",
+    "migrate:inventory": "tsx scripts/migrate-inventory-locations.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

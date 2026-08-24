@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/lib/store/authStore";
 import { formatPrice } from "@/lib/utils/formatPrice";
-import { getOrder } from "@/lib/api/account";
+import { getOrder, getMyReturns, type CustomerReturn } from "@/lib/api/account";
 import { getOrderPayments, type OrderPayment } from "@/lib/api/payment";
 import { CancelOrderPanel } from "@/components/orders/CancelOrderPanel";
 import { RefundRequestPanel } from "@/components/orders/RefundRequestPanel";
@@ -24,6 +24,7 @@ import {
   ORDER_STATUS_META,
 } from "@/components/orders/OrderStatusBadge";
 import { OrderProgress } from "@/components/orders/OrderProgress";
+import { ReturnProgress } from "@/components/orders/ReturnProgress";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WriteReviewForm } from "@/components/product/WriteReviewForm";
 import type { Order, OrderAddress } from "@/types/user";
@@ -143,6 +144,7 @@ export default function OrderDetailPage() {
   const { token, user } = useAuthStore();
   const [order, setOrder] = useState<Order | null>(null);
   const [payments, setPayments] = useState<OrderPayment[]>([]);
+  const [orderReturn, setOrderReturn] = useState<CustomerReturn | null>(null);
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reviewingItemId, setReviewingItemId] = useState<string | null>(null);
@@ -155,6 +157,9 @@ export default function OrderDetailPage() {
     // they can't be loaded (the order's own method/status still render).
     getOrderPayments(token, params.id)
       .then(setPayments)
+      .catch(() => {});
+    getMyReturns(token)
+      .then((returns) => setOrderReturn(returns.find((item) => item.orderId === params.id) ?? null))
       .catch(() => {});
     getOrder(token, params.id)
       .then(setOrder)
@@ -243,17 +248,18 @@ export default function OrderDetailPage() {
                   <OrderProgress status={order.status} />
                 </Card>
               )}
+              {orderReturn && <ReturnProgress value={orderReturn} />}
 
               {/* Cancel — only while the order hasn't left the warehouse */}
               {token &&
-                ["pending", "confirmed", "packed"].includes(order.status) && (
+                ["pending", "confirmed", "ready_to_ship", "packed", "on_hold"].includes(order.status) && (
                   <CancelOrderPanel
                     token={token}
                     orderId={order.id}
                     onDone={() => setReloadKey((k) => k + 1)}
                   />
                 )}
-              {token && ["delivered", "completed"].includes(order.status) && (
+              {token && ["delivered", "completed"].includes(order.status) && order.paymentStatus !== "refunded" && !orderReturn && (
                 <RefundRequestPanel
                   token={token}
                   orderId={order.id}

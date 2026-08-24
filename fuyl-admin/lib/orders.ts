@@ -62,6 +62,7 @@ interface BackendOrder {
   carrier?: string
   paymentMethod?: string
   paymentStatus?: string
+  adminNotes?: string
   metadata?: {
     walletRedemption?: number
     loyaltyRedemption?: number
@@ -120,6 +121,7 @@ export interface AdminOrderDetail extends AdminOrder {
   paymentMethod: string
   paymentStatus: string
   payments: AdminOrderPayment[]
+  adminNotes: string
 }
 
 function mapOrder(o: BackendOrder): AdminOrder {
@@ -182,6 +184,7 @@ export async function getAdminOrder(id: string): Promise<AdminOrderDetail | null
       paymentMethod:         o.paymentMethod ?? 'unknown',
       paymentStatus:         o.paymentStatus ?? 'pending',
       payments,
+      adminNotes:             o.adminNotes ?? '',
     }
   } catch {
     return null
@@ -218,6 +221,10 @@ export async function updateAdminOrderStatus(id: string, input: StatusUpdateInpu
       carrier:        input.carrier || undefined,
     },
   })
+}
+
+export async function updateAdminOrderNotes(id: string, adminNotes: string): Promise<void> {
+  await adminApiFetch(`/admin/orders/${id}/notes`, { method: 'PATCH', body: { adminNotes } })
 }
 
 export { AdminApiError }

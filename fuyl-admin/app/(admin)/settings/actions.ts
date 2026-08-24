@@ -6,6 +6,31 @@ import { clearSessionCookie } from '@/lib/auth'
 
 export type SettingsActionState = { error: string } | null
 
+export interface PaymentSettingsInput {
+  onlinePaymentEnabled: boolean
+  codEnabled: boolean
+  codMinOrderAmount?: number
+  codMaxOrderAmount?: number
+}
+
+export async function getPaymentSettingsAction(): Promise<{ data?: PaymentSettingsInput; error?: string }> {
+  try {
+    const settings = await adminApiFetch<{ payment?: PaymentSettingsInput }>('/admin/settings')
+    return { data: settings.payment ?? { onlinePaymentEnabled: true, codEnabled: true } }
+  } catch (err) {
+    return { error: getErrorMessage(err, 'Could not load payment settings.') }
+  }
+}
+
+export async function savePaymentSettingsAction(input: PaymentSettingsInput): Promise<{ success?: true; error?: string }> {
+  try {
+    await adminApiFetch('/admin/settings/payment', { method: 'PUT', body: input })
+    return { success: true }
+  } catch (err) {
+    return { error: getErrorMessage(err, 'Could not save payment settings.') }
+  }
+}
+
 export async function changePasswordAction(currentPassword: string, newPassword: string): Promise<SettingsActionState> {
   try {
     await adminApiFetch('/auth/change-password', {

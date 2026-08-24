@@ -96,6 +96,11 @@ class InventoryService {
 
   // ─── Stock adjustments ───────────────────────────────────────
   async adjustStock(dto: StockAdjustmentDTO, performedBy?: string) {
+    if (dto.warehouseId !== 'default') {
+      const location = await WarehouseLocationModel.findOne({ code: dto.warehouseId.toUpperCase(), isActive: true });
+      if (!location) throw new BadRequestError('Select an active inventory location');
+      dto.warehouseId = location.code;
+    }
     // Seller ownership belongs to inventory, not the product catalog. The
     // authenticated admin client supplies the inventory owner when creating
     // the first stock record; existing records retain that owner.
@@ -108,6 +113,10 @@ class InventoryService {
 
     const stock = await stockRepo.findOrCreate(dto.productId, sellerId, dto.variantId, dto.warehouseId);
     const balanceBefore = stock.onHand;
+
+    // A zero adjustment is an explicit "start tracking" operation. Persist
+    // the row but do not create a meaningless zero-quantity movement.
+    if (dto.delta === 0) return stock;
 
     const updated = await stockRepo.applyOnHandDelta(stock._id, dto.delta);
     if (!updated) {
@@ -185,7 +194,7 @@ class InventoryService {
     if (!referenceId) throw new BadRequestError('Either cartId or orderId required');
 
     for (const item of dto.items) {
-      const idempotencyKey = `${referenceType}:${referenceId}:${item.productId}:${item.variantId ?? 'default'}:${item.sellerId}:default`;
+      const idempotencyKey = `${referenceType}:${referenceId}:${item.productId}:${item.variantId ?? 'default'}:${item.sellerId}`;
       const session = await mongoose.startSession();
       try {
         let reservationApplied = false;
@@ -199,14 +208,20 @@ class InventoryService {
             return;
           }
 
+          const preferredLocation = await WarehouseLocationModel.findOne({ isDefault: true, isActive: true }).session(session);
+          const stockFilter = {
+            productId: new Types.ObjectId(item.productId),
+            variantId: item.variantId ? new Types.ObjectId(item.variantId) : { $exists: false },
+            sellerId: new Types.ObjectId(item.sellerId),
+            available: { $gte: item.quantity },
+          };
+          let candidate = preferredLocation
+            ? await InventoryStockModel.findOne({ ...stockFilter, warehouseId: preferredLocation.code }).session(session)
+            : null;
+          candidate ??= await InventoryStockModel.findOne(stockFilter).sort({ available: -1 }).session(session);
+          if (!candidate) throw new ConflictError('Insufficient available stock across all locations');
           const stock = await InventoryStockModel.findOneAndUpdate(
-            {
-              productId: new Types.ObjectId(item.productId),
-              variantId: item.variantId ? new Types.ObjectId(item.variantId) : { $exists: false },
-              sellerId: new Types.ObjectId(item.sellerId),
-              warehouseId: 'default',
-              available: { $gte: item.quantity },
-            },
+            { _id: candidate._id, available: { $gte: item.quantity } },
             { $inc: { reserved: item.quantity, available: -item.quantity } },
             { new: false, session }
           );
@@ -220,6 +235,7 @@ class InventoryService {
             orderId: dto.orderId ? new Types.ObjectId(dto.orderId) : undefined,
             userId: dto.userId ? new Types.ObjectId(dto.userId) : undefined,
             quantity: item.quantity,
+            warehouseId: stock.warehouseId,
             status: 'active',
             expiresAt,
             idempotencyKey,
@@ -229,7 +245,7 @@ class InventoryService {
             productId: new Types.ObjectId(item.productId),
             variantId: item.variantId ? new Types.ObjectId(item.variantId) : undefined,
             sellerId: new Types.ObjectId(item.sellerId),
-            warehouseId: 'default',
+            warehouseId: stock.warehouseId,
             type: 'reservation',
             quantity: item.quantity,
             balanceBefore: stock.onHand,
@@ -571,6 +587,13 @@ class InventoryService {
     const loc = await WarehouseLocationModel.findById(id);
     if (!loc) throw new NotFoundError('Location not found');
     if (loc.isDefault) throw new BadRequestError('Cannot delete the default location');
+    const [stockCount, reservationCount] = await Promise.all([
+      InventoryStockModel.countDocuments({ warehouseId: loc.code }),
+      StockReservationModel.countDocuments({ warehouseId: loc.code, status: 'active' }),
+    ]);
+    if (stockCount > 0 || reservationCount > 0) {
+      throw new ConflictError('Cannot delete a location that contains stock records or active reservations. Transfer its inventory first.');
+    }
     return WarehouseLocationModel.findByIdAndDelete(id);
   }
 

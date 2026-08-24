@@ -75,6 +75,7 @@ export interface AdjustStockInput {
   delta: number
   type: AdjustmentType
   note?: string
+  warehouseId?: string
 }
 
 export async function adjustStock(input: AdjustStockInput): Promise<void> {

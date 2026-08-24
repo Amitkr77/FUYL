@@ -226,6 +226,19 @@ export async function requestRefund(
   })
 }
 
+export interface CustomerReturn {
+  _id: string
+  returnNumber: string
+  orderId: string
+  status: 'requested' | 'approved' | 'rejected' | 'pickup_scheduled' | 'picked_up' | 'in_transit' | 'received' | 'verified' | 'refund_processing' | 'refunded' | 'cancelled'
+  refundAmount: number
+  requestedAt: string
+}
+
+export async function getMyReturns(token: string): Promise<CustomerReturn[]> {
+  return apiFetch<CustomerReturn[]>('/orders/returns/me', { token })
+}
+
 // ─── OTP login ───────────────────────────────────────────────────────────────
 
 export async function requestOtp(identifier: string): Promise<{ sent: true }> {

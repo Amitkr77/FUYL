@@ -39,18 +39,32 @@ export const createOrderSchema = z.object({
 
 export const updateStatusSchema = z.object({
   status: z.enum([
-    OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PACKED,
-    OrderStatus.DISPATCHED, OrderStatus.IN_TRANSIT, OrderStatus.OUT_FOR_DELIVERY,
-    OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.COMPLETED, OrderStatus.CANCELLED,
+    OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.READY_TO_SHIP,
+    OrderStatus.ON_HOLD, OrderStatus.SHIPPED, OrderStatus.IN_TRANSIT,
+    OrderStatus.OUT_FOR_DELIVERY, OrderStatus.DELIVERED, OrderStatus.CLOSED,
+    OrderStatus.CANCELLED,
   ]),
   note: z.string().max(500).optional(),
   trackingNumber: z.string().max(100).optional(),
   trackingUrl: z.string().url().optional(),
   carrier: z.string().max(100).optional(),
+}).superRefine((value, ctx) => {
+  if (value.status === OrderStatus.SHIPPED) {
+    if (!value.carrier?.trim()) ctx.addIssue({ code: 'custom', path: ['carrier'], message: 'Courier service is required when shipping an order' });
+    if (!value.trackingNumber?.trim()) ctx.addIssue({ code: 'custom', path: ['trackingNumber'], message: 'Tracking number is required when shipping an order' });
+    if (!value.trackingUrl) ctx.addIssue({ code: 'custom', path: ['trackingUrl'], message: 'Tracking link is required when shipping an order' });
+  }
+  if (value.status === OrderStatus.ON_HOLD && !value.note?.trim()) {
+    ctx.addIssue({ code: 'custom', path: ['note'], message: 'A reason is required when placing an order on hold' });
+  }
 });
 
 export const cancelOrderSchema = z.object({
   reason: z.string().min(1).max(500),
+});
+
+export const updateAdminNotesSchema = z.object({
+  adminNotes: z.string().max(5000),
 });
 
 export const createReturnSchema = z.object({
@@ -71,7 +85,7 @@ export const createReturnSchema = z.object({
 });
 
 export const updateReturnSchema = z.object({
-  status: z.enum(['requested', 'approved', 'rejected', 'pickup_scheduled', 'picked_up', 'received', 'refunded', 'cancelled']),
+  status: z.enum(['requested', 'approved', 'rejected', 'pickup_scheduled', 'picked_up', 'in_transit', 'received', 'verified', 'refund_processing', 'refunded', 'cancelled']),
   rejectedReason: z.string().max(500).optional(),
   note: z.string().max(500).optional(),
 });

@@ -3,7 +3,7 @@ import { AuthedRequest } from '../../../shared/middleware/auth.middleware';
 import { orderService } from '../services';
 import { success, created, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
-import { createOrderSchema, updateStatusSchema, cancelOrderSchema, createReturnSchema, updateReturnSchema } from '../validators';
+import { createOrderSchema, updateStatusSchema, cancelOrderSchema, createReturnSchema, updateReturnSchema, updateAdminNotesSchema } from '../validators';
 import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
 import { ForbiddenError, BadRequestError } from '../../../shared/errors';
 import { OrderStatus } from '../../../shared/enums';
@@ -117,6 +117,23 @@ export class OrderController {
           targetId:    order._id?.toString(),
           targetLabel: `Order #${(order as any).orderNumber ?? req.params.id}`,
           detail:      `Status → ${req.body.status}${req.body.note ? ` — ${req.body.note}` : ''}`,
+        });
+        return success(res, order);
+      } catch (err) { next(err); }
+    },
+  ];
+
+  updateAdminNotes = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    validate(updateAdminNotesSchema),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        const order = await orderService.updateAdminNotes(req.params.id, req.body.adminNotes);
+        if (!order) throw new Error('Order not found');
+        logAudit({
+          actorId: req.user!.userId, actorEmail: req.user!.email ?? '', actorName: req.user!.email ?? '',
+          section: 'orders', action: 'notes_updated', targetId: req.params.id,
+          targetLabel: `Order #${order.orderNumber}`, detail: 'Internal order note updated',
         });
         return success(res, order);
       } catch (err) { next(err); }

@@ -29,6 +29,9 @@ export interface IShipment extends Document {
   trackingNumber: string;
   trackingUrl?: string;
   labelUrl?: string;
+  providerOrderId?: string;
+  providerShipmentId?: string;
+  courierId?: string;
   shippingAddress: IShipmentAddress;
   weightGrams?: number;
   dimensionsCm?: { length: number; width: number; height: number };
@@ -79,6 +82,9 @@ const ShipmentSchema = new Schema<IShipment>(
     trackingNumber: { type: String, required: true, index: true },
     trackingUrl: { type: String },
     labelUrl: { type: String },
+    providerOrderId: { type: String, index: true, sparse: true },
+    providerShipmentId: { type: String, index: true, sparse: true },
+    courierId: { type: String },
     shippingAddress: { type: ShipmentAddressSchema, required: true },
     weightGrams: { type: Number },
     dimensionsCm: {

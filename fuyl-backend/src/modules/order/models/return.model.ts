@@ -14,7 +14,7 @@ export interface IReturn extends Document {
     images?: string[];
     condition: 'unopened' | 'opened' | 'damaged';
   }>;
-  status: 'requested' | 'approved' | 'rejected' | 'pickup_scheduled' | 'picked_up' | 'received' | 'refunded' | 'cancelled';
+  status: 'requested' | 'approved' | 'rejected' | 'pickup_scheduled' | 'picked_up' | 'in_transit' | 'received' | 'verified' | 'refund_processing' | 'refunded' | 'cancelled';
   refundAmount: number;
   refundMethod: 'wallet' | 'original' | 'split';
   requestedAt: Date;
@@ -24,6 +24,7 @@ export interface IReturn extends Document {
   pickupScheduledAt?: Date;
   pickedUpAt?: Date;
   receivedAt?: Date;
+  verifiedAt?: Date;
   refundedAt?: Date;
   metadata?: Record<string, unknown>;
   createdAt: Date;
@@ -46,7 +47,7 @@ const ReturnSchema = new Schema<IReturn>(
     }],
     status: {
       type: String,
-      enum: ['requested', 'approved', 'rejected', 'pickup_scheduled', 'picked_up', 'received', 'refunded', 'cancelled'],
+      enum: ['requested', 'approved', 'rejected', 'pickup_scheduled', 'picked_up', 'in_transit', 'received', 'verified', 'refund_processing', 'refunded', 'cancelled'],
       default: 'requested',
       index: true,
     },
@@ -59,6 +60,7 @@ const ReturnSchema = new Schema<IReturn>(
     pickupScheduledAt: { type: Date },
     pickedUpAt: { type: Date },
     receivedAt: { type: Date },
+    verifiedAt: { type: Date },
     refundedAt: { type: Date },
     metadata: { type: Schema.Types.Mixed },
   },

@@ -9,9 +9,9 @@ import { updateOrderStatusAction } from '@/app/(admin)/orders/actions'
 
 const statusVariant = (s: OrderStatus): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
   const map: Record<OrderStatus, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
-    completed: 'success',  delivered: 'success',
-    dispatched: 'info',    in_transit: 'info',  shipped: 'info', confirmed: 'info',
-    packed: 'warning',     pending: 'default',
+    completed: 'success', closed: 'success', delivered: 'success',
+    dispatched: 'info', in_transit: 'info', shipped: 'info', out_for_delivery: 'info', confirmed: 'info',
+    packed: 'warning', ready_to_ship: 'warning', on_hold: 'warning', pending: 'default',
     cancelled: 'danger',   returned: 'danger',
   }
   return map[s] ?? 'default'
@@ -23,6 +23,8 @@ export function OrderStatusPanel({ order }: { order: AdminOrderDetail }) {
   )
   const [note, setNote] = useState('')
   const [trackingNumber, setTrackingNumber] = useState(order.trackingNumber ?? '')
+  const [carrier, setCarrier] = useState(order.carrier ?? '')
+  const [trackingUrl, setTrackingUrl] = useState(order.trackingUrl ?? '')
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -33,12 +35,13 @@ export function OrderStatusPanel({ order }: { order: AdminOrderDetail }) {
   const hasChanges =
     status !== order.status ||
     note.trim().length > 0 ||
-    trackingNumber !== (order.trackingNumber ?? '')
+    trackingNumber !== (order.trackingNumber ?? '') ||
+    carrier !== (order.carrier ?? '') || trackingUrl !== (order.trackingUrl ?? '')
 
   const handleUpdate = () => {
     setError('')
     startTransition(async () => {
-      const result = await updateOrderStatusAction(order.id, { status, note, trackingNumber })
+      const result = await updateOrderStatusAction(order.id, { status, note, trackingNumber, carrier, trackingUrl })
       if ('error' in result) { setError(result.error); return }
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -48,8 +51,9 @@ export function OrderStatusPanel({ order }: { order: AdminOrderDetail }) {
   // Find where the current order status sits in the customer-facing flow
   const flowIdx = STATUS_FLOW.indexOf(
     // Map legacy/extra statuses to their nearest flow step
-    order.status === 'shipped' ? 'dispatched'
-    : order.status === 'packed' ? 'confirmed'
+    order.status === 'dispatched' ? 'shipped'
+    : order.status === 'packed' ? 'ready_to_ship'
+    : order.status === 'completed' || order.status === 'closed' ? 'delivered'
     : order.status
   )
 
@@ -69,13 +73,25 @@ export function OrderStatusPanel({ order }: { order: AdminOrderDetail }) {
           </p>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
-            <input
+            {status === 'shipped' && <><input
               type="text"
-              placeholder="Tracking number (optional)"
+              placeholder="Courier service"
+              value={carrier}
+              onChange={(e) => setCarrier(e.target.value)}
+              className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#558476] w-40"
+            /><input
+              type="text"
+              placeholder="Tracking number"
               value={trackingNumber}
               onChange={(e) => setTrackingNumber(e.target.value)}
               className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#558476] w-44"
-            />
+            /><input
+              type="url"
+              placeholder="Tracking link"
+              value={trackingUrl}
+              onChange={(e) => setTrackingUrl(e.target.value)}
+              className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#558476] w-52"
+            /></>}
             <input
               type="text"
               placeholder="Note (optional)"

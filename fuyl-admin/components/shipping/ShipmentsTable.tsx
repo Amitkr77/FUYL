@@ -186,6 +186,12 @@ export function ShipmentsTable({ shipments }: { shipments: Shipment[] }) {
                         </a>
                       )}
                     </div>
+                    {s.providerShipmentId && (
+                      <p className="text-[11px] text-slate-400 mt-1">Shiprocket shipment: {s.providerShipmentId}</p>
+                    )}
+                    {s.providerOrderId && (
+                      <p className="text-[11px] text-slate-400">Shiprocket order: {s.providerOrderId}</p>
+                    )}
                   </td>
                   <td className="px-5 py-4 text-sm text-slate-500 hidden md:table-cell">
                     <p>{s.recipientName}</p>

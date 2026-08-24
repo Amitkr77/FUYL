@@ -3,6 +3,7 @@ import { ArrowRight, Package, Truck, MapPin, User, ClipboardList, CheckCircle2, 
 import { getAdminOrder } from '@/lib/orders'
 import { OrderStatusPanel } from '@/components/orders/OrderStatusPanel'
 import { BookShipmentPanel } from '@/components/shipping/BookShipmentPanel'
+import { AdminOrderNote } from '@/components/orders/AdminOrderNote'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
@@ -138,6 +139,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </div>
             )}
           </div>
+          <AdminOrderNote orderId={order.id} initialValue={order.adminNotes} />
         </div>
 
         {/* Right: Customer + Address + Timeline */}
@@ -187,6 +189,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <p className="font-medium text-slate-900">
                   {order.carrier ? `${order.carrier} — ` : ''}{order.trackingNumber}
                 </p>
+                {order.trackingUrl && <a href={order.trackingUrl} target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-1 mt-1 text-xs text-[#558476] hover:underline">
+                  Open tracking link <ArrowRight className="w-3 h-3" />
+                </a>}
               </div>
             )}
           </div>

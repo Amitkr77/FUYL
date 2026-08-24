@@ -5,7 +5,7 @@ import {
   Search, AlertTriangle, ChevronDown, ChevronRight,
   PackageOpen, X, Package,
 } from 'lucide-react'
-import type { StockRow, AdjustmentType } from '@/lib/inventory'
+import type { StockRow, AdjustmentType, WarehouseLocation } from '@/lib/inventory'
 import { adjustStockAction } from '@/app/(admin)/inventory/actions'
 import { Pagination } from '@/components/ui/Pagination'
 
@@ -101,6 +101,7 @@ function AdjustForm({ row, onDone }: { row: StockRow; onDone: () => void }) {
         delta:     isOutbound ? -Math.abs(n) : Math.abs(n),
         type,
         note:      note.trim() || undefined,
+        warehouseId: row.warehouseId,
       })
       if ('error' in result) { setError(result.error); return }
       onDone()
@@ -214,14 +215,21 @@ function StockBadge({ available, reorderThreshold }: { available: number; reorde
 
 const PAGE_SIZE = 20
 
-export function InventoryTable({ stock }: { stock: StockRow[] }) {
+const VALID_STOCK_LEVELS: StockLevel[] = ['all', 'low', 'out']
+
+export function InventoryTable({ stock, locations, initialFilter = 'all' }: { stock: StockRow[]; locations: WarehouseLocation[]; initialFilter?: string }) {
+  const validInit = VALID_STOCK_LEVELS.includes(initialFilter as StockLevel) ? initialFilter as StockLevel : 'all'
   const [search,    setSearch]    = useState('')
-  const [filter,    setFilter]    = useState<StockLevel>('all')
+  const [filter,    setFilter]    = useState<StockLevel>(validInit)
   const [openRow,   setOpenRow]   = useState<string | null>(null)   // row.id of adjust form
   const [expanded,  setExpanded]  = useState<Set<string>>(new Set()) // productIds
   const [page,      setPage]      = useState(1)
+  const warehouseCodes = Array.from(new Set(stock.map((row) => row.warehouseId)))
+  const initialLocation = locations.find((location) => location.isDefault)?.code ?? warehouseCodes[0] ?? 'default'
+  const [location, setLocation] = useState(initialLocation)
 
-  const allGroups = groupByProduct(stock)
+  const locationStock = stock.filter((row) => row.warehouseId === location)
+  const allGroups = groupByProduct(locationStock)
 
   // Apply search + stock-level filter at the group level
   const groups = allGroups.filter((g) => {
@@ -261,7 +269,7 @@ export function InventoryTable({ stock }: { stock: StockRow[] }) {
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
 
       {/* Filter tabs */}
-      <div className="flex items-center gap-0.5 px-4 pt-3 border-b border-slate-100 overflow-x-auto">
+      <div className="flex items-center gap-0.5 px-4 pt-3 border-b border-slate-100 overflow-x-auto scrollbar-hide">
         {TABS.map((tab) => (
           <button
             key={tab.value}
@@ -286,6 +294,12 @@ export function InventoryTable({ stock }: { stock: StockRow[] }) {
 
       {/* Search toolbar */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
+        <select value={location} onChange={(e) => { setLocation(e.target.value); setPage(1); setOpenRow(null) }}
+          className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-700">
+          {locations.map((item) => <option key={item.id} value={item.code}>{item.name}{item.isDefault ? ' (Default)' : ''}</option>)}
+          {warehouseCodes.filter((code) => !locations.some((item) => item.code === code)).map((code) =>
+            <option key={code} value={code}>{code === 'default' ? 'Legacy Default' : code}</option>)}
+        </select>
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           <input

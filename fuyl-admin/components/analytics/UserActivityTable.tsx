@@ -100,10 +100,7 @@ export default function UserActivityTable({ data }: { data: UserActivityRow[] })
       </div>
 
       {/* ── Scrollable list ─────────────────────────────────────────────────── */}
-      <div
-        className="h-[480px] overflow-y-auto divide-y divide-slate-50"
-        style={{ scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent' }}
-      >
+      <div className="divide-y divide-slate-50">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
             <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center mb-3">

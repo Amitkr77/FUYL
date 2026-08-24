@@ -25,6 +25,9 @@ export interface CarrierBookingResult {
   trackingNumber: string;
   trackingUrl: string;
   labelUrl?: string;
+  providerOrderId?: string;
+  providerShipmentId?: string;
+  courierId?: string;
 }
 
 export async function createShipmentWithCarrier(input: CarrierBookingInput): Promise<CarrierBookingResult> {
@@ -40,7 +43,12 @@ export async function createShipmentWithCarrier(input: CarrierBookingInput): Pro
       productsDesc: input.productsDesc,
     });
     logger.info(`[shipping][shiprocket] booked ${input.shipmentNumber} -> AWB ${result.waybill}`);
-    return { trackingNumber: result.waybill, trackingUrl: result.trackingUrl };
+    return {
+      trackingNumber: result.waybill, trackingUrl: result.trackingUrl,
+      providerOrderId: result.providerOrderId,
+      providerShipmentId: result.providerShipmentId,
+      courierId: result.courierId,
+    };
   }
 
   // Fallback stub (no carrier configured) — mint a synthetic tracking number.

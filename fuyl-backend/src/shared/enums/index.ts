@@ -8,14 +8,19 @@ export const RoleEnum = {
 export const OrderStatus = {
   PENDING: 'pending',
   CONFIRMED: 'confirmed',
-  PACKED: 'packed',
-  DISPATCHED: 'dispatched',
+  READY_TO_SHIP: 'ready_to_ship',
+  ON_HOLD: 'on_hold',
   IN_TRANSIT: 'in_transit',
   OUT_FOR_DELIVERY: 'out_for_delivery',
   SHIPPED: 'shipped',
   DELIVERED: 'delivered',
-  COMPLETED: 'completed',
+  CLOSED: 'closed',
   CANCELLED: 'cancelled',
+  // Legacy values remain readable while existing data is migrated. New
+  // transitions must never write them.
+  PACKED: 'packed',
+  DISPATCHED: 'dispatched',
+  COMPLETED: 'completed',
   RETURNED: 'returned',
 } as const;
 

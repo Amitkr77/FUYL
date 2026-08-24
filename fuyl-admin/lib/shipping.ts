@@ -26,6 +26,9 @@ interface BackendShipment {
   shippingAddress: { fullName: string; city: string; state: string }
   createdAt: string
   deliveredAt?: string
+  providerOrderId?: string
+  providerShipmentId?: string
+  courierId?: string
 }
 
 export interface Shipment {
@@ -40,6 +43,9 @@ export interface Shipment {
   destination: string
   createdAt: string
   deliveredAt?: string
+  providerOrderId?: string
+  providerShipmentId?: string
+  courierId?: string
 }
 
 function mapShipment(s: BackendShipment): Shipment {
@@ -49,6 +55,7 @@ function mapShipment(s: BackendShipment): Shipment {
     recipientName: s.shippingAddress?.fullName ?? '—',
     destination: s.shippingAddress ? `${s.shippingAddress.city}, ${s.shippingAddress.state}` : '—',
     createdAt: s.createdAt, deliveredAt: s.deliveredAt,
+    providerOrderId: s.providerOrderId, providerShipmentId: s.providerShipmentId, courierId: s.courierId,
   }
 }
 

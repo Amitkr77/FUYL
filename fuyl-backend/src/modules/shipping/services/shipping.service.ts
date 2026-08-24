@@ -70,7 +70,7 @@ class ShippingService {
     if (actorRole === 'seller' && !order.sellerIds.some((s: Types.ObjectId) => s.toString() === actorId)) {
       throw new ForbiddenError('Not your order');
     }
-    const shippableStatuses: string[] = [OrderStatus.CONFIRMED, OrderStatus.PACKED];
+    const shippableStatuses: string[] = [OrderStatus.READY_TO_SHIP, OrderStatus.PACKED];
     if (!shippableStatuses.includes(order.status)) {
       throw new BadRequestError(`Cannot ship an order in "${order.status}" state — must be confirmed or packed first`);
     }
@@ -113,6 +113,9 @@ class ShippingService {
       trackingNumber: booking.trackingNumber,
       trackingUrl: booking.trackingUrl,
       labelUrl: booking.labelUrl,
+      providerOrderId: booking.providerOrderId,
+      providerShipmentId: booking.providerShipmentId,
+      courierId: booking.courierId,
       shippingAddress: order.shippingAddress,
       weightGrams: dto.weightGrams,
       dimensionsCm: dto.dimensionsCm,
@@ -120,13 +123,13 @@ class ShippingService {
       timeline: [{ status: ShipmentStatus.LABEL_CREATED, at: new Date(), note: 'Shipment booked' }],
     } as any);
 
-    // Sync the order's own tracking fields + fire ORDER_SHIPPED.
-    await orderService.updateStatus(dto.orderId, {
-      status: OrderStatus.SHIPPED,
+    // Label/AWB creation is not courier pickup. Attach tracking details while
+    // the order remains Ready to Ship; PICKED_UP advances it to Shipped.
+    await orderService.updateTracking(dto.orderId, {
       trackingNumber: booking.trackingNumber,
       trackingUrl: booking.trackingUrl,
       carrier: dto.carrier,
-    }, actorId);
+    });
 
     logger.info(`[shipping] created shipment ${shipmentNumber} for order ${dto.orderId} via ${dto.carrier}`);
     return shipment;
@@ -234,7 +237,7 @@ class ShippingService {
     // 'cancelled' — only map to statuses the updateStatus endpoint accepts.
     type UpdatableStatus = Exclude<typeof OrderStatus[keyof typeof OrderStatus], 'returned' | 'cancelled'>;
     const orderStatusMap: Partial<Record<typeof ShipmentStatus[keyof typeof ShipmentStatus], UpdatableStatus>> = {
-      [ShipmentStatus.PICKED_UP]:        OrderStatus.DISPATCHED,
+      [ShipmentStatus.PICKED_UP]:        OrderStatus.SHIPPED,
       [ShipmentStatus.IN_TRANSIT]:       OrderStatus.IN_TRANSIT,
       [ShipmentStatus.OUT_FOR_DELIVERY]: OrderStatus.OUT_FOR_DELIVERY,
       [ShipmentStatus.DELIVERED]:        OrderStatus.DELIVERED,
@@ -243,7 +246,7 @@ class ShippingService {
     if (targetOrderStatus) {
       const { orderService } = await import('../../order/services/order.service');
       try {
-        await orderService.updateStatus(shipment.orderId.toString(), { status: targetOrderStatus }, orderActor);
+        await orderService.updateStatus(shipment.orderId.toString(), { status: targetOrderStatus as any }, orderActor);
       } catch (err) {
         logger.warn(`[shipping] could not sync order ${shipment.orderId} to ${targetOrderStatus}`, err);
       }

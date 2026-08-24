@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { AlertCircle, CreditCard, CheckCircle2, XCircle, RefreshCcw, IndianRupee } from 'lucide-react'
 import { PaymentsTable } from '@/components/payments/PaymentsTable'
 import { listPayments, getPaymentStats } from '@/lib/payments'
@@ -8,7 +9,14 @@ function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount)
 }
 
-export default async function PaymentsPage() {
+export default async function PaymentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string>>
+}) {
+  const params     = await searchParams
+  const initialTab = params.tab ?? 'all'
+
   let payments: Awaited<ReturnType<typeof listPayments>> = []
   let stats = { totalPayments: 0, successCount: 0, failedCount: 0, refundedCount: 0, totalAmount: 0 }
   let error = ''
@@ -29,58 +37,80 @@ export default async function PaymentsPage() {
       Icon:  IndianRupee,
       color: 'text-[#558476]',
       bg:    'bg-[#558476]/10',
+      href:  '/payments',
     },
     {
       label: 'Successful',
-      value: stats.successCount,
+      value: String(stats.successCount),
       sub:   'Payments captured',
       Icon:  CheckCircle2,
       color: 'text-emerald-600',
       bg:    'bg-emerald-50',
+      href:  '/payments?tab=success',
     },
     {
       label: 'Failed',
-      value: stats.failedCount,
+      value: String(stats.failedCount),
       sub:   'Did not complete',
       Icon:  XCircle,
       color: 'text-rose-500',
       bg:    'bg-rose-50',
+      href:  '/payments?tab=failed',
     },
     {
       label: 'Refunded',
-      value: stats.refundedCount,
+      value: String(stats.refundedCount),
       sub:   pendingCount > 0 ? `${pendingCount} pending` : 'No pending payments',
       Icon:  RefreshCcw,
       color: 'text-amber-600',
       bg:    'bg-amber-50',
+      href:  '/payments?tab=refunded',
     },
   ]
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3"><div>
-        <h2 className="text-xl font-bold text-slate-900">Payments</h2>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Monitor transactions, track payment status, and process refunds
-        </p>
-      </div><CsvExportButton filename="payments" columns={[{key:'paymentNumber',label:'Payment number'},{key:'orderId',label:'Order ID'},{key:'amount',label:'Amount'},{key:'method',label:'Method'},{key:'gateway',label:'Gateway'},{key:'status',label:'Status'},{key:'attemptedAt',label:'Attempted at'},{key:'capturedAt',label:'Captured at'},{key:'refundedAmount',label:'Refunded amount'}]} rows={payments} /></div>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Payments</h2>
+          <p className="text-sm text-slate-500 mt-0.5">Monitor transactions, track payment status, and process refunds</p>
+        </div>
+        <CsvExportButton
+          filename="payments"
+          dateKey="attemptedAt"
+          columns={[
+            { key: 'paymentNumber',  label: 'Payment number'  },
+            { key: 'orderId',        label: 'Order ID'        },
+            { key: 'amount',         label: 'Amount'          },
+            { key: 'method',         label: 'Method'          },
+            { key: 'gateway',        label: 'Gateway'         },
+            { key: 'status',         label: 'Status'          },
+            { key: 'attemptedAt',    label: 'Attempted at'    },
+            { key: 'capturedAt',     label: 'Captured at'     },
+            { key: 'refundedAmount', label: 'Refunded amount' },
+          ]}
+          rows={payments}
+        />
+      </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {summaryCards.map(({ label, value, sub, Icon, color, bg }) => (
-          <div key={label} className="bg-white border border-slate-200 rounded-xl px-4 py-3.5 shadow-sm">
+        {summaryCards.map(({ label, value, sub, Icon, color, bg, href }) => (
+          <Link
+            key={label}
+            href={href}
+            className="bg-white border border-slate-200 rounded-xl px-4 py-3.5 shadow-sm hover:shadow-md hover:border-[#558476]/40 transition-all group"
+          >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-xl font-bold text-slate-800 leading-none truncate">{value}</p>
                 <p className="text-xs text-slate-400 mt-1 leading-snug">{label}</p>
                 <p className="text-xs text-slate-300 mt-0.5">{sub}</p>
               </div>
-              <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center flex-shrink-0`}>
+              <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
                 <Icon className={`w-[18px] h-[18px] ${color}`} />
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
@@ -91,7 +121,7 @@ export default async function PaymentsPage() {
         </div>
       )}
 
-      <PaymentsTable payments={payments} />
+      <PaymentsTable payments={payments} initialTab={initialTab} />
     </div>
   )
 }

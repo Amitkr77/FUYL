@@ -70,10 +70,11 @@ export interface IOrder extends Document {
   timeline: IOrderTimelineEvent[];
   placedAt: Date;
   confirmedAt?: Date;
-  packedAt?: Date;
+  readyToShipAt?: Date;
+  onHoldAt?: Date;
   shippedAt?: Date;
   deliveredAt?: Date;
-  completedAt?: Date;
+  closedAt?: Date;
   cancelledAt?: Date;
   cancelledReason?: string;
   cancelledBy?: mongoose.Types.ObjectId;
@@ -154,10 +155,11 @@ const OrderSchema = new Schema<IOrder>(
     timeline: [TimelineSchema],
     placedAt: { type: Date, default: Date.now },
     confirmedAt: { type: Date },
-    packedAt: { type: Date },
+    readyToShipAt: { type: Date },
+    onHoldAt: { type: Date },
     shippedAt: { type: Date },
     deliveredAt: { type: Date },
-    completedAt: { type: Date },
+    closedAt: { type: Date },
     cancelledAt: { type: Date },
     cancelledReason: { type: String },
     cancelledBy: { type: Schema.Types.ObjectId, ref: 'User' },

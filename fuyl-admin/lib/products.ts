@@ -281,7 +281,9 @@ async function reconcileStock(productId: string, variantId: string | undefined, 
     .filter((r) => (variantId ? r.variantId === variantId : !r.variantId))
     .reduce((sum, r) => sum + r.onHand, 0)
   const delta = targetStock - currentOnHand
-  if (delta !== 0) {
+  // A zero-stock product still needs a persisted inventory row so it appears
+  // in Inventory and can be assigned to a location later.
+  if (delta !== 0 || stockRows.length === 0) {
     await adminApiFetch('/inventory/adjust', {
       method: 'POST',
       body: { productId, ...(variantId ? { variantId } : {}), sellerId, delta, type: delta > 0 ? 'adjustment_in' : 'adjustment_out' },
@@ -501,13 +503,11 @@ export async function createAdminProduct(input: AdminProductInput): Promise<stri
         media:          toMedia(variant.images),
       },
     })
-    if (variant.stock > 0) {
-      await reconcileStock(product._id, created._id, sellerId, variant.stock)
-    }
+    await reconcileStock(product._id, created._id, sellerId, variant.stock)
   }
 
   // No variants — stock is tracked directly against the product itself.
-  if (input.variants.length === 0 && input.stock > 0) {
+  if (input.variants.length === 0) {
     await reconcileStock(product._id, undefined, sellerId, input.stock)
   }
   } catch (err) {

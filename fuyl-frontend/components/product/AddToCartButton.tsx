@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, AlertCircle } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useCartStore } from '@/lib/store/cartStore'
 import type { Product, ProductVariant } from '@/types/product'
@@ -20,9 +20,11 @@ export function AddToCartButton({ product, variant, quantity, subscriptionInterv
   const [loading, setLoading] = useState(false)
   const [added, setAdded] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [outOfStock, setOutOfStock] = useState(false)
+  const available = product.available && variant.available && !outOfStock
 
   const handleAdd = async () => {
-    if (!variant.available) return
+    if (!available) return
     setError(null)
     setLoading(true)
     try {
@@ -37,13 +39,19 @@ export function AddToCartButton({ product, variant, quantity, subscriptionInterv
       setAdded(true)
       setTimeout(() => setAdded(false), 2000)
     } catch (err) {
-      setError(getErrorMessage(err, 'Could not add this to your bag. Please try again.'))
+      const message = getErrorMessage(err, 'Could not add this to your bag. Please try again.')
+      if (/only\s+0\s+units?\s+available|out of stock|insufficient stock/i.test(message)) {
+        setOutOfStock(true)
+        setError(null)
+      } else {
+        setError(message)
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  if (!variant.available) {
+  if (!available) {
     return (
       <Button variant="outline" size="lg" fullWidth disabled>
         Out of Stock
@@ -69,12 +77,7 @@ export function AddToCartButton({ product, variant, quantity, subscriptionInterv
           'Add to Cart'
         )}
       </Button>
-      {error && (
-        <p className="mt-2 flex items-center gap-1.5 text-body-xs" style={{ color: '#B91C1C' }}>
-          <AlertCircle size={14} />
-          {error}
-        </p>
-      )}
+      {error && <p className="sr-only" role="alert">{error}</p>}
     </div>
   )
 }

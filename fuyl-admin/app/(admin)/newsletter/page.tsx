@@ -1,9 +1,17 @@
+import Link from 'next/link'
 import { AlertCircle, Mail, CheckCircle2, Clock, Ban } from 'lucide-react'
 import { getNewsletterStats, listSubscribers } from '@/lib/newsletter'
 import { NewsletterTable } from '@/components/newsletter/NewsletterTable'
 import { getErrorMessage } from '@/lib/api'
 
-export default async function NewsletterPage() {
+export default async function NewsletterPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string>>
+}) {
+  const params        = await searchParams
+  const initialStatus = params.status ?? 'all'
+
   let stats: Awaited<ReturnType<typeof getNewsletterStats>> | null = null
   let subscribers: Awaited<ReturnType<typeof listSubscribers>> = []
   let error = ''
@@ -29,31 +37,35 @@ export default async function NewsletterPage() {
 
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard icon={Mail} label="Total" value={String(stats.total)} />
-          <StatCard icon={CheckCircle2} label="Active" value={String(stats.active)} />
-          <StatCard icon={Clock} label="Pending" value={String(stats.pending)} accent={stats.pending > 0} />
-          <StatCard icon={Ban} label="Unsubscribed" value={String(stats.unsubscribed)} />
+          <StatCard icon={Mail}         label="Total"        value={String(stats.total)}        href="/newsletter"                />
+          <StatCard icon={CheckCircle2} label="Active"       value={String(stats.active)}       href="/newsletter?status=active"       />
+          <StatCard icon={Clock}        label="Pending"      value={String(stats.pending)}      href="/newsletter?status=pending"  accent={stats.pending > 0} />
+          <StatCard icon={Ban}          label="Unsubscribed" value={String(stats.unsubscribed)} href="/newsletter?status=unsubscribed" />
         </div>
       )}
 
-      <NewsletterTable subscribers={subscribers} />
+      <NewsletterTable subscribers={subscribers} initialStatus={initialStatus} />
     </div>
   )
 }
 
-function StatCard({ icon: Icon, label, value, accent }: {
+function StatCard({ icon: Icon, label, value, accent, href }: {
   icon: React.ComponentType<{ className?: string }>
   label: string
   value: string
   accent?: boolean
+  href: string
 }) {
   return (
-    <div className={`bg-white border rounded-xl shadow-sm p-4 ${accent ? 'border-amber-200' : 'border-slate-200'}`}>
+    <Link
+      href={href}
+      className={`bg-white border rounded-xl shadow-sm p-4 hover:shadow-md transition-all group ${accent ? 'border-amber-200 hover:border-amber-300' : 'border-slate-200 hover:border-[#558476]/40'}`}
+    >
       <div className={`flex items-center gap-2 ${accent ? 'text-amber-500' : 'text-slate-400'}`}>
-        <Icon className="w-4 h-4" />
+        <Icon className="w-4 h-4 group-hover:scale-110 transition-transform" />
         <p className="text-xs font-medium uppercase tracking-wide">{label}</p>
       </div>
       <p className={`text-lg font-bold mt-1 ${accent ? 'text-amber-600' : 'text-slate-900'}`}>{value}</p>
-    </div>
+    </Link>
   )
 }

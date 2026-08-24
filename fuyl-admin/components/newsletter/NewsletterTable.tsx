@@ -41,9 +41,12 @@ function toCsv(rows: Subscriber[]): string {
 
 const PAGE_SIZE = 20
 
-export function NewsletterTable({ subscribers }: { subscribers: Subscriber[] }) {
+const VALID_STATUSES = ['all', 'active', 'pending', 'unsubscribed']
+
+export function NewsletterTable({ subscribers, initialStatus = 'all' }: { subscribers: Subscriber[]; initialStatus?: string }) {
+  const validInit = VALID_STATUSES.includes(initialStatus) ? initialStatus as 'all' | NewsletterStatus : 'all'
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | NewsletterStatus>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | NewsletterStatus>(validInit)
   const [page, setPage] = useState(1)
   const [pending, startTransition] = useTransition()
   const [busyId, setBusyId] = useState<string | null>(null)

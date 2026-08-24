@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { Save, Eye, EyeOff, Zap, AlertCircle, CreditCard } from 'lucide-react'
-import { changePasswordAction } from './actions'
+import { changePasswordAction, getPaymentSettingsAction, savePaymentSettingsAction } from './actions'
 
 type SettingsTab = 'general' | 'security' | 'notifications' | 'integrations' | 'payments'
 
@@ -236,6 +236,7 @@ function NotificationsTab() {
 function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
+      type="button"
       onClick={() => onChange(!enabled)}
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#558476] focus:ring-offset-2 ${
         enabled ? 'bg-[#558476]' : 'bg-slate-200'
@@ -257,16 +258,12 @@ function PaymentsTab() {
   const [error, setError]   = useState('')
   const [isPending, start]  = useTransition()
 
-  const load = async () => {
-    try {
-      const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
-      const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
-      const res = await fetch(`${API}/admin/settings`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      if (res.ok) {
-        const data = await res.json()
-        const p = data?.data?.payment ?? {}
+  useEffect(() => {
+    let active = true
+    getPaymentSettingsAction().then((result) => {
+      if (!active) return
+      if (result.data) {
+        const p = result.data
         setSettings({
           onlinePaymentEnabled: p.onlinePaymentEnabled ?? true,
           codEnabled:           p.codEnabled ?? true,
@@ -274,37 +271,24 @@ function PaymentsTab() {
           codMaxOrderAmount:    p.codMaxOrderAmount != null ? String(p.codMaxOrderAmount) : '',
         })
       }
-    } catch { /* ignore — use defaults */ }
-  }
-
-  // Load on mount
-  useState(() => { load() })
+      if (result.error) setError(result.error)
+    })
+    return () => { active = false }
+  }, [])
 
   const handleSave = () => {
     setError('')
     setSaved(false)
     start(async () => {
       try {
-        const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
-        const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
         const body = {
           onlinePaymentEnabled: settings.onlinePaymentEnabled,
           codEnabled:           settings.codEnabled,
           codMinOrderAmount:    settings.codMinOrderAmount ? Number(settings.codMinOrderAmount) : undefined,
           codMaxOrderAmount:    settings.codMaxOrderAmount ? Number(settings.codMaxOrderAmount) : undefined,
         }
-        const res = await fetch(`${API}/admin/settings/payment`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify(body),
-        })
-        if (!res.ok) {
-          const d = await res.json().catch(() => ({}))
-          throw new Error(d?.message ?? 'Failed to save')
-        }
+        const result = await savePaymentSettingsAction(body)
+        if (result.error) throw new Error(result.error)
         setSaved(true)
         setTimeout(() => setSaved(false), 3000)
       } catch (e: any) {

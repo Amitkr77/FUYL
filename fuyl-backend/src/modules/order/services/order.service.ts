@@ -350,11 +350,24 @@ export class OrderService {
     return orderRepo.update(orderId, { paymentStatus });
   }
 
+  async updateTracking(orderId: string, input: { trackingNumber: string; trackingUrl?: string; carrier: string }) {
+    const order = await this.getById(orderId);
+    if ([OrderStatus.CANCELLED, OrderStatus.CLOSED, OrderStatus.COMPLETED, OrderStatus.RETURNED].includes(order.status as any)) {
+      throw new ConflictError(`Cannot add tracking to a ${order.status} order`);
+    }
+    return orderRepo.update(orderId, input);
+  }
+
+  async updateAdminNotes(orderId: string, adminNotes: string) {
+    await this.getById(orderId);
+    return orderRepo.update(orderId, { adminNotes: adminNotes.trim() });
+  }
+
   async updateStatus(orderId: string, dto: UpdateStatusDTO, actorId?: string) {
     const order = await this.getById(orderId);
 
     // Terminal states can never move.
-    if ([OrderStatus.CANCELLED, OrderStatus.COMPLETED, OrderStatus.RETURNED].includes(order.status as any)) {
+    if ([OrderStatus.CANCELLED, OrderStatus.CLOSED, OrderStatus.COMPLETED, OrderStatus.RETURNED].includes(order.status as any)) {
       throw new ConflictError(`Cannot change status of a ${order.status} order`);
     }
 
@@ -363,13 +376,15 @@ export class OrderService {
     // the order timeline is always a monotonically advancing audit trail.
     const VALID_NEXT: Record<string, string[]> = {
       [OrderStatus.PENDING]:           [OrderStatus.CONFIRMED],
-      [OrderStatus.CONFIRMED]:         [OrderStatus.PACKED],
-      [OrderStatus.PACKED]:            [OrderStatus.DISPATCHED, OrderStatus.SHIPPED],
-      [OrderStatus.DISPATCHED]:        [OrderStatus.IN_TRANSIT, OrderStatus.SHIPPED],
-      [OrderStatus.IN_TRANSIT]:        [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.SHIPPED, OrderStatus.DELIVERED],
+      [OrderStatus.CONFIRMED]:         [OrderStatus.READY_TO_SHIP, OrderStatus.ON_HOLD],
+      [OrderStatus.READY_TO_SHIP]:     [OrderStatus.SHIPPED, OrderStatus.ON_HOLD],
+      [OrderStatus.ON_HOLD]:           [OrderStatus.CONFIRMED, OrderStatus.READY_TO_SHIP],
+      [OrderStatus.SHIPPED]:           [OrderStatus.IN_TRANSIT],
+      [OrderStatus.IN_TRANSIT]:        [OrderStatus.OUT_FOR_DELIVERY],
       [OrderStatus.OUT_FOR_DELIVERY]:  [OrderStatus.DELIVERED],
-      [OrderStatus.SHIPPED]:           [OrderStatus.DELIVERED],
-      [OrderStatus.DELIVERED]:         [OrderStatus.COMPLETED],
+      // Legacy records may still be advanced without writing another legacy value.
+      [OrderStatus.PACKED]:            [OrderStatus.READY_TO_SHIP],
+      [OrderStatus.DISPATCHED]:        [OrderStatus.SHIPPED],
     };
     // Cancellation uses its own endpoint (POST /orders/:id/cancel).
     if (dto.status === OrderStatus.CANCELLED) {
@@ -387,16 +402,16 @@ export class OrderService {
     const now = new Date();
     switch (dto.status) {
       case OrderStatus.CONFIRMED: patch.confirmedAt = now; break;
-      case OrderStatus.PACKED: patch.confirmedAt = patch.confirmedAt ?? now; patch.packedAt = now; break;
+      case OrderStatus.READY_TO_SHIP: patch.readyToShipAt = now; break;
+      case OrderStatus.ON_HOLD: patch.onHoldAt = now; break;
       case OrderStatus.SHIPPED:
-        patch.packedAt = patch.packedAt ?? now;
         patch.shippedAt = now;
         if (dto.trackingNumber) patch.trackingNumber = dto.trackingNumber;
         if (dto.trackingUrl) patch.trackingUrl = dto.trackingUrl;
         if (dto.carrier) patch.carrier = dto.carrier;
         break;
       case OrderStatus.DELIVERED: patch.deliveredAt = now; break;
-      case OrderStatus.COMPLETED: patch.completedAt = now; break;
+      case OrderStatus.CLOSED: patch.closedAt = now; break;
     }
 
     const updated = await orderRepo.appendTimeline(orderId, {
@@ -430,7 +445,8 @@ export class OrderService {
         walletRedemption: (order.metadata as any)?.walletRedemption ?? 0,
         grandTotal:       order.grandTotal,
       });
-    } else if (dto.status === OrderStatus.COMPLETED) {
+      // Delivered is the successful end of fulfilment. Downstream rewards
+      // should not require a duplicate "completed" order status.
       eventBus.publish(Events.ORDER_COMPLETED, {
         orderId, userId: order.customerId.toString(), amount: order.grandTotal, orderNumber: order.orderNumber,
       });
@@ -447,7 +463,8 @@ export class OrderService {
    */
   async handleRtoReturn(orderId: string) {
     const order = await this.getById(orderId);
-    if (order.status === OrderStatus.RETURNED || order.status === OrderStatus.CANCELLED) return order;
+    if ([OrderStatus.CLOSED, OrderStatus.RETURNED, OrderStatus.CANCELLED].includes(order.status as any)) return order;
+    let refundSucceeded = order.paymentMethod === PaymentMethod.COD;
 
     if (order.paymentStatus === PaymentStatus.SUCCESS || order.paymentStatus === PaymentStatus.PARTIALLY_REFUNDED) {
       try {
@@ -461,7 +478,9 @@ export class OrderService {
           await paymentService.refund('system', {
             paymentId: refundable.id,
             reason: 'Shipment returned to origin (undelivered)',
+            allowWithoutReturn: true,
           });
+          refundSucceeded = true;
         }
       } catch (err) {
         // Refund failure must not block marking the order returned — surface
@@ -473,20 +492,30 @@ export class OrderService {
     // Single atomic write: appendTimeline sets both the timeline entry and the
     // status field in one findByIdAndUpdate — avoids a crash leaving the order
     // in RETURNED status with no timeline entry (the previous double-write).
+    if (!refundSucceeded) {
+      return orderRepo.appendTimeline(orderId, {
+        status: OrderStatus.ON_HOLD,
+        note: 'Returned to origin; refund requires reconciliation',
+      }, { onHoldAt: new Date() });
+    }
     const updated = await orderRepo.appendTimeline(orderId, {
-      status: OrderStatus.RETURNED,
-      note: 'Shipment returned to origin (undelivered)',
-    });
+      status: OrderStatus.CLOSED,
+      note: 'Shipment returned to origin and payment reconciled',
+    }, { closedAt: new Date() });
     eventBus.publish(Events.ORDER_RETURNED, { orderId, userId: order.customerId.toString(), orderNumber: order.orderNumber });
     return updated;
   }
 
   async cancel(orderId: string, reason: string, actorId: string) {
     const order = await this.getById(orderId);
-    if (order.status === OrderStatus.COMPLETED || order.status === OrderStatus.DELIVERED) {
-      throw new ConflictError('Cannot cancel a delivered/completed order — use returns instead');
-    }
     if (order.status === OrderStatus.CANCELLED) throw new ConflictError('Order already cancelled');
+    const cancellable: string[] = [
+      OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.READY_TO_SHIP,
+      OrderStatus.ON_HOLD, OrderStatus.PACKED,
+    ];
+    if (!cancellable.includes(order.status)) {
+      throw new ConflictError('This order has already shipped and can no longer be cancelled; use the return workflow after delivery');
+    }
 
     // BUG FIXED (found live end-to-end testing, right after fixing the
     // paymentStatus sync bug above — that fix is what exposed this one:
@@ -515,6 +544,7 @@ export class OrderService {
             await paymentService.refund(actorId, {
               paymentId: p.id,
               reason: `Order cancelled: ${reason}`,
+              allowWithoutReturn: true,
             });
           } catch (perPaymentErr) {
             logger.error(
@@ -554,6 +584,23 @@ export class OrderService {
     if (order.customerId.toString() !== customerId) throw new ForbiddenError('Not your order');
     if (order.status !== OrderStatus.DELIVERED && order.status !== OrderStatus.COMPLETED) {
       throw new BadRequestError('Returns only allowed for delivered/completed orders');
+    }
+
+    const existingReturns = await returnRepo.findByOrder(dto.orderId);
+    const activeReturns = existingReturns.filter((r) => !['rejected', 'cancelled'].includes(r.status));
+    for (const item of dto.items) {
+      const orderItem = order.items.find((oi: any) =>
+        oi.productId.toString() === item.productId &&
+        ((!item.variantId && !oi.variantId) || oi.variantId?.toString() === item.variantId)
+      );
+      if (!orderItem) throw new BadRequestError(`Item ${item.productId} not in order`);
+      const alreadyRequested = activeReturns.reduce((sum, existing) => sum + existing.items
+        .filter((returned: any) => returned.productId.toString() === item.productId &&
+          ((!item.variantId && !returned.variantId) || returned.variantId?.toString() === item.variantId))
+        .reduce((qty: number, returned: any) => qty + returned.quantity, 0), 0);
+      if (alreadyRequested + item.quantity > orderItem.quantity) {
+        throw new BadRequestError(`Return quantity for ${orderItem.name} exceeds the delivered quantity`);
+      }
     }
 
     // Refund requests are accepted ONLY for seal-damaged products, and every
@@ -604,6 +651,20 @@ export class OrderService {
     const ret = await returnRepo.findById(returnId);
     if (!ret) throw new NotFoundError('Return');
     const patch: any = {};
+    const NEXT: Record<string, string[]> = {
+      requested: ['approved', 'rejected', 'cancelled'],
+      approved: ['pickup_scheduled', 'cancelled'],
+      pickup_scheduled: ['picked_up', 'cancelled'],
+      picked_up: ['in_transit', 'received'],
+      in_transit: ['received'],
+      received: ['verified', 'rejected'],
+      verified: ['refund_processing'],
+      refund_processing: ['refunded'],
+      rejected: [], refunded: [], cancelled: [],
+    };
+    if (!NEXT[ret.status]?.includes(dto.status)) {
+      throw new BadRequestError(`Return cannot move from "${ret.status}" to "${dto.status}"`);
+    }
     if (dto.status) patch.status = dto.status;
     if (dto.rejectedReason) patch.rejectedReason = dto.rejectedReason;
 
@@ -614,19 +675,42 @@ export class OrderService {
       case 'pickup_scheduled': patch.pickupScheduledAt = now; break;
       case 'picked_up': patch.pickedUpAt = now; break;
       case 'received': patch.receivedAt = now; break;
-      case 'refunded':
-        patch.refundedAt = now;
-        // Auto-issue refund
-        await this.issueRefund({
+      case 'verified': patch.verifiedAt = now; break;
+      case 'refund_processing': {
+        // Persist processing first so retries/double-clicks cannot issue the
+        // same refund twice. A failed refund is returned to verified.
+        await returnRepo.update(returnId, { status: 'refund_processing' } as any);
+        try {
+          await this.issueRefund({
           orderId: ret.orderId.toString(),
           customerId: ret.customerId.toString(),
           returnId: ret.id,
           amount: ret.refundAmount,
           method: ret.refundMethod,
-          reason: `Return ${ret.returnNumber} approved`,
+          reason: `Verified return ${ret.returnNumber}`,
           actorId,
-        });
+          });
+          patch.status = 'refunded';
+          patch.refundedAt = now;
+          const order = await this.getById(ret.orderId.toString());
+          // A full refund closes the order permanently. Partial refunds keep
+          // the delivered order readable for any remaining items.
+          const refreshed = await this.getById(ret.orderId.toString());
+          if (refreshed.paymentStatus === PaymentStatus.REFUNDED) {
+            await orderRepo.appendTimeline(order.id, {
+              status: OrderStatus.CLOSED,
+              note: `Full refund completed for ${ret.returnNumber}`,
+              actor: new Types.ObjectId(actorId),
+            }, { closedAt: now } as any);
+          }
+        } catch (err) {
+          await returnRepo.update(returnId, { status: 'verified' } as any);
+          throw err;
+        }
         break;
+      }
+      case 'refunded':
+        throw new BadRequestError('Refunded is set automatically after the refund succeeds');
     }
 
     return returnRepo.update(returnId, patch);
@@ -686,6 +770,7 @@ export class OrderService {
       } catch (err) {
         logger.error(`[order] failed to credit wallet for refund ${refund.id}`, err);
         await refundRepo.update(refund.id, { status: 'failed' });
+        throw new BadRequestError('Wallet refund failed');
       }
     } else if (input.method === 'original') {
       // BUG FIXED (found in the fixing/testing pass): this branch previously
@@ -719,10 +804,24 @@ export class OrderService {
       } catch (err) {
         logger.error(`[order] failed to issue original-method refund for refund ${refund.id}`, err);
         await refundRepo.update(refund.id, { status: 'failed' });
+        throw new BadRequestError('Original payment refund failed');
       }
     }
 
-    return refund;
+    // Wallet-return refunds do not pass through paymentService, so explicitly
+    // keep the order's payment summary synchronized. Original-method refunds
+    // are already synchronized there; this idempotent update also makes the
+    // final state deterministic for every refund method.
+    const order = await this.getById(input.orderId);
+    const priorRefunds = await refundRepo.findByOrder(input.orderId);
+    const refundedPaise = priorRefunds
+      .filter((r: any) => r.status === 'processed')
+      .reduce((sum: number, r: any) => sum + toPaise(r.amount), 0);
+    const paymentStatus = refundedPaise >= toPaise(order.grandTotal)
+      ? PaymentStatus.REFUNDED
+      : PaymentStatus.PARTIALLY_REFUNDED;
+    await this.updatePaymentStatus(input.orderId, paymentStatus);
+    return refundRepo.findById(refund.id);
   }
 
   // ─── Invoices ──────────────────────────────────────────────────

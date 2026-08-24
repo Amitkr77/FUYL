@@ -1,52 +1,32 @@
-// Split out of lib/orders.ts on purpose — that module imports adminApiFetch
-// (server-only, needs next/headers via lib/auth.ts), so any Client Component
-// that needs a real (non-type) value from it, not just a type, pulls that
-// whole server-only chain into the client bundle and fails to build. This
-// file has zero imports, so OrderStatusPanel.tsx (a Client Component) can
-// import MANUAL_STATUS_OPTIONS from here instead.
-
 export type OrderStatus =
-  | 'pending' | 'confirmed' | 'packed'
-  | 'dispatched' | 'in_transit' | 'shipped'
-  | 'delivered' | 'completed' | 'cancelled' | 'returned'
+  | 'pending' | 'confirmed' | 'ready_to_ship' | 'on_hold'
+  | 'shipped' | 'in_transit' | 'out_for_delivery'
+  | 'delivered' | 'closed' | 'cancelled'
+  | 'packed' | 'dispatched' | 'completed' | 'returned'
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
-  pending:    'Pending',
-  confirmed:  'Confirmed',
-  packed:     'Packed',
-  dispatched: 'Dispatched',
-  in_transit: 'In Transit',
-  shipped:    'Shipped',
-  delivered:  'Delivered',
-  completed:  'Completed',
-  cancelled:  'Cancelled',
-  returned:   'Returned',
+  pending: 'Payment Pending', confirmed: 'Confirmed', ready_to_ship: 'Ready to Ship',
+  on_hold: 'On Hold', shipped: 'Shipped', in_transit: 'In Transit',
+  out_for_delivery: 'Out for Delivery', delivered: 'Delivered', closed: 'Closed',
+  cancelled: 'Cancelled', packed: 'Ready to Ship (legacy)',
+  dispatched: 'Shipped (legacy)', completed: 'Closed (legacy)', returned: 'Returned (legacy)',
 }
 
-// Happy-path customer-facing flow (shown in the progress bar)
 export const STATUS_FLOW: OrderStatus[] = [
-  'confirmed', 'dispatched', 'in_transit', 'delivered',
+  'confirmed', 'ready_to_ship', 'shipped', 'in_transit', 'out_for_delivery', 'delivered',
 ]
 
-// All statuses PATCH /admin/orders/:id/status accepts
-// ('returned' is never settable manually; 'cancelled' goes through the cancel endpoint)
 export const MANUAL_STATUS_OPTIONS: OrderStatus[] = [
-  'pending', 'confirmed', 'packed', 'dispatched', 'in_transit',
-  'shipped', 'delivered', 'completed', 'cancelled',
+  'pending', 'confirmed', 'ready_to_ship', 'on_hold', 'shipped',
+  'in_transit', 'out_for_delivery', 'delivered', 'closed', 'cancelled',
 ]
 
-// Valid next statuses from each state — mirrors backend VALID_NEXT in order.service.ts.
-// 'cancelled' is included for early-stage orders; the action handler routes it
-// to the cancel endpoint instead of the status-update endpoint.
 export const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  pending:          ['confirmed', 'cancelled'],
-  confirmed:        ['packed', 'cancelled'],
-  packed:           ['dispatched', 'shipped', 'cancelled'],
-  dispatched:       ['in_transit', 'shipped', 'cancelled'],
-  in_transit:       ['shipped', 'delivered', 'cancelled'],
-  shipped:          ['delivered'],
-  delivered:        ['completed'],
-  completed:        [],
-  cancelled:        [],
-  returned:         [],
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['ready_to_ship', 'on_hold', 'cancelled'],
+  ready_to_ship: ['shipped', 'on_hold', 'cancelled'],
+  on_hold: ['confirmed', 'ready_to_ship', 'cancelled'],
+  shipped: ['in_transit'], in_transit: ['out_for_delivery'],
+  out_for_delivery: ['delivered'], delivered: [], closed: [], cancelled: [], returned: [],
+  packed: ['ready_to_ship'], dispatched: ['shipped'], completed: [],
 }

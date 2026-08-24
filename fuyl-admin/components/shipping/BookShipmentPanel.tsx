@@ -6,7 +6,7 @@ import { createShipmentAction } from '@/app/(admin)/shipping/actions'
 
 // Only orders in these states can be booked (mirrors the backend's
 // shippable-status check in shipping.service.ts).
-const SHIPPABLE = ['confirmed', 'packed']
+const SHIPPABLE = ['ready_to_ship', 'packed']
 
 export function BookShipmentPanel({ orderId, orderStatus }: { orderId: string; orderStatus: string }) {
   const [carrier, setCarrier] = useState('Shiprocket')
@@ -19,6 +19,12 @@ export function BookShipmentPanel({ orderId, orderStatus }: { orderId: string; o
   const [error, setError] = useState('')
 
   if (!SHIPPABLE.includes(orderStatus)) return null
+
+  const actualKg = weight ? Number(weight) / 1000 : 0
+  const volumetricKg = length && width && height
+    ? (Number(length) * Number(width) * Number(height)) / 5000
+    : 0
+  const chargeableKg = Math.max(actualKg, volumetricKg)
 
   const book = () => {
     setError('')
@@ -48,7 +54,7 @@ export function BookShipmentPanel({ orderId, orderStatus }: { orderId: string; o
       {done ? (
         <div className="flex items-center gap-2 text-sm text-emerald-700">
           <CheckCircle2 className="w-4 h-4" />
-          Shipment booked — the order is now marked shipped.
+          Shipment booked and tracking created. It will become Shipped after courier pickup.
         </div>
       ) : (
         <div className="space-y-3">
@@ -93,6 +99,13 @@ export function BookShipmentPanel({ orderId, orderStatus }: { orderId: string; o
                 />
               ))}
             </div>
+            {(actualKg > 0 || volumetricKg > 0) && (
+              <div className="mt-2 rounded-lg bg-slate-50 border border-slate-100 p-3 text-xs text-slate-600 space-y-1">
+                <p>Actual weight: <strong>{actualKg.toFixed(3)} kg</strong></p>
+                <p>Volumetric weight: <strong>{volumetricKg.toFixed(3)} kg</strong> (L × W × H ÷ 5000)</p>
+                <p>Chargeable weight: <strong>{chargeableKg.toFixed(3)} kg</strong></p>
+              </div>
+            )}
           </div>
 
           {error && (

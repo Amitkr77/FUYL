@@ -7,9 +7,10 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 
 const statusVariant = (s: OrderStatus): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
   const map: Record<OrderStatus, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
-    completed: 'success', delivered: 'success', shipped: 'info', confirmed: 'info',
-    dispatched: 'info', in_transit: 'info',
-    packed: 'warning', pending: 'default', cancelled: 'danger', returned: 'danger',
+    completed: 'success', closed: 'success', delivered: 'success', shipped: 'info', confirmed: 'info',
+    dispatched: 'info', in_transit: 'info', out_for_delivery: 'info',
+    packed: 'warning', ready_to_ship: 'warning', on_hold: 'warning',
+    pending: 'default', cancelled: 'danger', returned: 'danger',
   }
   return map[s]
 }

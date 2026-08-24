@@ -10,7 +10,8 @@ import { Pagination } from '@/components/ui/Pagination'
 
 const STATUS_VARIANT: Record<ReturnStatus, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
   requested: 'warning', approved: 'info', rejected: 'danger', pickup_scheduled: 'info',
-  picked_up: 'info', received: 'info', refunded: 'success', cancelled: 'default',
+  picked_up: 'info', in_transit: 'info', received: 'info', verified: 'warning',
+  refund_processing: 'warning', refunded: 'success', cancelled: 'default',
 }
 
 // The next single action available from each status — keeps the admin on
@@ -20,8 +21,10 @@ const STATUS_VARIANT: Record<ReturnStatus, 'success' | 'warning' | 'danger' | 'i
 const NEXT_ACTION: Partial<Record<ReturnStatus, { label: string; next: ReturnStatus }>> = {
   approved: { label: 'Schedule Pickup', next: 'pickup_scheduled' },
   pickup_scheduled: { label: 'Mark Picked Up', next: 'picked_up' },
-  picked_up: { label: 'Mark Received', next: 'received' },
-  received: { label: 'Issue Refund', next: 'refunded' },
+  picked_up: { label: 'Mark In Transit', next: 'in_transit' },
+  in_transit: { label: 'Mark Received', next: 'received' },
+  received: { label: 'Verify Return', next: 'verified' },
+  verified: { label: 'Issue Refund', next: 'refund_processing' },
 }
 
 type TabFilter = 'all' | ReturnStatus
@@ -32,6 +35,8 @@ const STATUS_TABS: { label: string; value: TabFilter }[] = [
   { label: 'Rejected',  value: 'rejected' },
   { label: 'Scheduled', value: 'pickup_scheduled' },
   { label: 'Received',  value: 'received' },
+  { label: 'Verified',  value: 'verified' },
+  { label: 'Refunding', value: 'refund_processing' },
   { label: 'Refunded',  value: 'refunded' },
   { label: 'Cancelled', value: 'cancelled' },
 ]

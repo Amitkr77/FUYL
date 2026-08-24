@@ -3,7 +3,8 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import {
-  Search, X, ChevronDown, CreditCard, Wallet, Truck,
+  Search, X, ChevronDown, ChevronUp, ChevronsUpDown,
+  CreditCard, Wallet, Truck,
   AlertCircle, PackageOpen, RefreshCcw, CheckCircle2,
 } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
@@ -165,7 +166,29 @@ function RefundForm({ payment, onDone }: { payment: Payment; onDone: () => void 
 // ─── Main table ──────────────────────────────────────────────────────────────
 
 type TabFilter = 'all' | PaymentStatus
+type SortCol   = 'date' | 'amount'
+type SortDir   = 'asc' | 'desc'
+// Keep SortKey for the existing sortPayments function
 type SortKey   = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc'
+
+function SortTh({ label, col, sortCol, sortDir, onSort, className }: {
+  label: string; col: SortCol; sortCol: SortCol; sortDir: SortDir; onSort: (col: SortCol) => void; className?: string
+}) {
+  const active = sortCol === col
+  return (
+    <th
+      onClick={() => onSort(col)}
+      className={`text-left text-xs font-semibold uppercase tracking-wider px-5 py-3 cursor-pointer select-none group transition-colors ${active ? 'text-[#558476]' : 'text-slate-400 hover:text-slate-600'} ${className ?? ''}`}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active
+          ? sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />
+          : <ChevronsUpDown className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity" />}
+      </span>
+    </th>
+  )
+}
 
 const TABS: { label: string; value: TabFilter }[] = [
   { label: 'All',        value: 'all'               },
@@ -173,13 +196,6 @@ const TABS: { label: string; value: TabFilter }[] = [
   { label: 'Pending',    value: 'pending'            },
   { label: 'Failed',     value: 'failed'             },
   { label: 'Refunded',   value: 'refunded'           },
-]
-
-const SORT_OPTIONS: { label: string; value: SortKey }[] = [
-  { label: 'Newest first',      value: 'date-desc'   },
-  { label: 'Oldest first',      value: 'date-asc'    },
-  { label: 'Amount: High → Low', value: 'amount-desc' },
-  { label: 'Amount: Low → High', value: 'amount-asc'  },
 ]
 
 function sortPayments(payments: Payment[], key: SortKey): Payment[] {
@@ -195,12 +211,24 @@ function sortPayments(payments: Payment[], key: SortKey): Payment[] {
 
 const PAGE_SIZE = 15
 
-export function PaymentsTable({ payments }: { payments: Payment[] }) {
-  const [activeTab, setActiveTab] = useState<TabFilter>('all')
+const VALID_TAB_VALUES = ['all', 'success', 'pending', 'failed', 'refunded', 'partially_refunded']
+
+export function PaymentsTable({ payments, initialTab = 'all' }: { payments: Payment[]; initialTab?: string }) {
+  const validInit = VALID_TAB_VALUES.includes(initialTab) ? initialTab as TabFilter : 'all'
+  const [activeTab, setActiveTab] = useState<TabFilter>(validInit)
   const [search,    setSearch]    = useState('')
-  const [sortKey,   setSortKey]   = useState<SortKey>('date-desc')
+  const [sortCol,   setSortCol]   = useState<SortCol>('date')
+  const [sortDir,   setSortDir]   = useState<SortDir>('desc')
   const [page,      setPage]      = useState(1)
   const [refundingId, setRefundingId] = useState<string | null>(null)
+
+  const sortKey: SortKey = `${sortCol}-${sortDir}` as SortKey
+
+  const toggleSort = (col: SortCol) => {
+    if (sortCol === col) { setSortDir((d) => d === 'desc' ? 'asc' : 'desc') }
+    else { setSortCol(col); setSortDir('desc') }
+    setPage(1)
+  }
 
   const tabCount = (tab: TabFilter) =>
     tab === 'all' ? payments.length : payments.filter((p) => p.status === tab).length
@@ -231,7 +259,7 @@ export function PaymentsTable({ payments }: { payments: Payment[] }) {
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
 
       {/* Status tabs */}
-      <div className="flex items-center gap-0.5 px-4 pt-3 border-b border-slate-100 overflow-x-auto">
+      <div className="flex items-center gap-0.5 px-4 pt-3 border-b border-slate-100 overflow-x-auto scrollbar-hide">
         {TABS.map((tab) => (
           <button
             key={tab.value}
@@ -273,18 +301,6 @@ export function PaymentsTable({ payments }: { payments: Payment[] }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <select
-              value={sortKey}
-              onChange={(e) => { setSortKey(e.target.value as SortKey); setPage(1) }}
-              className="appearance-none h-9 pl-3 pr-8 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#558476]/30 cursor-pointer"
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-          </div>
           {hasFilters && (
             <button onClick={() => { setSearch(''); setPage(1) }} className="h-9 px-3 text-sm text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors">
               Clear
@@ -306,10 +322,10 @@ export function PaymentsTable({ payments }: { payments: Payment[] }) {
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/50">
               <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Payment</th>
-              <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Amount</th>
+              <SortTh label="Amount" col="amount" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
               <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3 hidden md:table-cell">Method</th>
               <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Status</th>
-              <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3 hidden lg:table-cell">Date</th>
+              <SortTh label="Date" col="date" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="hidden lg:table-cell" />
               <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Actions</th>
             </tr>
           </thead>

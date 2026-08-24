@@ -262,10 +262,22 @@ export class PaymentService {
     return updated;
   }
 
-  async refund(actorId: string, opts: { paymentId: string; amount?: number; reason: string }) {
+  async refund(actorId: string, opts: { paymentId: string; amount?: number; reason: string; allowWithoutReturn?: boolean }) {
     const payment = await paymentRepo.findById(opts.paymentId);
     if (!payment) throw new NotFoundError('Payment');
-    if (payment.status !== PaymentStatus.SUCCESS) throw new BadRequestError('Only successful payments can be refunded');
+    if (![PaymentStatus.SUCCESS, PaymentStatus.PARTIALLY_REFUNDED].includes(payment.status as any)) {
+      throw new BadRequestError('Only successful or partially refunded payments can be refunded');
+    }
+    if (!opts.allowWithoutReturn) {
+      const { ReturnModel } = await import('../../order/models/return.model');
+      const verifiedReturn = await ReturnModel.exists({
+        orderId: payment.orderId,
+        status: { $in: ['verified', 'refund_processing'] },
+      });
+      if (!verifiedReturn) {
+        throw new BadRequestError('Refund is locked until the returned product has been received and verified');
+      }
+    }
 
     const paymentAmountPaise = toPaise(payment.amount);
     const alreadyRefundedPaise = toPaise(payment.refundedAmount);

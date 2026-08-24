@@ -2,7 +2,8 @@ import { adminApiFetch, AdminApiError } from './api'
 
 export type ReturnStatus =
   | 'requested' | 'approved' | 'rejected' | 'pickup_scheduled'
-  | 'picked_up' | 'received' | 'refunded' | 'cancelled'
+  | 'picked_up' | 'in_transit' | 'received' | 'verified'
+  | 'refund_processing' | 'refunded' | 'cancelled'
 
 interface BackendReturn {
   _id: string

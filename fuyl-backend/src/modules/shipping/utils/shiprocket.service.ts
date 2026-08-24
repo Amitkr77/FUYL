@@ -45,6 +45,9 @@ export interface ShiprocketCreateInput {
 export interface ShiprocketCreateResult {
   waybill: string;         // AWB code
   trackingUrl: string;
+  providerOrderId?: string;
+  providerShipmentId: string;
+  courierId?: string;
 }
 
 export interface ShiprocketServiceability {
@@ -237,7 +240,13 @@ class ShiprocketService {
       logger.warn(`[shiprocket] pickup scheduling failed for shipment ${shipmentId}`, err);
     }
 
-    return { waybill: awb, trackingUrl: this.trackingUrl(awb) };
+    return {
+      waybill: awb,
+      trackingUrl: this.trackingUrl(awb),
+      providerOrderId: created?.order_id?.toString(),
+      providerShipmentId: shipmentId.toString(),
+      courierId: assigned?.response?.data?.courier_company_id?.toString(),
+    };
   }
 
   /** Shipping-label PDF URL for an AWB, generated on demand. */
