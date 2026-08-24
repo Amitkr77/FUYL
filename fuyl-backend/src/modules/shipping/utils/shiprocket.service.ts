@@ -215,7 +215,16 @@ class ShiprocketService {
     const shipmentId = created?.shipment_id;
     if (!shipmentId) {
       logger.error('[shiprocket] order create returned no shipment_id', created);
-      throw new BadRequestError('Shiprocket booking failed: no shipment created');
+      const providerMessage = typeof created?.message === 'string'
+        ? created.message
+        : typeof created?.data?.message === 'string'
+          ? created.data.message
+          : null;
+      throw new BadRequestError(
+        providerMessage
+          ? `Shiprocket booking failed: ${providerMessage}`
+          : 'Shiprocket booking failed: no shipment created'
+      );
     }
 
     // Auto-assign the best-rated courier (omitting courier_id lets Shiprocket pick).
