@@ -877,7 +877,7 @@ export default function CheckoutPage() {
                   disabled={identifying}
                   onClick={handleContinueToReview}
                 >
-                  {paymentMethod === 'cashfree' && displayTotal > 0 ? `Pay ${formatPrice(displayTotal)}` : 'Place Order'}
+                  {paymentMethod === 'cashfree' && displayTotal > 0 ? 'Proceed to Pay' : 'Place Order'}
                 </Button>
               </StickyActionBar>
             </div>
@@ -954,7 +954,7 @@ export default function CheckoutPage() {
                   disabled={confirming || previewLoading || !preview}
                   onClick={handleConfirm}
                 >
-                  Place Order — {formatPrice(displayTotal)}
+                  {paymentMethod === 'cashfree' && displayTotal > 0 ? 'Proceed to Pay' : 'Place Order'}
                 </Button>
                 {previewLoading && !confirming && (
                   <p className="text-body-xs text-brand-muted text-center mt-1.5 flex items-center justify-center gap-1">

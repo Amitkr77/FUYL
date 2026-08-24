@@ -331,11 +331,12 @@ export class OrderService {
    * at every point a payment's status actually changes.
    */
   async updatePaymentStatus(orderId: string, paymentStatus: typeof PaymentStatus[keyof typeof PaymentStatus]) {
+    const order = await orderRepo.findById(orderId);
+
     // When a pending order's payment succeeds, auto-confirm it — a paid order
     // should never show as "Pending" to the customer.
     if (paymentStatus === PaymentStatus.SUCCESS) {
-      const order = await orderRepo.findById(orderId);
-      if (order && order.status === OrderStatus.PENDING) {
+      if (order && [OrderStatus.PENDING, OrderStatus.PAYMENT_FAILED].includes(order.status as any)) {
         const updated = await orderRepo.appendTimeline(
           orderId,
           { status: OrderStatus.CONFIRMED, note: 'Payment confirmed' },
@@ -346,6 +347,28 @@ export class OrderService {
         });
         return updated;
       }
+    }
+
+    // Payment failure is a recoverable order state. It prevents an unpaid
+    // order looking as though fulfilment has started, while a later retry can
+    // still move the same order back through pending to confirmed.
+    if (paymentStatus === PaymentStatus.FAILED && order) {
+      if (order.status === OrderStatus.PENDING) {
+        return orderRepo.appendTimeline(
+          orderId,
+          { status: OrderStatus.PAYMENT_FAILED, note: 'Payment attempt failed' },
+          { paymentStatus }
+        );
+      }
+      return orderRepo.update(orderId, { paymentStatus });
+    }
+
+    if (paymentStatus === PaymentStatus.PENDING && order?.status === OrderStatus.PAYMENT_FAILED) {
+      return orderRepo.appendTimeline(
+        orderId,
+        { status: OrderStatus.PENDING, note: 'Payment retry started' },
+        { paymentStatus }
+      );
     }
     return orderRepo.update(orderId, { paymentStatus });
   }

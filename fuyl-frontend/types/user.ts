@@ -33,6 +33,7 @@ export interface OrderLineItem {
 // exactly — do not diverge without updating both sides.
 export type OrderStatus =
   | 'pending'
+  | 'payment_failed'
   | 'confirmed'
   | 'ready_to_ship'
   | 'on_hold'

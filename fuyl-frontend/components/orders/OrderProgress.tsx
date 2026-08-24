@@ -10,7 +10,7 @@ const STEPS = [
 ] as const
 
 const STATUS_STEP: Record<string, number> = {
-  pending: -1, confirmed: 0, ready_to_ship: 1, packed: 1,
+  pending: -1, payment_failed: -1, confirmed: 0, ready_to_ship: 1, packed: 1,
   shipped: 2, dispatched: 2, in_transit: 3, out_for_delivery: 4,
   delivered: 5, completed: 5, closed: 5,
 }

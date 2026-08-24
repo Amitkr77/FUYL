@@ -56,8 +56,96 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
       {/* Body */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left: Items + totals */}
+        {/* Left sidebar: BookShipment + Customer + Address */}
+        <div className="space-y-5">
+          {/* Book shipment — only renders for confirmed/packed orders */}
+          <BookShipmentPanel orderId={order.id} orderStatus={order.status} />
+
+          {/* Customer — name/phone is what the order itself captured at
+              checkout (shippingAddress), not a live-linked field on the
+              order; the profile link below does resolve to a real user now
+              that /admin/customers exists. */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <User className="w-4 h-4 text-slate-400" />
+              <h3 className="text-sm font-semibold text-slate-900">Customer</h3>
+            </div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-[#558476] flex items-center justify-center shrink-0">
+                <span className="text-white text-sm font-bold">{order.customerName.charAt(0)}</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">{order.customerName}</p>
+                <p className="text-xs text-slate-400">{order.phone}</p>
+              </div>
+            </div>
+            <Link href={`/customers/${order.customerId}`} className="inline-flex items-center gap-1 text-xs text-[#558476] hover:underline">
+              View customer profile <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          {/* Shipping address */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <MapPin className="w-4 h-4 text-slate-400" />
+              <h3 className="text-sm font-semibold text-slate-900">Shipping Address</h3>
+            </div>
+            <div className="text-sm text-slate-600 space-y-1">
+              <p className="font-medium text-slate-900">{order.address.fullName}</p>
+              <p>{order.address.line1}</p>
+              {order.address.line2 && <p>{order.address.line2}</p>}
+              <p>{order.address.city}, {order.address.state}</p>
+              <p>{order.address.pincode}, {order.address.country}</p>
+            </div>
+            {order.trackingNumber && (
+              <div className="mt-3 pt-3 border-t border-slate-100 text-sm">
+                <p className="text-slate-500">Tracking</p>
+                <p className="font-medium text-slate-900">
+                  {order.carrier ? `${order.carrier} — ` : ''}{order.trackingNumber}
+                </p>
+                {order.trackingUrl && <a href={order.trackingUrl} target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-1 mt-1 text-xs text-[#558476] hover:underline">
+                  Open tracking link <ArrowRight className="w-3 h-3" />
+                </a>}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Timeline (row 1) + Order Items + Payment + Notes (row 2) — spans cols 2–3 */}
         <div className="lg:col-span-2 space-y-5">
+          {/* Delivery timeline — spans full width of cols 2–3 */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Truck className="w-4 h-4 text-slate-400" />
+              <h3 className="text-sm font-semibold text-slate-900">Delivery Progress</h3>
+            </div>
+            {order.timeline.length === 0 ? (
+              <p className="text-xs text-slate-400">No status changes recorded yet.</p>
+            ) : (
+              <div className="flex flex-wrap gap-x-0 gap-y-4 relative">
+                {order.timeline.map((event, i) => (
+                  <div key={i} className="flex items-start gap-3 w-full sm:w-auto sm:flex-1 min-w-[180px]">
+                    <div className="flex flex-col items-center">
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-[#558476]">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      {i < order.timeline.length - 1 && (
+                        <div className="w-px flex-1 min-h-[24px] bg-[#558476]/30 mt-1" />
+                      )}
+                    </div>
+                    <div className="pb-4">
+                      <p className="text-sm font-semibold text-slate-900 capitalize">{event.status.replace(/_/g, ' ')}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{formatDateTime(event.at)}</p>
+                      {event.note && <p className="text-xs text-slate-500 mt-0.5">{event.note}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Order Items */}
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
             <div className="flex items-center gap-2 p-5 border-b border-slate-100">
               <ClipboardList className="w-4 h-4 text-slate-400" />
@@ -140,87 +228,6 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             )}
           </div>
           <AdminOrderNote orderId={order.id} initialValue={order.adminNotes} />
-        </div>
-
-        {/* Right: Customer + Address + Timeline */}
-        <div className="space-y-5">
-          {/* Book shipment — only renders for confirmed/packed orders */}
-          <BookShipmentPanel orderId={order.id} orderStatus={order.status} />
-
-          {/* Customer — name/phone is what the order itself captured at
-              checkout (shippingAddress), not a live-linked field on the
-              order; the profile link below does resolve to a real user now
-              that /admin/customers exists. */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <User className="w-4 h-4 text-slate-400" />
-              <h3 className="text-sm font-semibold text-slate-900">Customer</h3>
-            </div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-[#558476] flex items-center justify-center shrink-0">
-                <span className="text-white text-sm font-bold">{order.customerName.charAt(0)}</span>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900">{order.customerName}</p>
-                <p className="text-xs text-slate-400">{order.phone}</p>
-              </div>
-            </div>
-            <Link href={`/customers/${order.customerId}`} className="inline-flex items-center gap-1 text-xs text-[#558476] hover:underline">
-              View customer profile <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-
-          {/* Shipping address */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <MapPin className="w-4 h-4 text-slate-400" />
-              <h3 className="text-sm font-semibold text-slate-900">Shipping Address</h3>
-            </div>
-            <div className="text-sm text-slate-600 space-y-1">
-              <p className="font-medium text-slate-900">{order.address.fullName}</p>
-              <p>{order.address.line1}</p>
-              {order.address.line2 && <p>{order.address.line2}</p>}
-              <p>{order.address.city}, {order.address.state}</p>
-              <p>{order.address.pincode}, {order.address.country}</p>
-            </div>
-            {order.trackingNumber && (
-              <div className="mt-3 pt-3 border-t border-slate-100 text-sm">
-                <p className="text-slate-500">Tracking</p>
-                <p className="font-medium text-slate-900">
-                  {order.carrier ? `${order.carrier} — ` : ''}{order.trackingNumber}
-                </p>
-                {order.trackingUrl && <a href={order.trackingUrl} target="_blank" rel="noreferrer"
-                  className="inline-flex items-center gap-1 mt-1 text-xs text-[#558476] hover:underline">
-                  Open tracking link <ArrowRight className="w-3 h-3" />
-                </a>}
-              </div>
-            )}
-          </div>
-
-          {/* Delivery timeline — real status-change audit log */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Truck className="w-4 h-4 text-slate-400" />
-              <h3 className="text-sm font-semibold text-slate-900">Timeline</h3>
-            </div>
-            {order.timeline.length === 0 ? (
-              <p className="text-xs text-slate-400">No status changes recorded yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {order.timeline.map((event, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-[#558476]">
-                      <CheckCircle2 className="w-3 h-3 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900 capitalize">{event.status}</p>
-                      <p className="text-xs text-slate-400">{formatDateTime(event.at)}{event.note ? ` — ${event.note}` : ''}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

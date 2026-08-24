@@ -178,6 +178,10 @@ export class PaymentService {
       attemptedAt: new Date(),
     });
 
+    // A new Cashfree session is a genuine retry. Restore the order to the
+    // awaiting-payment state until this attempt succeeds or fails.
+    await orderService.updatePaymentStatus(orderId, PaymentStatus.PENDING);
+
     await txRepo.create({
       transactionNumber: await nextNumber('TXN'),
       paymentId: payment._id,
@@ -218,7 +222,14 @@ export class PaymentService {
 
     const cfOrder = await cashfreeGateway.getOrder(opts.cfOrderId);
     if (cfOrder.order_status !== 'PAID') {
-      throw new BadRequestError('Payment not completed');
+      const attempts = await cashfreeGateway.getOrderPayments(opts.cfOrderId);
+      const latest = attempts.at(-1);
+      const reason = latest?.payment_message
+        ?? (latest?.payment_status === 'USER_DROPPED'
+          ? 'Payment was cancelled before completion'
+          : 'Payment was not completed');
+      await this.markPaymentFailed(payment, reason, { order: cfOrder, attempts });
+      throw new BadRequestError(reason);
     }
 
     const payments = await cashfreeGateway.getOrderPayments(opts.cfOrderId);
@@ -259,6 +270,28 @@ export class PaymentService {
       amount: payment.amount,
     });
 
+    return updated;
+  }
+
+  /** Shared failure path used by verification and webhooks (idempotent). */
+  private async markPaymentFailed(payment: IPayment, reason: string, gatewayResponse?: Record<string, unknown>): Promise<IPayment | null> {
+    if (payment.status === PaymentStatus.SUCCESS) return payment;
+    const alreadyFailed = payment.status === PaymentStatus.FAILED;
+    const updated = alreadyFailed ? payment : await paymentRepo.update(payment._id, {
+      status: PaymentStatus.FAILED,
+      failureReason: reason,
+      gatewayResponse,
+    });
+
+    await orderService.updatePaymentStatus(payment.orderId.toString(), PaymentStatus.FAILED);
+    if (!alreadyFailed) {
+      eventBus.publish(Events.PAYMENT_FAILED, {
+        orderId: payment.orderId.toString(),
+        paymentId: payment.id,
+        userId: payment.customerId.toString(),
+        reason,
+      });
+    }
     return updated;
   }
 
@@ -398,18 +431,11 @@ export class PaymentService {
       if (!cfOrderId) return;
       const payment = await paymentRepo.findByCfOrderId(cfOrderId);
       if (!payment || payment.status === PaymentStatus.SUCCESS) return;
-      await paymentRepo.update(payment._id, {
-        status: PaymentStatus.FAILED,
-        failureReason: data.payment?.payment_message ?? 'Payment failed',
-        gatewayResponse: data,
-      });
-      await orderService.updatePaymentStatus(payment.orderId.toString(), PaymentStatus.FAILED);
-      eventBus.publish(Events.PAYMENT_FAILED, {
-        orderId: payment.orderId.toString(),
-        paymentId: payment.id,
-        userId: payment.customerId.toString(),
-        reason: data.payment?.payment_message,
-      });
+      await this.markPaymentFailed(
+        payment,
+        data.payment?.payment_message ?? 'Payment failed',
+        data
+      );
       return;
     }
 

@@ -10,7 +10,7 @@ const statusVariant = (s: OrderStatus): 'success' | 'warning' | 'danger' | 'info
     completed: 'success', closed: 'success', delivered: 'success', shipped: 'info', confirmed: 'info',
     dispatched: 'info', in_transit: 'info', out_for_delivery: 'info',
     packed: 'warning', ready_to_ship: 'warning', on_hold: 'warning',
-    pending: 'default', cancelled: 'danger', returned: 'danger',
+    pending: 'default', payment_failed: 'danger', cancelled: 'danger', returned: 'danger',
   }
   return map[s]
 }

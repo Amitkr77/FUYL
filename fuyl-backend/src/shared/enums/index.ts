@@ -7,6 +7,7 @@ export const RoleEnum = {
 
 export const OrderStatus = {
   PENDING: 'pending',
+  PAYMENT_FAILED: 'payment_failed',
   CONFIRMED: 'confirmed',
   READY_TO_SHIP: 'ready_to_ship',
   ON_HOLD: 'on_hold',

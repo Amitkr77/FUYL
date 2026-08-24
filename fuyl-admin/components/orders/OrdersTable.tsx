@@ -15,6 +15,7 @@ type SortDir   = 'asc' | 'desc'
 
 const TABS: { label: string; value: TabFilter }[] = [
   { label: 'All', value: 'all' }, { label: 'Pending', value: 'pending' },
+  { label: 'Payment Failed', value: 'payment_failed' },
   { label: 'Confirmed', value: 'confirmed' }, { label: 'Packed', value: 'packed' },
   { label: 'Shipped', value: 'shipped' }, { label: 'Delivered', value: 'delivered' },
   { label: 'Completed', value: 'completed' }, { label: 'Cancelled', value: 'cancelled' },
@@ -27,7 +28,7 @@ const statusVariant = (status: OrderStatus): 'success' | 'warning' | 'danger' | 
   if (['completed', 'delivered'].includes(status)) return 'success'
   if (['shipped', 'confirmed', 'dispatched', 'in_transit'].includes(status)) return 'info'
   if (status === 'packed') return 'warning'
-  if (['cancelled', 'returned'].includes(status)) return 'danger'
+  if (['cancelled', 'returned', 'payment_failed'].includes(status)) return 'danger'
   return 'default'
 }
 

@@ -4,6 +4,7 @@
 // Legacy values (packed, shipped) are silently remapped so old orders still look right.
 export const ORDER_STATUS_META: Record<string, { label: string; color: string; bg: string; dot: string }> = {
   pending:    { label: 'Processing',  color: '#92400E', bg: '#FFFBEB', dot: '#D97706' },
+  payment_failed: { label: 'Payment Failed', color: '#991B1B', bg: '#FEF2F2', dot: '#EF4444' },
   confirmed:  { label: 'Confirmed',   color: '#1E40AF', bg: '#EFF6FF', dot: '#3B82F6' },
   ready_to_ship: { label: 'Ready to Ship', color: '#92400E', bg: '#FFFBEB', dot: '#D97706' },
   on_hold: { label: 'On Hold', color: '#92400E', bg: '#FFFBEB', dot: '#D97706' },
