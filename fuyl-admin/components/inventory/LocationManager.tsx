@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { MapPin, Plus, Pencil, Trash2, Star, X, Check } from 'lucide-react'
 import type { WarehouseLocation } from '@/lib/inventory'
 import {
@@ -22,6 +23,7 @@ const emptyForm = {
 }
 
 export function LocationManager({ initialLocations }: Props) {
+  const router = useRouter()
   const [locations, setLocations] = useState(initialLocations)
   const [isAdding, setIsAdding]   = useState(false)
   const [editId, setEditId]       = useState<string | null>(null)
@@ -71,6 +73,7 @@ export function LocationManager({ initialLocations }: Props) {
       if ('error' in result) { setError(result.error); return }
       await refresh()
       setIsAdding(false)
+      router.refresh()
     } catch (e: any) {
       setError(e?.message ?? 'Failed to save location')
     } finally {
@@ -79,11 +82,12 @@ export function LocationManager({ initialLocations }: Props) {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this location? Stock records at this location will remain but will no longer have a named location.')) return
+    if (!confirm('Delete this empty location? Locations containing stock or active reservations cannot be deleted.')) return
     try {
       const result = await deleteLocationAction(id)
       if ('error' in result) { setError(result.error); return }
       await refresh()
+      router.refresh()
     } catch (e: any) {
       setError(e?.message ?? 'Failed to delete location')
     }

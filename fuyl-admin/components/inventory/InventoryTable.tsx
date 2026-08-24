@@ -1,9 +1,10 @@
 'use client'
 
 import { Fragment, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Search, AlertTriangle, ChevronDown, ChevronRight,
-  PackageOpen, X, Package,
+  PackageOpen, X, Package, Plus,
 } from 'lucide-react'
 import type { StockRow, AdjustmentType, WarehouseLocation } from '@/lib/inventory'
 import { adjustStockAction } from '@/app/(admin)/inventory/actions'
@@ -78,6 +79,7 @@ function groupByProduct(rows: StockRow[]): ProductGroup[] {
 // ─── Inline adjustment form (expands below a variant row) ───────────────────
 
 function AdjustForm({ row, onDone }: { row: StockRow; onDone: () => void }) {
+  const router = useRouter()
   const [qty,       setQty]       = useState('')
   const [type,      setType]      = useState<AdjustmentType>('adjustment_in')
   const [note,      setNote]      = useState('')
@@ -105,6 +107,7 @@ function AdjustForm({ row, onDone }: { row: StockRow; onDone: () => void }) {
       })
       if ('error' in result) { setError(result.error); return }
       onDone()
+      router.refresh()
     })
   }
 
@@ -190,6 +193,72 @@ function AdjustForm({ row, onDone }: { row: StockRow; onDone: () => void }) {
   )
 }
 
+function AddStockForm({
+  location,
+  choices,
+  onDone,
+}: {
+  location: string
+  choices: StockRow[]
+  onDone: () => void
+}) {
+  const router = useRouter()
+  const [selectedKey, setSelectedKey] = useState('')
+  const [qty, setQty] = useState('0')
+  const [error, setError] = useState('')
+  const [isPending, startTransition] = useTransition()
+
+  const handleSubmit = () => {
+    const selected = choices.find((row) => `${row.productId}:${row.variantId ?? 'product'}` === selectedKey)
+    const quantity = Number(qty)
+    if (!selected) { setError('Select a product or variant.'); return }
+    if (!Number.isInteger(quantity) || quantity < 0) { setError('Opening quantity must be a whole number of 0 or more.'); return }
+
+    setError('')
+    startTransition(async () => {
+      const result = await adjustStockAction({
+        productId: selected.productId,
+        variantId: selected.variantId,
+        sellerId: selected.sellerId,
+        warehouseId: location,
+        delta: quantity,
+        type: 'adjustment_in',
+        note: 'Opening inventory at location',
+      })
+      if ('error' in result) { setError(result.error); return }
+      onDone()
+      router.refresh()
+    })
+  }
+
+  return (
+    <div className="border-b border-slate-100 bg-slate-50 px-4 py-4">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex-1 min-w-[260px]">
+          <label className="block text-xs font-medium text-slate-600 mb-1">Product / variant</label>
+          <select value={selectedKey} onChange={(e) => setSelectedKey(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
+            <option value="">Select inventory item</option>
+            {choices.map((row) => {
+              const key = `${row.productId}:${row.variantId ?? 'product'}`
+              const detail = row.variantName ? ` — ${row.variantName}${row.variantSku ? ` (${row.variantSku})` : ''}` : ''
+              return <option key={key} value={key}>{row.productName}{detail}</option>
+            })}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-600 mb-1">Opening quantity</label>
+          <input type="number" min={0} step={1} value={qty} onChange={(e) => setQty(e.target.value)} className="w-32 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white" />
+        </div>
+        <button onClick={handleSubmit} disabled={isPending} className="px-4 py-2 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg disabled:opacity-50">
+          {isPending ? 'Adding…' : 'Add to location'}
+        </button>
+        <button onClick={onDone} disabled={isPending} className="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-white">Cancel</button>
+      </div>
+      {error && <p className="text-xs text-rose-600 mt-2">{error}</p>}
+    </div>
+  )
+}
+
 // ─── Stock level badge ───────────────────────────────────────────────────────
 
 function StockBadge({ available, reorderThreshold }: { available: number; reorderThreshold: number }) {
@@ -224,11 +293,21 @@ export function InventoryTable({ stock, locations, initialFilter = 'all' }: { st
   const [openRow,   setOpenRow]   = useState<string | null>(null)   // row.id of adjust form
   const [expanded,  setExpanded]  = useState<Set<string>>(new Set()) // productIds
   const [page,      setPage]      = useState(1)
+  const [isAddingStock, setIsAddingStock] = useState(false)
   const warehouseCodes = Array.from(new Set(stock.map((row) => row.warehouseId)))
   const initialLocation = locations.find((location) => location.isDefault)?.code ?? warehouseCodes[0] ?? 'default'
   const [location, setLocation] = useState(initialLocation)
 
   const locationStock = stock.filter((row) => row.warehouseId === location)
+  const locationKeys = new Set(locationStock.map((row) => `${row.productId}:${row.variantId ?? 'product'}`))
+  const choiceMap = new Map<string, StockRow>()
+  for (const row of stock) {
+    const key = `${row.productId}:${row.variantId ?? 'product'}`
+    if (!locationKeys.has(key) && !choiceMap.has(key)) choiceMap.set(key, row)
+  }
+  const addChoices = Array.from(choiceMap.values()).sort((a, b) =>
+    `${a.productName}${a.variantName ?? ''}`.localeCompare(`${b.productName}${b.variantName ?? ''}`),
+  )
   const allGroups = groupByProduct(locationStock)
 
   // Apply search + stock-level filter at the group level
@@ -294,7 +373,7 @@ export function InventoryTable({ stock, locations, initialFilter = 'all' }: { st
 
       {/* Search toolbar */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
-        <select value={location} onChange={(e) => { setLocation(e.target.value); setPage(1); setOpenRow(null) }}
+        <select value={location} onChange={(e) => { setLocation(e.target.value); setPage(1); setOpenRow(null); setIsAddingStock(false) }}
           className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-700">
           {locations.map((item) => <option key={item.id} value={item.code}>{item.name}{item.isDefault ? ' (Default)' : ''}</option>)}
           {warehouseCodes.filter((code) => !locations.some((item) => item.code === code)).map((code) =>
@@ -315,6 +394,16 @@ export function InventoryTable({ stock, locations, initialFilter = 'all' }: { st
             </button>
           )}
         </div>
+        <button
+          type="button"
+          onClick={() => setIsAddingStock((open) => !open)}
+          disabled={addChoices.length === 0 || locations.find((item) => item.code === location)?.isActive === false}
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-[#558476] hover:bg-[#457366] text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+          title={addChoices.length === 0 ? 'All catalog items are already tracked at this location' : undefined}
+        >
+          <Plus className="w-4 h-4" />
+          Add product
+        </button>
         {(search || filter !== 'all') && (
           <p className="text-xs text-slate-500">
             <span className="font-semibold text-slate-700">{groups.length}</span> of{' '}
@@ -322,6 +411,10 @@ export function InventoryTable({ stock, locations, initialFilter = 'all' }: { st
           </p>
         )}
       </div>
+
+      {isAddingStock && (
+        <AddStockForm location={location} choices={addChoices} onDone={() => setIsAddingStock(false)} />
+      )}
 
       {/* Table */}
       <div className="overflow-x-auto">
@@ -347,10 +440,10 @@ export function InventoryTable({ stock, locations, initialFilter = 'all' }: { st
                     </div>
                     <div>
                       <p className="text-sm font-medium text-slate-600">
-                        {search || filter !== 'all' ? 'No products match your filters' : 'No stock records yet'}
+                        {search || filter !== 'all' ? 'No products match your filters' : 'No products assigned to this location'}
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        {search || filter !== 'all' ? 'Try adjusting your search or filter' : 'Stock is created when you adjust quantities on products'}
+                        {search || filter !== 'all' ? 'Try adjusting your search or filter' : 'Use Add product to start tracking stock here'}
                       </p>
                     </div>
                     {(search || filter !== 'all') && (
