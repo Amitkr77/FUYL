@@ -429,9 +429,12 @@ export class OrderService {
       case OrderStatus.ON_HOLD: patch.onHoldAt = now; break;
       case OrderStatus.SHIPPED:
         patch.shippedAt = now;
-        if (dto.trackingNumber) patch.trackingNumber = dto.trackingNumber;
-        if (dto.trackingUrl) patch.trackingUrl = dto.trackingUrl;
-        if (dto.carrier) patch.carrier = dto.carrier;
+        // Automated carrier updates only provide the new status. Preserve the
+        // AWB/link saved when the shipment was booked, while still allowing a
+        // manual shipment to supply or correct them.
+        if (dto.trackingNumber ?? order.trackingNumber) patch.trackingNumber = dto.trackingNumber ?? order.trackingNumber;
+        if (dto.trackingUrl ?? order.trackingUrl) patch.trackingUrl = dto.trackingUrl ?? order.trackingUrl;
+        if (dto.carrier ?? order.carrier) patch.carrier = dto.carrier ?? order.carrier;
         break;
       case OrderStatus.DELIVERED: patch.deliveredAt = now; break;
       case OrderStatus.CLOSED: patch.closedAt = now; break;
@@ -453,8 +456,9 @@ export class OrderService {
       eventBus.publish(Events.ORDER_CONFIRMED, { orderId, userId: order.customerId.toString(), orderNumber: order.orderNumber });
     } else if (dto.status === OrderStatus.SHIPPED) {
       eventBus.publish(Events.ORDER_SHIPPED, {
-        orderId, userId: order.customerId.toString(), trackingNumber: dto.trackingNumber,
-        orderNumber: order.orderNumber, carrier: dto.carrier,
+        orderId, userId: order.customerId.toString(), trackingNumber: dto.trackingNumber ?? order.trackingNumber,
+        trackingUrl: dto.trackingUrl ?? order.trackingUrl,
+        orderNumber: order.orderNumber, carrier: dto.carrier ?? order.carrier,
       });
     } else if (dto.status === OrderStatus.DELIVERED) {
       eventBus.publish(Events.ORDER_DELIVERED, {

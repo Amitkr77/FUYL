@@ -28,6 +28,7 @@ export interface CarrierBookingResult {
   providerOrderId?: string;
   providerShipmentId?: string;
   courierId?: string;
+  carrierName?: string;
 }
 
 export async function createShipmentWithCarrier(input: CarrierBookingInput): Promise<CarrierBookingResult> {
@@ -48,6 +49,7 @@ export async function createShipmentWithCarrier(input: CarrierBookingInput): Pro
       providerOrderId: result.providerOrderId,
       providerShipmentId: result.providerShipmentId,
       courierId: result.courierId,
+      carrierName: result.courierName,
     };
   }
 

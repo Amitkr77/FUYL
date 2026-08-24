@@ -48,6 +48,7 @@ export interface ShiprocketCreateResult {
   providerOrderId?: string;
   providerShipmentId: string;
   courierId?: string;
+  courierName?: string;
 }
 
 export interface ShiprocketServiceability {
@@ -255,6 +256,8 @@ class ShiprocketService {
       providerOrderId: created?.order_id?.toString(),
       providerShipmentId: shipmentId.toString(),
       courierId: assigned?.response?.data?.courier_company_id?.toString(),
+      courierName: assigned?.response?.data?.courier_name
+        ?? assigned?.response?.data?.assigned_company_name,
     };
   }
 

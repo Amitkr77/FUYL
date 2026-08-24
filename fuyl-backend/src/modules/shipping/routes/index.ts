@@ -24,6 +24,9 @@ router.get('/shipping/rate', shippingController.rate);
 // webhooks — Shiprocket's verification is a static secret match, not an
 // HMAC over the raw request bytes, so regular express.json() parsing is fine.
 router.post('/webhooks/shiprocket/tracking', shippingController.shiprocketWebhook);
+// Neutral public alias for Shiprocket accounts that reject webhook URLs
+// containing provider keywords such as "shiprocket", "sr", or "kr".
+router.post('/webhooks/carrier/tracking', shippingController.shiprocketWebhook);
 
 // Seller/admin: book + manage shipments
 router.post('/shipping/shipments', authRequired, shippingController.create);

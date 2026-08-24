@@ -3,7 +3,7 @@ import { createShipmentWithCarrier } from '../utils/carrierProvider';
 import { shiprocketService } from '../utils/shiprocket.service';
 import { nextNumber } from '../../order/utils/counter';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../../shared/errors';
-import { OrderStatus, ShipmentStatus } from '../../../shared/enums';
+import { OrderStatus, PaymentStatus, ShipmentStatus } from '../../../shared/enums';
 import { eventBus, Events } from '../../../shared/services/eventBus.service';
 import { logger } from '../../../config/logger';
 import { Types } from 'mongoose';
@@ -81,6 +81,9 @@ class ShippingService {
     const shipmentNumber = await nextNumber('SHP');
     const addr = order.shippingAddress;
     const isCod = order.paymentMethod === 'cod';
+    if (!isCod && order.paymentStatus !== PaymentStatus.SUCCESS) {
+      throw new BadRequestError('A prepaid order cannot be shipped until payment is confirmed');
+    }
     const booking = await createShipmentWithCarrier({
       carrier: dto.carrier,
       shipmentNumber,
@@ -103,13 +106,14 @@ class ShippingService {
       productsDesc: `Order ${order.orderNumber}`,
     });
 
+    const bookedCarrier = booking.carrierName ?? dto.carrier;
     const shipment = await shipmentRepo.create({
       shipmentNumber,
       orderId: new Types.ObjectId(dto.orderId),
       sellerId: new Types.ObjectId(sellerId),
       customerId: order.customerId,
       status: ShipmentStatus.LABEL_CREATED,
-      carrier: dto.carrier,
+      carrier: bookedCarrier,
       trackingNumber: booking.trackingNumber,
       trackingUrl: booking.trackingUrl,
       labelUrl: booking.labelUrl,
@@ -128,7 +132,7 @@ class ShippingService {
     await orderService.updateTracking(dto.orderId, {
       trackingNumber: booking.trackingNumber,
       trackingUrl: booking.trackingUrl,
-      carrier: dto.carrier,
+      carrier: bookedCarrier,
     });
 
     logger.info(`[shipping] created shipment ${shipmentNumber} for order ${dto.orderId} via ${dto.carrier}`);

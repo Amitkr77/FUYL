@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Truck, CheckCircle2, AlertCircle } from 'lucide-react'
 import { createShipmentAction } from '@/app/(admin)/shipping/actions'
 
@@ -9,6 +10,7 @@ import { createShipmentAction } from '@/app/(admin)/shipping/actions'
 const SHIPPABLE = ['ready_to_ship', 'packed']
 
 export function BookShipmentPanel({ orderId, orderStatus }: { orderId: string; orderStatus: string }) {
+  const router = useRouter()
   const [carrier, setCarrier] = useState('Shiprocket')
   const [weight, setWeight] = useState('')
   const [length, setLength] = useState('')
@@ -41,6 +43,7 @@ export function BookShipmentPanel({ orderId, orderStatus }: { orderId: string; o
       })
       if ('error' in result) { setError(result.error); return }
       setDone(true)
+      router.refresh()
     })
   }
 
