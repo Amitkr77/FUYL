@@ -143,24 +143,21 @@ export async function checkEmailExists(email: string): Promise<boolean> {
   return res.exists
 }
 
-export type CheckoutIdentifyResult =
-  | { status: 'needs_password' }
-  | { status: 'authenticated'; accessToken: string; user: User; isNewAccount: boolean }
+export type CheckoutIdentifyResult = {
+  status: 'checkout_ready'; accessToken: string; user: User; isNewAccount: boolean
+}
 
 export async function checkoutIdentify(payload: {
   email: string
-  password?: string
   fullName?: string
   phone?: string
   guestId?: string
 }): Promise<CheckoutIdentifyResult> {
   const { guestId, ...body } = payload
   const res = await apiFetch<
-    | { status: 'needs_password' }
-    | { status: 'authenticated'; accessToken: string; user: BackendUser; isNewAccount: boolean }
+    { status: 'checkout_ready'; accessToken: string; user: BackendUser; isNewAccount: boolean }
   >('/auth/checkout-identify', { method: 'POST', body, guestId })
-  if (res.status === 'needs_password') return res
-  return { status: 'authenticated', accessToken: res.accessToken, user: mapUser(res.user), isNewAccount: res.isNewAccount }
+  return { status: 'checkout_ready', accessToken: res.accessToken, user: mapUser(res.user), isNewAccount: res.isNewAccount }
 }
 
 export async function getProfile(token: string): Promise<User> {

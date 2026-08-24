@@ -29,10 +29,32 @@ import type { User } from '@/types/user'
 type Step = 'address' | 'review' | 'paying' | 'error'
 type AddressField = 'fullName' | 'phone' | 'line1' | 'city' | 'state' | 'pincode'
 
-const STEP_LABELS = ['Details', 'Review', 'Payment']
+const STEP_LABELS = ['Details', 'Payment']
+
+const COUNTRIES = [
+  { code: 'IN', name: 'India', phoneCode: '+91' },
+  { code: 'US', name: 'United States', phoneCode: '+1' },
+  { code: 'GB', name: 'United Kingdom', phoneCode: '+44' },
+  { code: 'AE', name: 'UAE', phoneCode: '+971' },
+  { code: 'SG', name: 'Singapore', phoneCode: '+65' },
+  { code: 'CA', name: 'Canada', phoneCode: '+1' },
+  { code: 'AU', name: 'Australia', phoneCode: '+61' },
+  { code: 'NZ', name: 'New Zealand', phoneCode: '+64' },
+]
+const COUNTRY_MAP = new Map(COUNTRIES.map((country) => [country.code, country]))
 
 const EMPTY_ADDRESS: CheckoutAddressInput = {
   fullName: '', phone: '', line1: '', line2: '', city: '', state: '', pincode: '', country: 'IN', type: 'home',
+}
+
+function addressForApi(address: CheckoutAddressInput, isWhatsAppNumber: boolean, whatsappPhone: string): CheckoutAddressInput {
+  const prefix = COUNTRY_MAP.get(address.country ?? 'IN')?.phoneCode ?? ''
+  const normalize = (phone: string) => phone.startsWith('+') ? phone : `${prefix}${phone.replace(/\D/g, '')}`
+  return {
+    ...address,
+    phone: normalize(address.phone),
+    whatsappPhone: normalize(isWhatsAppNumber ? address.phone : whatsappPhone),
+  }
 }
 
 // Declaration order doubles as the on-screen field order (pincode sits
@@ -50,7 +72,7 @@ function validateAddressField(key: AddressField, address: CheckoutAddressInput):
     case 'phone': {
       const digits = address.phone.replace(/\D/g, '')
       if (!digits) return 'Phone number is required'
-      if (digits.length !== 10) return 'Enter a valid 10-digit phone number'
+      if (digits.length < 8 || digits.length > 15) return 'Enter a valid phone number'
       return ''
     }
     case 'line1':
@@ -61,7 +83,8 @@ function validateAddressField(key: AddressField, address: CheckoutAddressInput):
       return address.state.trim() ? '' : 'State is required'
     case 'pincode':
       if (!address.pincode.trim()) return 'Pincode is required'
-      if (!/^\d{6}$/.test(address.pincode.trim())) return 'Enter a valid 6-digit pincode'
+      if (address.country === 'IN' && !/^\d{6}$/.test(address.pincode.trim())) return 'Enter a valid 6-digit pincode'
+      if (address.country !== 'IN' && !/^[A-Za-z0-9 -]{3,12}$/.test(address.pincode.trim())) return 'Enter a valid postal code'
       return ''
   }
 }
@@ -131,10 +154,17 @@ export default function CheckoutPage() {
   // lib/api/account.ts's checkoutIdentify). Only relevant when !token.
   const [email, setEmail] = useState('')
   const [emailError, setEmailError] = useState('')
-  const [password, setPassword] = useState('')
-  const [passwordError, setPasswordError] = useState('')
-  const [needsPassword, setNeedsPassword] = useState(false)
+  const [checkoutToken, setCheckoutToken] = useState<string | null>(null)
+  const [isWhatsAppNumber, setIsWhatsAppNumber] = useState(true)
+  const [whatsappPhone, setWhatsappPhone] = useState('')
+  const needsPassword = false
+  const password = ''
+  const passwordError = ''
+  const setNeedsPassword = (_value: boolean) => undefined
+  const setPassword = (_value: string) => undefined
+  const setPasswordError = (_value: string) => undefined
   const [identifying, setIdentifying] = useState(false)
+  const [autoSubmitting, setAutoSubmitting] = useState(false)
   const [checkingEmail, setCheckingEmail] = useState(false)
 
   const handleEmailBlur = async () => {
@@ -143,7 +173,7 @@ export default function CheckoutPage() {
     setCheckingEmail(true)
     try {
       const exists = await checkEmailExists(email)
-      setNeedsPassword(exists)
+      void exists
     } catch {
       // Non-fatal — worst case the password prompt only appears after
       // Continue is clicked instead of proactively on blur.
@@ -157,7 +187,7 @@ export default function CheckoutPage() {
   // overwrites fields the shopper is actively editing mid-keystroke.
   const [pincodeStatus, setPincodeStatus] = useState<'idle' | 'loading' | 'notfound'>('idle')
   useEffect(() => {
-    if (!/^\d{6}$/.test(address.pincode)) { startTransition(() => setPincodeStatus('idle')); return }
+    if (address.country !== 'IN' || !/^\d{6}$/.test(address.pincode)) { startTransition(() => setPincodeStatus('idle')); return }
     let cancelled = false
     startTransition(() => setPincodeStatus('loading'))
     const t = setTimeout(async () => {
@@ -172,7 +202,7 @@ export default function CheckoutPage() {
       }
     }, 400)
     return () => { cancelled = true; clearTimeout(t) }
-  }, [address.pincode])
+  }, [address.pincode, address.country])
 
   // Set once placeOrder() succeeds — lets a payment-step retry re-attempt
   // payment for the same order instead of placing a second one.
@@ -187,6 +217,7 @@ export default function CheckoutPage() {
   // Plain ref (not state) so the empty-cart guard below sees it synchronously
   // the instant an order is placed, before syncCart's own re-render can race it.
   const orderPlacedRef = useRef(false)
+  const autoPlaceRef = useRef(false)
   // Focus moves to the new step's content on advance, for keyboard/screen-
   // reader users — a real step transition, not just a visual one.
   const stepContentRef = useRef<HTMLDivElement>(null)
@@ -284,7 +315,8 @@ export default function CheckoutPage() {
   // Continue resolves one; silently creating an account in the background
   // just because a debounce timer fired would be the wrong tradeoff.
   useEffect(() => {
-    if (!token || !addressComplete(address, token, email)) {
+    const accessToken = token ?? checkoutToken
+    if (!accessToken || !addressComplete(address, accessToken, email)) {
       startTransition(() => { setPreview(null); setPreviewLoading(false); setPreviewError('') })
       return
     }
@@ -294,8 +326,8 @@ export default function CheckoutPage() {
     const loyaltyPoints = useLoyalty ? (loyaltyBalance?.balance ?? 0) : 0
     const t = setTimeout(async () => {
       try {
-        const result = await previewCheckout(token, {
-          shippingAddress: address,
+        const result = await previewCheckout(accessToken, {
+          shippingAddress: addressForApi(address, isWhatsAppNumber, whatsappPhone),
           paymentMethod,
           couponCode: appliedCoupon?.code,
           walletRedemptionAmount: walletAmount > 0 ? walletAmount : undefined,
@@ -313,7 +345,7 @@ export default function CheckoutPage() {
     }, 500)
     return () => { cancelled = true; clearTimeout(t) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, address, paymentMethod, appliedCoupon?.code, previewRetry, useWallet, walletBalance, useLoyalty, loyaltyBalance])
+  }, [token, checkoutToken, address, paymentMethod, appliedCoupon?.code, previewRetry, useWallet, walletBalance, useLoyalty, loyaltyBalance, isWhatsAppNumber, whatsappPhone])
 
   const set = (k: keyof CheckoutAddressInput) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setAddress((a) => ({ ...a, [k]: e.target.value }))
@@ -345,17 +377,18 @@ export default function CheckoutPage() {
     setFieldErrors(addrErrors)
 
     let guestEmailError = ''
-    let guestPasswordError = ''
     if (!token) {
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) guestEmailError = 'Enter a valid email address'
-      if (needsPassword && !password) guestPasswordError = 'Enter your password'
     }
     setEmailError(guestEmailError)
-    setPasswordError(guestPasswordError)
+
+    if (!isWhatsAppNumber && whatsappPhone.replace(/\D/g, '').length < 8) {
+      setError('Enter a valid WhatsApp number or select that your phone number is available on WhatsApp.')
+      return
+    }
 
     const invalidKeys = [
       guestEmailError && 'email',
-      guestPasswordError && 'password',
       ...Object.keys(addrErrors),
     ].filter(Boolean) as string[]
     if (invalidKeys.length > 0) {
@@ -378,19 +411,12 @@ export default function CheckoutPage() {
         const guestId = useCartStore.getState().guestId ?? undefined
         const result = await checkoutIdentify({
           email,
-          password: needsPassword ? password : undefined,
           fullName: address.fullName,
           phone: address.phone,
           guestId,
         })
-        if (result.status === 'needs_password') {
-          setNeedsPassword(true)
-          setError('This email already has an account — enter your password to continue.')
-          return
-        }
         skipAutoSelectRef.current = true
-        useAuthStore.getState().setSession(result.accessToken, result.user)
-        await useCartStore.getState().syncCart()
+        setCheckoutToken(result.accessToken)
       } catch (err) {
         setError(getErrorMessage(err, 'Could not verify your details. Please check them and try again.'))
         return
@@ -398,6 +424,8 @@ export default function CheckoutPage() {
         setIdentifying(false)
       }
     }
+    autoPlaceRef.current = true
+    setAutoSubmitting(true)
     setStep('review')
   }
 
@@ -405,7 +433,8 @@ export default function CheckoutPage() {
   // retry — never creates a new order.
   const attemptPayment = async (order: { orderId: string; orderNumber: string }) => {
     try {
-      if (!token) {
+      const accessToken = token ?? checkoutToken
+      if (!accessToken) {
         setError('Your session expired. Please sign in again before paying for this order.')
         setStep('error')
         return
@@ -416,11 +445,11 @@ export default function CheckoutPage() {
       // Use 'cod' so the backend marks it complete without attempting a charge.
       const loyaltyCoversAll = useLoyalty && !useWallet && orderFullyCovered
       const method = walletCoversAll ? 'wallet' : loyaltyCoversAll ? 'loyalty' : paymentMethod
-      const payment = await createPayment(token, order.orderId, method)
+      const payment = await createPayment(accessToken, order.orderId, method)
 
       if (payment.method === 'cod' || payment.method === 'wallet' || payment.method === 'loyalty') {
         await useCartStore.getState().syncCart()
-        router.push(`/checkout/success?orderId=${order.orderId}`)
+        router.push(`/checkout/success?orderId=${order.orderId}&orderNumber=${encodeURIComponent(order.orderNumber)}`)
         return
       }
 
@@ -436,9 +465,9 @@ export default function CheckoutPage() {
       })
 
       try {
-        await verifyPayment(token, { cfOrderId: payment.cfOrderId })
+        await verifyPayment(accessToken, { cfOrderId: payment.cfOrderId })
         await useCartStore.getState().syncCart()
-        router.push(`/checkout/success?orderId=${order.orderId}`)
+        router.push(`/checkout/success?orderId=${order.orderId}&orderNumber=${encodeURIComponent(order.orderNumber)}`)
       } catch {
         setError(
           `Payment was not completed. Order ${order.orderNumber} is saved — you can retry payment below. ` +
@@ -457,8 +486,9 @@ export default function CheckoutPage() {
 
   const handleConfirm = async () => {
     if (confirmingRef.current || !preview || previewLoading) return
-    if (!token) {
-      setError('Your session expired. Please sign in again before placing the order.')
+    const accessToken = token ?? checkoutToken
+    if (!accessToken) {
+      setError('Your checkout session expired. Please enter your contact details again.')
       setStep('error')
       return
     }
@@ -472,12 +502,13 @@ export default function CheckoutPage() {
       const walletCoversAll = useWallet && orderFullyCovered
       const loyaltyCoversAll = useLoyalty && !useWallet && orderFullyCovered
       const method = walletCoversAll ? 'wallet' : loyaltyCoversAll ? 'loyalty' : paymentMethod
-      const order = await placeOrder(token, {
-        shippingAddress: address,
+      const order = await placeOrder(accessToken, {
+        shippingAddress: addressForApi(address, isWhatsAppNumber, whatsappPhone),
         paymentMethod: method,
         couponCode: appliedCoupon?.code,
         walletRedemptionAmount: walletAmount > 0 ? walletAmount : undefined,
         loyaltyPointsToRedeem: loyaltyPoints > 0 ? loyaltyPoints : undefined,
+        saveAddress: true,
       })
       orderPlacedRef.current = true
       setPlacedOrder(order)
@@ -491,6 +522,17 @@ export default function CheckoutPage() {
     }
   }
 
+  useEffect(() => {
+    if (step === 'review' && autoPlaceRef.current && preview && !previewLoading && !confirmingRef.current) {
+      autoPlaceRef.current = false
+      void handleConfirm()
+    } else if (step === 'review' && autoPlaceRef.current && previewError && !previewLoading) {
+      autoPlaceRef.current = false
+      setError(previewError)
+      setStep('error')
+    }
+  }, [step, preview, previewLoading, previewError])
+
   const handleRetry = () => {
     setError('')
     if (placedOrder) {
@@ -500,7 +542,7 @@ export default function CheckoutPage() {
     }
   }
 
-  const stepIndex = step === 'address' ? 0 : step === 'review' ? 1 : 2
+  const stepIndex = step === 'address' ? 0 : 1
   const displayDiscount = preview?.discountTotal ?? appliedCoupon?.discountAmount ?? 0
   const displayTotal = preview?.remainingToPay ?? preview?.grandTotal ?? Math.max(0, subtotal - displayDiscount)
   const showManualForm = !addressesLoading && (savedAddresses.length === 0 || selectedAddressId === 'new')
@@ -532,7 +574,7 @@ export default function CheckoutPage() {
                     id="email"
                     label="Email"
                     value={email}
-                    onChange={(e) => { setEmail(e.target.value); setEmailError(''); setNeedsPassword(false); setPassword('') }}
+                    onChange={(e) => { setEmail(e.target.value); setEmailError(''); setCheckoutToken(null) }}
                     onBlur={handleEmailBlur}
                     type="email"
                     loading={checkingEmail}
@@ -655,17 +697,43 @@ export default function CheckoutPage() {
                       error={fieldErrors.fullName}
                       autoFocus={Boolean(token)}
                     />
-                    <Field
-                      id="phone"
-                      label="Phone"
-                      value={address.phone}
-                      onChange={setDigitsOnly('phone', 10)}
-                      onBlur={blurField('phone')}
-                      type="tel"
-                      inputMode="numeric"
-                      maxLength={10}
-                      error={fieldErrors.phone}
-                    />
+                    <div>
+                      <label htmlFor="field-phone" className="block text-label mb-1.5 text-brand-muted">Phone</label>
+                      <div className="flex">
+                        <select
+                          value={address.country}
+                          onChange={(e) => setAddress((current) => ({ ...current, country: e.target.value }))}
+                          aria-label="Phone country code"
+                          className="h-11 rounded-l-sm border border-r-0 border-brand-border bg-white px-2 text-body-sm"
+                        >
+                          {COUNTRIES.map((country) => <option key={country.code} value={country.code}>{country.phoneCode}</option>)}
+                        </select>
+                        <input
+                          id="field-phone"
+                          type="tel"
+                          inputMode="numeric"
+                          value={address.phone}
+                          onChange={setDigitsOnly('phone', 15)}
+                          onBlur={blurField('phone')}
+                          className={`h-11 min-w-0 flex-1 rounded-r-sm border px-3 text-body-sm outline-none focus:border-brand-berry ${fieldErrors.phone ? 'border-red-400' : 'border-brand-border'}`}
+                        />
+                      </div>
+                      {fieldErrors.phone && <p className="text-body-xs mt-1 text-red-600">{fieldErrors.phone}</p>}
+                    </div>
+                    <label className="flex items-center gap-2 text-body-sm text-brand-muted">
+                      <input type="checkbox" checked={isWhatsAppNumber} onChange={(e) => setIsWhatsAppNumber(e.target.checked)} />
+                      This phone number is available on WhatsApp
+                    </label>
+                    {!isWhatsAppNumber && (
+                      <Field
+                        label="WhatsApp Number"
+                        value={whatsappPhone}
+                        onChange={(e) => setWhatsappPhone(e.target.value.replace(/\D/g, '').slice(0, 15))}
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={15}
+                      />
+                    )}
                     <Field
                       id="line1"
                       label="Address Line 1"
@@ -683,11 +751,11 @@ export default function CheckoutPage() {
                       id="pincode"
                       label="Pincode"
                       value={address.pincode}
-                      onChange={setDigitsOnly('pincode', 6)}
+                      onChange={address.country === 'IN' ? setDigitsOnly('pincode', 6) : set('pincode')}
                       onBlur={blurField('pincode')}
                       type="tel"
                       inputMode="numeric"
-                      maxLength={6}
+                      maxLength={address.country === 'IN' ? 6 : 12}
                       loading={pincodeStatus === 'loading'}
                       error={fieldErrors.pincode}
                       hint={pincodeStatus === 'notfound' ? "Couldn't find this pincode — enter city/state manually below." : undefined}
@@ -695,6 +763,16 @@ export default function CheckoutPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <Field id="city" label="City" value={address.city} onChange={set('city')} onBlur={blurField('city')} error={fieldErrors.city} />
                       <Field id="state" label="State" value={address.state} onChange={set('state')} onBlur={blurField('state')} error={fieldErrors.state} />
+                    </div>
+                    <div>
+                      <label className="block text-label mb-1.5 text-brand-muted">Country</label>
+                      <select
+                        value={address.country}
+                        onChange={(e) => setAddress((current) => ({ ...current, country: e.target.value }))}
+                        className="h-11 w-full rounded-sm border border-brand-border bg-white px-3 text-body-sm"
+                      >
+                        {COUNTRIES.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}
+                      </select>
                     </div>
                   </>
                 )}
@@ -799,13 +877,21 @@ export default function CheckoutPage() {
                   disabled={identifying}
                   onClick={handleContinueToReview}
                 >
-                  Continue to Review
+                  {paymentMethod === 'cashfree' && displayTotal > 0 ? `Pay ${formatPrice(displayTotal)}` : 'Place Order'}
                 </Button>
               </StickyActionBar>
             </div>
           )}
 
-          {step === 'review' && (
+          {step === 'review' && autoSubmitting && (
+            <div ref={stepContentRef} tabIndex={-1} className="py-16 text-center outline-none">
+              <Spinner size={28} />
+              <p className="mt-4 text-body-md font-semibold text-brand-forest">Preparing your order…</p>
+              <p className="mt-1 text-body-sm text-brand-muted">Please don&apos;t close or refresh this page.</p>
+            </div>
+          )}
+
+          {step === 'review' && !autoSubmitting && (
             <div ref={stepContentRef} tabIndex={-1} className="animate-fade-in outline-none space-y-4">
               {/* Items — visible in this column on mobile where the sidebar is collapsed */}
               <div className="lg:hidden p-4 border rounded-sm border-brand-border space-y-3">

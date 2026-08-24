@@ -300,7 +300,7 @@ class CheckoutService {
    * Execute checkout: place order, charge payment, reserve stock, dispatch events.
    * affiliationToken — value from the aff_token cookie set by the affiliate tracking redirect.
    */
-  async placeOrder(userId: string, dto: CheckoutDTO, affiliationToken?: string) {
+  async placeOrder(userId: string, dto: CheckoutDTO, affiliationToken?: string, maySaveAddress = true) {
     const preview = await this.preview(userId, dto);
 
     // 1. Reserve inventory against the cart
@@ -479,6 +479,15 @@ class CheckoutService {
 
     // 8. Mark cart as converted
     await cartService.markConverted(preview.cart._id.toString(), order._id.toString());
+
+    // Persist a manually entered checkout address for future signed-in use.
+    // The customer service deduplicates it and makes the first address default.
+    if (maySaveAddress && dto.saveAddress !== false && dto.shippingAddress) {
+      const { customerService } = await import('../../customer/services/customer.service');
+      await customerService.saveCheckoutAddress(userId, dto.shippingAddress).catch((err) => {
+        logger.warn('[checkout] order placed but address could not be saved', { userId, orderId: order._id.toString(), err });
+      });
+    }
 
     // 9. Release cart-level reservations — they're now associated with the order
     await inventoryService.releaseReservations({ cartId: preview.cart._id.toString() });

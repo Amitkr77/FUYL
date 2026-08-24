@@ -23,6 +23,7 @@ export const addressSchema = z.object({
   postalCode: z.string().min(3).max(20),
   country: z.string().min(2).max(3).default('IN'),
   phone: phoneSchema.optional(),
+  whatsappPhone: phoneSchema.optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   isDefault: z.boolean().default(false),

@@ -15,6 +15,9 @@ export interface JwtPayload {
   permissions?: string[];
   impersonatedAffiliateId?: string;
   impersonatedBy?: string;
+  checkoutOnly?: boolean;
+  checkoutCartId?: string;
+  checkoutNewAccount?: boolean;
   iat?: number;
   exp?: number;
 }
@@ -44,6 +47,13 @@ export function authenticate(required: boolean = true) {
         return next(new UnauthorizedError('Invalid or expired token'));
       }
       if (payload.impersonatedAffiliateId && !req.originalUrl.includes('/affiliate/')) return next(new UnauthorizedError('Affiliate impersonation tokens are restricted to affiliate routes'));
+      if (payload.checkoutOnly) {
+        const path = req.originalUrl.split('?')[0];
+        const allowed = req.method === 'POST' && (
+          /\/checkout\/(preview|place-order)$/.test(path) || /\/payments(\/verify)?$/.test(path)
+        );
+        if (!allowed) return next(new UnauthorizedError('Checkout token is restricted to checkout and payment routes'));
+      }
       // Privileged claims must reflect the account's current database state.
       // Without this lookup, disabling a staff member or revoking a permission
       // leaves their old JWT authorised until it expires.

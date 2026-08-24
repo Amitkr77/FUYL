@@ -6,6 +6,7 @@ import { apiFetch } from './client'
 export interface CheckoutAddressInput {
   fullName: string
   phone:    string
+  whatsappPhone?: string
   line1:    string
   line2?:   string
   city:     string
@@ -23,6 +24,7 @@ export interface CheckoutInput {
   couponCode?:              string
   walletRedemptionAmount?:  number
   loyaltyPointsToRedeem?:   number
+  saveAddress?:             boolean
 }
 
 interface BackendPreview {

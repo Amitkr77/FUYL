@@ -17,6 +17,7 @@ import { phoneSchema } from '../../../shared/validators';
 const checkoutAddressSchema = z.object({
   fullName: z.string().min(1).max(120),
   phone: phoneSchema,
+  whatsappPhone: phoneSchema.optional(),
   line1: z.string().min(1).max(200),
   line2: z.string().max(200).optional(),
   city: z.string().min(1).max(100),
@@ -41,6 +42,7 @@ export const checkoutSchema = z.object({
   walletRedemptionAmount: z.number().min(0).optional(),   // for split: amount to debit from wallet
   loyaltyPointsToRedeem: z.number().int().min(0).optional(), // loyalty points to redeem on this order
   notes: z.string().max(500).optional(),
+  saveAddress: z.boolean().default(true),
 });
 
 export const verifyPaymentSchema = z.object({

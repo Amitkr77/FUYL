@@ -21,7 +21,8 @@ export class CheckoutController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const affiliationToken = req.cookies?.aff_token as string | undefined;
-        const result = await checkoutService.placeOrder(req.user!.userId, req.body, affiliationToken);
+        const maySaveAddress = !req.user!.checkoutOnly || req.user!.checkoutNewAccount === true;
+        const result = await checkoutService.placeOrder(req.user!.userId, req.body, affiliationToken, maySaveAddress);
         return success(res, result);
       } catch (err) { next(err); }
     },

@@ -24,6 +24,7 @@ const COUNTRY_MAP = new Map(COUNTRIES.map((c) => [c.code, c]))
 const emptyForm: AddressInput = {
   name: '', label: '', line1: '', line2: '', city: '', state: '', postalCode: '', country: 'IN',
   phone: '', isDefault: false, isBilling: false, isShipping: true,
+  whatsappPhone: '',
 }
 
 function AddressCardSkeleton() {
@@ -52,6 +53,7 @@ export default function AddressesPage() {
   const [isSaving, setSaving]     = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [removingId, setRemovingId] = useState<string | null>(null)
+  const [whatsappSame, setWhatsappSame] = useState(true)
 
   const load = useCallback(() => {
     if (!token) return
@@ -64,7 +66,7 @@ export default function AddressesPage() {
 
   useEffect(() => { load() }, [load])
 
-  const startNew = () => { setForm(emptyForm); setEditing('new'); setFormError(null) }
+  const startNew = () => { setForm(emptyForm); setWhatsappSame(true); setEditing('new'); setFormError(null) }
   const startEdit = (a: Address) => {
     // Strip the stored country code prefix from the phone before putting it in the input
     const countryEntry = COUNTRY_MAP.get(a.country ?? 'IN')
@@ -76,9 +78,11 @@ export default function AddressesPage() {
     setForm({
       name: a.name, label: a.label, line1: a.line1, line2: a.line2 ?? '', city: a.city, state: a.state,
       postalCode: a.postalCode, country: a.country ?? 'IN', phone: phoneDigits,
+      whatsappPhone: a.whatsappPhone ?? a.phone ?? '',
       isDefault: a.isDefault, isBilling: a.isBilling, isShipping: a.isShipping,
       deliveryInstructions: a.deliveryInstructions,
     })
+    setWhatsappSame(!a.whatsappPhone || a.whatsappPhone === a.phone)
     setEditing(a.id)
     setFormError(null)
   }
@@ -96,7 +100,11 @@ export default function AddressesPage() {
       const phoneCode = COUNTRY_MAP.get(form.country)?.phoneCode ?? ''
       const phoneDigits = (form.phone ?? '').trim().replace(/^\+/, '') // strip any existing + in case user typed it
       const fullPhone = phoneDigits ? `${phoneCode}${phoneDigits}` : ''
-      const payload = { ...form, phone: fullPhone }
+      const whatsappDigits = (whatsappSame ? (form.phone ?? '') : (form.whatsappPhone ?? '')).trim().replace(/^\+/, '')
+      const fullWhatsApp = whatsappDigits
+        ? (form.whatsappPhone?.startsWith('+') ? form.whatsappPhone : `${phoneCode}${whatsappDigits}`)
+        : fullPhone
+      const payload = { ...form, phone: fullPhone, whatsappPhone: fullWhatsApp }
       const updated = isEditing === 'new'
         ? await addAddress(token, payload)
         : await updateAddress(token, isEditing!, payload)
@@ -196,6 +204,17 @@ export default function AddressesPage() {
               </div>
             </div>
           </div>
+          <label className="flex items-center gap-2 text-body-sm">
+            <input
+              type="checkbox"
+              checked={whatsappSame}
+              onChange={(e) => setWhatsappSame(e.target.checked)}
+            />
+            This phone number is available on WhatsApp
+          </label>
+          {!whatsappSame && (
+            <Field label="WhatsApp Number" value={form.whatsappPhone ?? ''} onChange={(v) => setForm((f) => ({ ...f, whatsappPhone: v }))} />
+          )}
           <Field label="Address Line 1" required value={form.line1} onChange={(v) => setForm((f) => ({ ...f, line1: v }))} />
           <Field label="Address Line 2 (optional)" value={form.line2 ?? ''} onChange={(v) => setForm((f) => ({ ...f, line2: v }))} />
           <div className="grid grid-cols-3 gap-3">

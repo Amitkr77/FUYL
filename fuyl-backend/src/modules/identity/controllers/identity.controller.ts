@@ -81,17 +81,8 @@ export class IdentityController {
         const meta = IdentityService.extractMeta(req);
         const guestId = req.headers['x-guest-id'] as string | undefined;
         const result = await identityService.checkoutIdentify(req.body, meta, guestId);
-        if (result.status === 'needs_password') {
-          return success(res, { status: 'needs_password' });
-        }
-        res.cookie(env.jwt.cookieName, result.refreshToken, {
-          httpOnly: true,
-          secure: env.isProd,
-          sameSite: 'strict',
-          maxAge: 30 * 24 * 60 * 60 * 1000,
-        });
         return success(res, {
-          status: 'authenticated',
+          status: 'checkout_ready',
           user: result.user,
           accessToken: result.accessToken,
           isNewAccount: result.isNewAccount,

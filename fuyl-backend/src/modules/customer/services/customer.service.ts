@@ -28,6 +28,38 @@ class CustomerService {
     return profileRepo.addAddress(new Types.ObjectId(userId), dto as any);
   }
 
+  async saveCheckoutAddress(userId: string, address: {
+    fullName: string; phone: string; whatsappPhone?: string; line1: string; line2?: string;
+    city: string; state: string; pincode: string; country: string; type?: string;
+  }) {
+    const profile = await this.getOrCreateProfile(userId, address.fullName);
+    const normalize = (value?: string) => (value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const duplicate = profile.addresses.some((saved) =>
+      normalize(saved.line1) === normalize(address.line1) &&
+      normalize(saved.line2) === normalize(address.line2) &&
+      normalize(saved.city) === normalize(address.city) &&
+      normalize(saved.state) === normalize(address.state) &&
+      normalize(saved.postalCode) === normalize(address.pincode) &&
+      normalize(saved.country) === normalize(address.country)
+    );
+    if (duplicate) return profile;
+    return profileRepo.addAddress(new Types.ObjectId(userId), {
+      name: address.fullName,
+      label: address.type === 'office' ? 'Work' : address.type === 'other' ? 'Other' : 'Home',
+      line1: address.line1,
+      line2: address.line2,
+      city: address.city,
+      state: address.state,
+      postalCode: address.pincode,
+      country: address.country,
+      phone: address.phone,
+      whatsappPhone: address.whatsappPhone,
+      isDefault: profile.addresses.length === 0,
+      isBilling: false,
+      isShipping: true,
+    });
+  }
+
   async updateAddress(userId: string, addressId: string, dto: Partial<AddressDTO>) {
     const updated = await profileRepo.updateAddress(new Types.ObjectId(userId), addressId, dto as any);
     if (!updated) throw new NotFoundError('Address');

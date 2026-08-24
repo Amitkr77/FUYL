@@ -293,10 +293,7 @@ export class IdentityService {
     dto: CheckoutIdentifyDTO,
     meta: { ip?: string; userAgent?: string; deviceFingerprint?: string },
     guestId?: string
-  ): Promise<
-    | { status: 'needs_password' }
-    | { status: 'authenticated'; user: unknown; accessToken: string; refreshToken: string; isNewAccount: boolean }
-  > {
+  ): Promise<{ user: unknown; accessToken: string; isNewAccount: boolean }> {
     const existing = await userRepo.findByEmail(dto.email);
 
     if (existing) {
@@ -304,27 +301,20 @@ export class IdentityService {
       if (existing.lockedUntil && existing.lockedUntil > new Date()) {
         throw new ForbiddenError('Account temporarily locked. Try again later.');
       }
-      if (!dto.password) {
-        return { status: 'needs_password' };
-      }
-
-      const ok = await comparePassword(dto.password, existing.passwordHash);
-      if (!ok) {
-        await userRepo.incrementFailedLogin(dto.email);
-        throw new UnauthorizedError('Incorrect password');
-      }
-
-      await userRepo.resetFailedLogin(existing.id);
-      await userRepo.update(existing.id, { lastLoginAt: new Date(), lastLoginIp: meta.ip });
-      const tokens = await this.issueTokens(existing, meta);
-
       if (guestId) {
         const { cartService } = await import('../../cart/services/cart.service');
         await cartService.mergeGuestCartIntoUser(guestId, existing.id);
       }
-
-      eventBus.publish(Events.USER_LOGIN, { userId: existing.id, ip: meta.ip });
-      return { status: 'authenticated', user: existing, ...tokens, isNewAccount: false };
+      const { cartService } = await import('../../cart/services/cart.service');
+      const cart = await cartService.getCart({ userId: existing.id });
+      return {
+        user: existing,
+        accessToken: signShortAccessToken({
+          userId: existing.id, role: 'checkout_guest', email: existing.email,
+          permissions: [], checkoutOnly: true, checkoutCartId: cart?._id.toString(), checkoutNewAccount: false,
+        }, '2h'),
+        isNewAccount: false,
+      };
     }
 
     // New email — create the account silently, right from the checkout form.
@@ -354,10 +344,11 @@ export class IdentityService {
     void this.forgotPassword(dto.email);
 
     return {
-      status: 'authenticated',
       user: registerResult.user,
-      accessToken: registerResult.accessToken,
-      refreshToken: registerResult.refreshToken,
+      accessToken: signShortAccessToken({
+        userId: registerResult.user.id, role: 'checkout_guest', email: registerResult.user.email,
+        permissions: [], checkoutOnly: true, checkoutNewAccount: true,
+      }, '2h'),
       isNewAccount: true,
     };
   }

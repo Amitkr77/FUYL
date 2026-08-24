@@ -20,6 +20,7 @@ export interface IOrderItem {
 export interface IOrderAddress {
   fullName: string;
   phone: string;
+  whatsappPhone?: string;
   line1: string;
   line2?: string;
   city: string;
@@ -103,6 +104,7 @@ const OrderItemSchema = new Schema<IOrderItem>({
 const OrderAddressSchema = new Schema<IOrderAddress>({
   fullName: { type: String, required: true },
   phone: { type: String, required: true },
+  whatsappPhone: { type: String },
   line1: { type: String, required: true },
   line2: { type: String },
   city: { type: String, required: true },

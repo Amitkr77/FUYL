@@ -90,7 +90,6 @@ export const checkoutIdentifySchema = z.object({
   email: z.string().email(),
   // Only required if the email already belongs to an existing account —
   // checked server-side, not assumed here.
-  password: z.string().min(1).optional(),
   fullName: z.string().min(1).max(150).optional(),
   phone: phoneSchema.optional(),
 });

@@ -11,6 +11,7 @@ export interface ICustomerAddress {
   postalCode: string;
   country: string;
   phone?: string;
+  whatsappPhone?: string;
   latitude?: number;
   longitude?: number;
   isDefault: boolean;
@@ -73,6 +74,7 @@ const AddressSchema = new Schema<ICustomerAddress>(
     postalCode: { type: String, required: true, trim: true },
     country: { type: String, required: true, default: 'IN' },
     phone: { type: String, trim: true },
+    whatsappPhone: { type: String, trim: true },
     latitude: { type: Number, min: -90, max: 90 },
     longitude: { type: Number, min: -180, max: 180 },
     isDefault: { type: Boolean, default: false },

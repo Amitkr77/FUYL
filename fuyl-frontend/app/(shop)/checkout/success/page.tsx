@@ -58,6 +58,7 @@ function CheckoutSuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderId = searchParams.get('orderId')
+  const orderNumber = searchParams.get('orderNumber')
   const { token } = useAuthStore()
 
   const [order, setOrder]     = useState<Order | null>(null)
@@ -65,7 +66,7 @@ function CheckoutSuccessContent() {
   const [error, setError]     = useState<string | null>(null)
 
   useEffect(() => {
-    if (!token) { router.replace('/account'); return }
+    if (!token) { setLoading(false); return }
     if (!orderId) { router.replace('/collections/all'); return }
     startTransition(() => setLoading(true))
     getOrder(token, orderId)
@@ -74,7 +75,7 @@ function CheckoutSuccessContent() {
       .finally(() => setLoading(false))
   }, [token, orderId, router])
 
-  if (!token || !orderId) return null
+  if (!orderId) return null
 
   return (
     <div className="container-brand section-py max-w-xl mx-auto">
@@ -137,13 +138,23 @@ function CheckoutSuccessContent() {
         </div>
       )}
 
+      {!token && orderNumber && (
+        <div className="border border-brand-border rounded-2xl p-6 sm:p-8 mb-8 text-center">
+          <p className="text-label text-brand-muted mb-2">Order Number</p>
+          <p className="text-display-md font-display text-brand-forest">{orderNumber}</p>
+          <p className="text-body-sm text-brand-muted mt-3">
+            Sign in whenever you want to view tracking and complete order details.
+          </p>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-3">
         <Button
           variant="outline"
           size="lg"
           fullWidth
-          disabled={!order}
-          onClick={() => order && router.push(`/account/orders/${order.id}`)}
+          disabled={!order && !orderNumber}
+          onClick={() => order ? router.push(`/account/orders/${order.id}`) : router.push('/account')}
         >
           View Order
         </Button>
