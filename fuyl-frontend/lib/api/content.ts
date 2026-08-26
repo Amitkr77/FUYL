@@ -209,11 +209,14 @@ export async function getFAQs(): Promise<FAQ[]> {
 // ~200 calls/hour, so the backend itself caches for an hour; this just needs
 // to survive being unreachable without taking the homepage down with it —
 // callers (InstagramFeed.tsx) fall back to static placeholders on [].
-export async function getInstagramPosts(limit = 6): Promise<InstagramPost[]> {
+export async function getInstagramPosts(limit?: number): Promise<InstagramPost[]> {
   try {
-    return await apiFetch<InstagramPost[]>(`/instagram?limit=${limit}`, {
-      tags:       ['instagram'],
-      revalidate: 3600,
+    const query = limit ? `?limit=${limit}` : ''
+    return await apiFetch<InstagramPost[]>(`/instagram${query}`, {
+      // The backend already caches the complete feed and the Instagram
+      // webhook invalidates it. Avoid a second frontend cache that could keep
+      // an empty/stale feed visible for another hour.
+      cache: 'no-store',
     })
   } catch {
     return []

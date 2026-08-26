@@ -6,7 +6,7 @@ import { SITE } from "@/lib/constants/site";
 import { getInstagramPosts } from "@/lib/api/content";
 
 export async function InstagramFeed() {
-  const posts = await getInstagramPosts(6);
+  const posts = await getInstagramPosts();
   // Only render a genuine feed. When Instagram isn't configured
   // (no INSTAGRAM_ACCESS_TOKEN) or the API returns nothing, hide the section
   // entirely rather than showing duplicate placeholder tiles that look broken
@@ -45,20 +45,21 @@ export async function InstagramFeed() {
           </div>
         </ScrollReveal>
 
-        {/* Mobile: horizontal scroll with larger cards; sm+: grid */}
-        <div className="overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden -mx-4 sm:mx-0 sm:overflow-visible">
-          <div className="flex gap-3 px-4 sm:px-0 pb-2 sm:pb-0 sm:grid sm:grid-cols-3 sm:gap-2 lg:grid-cols-3">
+        {/* A single horizontal feed on every breakpoint. Portrait 4:5 cards
+            show Instagram photography/reel covers with less aggressive crop. */}
+        <div className="overflow-x-auto overscroll-x-contain scroll-smooth snap-x snap-mandatory scrollbar-none [&::-webkit-scrollbar]:hidden -mx-4 sm:-mx-6 lg:-mx-8">
+          <div className="flex w-max gap-3 px-4 sm:px-6 lg:px-8 pb-3">
             {tiles.map(({ id, src, alt, href }, i) => (
               <ScrollReveal
                 key={id}
-                delay={i * 40}
-                className="shrink-0 w-52 sm:w-auto"
+                delay={Math.min(i, 10) * 40}
+                className="shrink-0 w-56 sm:w-64 lg:w-72 snap-start"
               >
                 <Link
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="relative block aspect-square overflow-hidden rounded-xl group bg-brand-sage"
+                  className="relative block aspect-[4/5] overflow-hidden rounded-xl group bg-brand-sage"
                 >
                   <Image
                     src={src}
@@ -66,7 +67,7 @@ export async function InstagramFeed() {
                     fill
                     unoptimized
                     className="object-cover transition-transform duration-500 group-hover:scale-110"
-                    sizes="(max-width: 640px) 208px, (max-width: 1024px) 33vw, 33vw"
+                    sizes="(max-width: 640px) 224px, (max-width: 1024px) 256px, 288px"
                   />
                   {/* Teal hover overlay — interactive element */}
                   <div className="absolute inset-0 bg-brand-teal/0 group-hover:bg-brand-teal/25 transition-colors duration-300" />

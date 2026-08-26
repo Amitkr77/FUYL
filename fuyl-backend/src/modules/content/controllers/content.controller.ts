@@ -310,7 +310,8 @@ export class ContentController {
   // ─── Instagram feed — Public ──────────────────────────────────
   instagramFeed = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 6;
+      const parsedLimit = parseInt(req.query.limit as string, 10);
+      const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
       return success(res, await contentService.getInstagramFeed(limit));
     } catch (err) { next(err); }
   };

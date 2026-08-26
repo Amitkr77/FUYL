@@ -286,13 +286,13 @@ class ContentService {
   // (no token configured, Instagram API error, Redis unreachable) resolves
   // to an empty array rather than throwing, so the homepage always renders —
   // the frontend falls back to static placeholders when this comes back empty.
-  async getInstagramFeed(limit = 6): Promise<InstagramPost[]> {
+  async getInstagramFeed(limit?: number): Promise<InstagramPost[]> {
     if (!env.instagram.accessToken) return [];
 
     const cacheKey = "content:instagram:posts";
     try {
       const cached = await cacheService.get<InstagramPost[]>(cacheKey);
-      if (cached) return cached.slice(0, limit);
+      if (cached) return limit ? cached.slice(0, limit) : cached;
     } catch (err) {
       logger.warn("[content] instagram cache read failed", err);
     }
@@ -300,15 +300,30 @@ class ContentService {
     try {
       const fields =
         "id,caption,media_type,media_url,permalink,thumbnail_url,timestamp";
-      const url = `https://graph.instagram.com/me/media?fields=${fields}&access_token=${env.instagram.accessToken}&limit=25`;
-      const res = await fetch(url);
-      if (!res.ok)
-        throw new Error(
-          `Instagram API responded ${res.status}: ${await res.text()}`,
-        );
-      const json = (await res.json()) as { data?: InstagramMediaRaw[] };
+      let nextUrl: string | undefined = `https://graph.instagram.com/me/media?fields=${fields}&access_token=${env.instagram.accessToken}&limit=100`;
+      const media: InstagramMediaRaw[] = [];
+      const visited = new Set<string>();
 
-      const posts: InstagramPost[] = (json.data ?? [])
+      // Instagram paginates media. Follow every returned page instead of
+      // silently truncating the homepage to the first six/25 posts. The
+      // visited guard prevents a malformed paging response from looping.
+      while (nextUrl && !visited.has(nextUrl)) {
+        visited.add(nextUrl);
+        const res = await fetch(nextUrl);
+        if (!res.ok) {
+          throw new Error(
+            `Instagram API responded ${res.status}: ${await res.text()}`,
+          );
+        }
+        const json = (await res.json()) as {
+          data?: InstagramMediaRaw[];
+          paging?: { next?: string };
+        };
+        media.push(...(json.data ?? []));
+        nextUrl = json.paging?.next;
+      }
+
+      const posts: InstagramPost[] = media
         .filter((p) =>
           p.media_type === "VIDEO" ? !!p.thumbnail_url : !!p.media_url,
         )
@@ -326,7 +341,7 @@ class ContentService {
         logger.warn("[content] instagram cache write failed", err);
       }
 
-      return posts.slice(0, limit);
+      return limit ? posts.slice(0, limit) : posts;
     } catch (err) {
       logger.error("[content] failed to fetch Instagram feed", err);
       return [];
