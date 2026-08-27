@@ -22,6 +22,7 @@ const LABELS: Record<string, string> = {
   members: 'Affiliates',
   new: 'Create new',
   newsletter: 'Newsletter',
+  prebookings: 'Pre-booking Leads',
   orders: 'Orders',
   pages: 'Storefront Pages',
   payouts: 'Payouts',

@@ -14,6 +14,13 @@ export const newsletterSubscribeSchema = z.object({
   source: z.string().max(100).optional(),
 });
 
+export const prebookingLeadSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  email: z.string().trim().email().max(200),
+  phone: z.string().trim().min(7).max(24).regex(/^\+?[0-9 ()-]+$/, 'Enter a valid phone number'),
+  source: z.string().max(100).optional(),
+});
+
 export const newsletterVerifySchema = z.object({
   token: z.string().min(10).max(200),
 });
@@ -31,3 +38,4 @@ export type NewsletterSubscribeDTO = z.infer<typeof newsletterSubscribeSchema>;
 export type NewsletterVerifyDTO = z.infer<typeof newsletterVerifySchema>;
 export type NewsletterUnsubscribeDTO = z.infer<typeof newsletterUnsubscribeSchema>;
 export type NewsletterResendDTO = z.infer<typeof newsletterResendSchema>;
+export type PrebookingLeadDTO = z.infer<typeof prebookingLeadSchema>;

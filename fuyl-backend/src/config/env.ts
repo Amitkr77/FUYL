@@ -25,6 +25,7 @@ export const env = {
   // "//api/v1/..." — confirmed by booting the server and testing directly.
   apiPrefix: (process.env.API_PREFIX ?? '/api/v1').replace(/^\/+/, ''),
   clientUrl: process.env.CLIENT_URL ?? 'http://localhost:3000',
+  prebookingAdminEmail: process.env.PREBOOKING_ADMIN_EMAIL ?? process.env.SMTP_USER ?? '',
   // Absolute, publicly-reachable logo URL for transactional emails. Email
   // clients can't load images from `localhost` (dev CLIENT_URL) and several
   // (Outlook/Windows Mail) don't render WebP — set this to a hosted PNG/JPG so

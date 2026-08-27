@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { marketingController, adminNewsletterController } from '../controllers';
+import { marketingController, adminNewsletterController, adminPrebookingController } from '../controllers';
 import { authRequired } from '../../../shared/middleware/auth.middleware';
 import { newsletterLimiter } from '../../../shared/middleware/rateLimit.middleware';
 
@@ -8,6 +8,7 @@ const router = Router();
 // Public — paths match what fuyl-frontend already calls:
 // contact/page.tsx -> POST /contact, lib/api/content.ts subscribeNewsletter -> POST /newsletter/subscribe
 router.post('/contact', marketingController.submitContact);
+router.post('/prebookings', newsletterLimiter, marketingController.submitPrebooking);
 
 // Newsletter (double opt-in). Subscribe + resend are rate-limited since they
 // trigger outbound email; verify/unsubscribe act on a token the user already holds.
@@ -21,6 +22,8 @@ router.get('/admin/newsletter/stats', authRequired, adminNewsletterController.st
 router.get('/admin/newsletter', authRequired, adminNewsletterController.list);
 router.post('/admin/newsletter/:email/resend', authRequired, adminNewsletterController.resendVerification);
 router.delete('/admin/newsletter/:id', authRequired, adminNewsletterController.remove);
+router.get('/admin/prebookings/stats', authRequired, adminPrebookingController.stats);
+router.get('/admin/prebookings', authRequired, adminPrebookingController.list);
 
 router.get('/marketing/health', (_req, res) => {
   res.json({ success: true, module: 'marketing', status: 'active' });

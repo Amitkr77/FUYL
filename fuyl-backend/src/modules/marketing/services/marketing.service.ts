@@ -1,4 +1,4 @@
-import { ContactMessageModel } from '../models';
+import { ContactMessageModel, PrebookingLeadModel } from '../models';
 import { newsletterSubscriberRepository } from '../repositories';
 import type { INewsletterSubscriber } from '../models/newsletterSubscriber.model';
 import {
@@ -7,6 +7,7 @@ import {
   NewsletterVerifyDTO,
   NewsletterUnsubscribeDTO,
   NewsletterResendDTO,
+  PrebookingLeadDTO,
 } from '../validators';
 import { generateRandomToken, hashToken } from '../../identity/utils/crypto';
 import { notificationService } from '../../notification/services';
@@ -28,6 +29,31 @@ export type SubscribeResult = {
 };
 
 class MarketingService {
+  async submitPrebookingLead(dto: PrebookingLeadDTO) {
+    const email = dto.email.toLowerCase().trim();
+    const lead = await PrebookingLeadModel.findOneAndUpdate(
+      { email },
+      {
+        $set: { name: dto.name.trim(), phone: dto.phone.trim(), source: dto.source ?? 'storefront_popup', submittedAt: new Date() },
+        $setOnInsert: { email },
+      },
+      { new: true, upsert: true, runValidators: true }
+    );
+
+    const safe = (value: string) => value.replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    })[char]!);
+    await Promise.all([
+      this.dispatch(email, 'prebooking_customer', { name: safe(lead.name) }),
+      env.prebookingAdminEmail
+        ? this.dispatch(env.prebookingAdminEmail, 'prebooking_admin', {
+            name: safe(lead.name), email: safe(lead.email), phone: safe(lead.phone), source: safe(lead.source),
+          })
+        : Promise.resolve(),
+    ]);
+    return { submitted: true, message: "You're on the list!" };
+  }
+
   async submitContactMessage(dto: ContactMessageDTO) {
     const message = await ContactMessageModel.create(dto);
     // No email-dispatch integration yet (would route through the

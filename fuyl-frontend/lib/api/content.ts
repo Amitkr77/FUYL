@@ -223,6 +223,10 @@ export async function getInstagramPosts(limit?: number): Promise<InstagramPost[]
   }
 }
 
+export async function submitPrebookingLead(input: { name: string; email: string; phone: string; source?: string }): Promise<{ submitted: boolean; message: string }> {
+  return apiFetch('/prebookings', { method: 'POST', body: input })
+}
+
 // Lifecycle state returned by the subscribe endpoint (double opt-in).
 export type NewsletterSubscribeStatus =
   | 'pending'            // new address — confirmation email sent

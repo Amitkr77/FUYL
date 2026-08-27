@@ -8,6 +8,7 @@ import type { NavItem } from '@/lib/constants/nav'
 import { PageTracker } from '@/components/analytics/PageTracker'
 import { getNavigationPages } from '@/lib/api/content'
 import '@/styles/globals.css'
+import { PrebookingPopup } from '@/components/marketing/PrebookingPopup'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -66,6 +67,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         <SiteChrome shopItems={shopItems} contentNavigation={contentNavigation}>{children}</SiteChrome>
         <PageTracker />
+        <PrebookingPopup />
       </body>
     </html>
   )

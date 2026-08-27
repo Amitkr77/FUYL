@@ -9,9 +9,18 @@ import {
   newsletterVerifySchema,
   newsletterUnsubscribeSchema,
   newsletterResendSchema,
+  prebookingLeadSchema,
 } from '../validators';
 
 export class MarketingController {
+  submitPrebooking = [
+    validate(prebookingLeadSchema),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try { return created(res, await marketingService.submitPrebookingLead(req.body)); }
+      catch (err) { next(err); }
+    },
+  ];
+
   submitContact = [
     validate(contactMessageSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {

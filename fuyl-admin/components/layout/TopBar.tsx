@@ -66,6 +66,7 @@ const QUICK_NAV = [
   { label: "Referrals", href: "/referrals", Icon: Gift, section: "Growth" },
   { label: "Wallet", href: "/wallet", Icon: Wallet, section: "Growth" },
   { label: "Newsletter", href: "/newsletter", Icon: Mail, section: "Growth" },
+  { label: "Pre-booking Leads", href: "/prebookings", Icon: Users, section: "Growth" },
   {
     label: "Website Pages",
     href: "/content",
@@ -99,6 +100,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/referrals": "Referrals",
   "/wallet": "Wallet",
   "/newsletter": "Newsletter",
+  "/prebookings": "Pre-booking Leads",
   "/content": "Website Content",
   "/blog": "Blog",
   "/analytics": "Analytics",

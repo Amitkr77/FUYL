@@ -19,6 +19,32 @@ export interface BuiltinTemplate {
 
 export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
   {
+    name: 'prebooking_customer',
+    channel: 'email',
+    subject: "You're on the FUYL pre-booking list",
+    body: emailWrap(`
+      <p style="margin:0 0 16px;">Hi {{name}},</p>
+      <p style="margin:0 0 8px;">You're on the list! We'll contact you first when FUYL pre-booking opens.</p>
+      <p style="margin:16px 0 0;color:#4A5A3A;">Thank you for your interest in FUYL.</p>
+    `),
+    description: 'Confirmation sent after a storefront pre-booking enquiry',
+  },
+  {
+    name: 'prebooking_admin',
+    channel: 'email',
+    subject: 'New FUYL pre-booking lead: {{name}}',
+    body: emailWrap(`
+      <p style="margin:0 0 16px;">A new pre-booking lead was submitted.</p>
+      ${emailDetailsTable(
+        emailDetailRow('Name', '{{name}}') +
+        emailDetailRow('Email', '{{email}}') +
+        emailDetailRow('Phone', '{{phone}}') +
+        emailDetailRow('Source', '{{source}}')
+      )}
+    `),
+    description: 'Admin alert for a new storefront pre-booking lead',
+  },
+  {
     name: 'email_verification',
     channel: 'email',
     subject: 'Verify your email address',

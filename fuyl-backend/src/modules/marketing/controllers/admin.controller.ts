@@ -6,6 +6,7 @@ import { NotFoundError } from '../../../shared/errors';
 import { newsletterSubscriberRepository } from '../repositories';
 import { marketingService } from '../services';
 import type { NewsletterStatus } from '../models/newsletterSubscriber.model';
+import { PrebookingLeadModel } from '../models';
 
 const VALID_STATUSES: NewsletterStatus[] = ['pending', 'active', 'unsubscribed'];
 
@@ -71,3 +72,29 @@ export class AdminNewsletterController {
 }
 
 export const adminNewsletterController = new AdminNewsletterController();
+
+export class AdminPrebookingController {
+  list = [authorize(Roles.SUPER_ADMIN, Roles.ADMIN), async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
+      const search = (req.query.search as string)?.trim();
+      const filter = search ? { $or: ['name', 'email', 'phone'].map((field) => ({ [field]: { $regex: search, $options: 'i' } })) } : {};
+      const [items, total] = await Promise.all([
+        PrebookingLeadModel.find(filter).sort({ submittedAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+        PrebookingLeadModel.countDocuments(filter),
+      ]);
+      return paginate(res, items, total, page, limit);
+    } catch (err) { next(err); }
+  }];
+
+  stats = [authorize(Roles.SUPER_ADMIN, Roles.ADMIN), async (_req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      const [total, today] = await Promise.all([PrebookingLeadModel.countDocuments(), PrebookingLeadModel.countDocuments({ submittedAt: { $gte: start } })]);
+      return success(res, { total, today });
+    } catch (err) { next(err); }
+  }];
+}
+
+export const adminPrebookingController = new AdminPrebookingController();

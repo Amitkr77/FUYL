@@ -74,6 +74,7 @@ const navSections: NavSection[] = [
       { label: "Wallet",            href: "/wallet",            icon: Wallet,  permission: "wallet:manage" },
       { label: "Loyalty Points",    href: "/loyalty",           icon: Award,   permission: "loyalty:manage" },
       { label: "Newsletter",        href: "/newsletter",        icon: Mail },
+      { label: "Pre-booking Leads", href: "/prebookings",       icon: Users },
     ],
   },
   {
