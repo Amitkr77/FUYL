@@ -45,21 +45,21 @@ export async function InstagramFeed() {
           </div>
         </ScrollReveal>
 
-        {/* A single horizontal feed on every breakpoint. Portrait 4:5 cards
-            show Instagram photography/reel covers with less aggressive crop. */}
-        <div className="overflow-x-auto overscroll-x-contain scroll-smooth snap-x snap-mandatory scrollbar-none [&::-webkit-scrollbar]:hidden -mx-4 sm:-mx-6 lg:-mx-8">
-          <div className="flex w-max gap-3 px-4 sm:px-6 lg:px-8 pb-3">
+        {/* A single horizontal feed on every breakpoint with portrait 9:16
+            cards for Instagram photography and reel covers. */}
+        <div className="-mx-4 overflow-x-auto overflow-y-hidden overscroll-x-contain scroll-smooth snap-x snap-mandatory touch-pan-x scrollbar-none sm:-mx-6 lg:-mx-8 [&::-webkit-scrollbar]:hidden">
+          <div className="flex w-max flex-nowrap items-start gap-3 px-4 pb-3 sm:px-6 lg:px-8">
             {tiles.map(({ id, src, alt, href }, i) => (
               <ScrollReveal
                 key={id}
                 delay={Math.min(i, 10) * 40}
-                className="shrink-0 w-56 sm:w-64 lg:w-72 snap-start"
+                className="w-56 shrink-0 snap-start sm:w-64 lg:w-72"
               >
                 <Link
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="relative block aspect-9/16 overflow-hidden rounded-xl group bg-brand-sage"
+                  className="group relative block aspect-[9/16] overflow-hidden rounded-xl bg-brand-sage"
                 >
                   <Image
                     src={src}
