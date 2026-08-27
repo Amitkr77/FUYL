@@ -59,7 +59,7 @@ export async function InstagramFeed() {
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="relative block aspect-[4/5] overflow-hidden rounded-xl group bg-brand-sage"
+                  className="relative block aspect-9/16 overflow-hidden rounded-xl group bg-brand-sage"
                 >
                   <Image
                     src={src}

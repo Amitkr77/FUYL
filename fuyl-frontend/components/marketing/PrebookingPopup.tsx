@@ -1,12 +1,13 @@
 'use client'
 
 import { FormEvent, useEffect, useState, useTransition } from 'react'
-import { CheckCircle2, Sparkles, X } from 'lucide-react'
+import { CheckCircle2, MessageCircle, Sparkles, X } from 'lucide-react'
 import { submitPrebookingLead } from '@/lib/api/content'
 import { getErrorMessage } from '@/lib/api/client'
 
 const SUBMITTED_KEY = 'fuyl_prebooking_submitted'
 const DISMISSED_KEY = 'fuyl_prebooking_dismissed'
+const WHATSAPP_COMMUNITY_URL = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL?.trim()
 
 export function PrebookingPopup() {
   const [open, setOpen] = useState(false)
@@ -36,6 +37,10 @@ export function PrebookingPopup() {
 
   const dismiss = () => {
     setOpen(false)
+    if (success) {
+      setAvailable(false)
+      return
+    }
     sessionStorage.setItem(DISMISSED_KEY, '1')
   }
 
@@ -54,7 +59,6 @@ export function PrebookingPopup() {
         localStorage.setItem(SUBMITTED_KEY, '1')
         sessionStorage.removeItem(DISMISSED_KEY)
         setSuccess(true)
-        window.setTimeout(() => { setOpen(false); setAvailable(false) }, 2800)
       } catch (err) {
         setError(getErrorMessage(err, 'Could not save your details. Please try again.'))
       }
@@ -85,6 +89,17 @@ export function PrebookingPopup() {
                 <CheckCircle2 className="mx-auto mb-4 text-brand-teal" size={48} />
                 <h2 id="prebooking-title" className="font-display text-3xl text-brand-forest">YOU&apos;RE ON THE LIST!</h2>
                 <p className="mt-3 text-sm text-brand-muted">We&apos;ve emailed your confirmation. You&apos;ll be among the first to know when pre-booking opens.</p>
+                {WHATSAPP_COMMUNITY_URL && (
+                  <a
+                    href={WHATSAPP_COMMUNITY_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] px-5 py-3.5 text-sm font-bold text-white transition-colors hover:bg-[#1ebe5d]"
+                  >
+                    <MessageCircle size={18} /> Join our WhatsApp community
+                  </a>
+                )}
+                <button type="button" onClick={() => { setOpen(false); setAvailable(false) }} className="mt-3 text-xs font-semibold text-brand-muted underline underline-offset-4 hover:text-brand-forest">Continue shopping</button>
               </div>
             ) : (
               <>
