@@ -68,6 +68,17 @@ export class OrderRepository {
     );
   }
 
+  async appendStaffComment(
+    id: string | Types.ObjectId,
+    comment: { message: string; actor: Types.ObjectId; actorEmail: string }
+  ) {
+    return OrderModel.findByIdAndUpdate(
+      id,
+      { $push: { staffComments: { ...comment, at: new Date() } } },
+      { new: true, runValidators: true }
+    );
+  }
+
   async paginate(filter: FilterQuery<IOrder> = {}, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([

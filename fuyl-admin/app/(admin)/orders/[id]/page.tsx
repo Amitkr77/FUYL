@@ -1,9 +1,9 @@
 import Link from 'next/link'
-import { ArrowRight, Package, Truck, MapPin, User, ClipboardList, CheckCircle2, CreditCard } from 'lucide-react'
+import { ArrowRight, Package, MapPin, User, ClipboardList, CreditCard } from 'lucide-react'
 import { getAdminOrder } from '@/lib/orders'
 import { OrderStatusPanel } from '@/components/orders/OrderStatusPanel'
 import { BookShipmentPanel } from '@/components/shipping/BookShipmentPanel'
-import { AdminOrderNote } from '@/components/orders/AdminOrderNote'
+import { OrderTimeline } from '@/components/orders/OrderTimeline'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
@@ -139,7 +139,6 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </div>
             )}
           </div>
-          <AdminOrderNote orderId={order.id} initialValue={order.adminNotes} />
         </div>
 
         {/* Right: Customer + Address + Timeline */}
@@ -197,32 +196,16 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             )}
           </div>
 
-          {/* Delivery timeline — real status-change audit log */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Truck className="w-4 h-4 text-slate-400" />
-              <h3 className="text-sm font-semibold text-slate-900">Timeline</h3>
-            </div>
-            {order.timeline.length === 0 ? (
-              <p className="text-xs text-slate-400">No status changes recorded yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {order.timeline.map((event, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-[#558476]">
-                      <CheckCircle2 className="w-3 h-3 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900 capitalize">{event.status}</p>
-                      <p className="text-xs text-slate-400">{formatDateTime(event.at)}{event.note ? ` — ${event.note}` : ''}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
+
+      <OrderTimeline
+        orderId={order.id}
+        customerName={order.customerName}
+        customerNote={order.customerNote}
+        timeline={order.timeline}
+        comments={order.staffComments}
+      />
     </div>
   )
 }

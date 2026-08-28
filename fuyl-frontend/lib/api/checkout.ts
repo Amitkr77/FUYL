@@ -25,6 +25,7 @@ export interface CheckoutInput {
   walletRedemptionAmount?:  number
   loyaltyPointsToRedeem?:   number
   saveAddress?:             boolean
+  notes?:                   string
 }
 
 interface BackendPreview {

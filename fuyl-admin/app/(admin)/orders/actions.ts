@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { updateAdminOrderStatus, updateAdminOrderNotes, type StatusUpdateInput } from '@/lib/orders'
+import { addAdminOrderComment, updateAdminOrderStatus, type StatusUpdateInput } from '@/lib/orders'
 import { getErrorMessage } from '@/lib/api'
 
 export type OrderActionState = { error: string } | { success: true }
@@ -17,9 +17,9 @@ export async function updateOrderStatusAction(id: string, input: StatusUpdateInp
   return { success: true }
 }
 
-export async function updateOrderNotesAction(id: string, adminNotes: string): Promise<OrderActionState> {
-  try { await updateAdminOrderNotes(id, adminNotes) }
-  catch (err) { return { error: getErrorMessage(err, 'Could not save internal note.') } }
+export async function addOrderCommentAction(id: string, message: string): Promise<OrderActionState> {
+  try { await addAdminOrderComment(id, message) }
+  catch (err) { return { error: getErrorMessage(err, 'Could not post comment.') } }
   revalidatePath(`/orders/${id}`)
   return { success: true }
 }

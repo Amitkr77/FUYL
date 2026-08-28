@@ -137,6 +137,7 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState<CheckoutAddressInput>(EMPTY_ADDRESS)
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<AddressField, string>>>({})
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('cashfree')
+  const [orderNote, setOrderNote] = useState('')
   const [paymentConfig, setPaymentConfig] = useState<PaymentConfig>({ onlinePaymentEnabled: true, codEnabled: true })
   const [preview, setPreview] = useState<CheckoutPreview | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
@@ -509,6 +510,7 @@ export default function CheckoutPage() {
         walletRedemptionAmount: walletAmount > 0 ? walletAmount : undefined,
         loyaltyPointsToRedeem: loyaltyPoints > 0 ? loyaltyPoints : undefined,
         saveAddress: true,
+        notes: orderNote.trim() || undefined,
       })
       orderPlacedRef.current = true
       setPlacedOrder(order)
@@ -776,6 +778,20 @@ export default function CheckoutPage() {
                     </div>
                   </>
                 )}
+              </div>
+
+              <div className="mb-8 space-y-2">
+                <label htmlFor="order-note" className="block text-display-md font-display">Order note <span className="font-sans text-body-xs font-normal text-brand-muted">(optional)</span></label>
+                <textarea
+                  id="order-note"
+                  value={orderNote}
+                  onChange={(event) => setOrderNote(event.target.value)}
+                  maxLength={500}
+                  rows={3}
+                  placeholder="Add delivery instructions or a note for your order"
+                  className="w-full resize-y rounded-sm border border-brand-border bg-white px-3 py-3 text-body-sm outline-none focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20"
+                />
+                <p className="text-right text-body-xs text-brand-muted">{orderNote.length}/500</p>
               </div>
 
               {/* Coupon — shown inline on mobile since the order summary is collapsed.

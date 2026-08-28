@@ -43,6 +43,12 @@ interface BackendTimelineEvent {
   note?:  string
 }
 
+interface BackendStaffComment {
+  message: string
+  actorEmail: string
+  at: string
+}
+
 interface BackendOrder {
   _id: string
   orderNumber: string
@@ -62,7 +68,8 @@ interface BackendOrder {
   carrier?: string
   paymentMethod?: string
   paymentStatus?: string
-  adminNotes?: string
+  notes?: string
+  staffComments?: BackendStaffComment[]
   metadata?: {
     walletRedemption?: number
     loyaltyRedemption?: number
@@ -121,7 +128,8 @@ export interface AdminOrderDetail extends AdminOrder {
   paymentMethod: string
   paymentStatus: string
   payments: AdminOrderPayment[]
-  adminNotes: string
+  customerNote: string
+  staffComments: BackendStaffComment[]
 }
 
 function mapOrder(o: BackendOrder): AdminOrder {
@@ -184,7 +192,8 @@ export async function getAdminOrder(id: string): Promise<AdminOrderDetail | null
       paymentMethod:         o.paymentMethod ?? 'unknown',
       paymentStatus:         o.paymentStatus ?? 'pending',
       payments,
-      adminNotes:             o.adminNotes ?? '',
+      customerNote:           o.notes ?? '',
+      staffComments:          o.staffComments ?? [],
     }
   } catch {
     return null
@@ -223,8 +232,8 @@ export async function updateAdminOrderStatus(id: string, input: StatusUpdateInpu
   })
 }
 
-export async function updateAdminOrderNotes(id: string, adminNotes: string): Promise<void> {
-  await adminApiFetch(`/admin/orders/${id}/notes`, { method: 'PATCH', body: { adminNotes } })
+export async function addAdminOrderComment(id: string, message: string): Promise<void> {
+  await adminApiFetch(`/admin/orders/${id}/comments`, { method: 'POST', body: { message } })
 }
 
 export { AdminApiError }

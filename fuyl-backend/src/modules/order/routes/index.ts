@@ -25,6 +25,7 @@ router.get('/invoices/:id', authRequired, orderController.getInvoice);
 router.get('/admin/orders', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), orderController.listAll);
 router.patch('/admin/orders/:id/status', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), orderController.updateStatus);
 router.patch('/admin/orders/:id/notes', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), orderController.updateAdminNotes);
+router.post('/admin/orders/:id/comments', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), orderController.addStaffComment);
 router.get('/admin/orders/stats', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), orderController.stats);
 router.post('/admin/orders/:id/invoices', authRequired, authorize(Roles.SUPER_ADMIN, Roles.ADMIN), orderController.generateInvoice);
 

@@ -37,6 +37,13 @@ export interface IOrderTimelineEvent {
   actor?: mongoose.Types.ObjectId;
 }
 
+export interface IOrderStaffComment {
+  message: string;
+  actor: mongoose.Types.ObjectId;
+  actorEmail: string;
+  at: Date;
+}
+
 export interface IOrder extends Document {
   orderNumber: string;           // human-readable e.g. FUL-2024-00001
   customerId: mongoose.Types.ObjectId;
@@ -68,6 +75,7 @@ export interface IOrder extends Document {
   adminNotes?: string;
   internalNotes?: string;
   timeline: IOrderTimelineEvent[];
+  staffComments: IOrderStaffComment[];
   placedAt: Date;
   confirmedAt?: Date;
   readyToShipAt?: Date;
@@ -122,6 +130,13 @@ const TimelineSchema = new Schema<IOrderTimelineEvent>({
   actor: { type: Schema.Types.ObjectId, ref: 'User' },
 }, { _id: false });
 
+const StaffCommentSchema = new Schema<IOrderStaffComment>({
+  message: { type: String, required: true, trim: true, maxlength: 2000 },
+  actor: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  actorEmail: { type: String, required: true, trim: true },
+  at: { type: Date, default: Date.now },
+}, { _id: false });
+
 const OrderSchema = new Schema<IOrder>(
   {
     orderNumber: { type: String, required: true, unique: true, index: true },
@@ -153,6 +168,7 @@ const OrderSchema = new Schema<IOrder>(
     adminNotes: { type: String },
     internalNotes: { type: String },
     timeline: [TimelineSchema],
+    staffComments: { type: [StaffCommentSchema], default: [] },
     placedAt: { type: Date, default: Date.now },
     confirmedAt: { type: Date },
     readyToShipAt: { type: Date },

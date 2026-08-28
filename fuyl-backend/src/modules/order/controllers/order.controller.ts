@@ -3,7 +3,7 @@ import { AuthedRequest } from '../../../shared/middleware/auth.middleware';
 import { orderService } from '../services';
 import { success, created, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
-import { createOrderSchema, updateStatusSchema, cancelOrderSchema, createReturnSchema, updateReturnSchema, updateAdminNotesSchema } from '../validators';
+import { createOrderSchema, updateStatusSchema, cancelOrderSchema, createReturnSchema, updateReturnSchema, updateAdminNotesSchema, addStaffCommentSchema } from '../validators';
 import { authorize, requirePermission, Permissions, Roles } from '../../../shared/middleware/rbac.middleware';
 import { ForbiddenError, BadRequestError } from '../../../shared/errors';
 import { OrderStatus } from '../../../shared/enums';
@@ -136,6 +136,22 @@ export class OrderController {
           targetLabel: `Order #${order.orderNumber}`, detail: 'Internal order note updated',
         });
         return success(res, order);
+      } catch (err) { next(err); }
+    },
+  ];
+
+  addStaffComment = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    validate(addStaffCommentSchema),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        const order = await orderService.addStaffComment(req.params.id, req.body.message, req.user!.userId, req.user!.email ?? 'Staff');
+        logAudit({
+          actorId: req.user!.userId, actorEmail: req.user!.email ?? '', actorName: req.user!.email ?? '',
+          section: 'orders', action: 'comment_added', targetId: req.params.id,
+          targetLabel: `Order #${order.orderNumber}`, detail: 'Staff timeline comment added',
+        });
+        return created(res, order);
       } catch (err) { next(err); }
     },
   ];

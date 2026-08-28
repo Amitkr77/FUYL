@@ -386,6 +386,16 @@ export class OrderService {
     return orderRepo.update(orderId, { adminNotes: adminNotes.trim() });
   }
 
+  async addStaffComment(orderId: string, message: string, actorId: string, actorEmail: string) {
+    const order = await orderRepo.appendStaffComment(orderId, {
+      message: message.trim(),
+      actor: new Types.ObjectId(actorId),
+      actorEmail,
+    });
+    if (!order) throw new NotFoundError('Order not found');
+    return order;
+  }
+
   async updateStatus(orderId: string, dto: UpdateStatusDTO, actorId?: string) {
     const order = await this.getById(orderId);
 

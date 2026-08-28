@@ -67,6 +67,10 @@ export const updateAdminNotesSchema = z.object({
   adminNotes: z.string().max(5000),
 });
 
+export const addStaffCommentSchema = z.object({
+  message: z.string().trim().min(1, 'Comment cannot be empty').max(2000),
+});
+
 export const createReturnSchema = z.object({
   orderId: z.string().length(24),
   items: z.array(z.object({
