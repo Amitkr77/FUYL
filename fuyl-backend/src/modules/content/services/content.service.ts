@@ -248,6 +248,48 @@ class ContentService {
     return { updated: normalized.length };
   }
 
+  async auditPageQuality() {
+    const pages = await cmsPageRepo.listForQualityAudit();
+    const publishedSlugs = new Set(pages.filter((page) => page.status === "published").map((page) => page.slug));
+    const issues: Array<{ pageId: string; title: string; slug: string; type: string; severity: "error" | "warning"; message: string }> = [];
+
+    for (const page of pages) {
+      const plainText = page.body.replace(/<[^>]*>/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
+      const add = (type: string, severity: "error" | "warning", message: string) => issues.push({
+        pageId: String(page._id), title: page.title, slug: page.slug, type, severity, message,
+      });
+
+      if (!page.seoTitle?.trim()) add("missing_seo_title", "warning", "SEO title is missing.");
+      else if (page.seoTitle.length > 60) add("long_seo_title", "warning", "SEO title is longer than the recommended 60 characters.");
+      if (!page.seoDescription?.trim()) add("missing_seo_description", "warning", "SEO description is missing.");
+      else if (page.seoDescription.length < 70 || page.seoDescription.length > 160) add("seo_description_length", "warning", "SEO description should normally be 70–160 characters.");
+      if (plainText.length < 80) add("thin_content", "warning", plainText.length ? "Page content is very short." : "Page has no readable content.");
+      if (page.status === "published" && page.navigationPlacement === "none") add("unlinked_page", "warning", "Published page is not included in header or footer navigation.");
+
+      const imageTags = page.body.match(/<img\b[^>]*>/gi) ?? [];
+      const missingAltCount = imageTags.filter((tag) => !/\balt\s*=\s*(["'])\s*[^"']+\s*\1/i.test(tag)).length;
+      if (missingAltCount) add("missing_image_alt", "warning", `${missingAltCount} image${missingAltCount === 1 ? "" : "s"} missing descriptive alt text.`);
+
+      const linkedSlugs = Array.from(page.body.matchAll(/href\s*=\s*(["'])(?:https?:\/\/(?:www\.)?fuyl\.in)?\/pages\/([^?/#"']+)/gi), (match) => {
+        try { return decodeURIComponent(match[2]).toLowerCase(); } catch { return match[2].toLowerCase(); }
+      });
+      for (const linkedSlug of new Set(linkedSlugs)) {
+        if (!publishedSlugs.has(linkedSlug)) add("broken_page_link", "error", `Links to /pages/${linkedSlug}, but that page is missing or not published.`);
+      }
+    }
+
+    const errorCount = issues.filter((issue) => issue.severity === "error").length;
+    const warningCount = issues.length - errorCount;
+    const affectedPages = new Set(issues.map((issue) => issue.pageId)).size;
+    const totalChecks = Math.max(1, pages.length * 5);
+    const score = Math.max(0, Math.round(100 - ((errorCount * 2 + warningCount) / totalChecks) * 100));
+    return {
+      summary: { score, totalPages: pages.length, publishedPages: pages.filter((page) => page.status === "published").length, affectedPages, errorCount, warningCount },
+      issues,
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
   async listPagesAdmin(page = 1, limit = 20, options: { search?: string; status?: string; navigation?: string; sort?: string } = {}) {
     const filter: Record<string, unknown> = {};
     if (options.search) {

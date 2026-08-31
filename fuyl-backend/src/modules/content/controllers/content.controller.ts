@@ -182,6 +182,14 @@ export class ContentController {
     },
   ];
 
+  auditPageQuality = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (_req: AuthedRequest, res: Response, next: NextFunction) => {
+      try { return success(res, await contentService.auditPageQuality()); }
+      catch (err) { next(err); }
+    },
+  ];
+
   updatePage = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     validate(updateCMSPageSchema),

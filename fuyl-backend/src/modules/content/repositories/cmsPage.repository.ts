@@ -53,6 +53,10 @@ export class CMSPageRepository {
     }).select('title slug navigationPlacement navigationLabel navigationOrder').sort({ navigationOrder: 1, title: 1 }).lean();
   }
 
+  async listForQualityAudit() {
+    return CMSPageModel.find({}).select('title slug body seoTitle seoDescription status navigationPlacement updatedAt').sort({ updatedAt: -1 }).lean();
+  }
+
   async updateNavigation(items: Array<{ id: string; navigationPlacement: ICMSPage['navigationPlacement']; navigationLabel: string; navigationOrder: number }>) {
     if (!items.length) return;
     await CMSPageModel.bulkWrite(items.map((item) => ({

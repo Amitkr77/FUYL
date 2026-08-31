@@ -39,6 +39,7 @@ router.patch('/admin/content/posts/:id', authRequired, contentController.update)
 router.delete('/admin/content/posts/:id', authRequired, contentController.remove);
 
 router.get('/admin/content/pages', authRequired, contentController.listPagesAdmin);
+router.get('/admin/content/pages-quality', authRequired, contentController.auditPageQuality);
 router.put('/admin/content/pages/navigation', authRequired, contentController.updatePageNavigation);
 router.get('/admin/content/pages/:id/revisions', authRequired, contentController.getPageRevisions);
 router.post('/admin/content/pages/:id/revisions/:revisionId/restore', authRequired, contentController.restorePageRevision);
