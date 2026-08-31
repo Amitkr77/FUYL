@@ -1,6 +1,7 @@
 import { generateSEO } from '@/lib/utils/seo'
 import { LegalPage } from '@/components/content/LegalPage'
 import { getTermsConditionsCMS } from '@/lib/api/content'
+import { notFound } from 'next/navigation'
 
 export const metadata = generateSEO({ title: 'Terms & Conditions', noIndex: true })
 
@@ -26,10 +27,12 @@ const FALLBACK_SECTIONS = [
 
 export default async function TermsPage() {
   const cms = await getTermsConditionsCMS()
+  if (cms?.isActive === false) notFound()
+  const managed = cms?.data
 
-  const lastUpdated = cms?.lastUpdated ?? 'January 2025'
-  const subtitle    = cms?.subtitle    ?? 'The terms governing your use of fuyl.in and purchase of FUYL products.'
-  const sections    = cms?.sections.map((s) => ({
+  const lastUpdated = managed?.lastUpdated ?? 'January 2025'
+  const subtitle    = managed?.subtitle    ?? 'The terms governing your use of fuyl.in and purchase of FUYL products.'
+  const sections    = managed?.sections.map((s) => ({
     heading: s.heading,
     body: s.isList ? s.body.split('\n').filter(Boolean) : s.body,
   })) ?? FALLBACK_SECTIONS

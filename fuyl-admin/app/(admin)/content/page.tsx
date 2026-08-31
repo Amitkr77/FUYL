@@ -33,6 +33,7 @@ export default async function ContentPage({
   searchParams: Promise<{ tab?: string; page?: string; q?: string; status?: string; navigation?: string; sort?: string }>
 }) {
   const query = await searchParams
+  const storefrontUrl = (process.env.STOREFRONT_URL ?? process.env.NEXT_PUBLIC_STOREFRONT_URL ?? 'https://fuyl.in').replace(/\/$/, '')
   const { tab: rawTab, page: rawPage } = query
   const tab: Tab = (['pages', 'ingredients', 'testimonials', 'faqs'] as const).includes(rawTab as Tab)
     ? (rawTab as Tab)
@@ -65,12 +66,13 @@ export default async function ContentPage({
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Website Content</h2>
           <p className="text-sm text-slate-500 mt-0.5">Manage pages, ingredients, testimonials & FAQs shown on the storefront</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <a href={storefrontUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"><ExternalLink className="h-4 w-4" />Open storefront</a>
           {tab === 'pages' && <Link href="/content/quality" className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"><SearchCheck className="h-4 w-4" />Content quality</Link>}
           {tab === 'pages' && <Link href="/content/navigation" className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"><ListTree className="h-4 w-4" />Manage navigation</Link>}
           {tab !== 'testimonials' && (
@@ -86,7 +88,9 @@ export default async function ContentPage({
       </div>
 
       {/* Storefront sections grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+      <section className="space-y-3">
+        <div><h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Homepage & marketing</h2><p className="text-xs text-slate-400">Manage globally visible sections and promotional overlays.</p></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         <Link href="/content/hero" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-[#558476]/10 p-3 text-[#558476]"><Image className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Homepage Hero</h3><p className="text-sm text-slate-500">Slides, headings, images &amp; CTAs</p></div></div>
         </Link>
@@ -99,6 +103,11 @@ export default async function ContentPage({
         <Link href="/content/popup-banner" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-purple-50 p-3 text-purple-600"><Layers className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Popup Banner</h3><p className="text-sm text-slate-500">Generic promotional popup</p></div></div>
         </Link>
+        </div>
+      </section>
+      <section className="space-y-3">
+        <div><h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Built-in storefront pages</h2><p className="text-xs text-slate-400">Structured editors for core brand and legal pages.</p></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         <Link href="/content/our-story" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-green-50 p-3 text-green-600"><BookOpen className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Our Story</h3><p className="text-sm text-slate-500">Founder bios, milestones &amp; CTA</p></div></div>
         </Link>
@@ -117,7 +126,8 @@ export default async function ContentPage({
         <Link href="/content/terms-conditions" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-slate-100 p-3 text-slate-600"><FileText className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Terms &amp; Conditions</h3><p className="text-sm text-slate-500">Usage terms &amp; legal notices</p></div></div>
         </Link>
-      </div>
+        </div>
+      </section>
 
       <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto scrollbar-hide">
         {TABS.map((t) => (
@@ -373,13 +383,14 @@ function FAQsTable({ items }: { items: FAQRecord[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {items.length === 0 ? <EmptyRow colSpan={3} label="No FAQs yet." /> : items.map((f) => (
+            {items.length === 0 ? <EmptyRow colSpan={3} label="No FAQs yet." /> : items.map((f, index) => (
               <tr key={f.id} className="hover:bg-slate-50/50 transition-colors">
                 <td className="px-5 py-4"><p className="text-sm font-medium text-slate-900 max-w-lg">{f.question}</p></td>
                 <td className="px-5 py-4">
                   <Badge variant={f.isActive ? 'success' : 'default'}>{f.isActive ? 'Active' : 'Inactive'}</Badge>
                 </td>
                 <td className="px-5 py-4">
+                  <ReorderButtons id={f.id} order={f.order} type="faq" first={index === 0} last={index === items.length - 1} />
                   <ContentRowActions label="FAQ" editHref={`/content/faqs/${f.id}`} deleteAction={deleteFAQAction.bind(null, f.id)} />
                 </td>
               </tr>

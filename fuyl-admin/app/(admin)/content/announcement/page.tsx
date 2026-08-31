@@ -10,6 +10,8 @@ export default async function Page() {
         <p className="text-sm text-slate-500 mt-0.5">The slim banner shown at the very top of every storefront page.</p>
       </div>
       <AnnouncementBarForm initial={initial} />
+      <SectionHistoryPanel sectionKey="announcement-bar" />
     </div>
   )
 }
+import { SectionHistoryPanel } from '@/components/content/SectionHistoryPanel'

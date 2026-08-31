@@ -12,10 +12,26 @@ import {
   createIngredientSchema, updateIngredientSchema,
   createTestimonialSchema, updateTestimonialSchema,
   createFAQSchema, updateFAQSchema,
+  storefrontSectionSchemas,
 } from '../validators';
 import { StorefrontSectionModel } from '../models/storefrontSection.model';
 import jwt from 'jsonwebtoken';
 import { UnauthorizedError } from '../../../shared/errors';
+import { revalidateStorefront } from '../../../shared/services/revalidate.service';
+import crypto from 'crypto';
+
+const STOREFRONT_SECTION_PATHS: Record<string, string[]> = {
+  'home-hero': ['/'],
+  'announcement-bar': ['/'],
+  'prebooking-modal': ['/'],
+  'popup-banner': ['/'],
+  'page-our-story': ['/pages/our-story'],
+  'page-why-fuyl': ['/pages/why-fuyl'],
+  'page-privacy-policy': ['/pages/privacy-policy'],
+  'page-shipping-policy': ['/pages/shipping-policy'],
+  'page-cancellation-returns': ['/pages/cancellation-returns-refunds'],
+  'page-terms-conditions': ['/pages/terms-conditions'],
+};
 
 export class ContentController {
   getPagePreview = async (req: AuthedRequest, res: Response, next: NextFunction) => {
@@ -334,6 +350,17 @@ export class ContentController {
     },
   ];
 
+  reorderManagedContent = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        const kind = req.params.kind;
+        if (!['ingredients', 'testimonials', 'faqs'].includes(kind)) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Unknown content type' } });
+        return success(res, await contentService.reorderManagedContent(kind as 'ingredients' | 'testimonials' | 'faqs', req.body?.ids));
+      } catch (err) { next(err); }
+    },
+  ];
+
   getFAQById = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
@@ -407,8 +434,22 @@ export class ContentController {
   };
 
   getStorefrontSection = async (req:Request,res:Response,next:NextFunction)=>{try{const section=await StorefrontSectionModel.findOne({key:req.params.key});return success(res,section)}catch(err){next(err)}};
-  getStorefrontSectionAdmin = async (req:Request,res:Response,next:NextFunction)=>{try{const section=await StorefrontSectionModel.findOne({key:req.params.key});return success(res,section)}catch(err){next(err)}};
-  updateStorefrontSection = async (req:Request,res:Response,next:NextFunction)=>{try{const {title,isActive,data}=req.body;if(!title||!data||typeof data!=='object')return res.status(400).json({success:false,error:{code:'BAD_REQUEST',message:'title and data are required'}});const section=await StorefrontSectionModel.findOneAndUpdate({key:req.params.key},{$set:{title,isActive:isActive!==false,data}},{upsert:true,new:true,runValidators:true});return success(res,section)}catch(err){next(err)}};
+  getStorefrontSectionAdmin = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (req:Request,res:Response,next:NextFunction)=>{try{const section=await StorefrontSectionModel.findOne({key:req.params.key});return success(res,section)}catch(err){next(err)}},
+  ];
+  getStorefrontSectionRevisions = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (req:Request,res:Response,next:NextFunction)=>{try{const section=await StorefrontSectionModel.findOne({key:req.params.key}).select('+revisions');if(!section)return success(res,[]);return success(res,[...(section.revisions??[])].reverse().map((revision)=>({revisionId:revision.revisionId,title:revision.title,isActive:revision.isActive,savedAt:revision.savedAt})))}catch(err){next(err)}},
+  ];
+  restoreStorefrontSectionRevision = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (req:Request,res:Response,next:NextFunction)=>{try{const section=await StorefrontSectionModel.findOne({key:req.params.key}).select('+revisions');if(!section)return res.status(404).json({success:false,error:{code:'NOT_FOUND',message:'Storefront section not found'}});const revision=section.revisions?.find((item)=>item.revisionId===req.params.revisionId);if(!revision)return res.status(404).json({success:false,error:{code:'NOT_FOUND',message:'Section version not found'}});const current={revisionId:crypto.randomUUID(),title:section.title,isActive:section.isActive,data:section.data,savedAt:new Date()};const restored=await StorefrontSectionModel.findByIdAndUpdate(section._id,{$set:{title:revision.title,isActive:revision.isActive,data:revision.data},$push:{revisions:{$each:[current],$slice:-20}}},{new:true,runValidators:true});await revalidateStorefront(STOREFRONT_SECTION_PATHS[req.params.key]??['/']);return success(res,restored)}catch(err){next(err)}},
+  ];
+  updateStorefrontSection = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (req:Request,res:Response,next:NextFunction)=>{try{const schema=storefrontSectionSchemas[req.params.key];if(!schema)return res.status(404).json({success:false,error:{code:'NOT_FOUND',message:'Unknown storefront section'}});const parsed=schema.safeParse(req.body);if(!parsed.success)return res.status(400).json({success:false,error:{code:'VALIDATION_ERROR',message:'Invalid storefront section content',details:parsed.error.issues.map((issue:{path:(string|number)[];message:string})=>({path:issue.path.join('.'),message:issue.message}))}});const {title,isActive,data}=parsed.data;const existing=await StorefrontSectionModel.findOne({key:req.params.key});const update:Record<string,unknown>={$set:{title,isActive,data}};if(existing)update.$push={revisions:{$each:[{revisionId:crypto.randomUUID(),title:existing.title,isActive:existing.isActive,data:existing.data,savedAt:new Date()}],$slice:-20}};const section=await StorefrontSectionModel.findOneAndUpdate({key:req.params.key},update,{upsert:true,new:true,runValidators:true});await revalidateStorefront(STOREFRONT_SECTION_PATHS[req.params.key] ?? ['/']);return success(res,section)}catch(err){next(err)}},
+  ];
 }
 
 export const contentController = new ContentController();

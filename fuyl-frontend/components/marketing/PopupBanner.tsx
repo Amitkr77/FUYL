@@ -14,19 +14,20 @@ interface Props {
 
 export function PopupBanner({ cms }: Props) {
   const [open, setOpen] = useState(false)
+  const dismissalVersion = `${cms.title}|${cms.ctaHref}|${cms.imageUrl}`
 
   useEffect(() => {
     const { frequency, delayMs } = cms
 
     if (frequency === 'once_ever') {
-      if (localStorage.getItem(STORAGE_KEY) === '1') return
+      if (localStorage.getItem(STORAGE_KEY) === dismissalVersion) return
     } else if (frequency === 'once_per_session') {
-      if (sessionStorage.getItem(STORAGE_KEY) === '1') return
+      if (sessionStorage.getItem(STORAGE_KEY) === dismissalVersion) return
     }
 
     const timer = window.setTimeout(() => setOpen(true), delayMs)
     return () => window.clearTimeout(timer)
-  }, [cms])
+  }, [cms, dismissalVersion])
 
   useEffect(() => {
     if (!open) return
@@ -40,9 +41,9 @@ export function PopupBanner({ cms }: Props) {
   const close = () => {
     setOpen(false)
     if (cms.frequency === 'once_ever') {
-      localStorage.setItem(STORAGE_KEY, '1')
+      localStorage.setItem(STORAGE_KEY, dismissalVersion)
     } else if (cms.frequency === 'once_per_session') {
-      sessionStorage.setItem(STORAGE_KEY, '1')
+      sessionStorage.setItem(STORAGE_KEY, dismissalVersion)
     }
   }
 

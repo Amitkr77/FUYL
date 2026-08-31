@@ -10,6 +10,8 @@ export default async function WhyFuylAdminPage() {
         <p className="text-sm text-slate-500 mt-0.5">Edit hero headline, description, image, CTAs and pillars headings</p>
       </div>
       <WhyFuylSectionForm initial={section} />
+      <SectionHistoryPanel sectionKey="page-why-fuyl" />
     </div>
   )
 }
+import { SectionHistoryPanel } from '@/components/content/SectionHistoryPanel'

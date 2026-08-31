@@ -1,6 +1,7 @@
 import { generateSEO } from '@/lib/utils/seo'
 import { LegalPage } from '@/components/content/LegalPage'
 import { getShippingPolicyCMS } from '@/lib/api/content'
+import { notFound } from 'next/navigation'
 
 export const metadata = generateSEO({ title: 'Shipping Policy', noIndex: true })
 
@@ -22,10 +23,12 @@ const FALLBACK_SECTIONS = [
 
 export default async function ShippingPolicyPage() {
   const cms = await getShippingPolicyCMS()
+  if (cms?.isActive === false) notFound()
+  const managed = cms?.data
 
-  const lastUpdated = cms?.lastUpdated ?? 'January 2025'
-  const subtitle    = cms?.subtitle    ?? 'Everything you need to know about how and when we ship your order.'
-  const sections    = cms?.sections.map((s) => ({
+  const lastUpdated = managed?.lastUpdated ?? 'January 2025'
+  const subtitle    = managed?.subtitle    ?? 'Everything you need to know about how and when we ship your order.'
+  const sections    = managed?.sections.map((s) => ({
     heading: s.heading,
     body: s.isList ? s.body.split('\n').filter(Boolean) : s.body,
   })) ?? FALLBACK_SECTIONS

@@ -6,6 +6,16 @@ export class TestimonialRepository {
     return TestimonialModel.create(data);
   }
 
+  async nextOrder(): Promise<number> {
+    const last = await TestimonialModel.findOne({}).sort({ order: -1 }).select('order').lean();
+    return (last?.order ?? -1) + 1;
+  }
+
+  async setOrder(ids: string[]): Promise<void> {
+    if (!ids.length) return;
+    await TestimonialModel.bulkWrite(ids.map((id, order) => ({ updateOne: { filter: { _id: id }, update: { $set: { order } } } })));
+  }
+
   async findById(id: string | Types.ObjectId): Promise<ITestimonial | null> {
     return TestimonialModel.findById(id);
   }

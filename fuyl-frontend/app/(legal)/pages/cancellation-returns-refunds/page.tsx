@@ -1,6 +1,7 @@
 import { generateSEO } from '@/lib/utils/seo'
 import { LegalPage } from '@/components/content/LegalPage'
 import { getCancellationReturnsCMS } from '@/lib/api/content'
+import { notFound } from 'next/navigation'
 
 export const metadata = generateSEO({ title: 'Cancellation, Returns & Refunds', noIndex: true })
 
@@ -46,10 +47,12 @@ const FALLBACK_SECTIONS = [
 
 export default async function ReturnsPage() {
   const cms = await getCancellationReturnsCMS()
+  if (cms?.isActive === false) notFound()
+  const managed = cms?.data
 
-  const lastUpdated = cms?.lastUpdated ?? 'January 2025'
-  const subtitle    = cms?.subtitle    ?? 'Our 30-day money-back guarantee and returns process — explained clearly.'
-  const sections    = cms?.sections.map((s) => ({
+  const lastUpdated = managed?.lastUpdated ?? 'January 2025'
+  const subtitle    = managed?.subtitle    ?? 'Our 30-day money-back guarantee and returns process — explained clearly.'
+  const sections    = managed?.sections.map((s) => ({
     heading: s.heading,
     body: s.isList ? s.body.split('\n').filter(Boolean) : s.body,
   })) ?? FALLBACK_SECTIONS

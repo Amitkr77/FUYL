@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
+import type { Ingredient } from "@/types/content";
 
 const HOME = "/images/ingredient-home";
 
@@ -61,7 +62,14 @@ const INGREDIENTS = [
   },
 ];
 
-export function IngredientsGrid() {
+export function IngredientsGrid({ managed }: { managed?: Ingredient[] }) {
+  const items = managed?.map((ingredient) => ({
+    name: ingredient.name,
+    sub: ingredient.benefit,
+    emoji: "",
+    image: ingredient.image || null,
+  })) ?? INGREDIENTS;
+  if (!items.length) return null;
   return (
     <section className="section-py bg-white overflow-hidden">
       <div className="container-brand">
@@ -84,7 +92,7 @@ export function IngredientsGrid() {
 
             {/* Ingredient list */}
             <div className="flex flex-col divide-y  divide-brand-border">
-              {INGREDIENTS.map(({ name, sub, emoji, image }, i) => (
+              {items.slice(0, 12).map(({ name, sub, emoji, image }, i) => (
                 <ScrollReveal key={name} delay={i * 40}>
                   <div className="flex items-center gap-6 py-3.5">
                     {image ? (

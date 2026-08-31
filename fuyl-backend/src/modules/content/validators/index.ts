@@ -83,3 +83,77 @@ export const updateFAQSchema = createFAQSchema.partial();
 
 export type CreateFAQDTO = z.infer<typeof createFAQSchema>;
 export type UpdateFAQDTO = z.infer<typeof updateFAQSchema>;
+
+const contentLink = z.string().trim().max(500).refine(
+  (value) => !value || value.startsWith('/') || value.startsWith('#') || /^(https?:|mailto:|tel:)/i.test(value),
+  'Must be an internal path or a valid web, email, or telephone URL'
+);
+const assetPath = z.string().trim().max(1000);
+const shortText = z.string().trim().max(300);
+const requiredText = z.string().trim().min(1).max(5000);
+const sectionEnvelope = <T extends z.ZodTypeAny>(data: T) => z.object({
+  title: z.string().trim().min(1).max(150),
+  isActive: z.boolean(),
+  data,
+});
+
+const heroSchema = sectionEnvelope(z.object({
+  autoplayMs: z.number().int().min(1000).max(60000),
+  slides: z.array(z.object({
+    id: z.string().trim().min(1).max(100),
+    eyebrow: shortText,
+    headline: requiredText,
+    subheading: z.string().trim().max(1000),
+    mediaType: z.enum(['image', 'video']),
+    image: assetPath,
+    imageAlt: z.string().trim().max(300),
+    video: assetPath,
+    isActive: z.boolean(),
+    primaryCtaLabel: z.string().trim().max(100),
+    primaryCtaHref: contentLink,
+    secondaryCtaLabel: z.string().trim().max(100).optional(),
+    secondaryCtaHref: contentLink.optional(),
+  })).max(20),
+}));
+const announcementSchema = sectionEnvelope(z.object({
+  text: requiredText.max(500), linkHref: contentLink, linkText: shortText, dismissible: z.boolean(),
+}));
+const prebookingSchema = sectionEnvelope(z.object({
+  floatingButtonLabel: shortText, delayMs: z.number().int().min(0).max(300000), capacity: z.number().int().min(1).max(10000000),
+  badge: shortText, headline: requiredText.max(500), description: requiredText.max(2000), submitButtonLabel: shortText,
+  privacyNote: z.string().trim().max(1000), showDonation: z.boolean(), donationLabel: shortText,
+  donationSublabel: z.string().trim().max(1000), donationQrUrl: assetPath, successHeadline: requiredText.max(500),
+  successDescription: requiredText.max(2000), whatsappButtonLabel: shortText, continueShoppingLabel: shortText,
+}));
+const popupSchema = sectionEnvelope(z.object({
+  title: z.string().trim().max(300), body: z.string().trim().max(3000), imageUrl: assetPath,
+  ctaLabel: shortText, ctaHref: contentLink, delayMs: z.number().int().min(0).max(300000),
+  frequency: z.enum(['always', 'once_per_session', 'once_ever']),
+}));
+const ourStorySchema = sectionEnvelope(z.object({
+  heroQuote: requiredText.max(2000),
+  founders: z.array(z.object({ image: assetPath, name: requiredText.max(200), bio: requiredText.max(5000) })).max(20),
+  milestones: z.array(z.object({ title: requiredText.max(300), body: requiredText.max(5000) })).max(50),
+  ctaLabel: shortText, ctaHref: contentLink,
+}));
+const whyFuylSchema = sectionEnvelope(z.object({
+  heroHeadline: requiredText.max(500), heroDescription: requiredText.max(5000), heroImage: assetPath,
+  ctaLabel: shortText, ctaHref: contentLink, pillarsHeadline: requiredText.max(500), pillarsSubheadline: z.string().trim().max(1000),
+}));
+const legalSchema = sectionEnvelope(z.object({
+  lastUpdated: shortText, subtitle: z.string().trim().max(1000),
+  sections: z.array(z.object({ heading: requiredText.max(500), body: requiredText.max(10000), isList: z.boolean() })).max(100),
+}));
+
+export const storefrontSectionSchemas: Record<string, z.ZodTypeAny> = {
+  'home-hero': heroSchema,
+  'announcement-bar': announcementSchema,
+  'prebooking-modal': prebookingSchema,
+  'popup-banner': popupSchema,
+  'page-our-story': ourStorySchema,
+  'page-why-fuyl': whyFuylSchema,
+  'page-privacy-policy': legalSchema,
+  'page-shipping-policy': legalSchema,
+  'page-cancellation-returns': legalSchema,
+  'page-terms-conditions': legalSchema,
+};

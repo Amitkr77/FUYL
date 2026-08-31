@@ -12,7 +12,7 @@ import { AmbassadorSection }   from '@/components/home/AmbassadorSection'
 import { InstagramFeed }       from '@/components/home/InstagramFeed'
 import { NewsletterSection }   from '@/components/home/NewsletterSection'
 import { generateSEO }         from '@/lib/utils/seo'
-import { getStorefrontHero, getTestimonials } from '@/lib/api/content'
+import { getStorefrontHero, getTestimonials, getFAQs, getIngredients } from '@/lib/api/content'
 
 export const metadata = generateSEO({
   title:       'Complete Daily Nutrition',
@@ -23,7 +23,7 @@ export const metadata = generateSEO({
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
-  const [hero,testimonials] = await Promise.all([getStorefrontHero(),getTestimonials()])
+  const [hero,testimonials,faqs,ingredients] = await Promise.all([getStorefrontHero(),getTestimonials(),getFAQs().catch(() => undefined),getIngredients().catch(() => undefined)])
   return (
     <>
       {/* 1 — Hero */}
@@ -41,7 +41,7 @@ export default async function HomePage() {
       <ProductSpotlight />
 
       {/* 5 — Ingredients grid */}
-      <IngredientsGrid />
+      <IngredientsGrid managed={ingredients} />
 
       {/* 6 — 30-Day journey */}
       <ThirtyDayPath />
@@ -56,7 +56,7 @@ export default async function HomePage() {
       <TestimonialsSection managed={testimonials} />
 
       {/* 10 — FAQ */}
-      <FaqSection />
+      <FaqSection managed={faqs} />
 
       {/* 11 — Ambassador / referral */}
       <AmbassadorSection />

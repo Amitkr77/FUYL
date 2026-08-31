@@ -43,6 +43,7 @@ export function PrebookingPopup({ cms }: Props) {
   const [pending, startTransition] = useTransition()
 
   useEffect(() => {
+    if (cms?.isActive === false) return
     if (localStorage.getItem(SUBMITTED_KEY) === '1') return
     setAvailable(true)
     getPrebookingAvailability()
@@ -53,7 +54,7 @@ export function PrebookingPopup({ cms }: Props) {
       const timer = window.setTimeout(() => setOpen(true), delayMs)
       return () => window.clearTimeout(timer)
     }
-  }, [])
+  }, [cms?.isActive, delayMs])
 
   useEffect(() => {
     if (!open) return
@@ -94,7 +95,7 @@ export function PrebookingPopup({ cms }: Props) {
     })
   }
 
-  if (!available) return null
+  if (cms?.isActive === false || !available) return null
 
   return (
     <>

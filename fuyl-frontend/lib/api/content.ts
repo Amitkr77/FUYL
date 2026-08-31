@@ -4,10 +4,11 @@ export interface StorefrontHeroSlide{id:string;eyebrow:string;headline:string;su
 export interface StorefrontHero{isActive:boolean;autoplayMs:number;slides:StorefrontHeroSlide[]}
 export async function getStorefrontHero():Promise<StorefrontHero|null>{try{const section=await apiFetch<{isActive:boolean;data:Omit<StorefrontHero,'isActive'>}|null>('/storefront-sections/home-hero',{revalidate:60,tags:['storefront-hero']});return section?{isActive:section.isActive,...section.data}:null}catch{return null}}
 
-export interface AnnouncementBarCMS{text:string;linkHref:string;linkText:string;dismissible:boolean}
-export async function getAnnouncementBar():Promise<AnnouncementBarCMS|null>{try{const s=await apiFetch<{isActive:boolean;data:AnnouncementBarCMS}|null>('/storefront-sections/announcement-bar',{revalidate:300,tags:['announcement-bar']});return(s?.isActive&&s.data?.text)?s.data:null}catch{return null}}
+export interface AnnouncementBarCMS{text:string;linkHref:string;linkText:string;dismissible:boolean;isActive?:boolean}
+export async function getAnnouncementBar():Promise<AnnouncementBarCMS|null>{try{const s=await apiFetch<{isActive:boolean;data:Omit<AnnouncementBarCMS,'isActive'>}|null>('/storefront-sections/announcement-bar',{revalidate:300,tags:['announcement-bar']});return s?.data?{...s.data,isActive:s.isActive}:null}catch{return null}}
 
 export interface PrebookingModalCMS{
+  isActive?:boolean
   floatingButtonLabel:string
   delayMs:number
   capacity:number
@@ -25,7 +26,7 @@ export interface PrebookingModalCMS{
   whatsappButtonLabel:string
   continueShoppingLabel:string
 }
-export async function getPrebookingModalSettings():Promise<PrebookingModalCMS|null>{try{const s=await apiFetch<{isActive:boolean;data:PrebookingModalCMS}|null>('/storefront-sections/prebooking-modal',{revalidate:300,tags:['prebooking-modal']});return s?.isActive?s.data:null}catch{return null}}
+export async function getPrebookingModalSettings():Promise<PrebookingModalCMS|null>{try{const s=await apiFetch<{isActive:boolean;data:Omit<PrebookingModalCMS,'isActive'>}|null>('/storefront-sections/prebooking-modal',{revalidate:300,tags:['prebooking-modal']});return s?.data?{...s.data,isActive:s.isActive}:null}catch{return null}}
 
 export interface PopupBannerCMS{title:string;body:string;imageUrl:string;ctaLabel:string;ctaHref:string;delayMs:number;frequency:'always'|'once_per_session'|'once_ever'}
 export async function getPopupBanner():Promise<PopupBannerCMS|null>{try{const s=await apiFetch<{isActive:boolean;data:PopupBannerCMS}|null>('/storefront-sections/popup-banner',{revalidate:300,tags:['popup-banner']});return(s?.isActive&&s.data?.title)?s.data:null}catch{return null}}
@@ -33,18 +34,19 @@ export async function getPopupBanner():Promise<PopupBannerCMS|null>{try{const s=
 export interface OurStoryFounder { image: string; name: string; bio: string }
 export interface OurStoryMilestone { title: string; body: string }
 export interface OurStoryCMS { heroQuote: string; founders: OurStoryFounder[]; milestones: OurStoryMilestone[]; ctaLabel: string; ctaHref: string }
-export async function getOurStoryCMS(): Promise<OurStoryCMS|null> { try { const s=await apiFetch<{isActive:boolean;data:OurStoryCMS}|null>('/storefront-sections/page-our-story',{revalidate:300,tags:['page-our-story']}); return s?.isActive?s.data:null } catch { return null } }
+export interface ManagedSection<T> { isActive:boolean; data:T }
+export async function getOurStoryCMS(): Promise<ManagedSection<OurStoryCMS>|null> { try { return await apiFetch<ManagedSection<OurStoryCMS>|null>('/storefront-sections/page-our-story',{revalidate:300,tags:['page-our-story']}) } catch { return null } }
 
 export interface WhyFuylCMS { heroHeadline:string; heroDescription:string; heroImage:string; ctaLabel:string; ctaHref:string; pillarsHeadline:string; pillarsSubheadline:string }
-export async function getWhyFuylCMS(): Promise<WhyFuylCMS|null> { try { const s=await apiFetch<{isActive:boolean;data:WhyFuylCMS}|null>('/storefront-sections/page-why-fuyl',{revalidate:300,tags:['page-why-fuyl']}); return s?.isActive?s.data:null } catch { return null } }
+export async function getWhyFuylCMS(): Promise<ManagedSection<WhyFuylCMS>|null> { try { return await apiFetch<ManagedSection<WhyFuylCMS>|null>('/storefront-sections/page-why-fuyl',{revalidate:300,tags:['page-why-fuyl']}) } catch { return null } }
 
 export interface LegalSectionCMS { heading:string; body:string; isList:boolean }
 export interface LegalPageCMS { lastUpdated:string; subtitle:string; sections:LegalSectionCMS[] }
-async function fetchLegalPage(key:string,tag:string): Promise<LegalPageCMS|null> { try { const s=await apiFetch<{isActive:boolean;data:LegalPageCMS}|null>(`/storefront-sections/${key}`,{revalidate:3600,tags:[tag]}); return s?.isActive?s.data:null } catch { return null } }
-export async function getPrivacyPolicyCMS(): Promise<LegalPageCMS|null> { return fetchLegalPage('page-privacy-policy','page-privacy-policy') }
-export async function getShippingPolicyCMS(): Promise<LegalPageCMS|null> { return fetchLegalPage('page-shipping-policy','page-shipping-policy') }
-export async function getCancellationReturnsCMS(): Promise<LegalPageCMS|null> { return fetchLegalPage('page-cancellation-returns','page-cancellation-returns') }
-export async function getTermsConditionsCMS(): Promise<LegalPageCMS|null> { return fetchLegalPage('page-terms-conditions','page-terms-conditions') }
+async function fetchLegalPage(key:string,tag:string): Promise<ManagedSection<LegalPageCMS>|null> { try { return await apiFetch<ManagedSection<LegalPageCMS>|null>(`/storefront-sections/${key}`,{revalidate:3600,tags:[tag]}) } catch { return null } }
+export async function getPrivacyPolicyCMS(): Promise<ManagedSection<LegalPageCMS>|null> { return fetchLegalPage('page-privacy-policy','page-privacy-policy') }
+export async function getShippingPolicyCMS(): Promise<ManagedSection<LegalPageCMS>|null> { return fetchLegalPage('page-shipping-policy','page-shipping-policy') }
+export async function getCancellationReturnsCMS(): Promise<ManagedSection<LegalPageCMS>|null> { return fetchLegalPage('page-cancellation-returns','page-cancellation-returns') }
+export async function getTermsConditionsCMS(): Promise<ManagedSection<LegalPageCMS>|null> { return fetchLegalPage('page-terms-conditions','page-terms-conditions') }
 
 // ─── Backend raw shapes — all of these return Mongo's `_id`, not the `id`
 // these frontend types declare, so each needs the same _id -> id mapping

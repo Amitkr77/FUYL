@@ -66,6 +66,9 @@ router.get('/admin/content/faqs/:id', authRequired, contentController.getFAQById
 router.post('/admin/content/faqs', authRequired, contentController.createFAQ);
 router.patch('/admin/content/faqs/:id', authRequired, contentController.updateFAQ);
 router.delete('/admin/content/faqs/:id', authRequired, contentController.removeFAQ);
+router.put('/admin/content/reorder/:kind', authRequired, contentController.reorderManagedContent);
+router.get('/admin/content/storefront-sections/:key/revisions',authRequired,contentController.getStorefrontSectionRevisions);
+router.post('/admin/content/storefront-sections/:key/revisions/:revisionId/restore',authRequired,contentController.restoreStorefrontSectionRevision);
 router.get('/admin/content/storefront-sections/:key',authRequired,contentController.getStorefrontSectionAdmin);
 router.put('/admin/content/storefront-sections/:key',authRequired,contentController.updateStorefrontSection);
 

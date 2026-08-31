@@ -6,6 +6,16 @@ export class FAQRepository {
     return FAQModel.create(data);
   }
 
+  async nextOrder(): Promise<number> {
+    const last = await FAQModel.findOne({}).sort({ order: -1 }).select('order').lean();
+    return (last?.order ?? -1) + 1;
+  }
+
+  async setOrder(ids: string[]): Promise<void> {
+    if (!ids.length) return;
+    await FAQModel.bulkWrite(ids.map((id, order) => ({ updateOne: { filter: { _id: id }, update: { $set: { order } } } })));
+  }
+
   async findById(id: string | Types.ObjectId): Promise<IFAQ | null> {
     return FAQModel.findById(id);
   }

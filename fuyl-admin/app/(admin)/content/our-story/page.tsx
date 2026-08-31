@@ -10,6 +10,8 @@ export default async function OurStoryAdminPage() {
         <p className="text-sm text-slate-500 mt-0.5">Edit founder bios, images, milestones and CTA</p>
       </div>
       <OurStorySectionForm initial={section} />
+      <SectionHistoryPanel sectionKey="page-our-story" />
     </div>
   )
 }
+import { SectionHistoryPanel } from '@/components/content/SectionHistoryPanel'

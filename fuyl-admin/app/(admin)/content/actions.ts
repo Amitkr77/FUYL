@@ -7,7 +7,8 @@ import {
   createIngredient, updateIngredient, deleteIngredient, type IngredientInput,
   createTestimonial, updateTestimonial, deleteTestimonial, type TestimonialInput,
   createFAQ, updateFAQ, deleteFAQ, type FAQInput,
-  listAdminIngredients, listAdminTestimonials,
+  listAdminIngredients, listAdminTestimonials, listAdminFAQs,
+  restoreStorefrontSectionRevision,
 } from '@/lib/content'
 import { updateHeroSection,type HeroSection,updateAnnouncementBar,type AnnouncementBarSection,updatePrebookingModal,type PrebookingModalSection,updatePopupBanner,type PopupBannerSection,updateOurStorySection,type OurStorySection,updateWhyFuylSection,type WhyFuylSection,updatePrivacyPolicySection,updateShippingPolicySection,updateCancellationReturnsSection,updateTermsConditionsSection,type LegalPageSection } from '@/lib/content'
 import { adminApiFetch, getErrorMessage } from '@/lib/api'
@@ -40,8 +41,21 @@ export async function updatePrivacyPolicyAction(input: LegalPageSection): Promis
 export async function updateShippingPolicyAction(input: LegalPageSection): Promise<{error?:string}> { try { await updateShippingPolicySection(input); revalidatePath('/content/shipping-policy'); return {} } catch(err) { return { error: getErrorMessage(err,'Could not save Shipping Policy.') } } }
 export async function updateCancellationReturnsAction(input: LegalPageSection): Promise<{error?:string}> { try { await updateCancellationReturnsSection(input); revalidatePath('/content/cancellation-returns'); return {} } catch(err) { return { error: getErrorMessage(err,'Could not save Cancellation & Returns.') } } }
 export async function updateTermsConditionsAction(input: LegalPageSection): Promise<{error?:string}> { try { await updateTermsConditionsSection(input); revalidatePath('/content/terms-conditions'); return {} } catch(err) { return { error: getErrorMessage(err,'Could not save Terms & Conditions.') } } }
-export async function reorderIngredientAction(id:string,direction:'up'|'down'){const items=await listAdminIngredients();const index=items.findIndex(i=>i.id===id),target=direction==='up'?index-1:index+1;if(index<0||target<0||target>=items.length)return;await Promise.all([adminApiFetch(`/admin/content/ingredients/${id}`,{method:'PATCH',body:{order:items[target].order}}),adminApiFetch(`/admin/content/ingredients/${items[target].id}`,{method:'PATCH',body:{order:items[index].order}})]);revalidatePath('/content')}
-export async function reorderTestimonialAction(id:string,direction:'up'|'down'){const items=await listAdminTestimonials();const index=items.findIndex(i=>i.id===id),target=direction==='up'?index-1:index+1;if(index<0||target<0||target>=items.length)return;await Promise.all([adminApiFetch(`/admin/content/testimonials/${id}`,{method:'PATCH',body:{order:items[target].order}}),adminApiFetch(`/admin/content/testimonials/${items[target].id}`,{method:'PATCH',body:{order:items[index].order}})]);revalidatePath('/content')}
+export async function restoreStorefrontSectionRevisionAction(key:string,revisionId:string):Promise<{error?:string;success?:true}>{try{await restoreStorefrontSectionRevision(key,revisionId);revalidatePath('/content');return{success:true}}catch(err){return{error:getErrorMessage(err,'Could not restore this version.')}}}
+async function reorderItems(kind:'ingredients'|'testimonials'|'faqs',id:string,direction:'up'|'down'){
+  let items:{id:string}[]
+  if(kind==='ingredients')items=await listAdminIngredients()
+  else if(kind==='faqs')items=await listAdminFAQs()
+  else{const all=await listAdminTestimonials();const selected=all.find((item)=>item.id===id);items=selected?all.filter((item)=>item.type===selected.type):[]}
+  const index=items.findIndex((item)=>item.id===id),target=direction==='up'?index-1:index+1
+  if(index<0||target<0||target>=items.length)return
+  const ids=items.map((item)=>item.id);[ids[index],ids[target]]=[ids[target],ids[index]]
+  await adminApiFetch(`/admin/content/reorder/${kind}`,{method:'PUT',body:{ids}})
+  revalidatePath('/content')
+}
+export async function reorderIngredientAction(id:string,direction:'up'|'down'){return reorderItems('ingredients',id,direction)}
+export async function reorderTestimonialAction(id:string,direction:'up'|'down'){return reorderItems('testimonials',id,direction)}
+export async function reorderFAQAction(id:string,direction:'up'|'down'){return reorderItems('faqs',id,direction)}
 
 // ─── Pages ──────────────────────────────────────────────────────────────────
 export async function createPageAction(input: CMSPageInput): Promise<ContentActionState> {

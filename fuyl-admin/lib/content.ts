@@ -1,6 +1,9 @@
 import { adminApiFetch, adminApiFetchPaginated, AdminApiError, type PaginationMeta } from './api'
 
 export type ContentStatus = 'draft' | 'published'
+export interface StorefrontSectionRevision { revisionId:string; title:string; isActive:boolean; savedAt:string }
+export async function listStorefrontSectionRevisions(key:string):Promise<StorefrontSectionRevision[]>{return adminApiFetch(`/admin/content/storefront-sections/${key}/revisions`)}
+export async function restoreStorefrontSectionRevision(key:string,revisionId:string):Promise<void>{await adminApiFetch(`/admin/content/storefront-sections/${key}/revisions/${revisionId}/restore`,{method:'POST'})}
 export interface HeroSlide {id:string;eyebrow:string;headline:string;subheading:string;mediaType:'image'|'video';image:string;imageAlt:string;video:string;isActive:boolean;primaryCtaLabel:string;primaryCtaHref:string;secondaryCtaLabel?:string;secondaryCtaHref?:string}
 export interface HeroSection {title:string;isActive:boolean;data:{autoplayMs:number;slides:HeroSlide[]}}
 export async function getHeroSection():Promise<HeroSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<HeroSection>>('/admin/content/storefront-sections/home-hero');return{title:raw?.title??'Homepage hero',isActive:raw?.isActive??true,data:raw?.data??{autoplayMs:5000,slides:[{id:'hero-1',mediaType:'image',eyebrow:'Introducing FUYL COMPLETE+',headline:'Nourish Daily.\nFeel Stronger.\nLive longer.',subheading:'A Daily Nutrition Powder.',image:'/images/hero-slide-1.webp',imageAlt:'FUYL Complete daily nutrition',video:'',isActive:true,primaryCtaLabel:'SHOP FUYL COMPLETE +',primaryCtaHref:'/products/fuyl-complete'},{id:'hero-2',mediaType:'image',eyebrow:'30-Day Transformation',headline:'One Sachet\nEvery Morning\nEverything covered.',subheading:'Built For Daily Life And Long Term Health.',image:'/images/hero-slide-2.webp',imageAlt:'FUYL daily sachet',video:'',isActive:true,primaryCtaLabel:'START TODAY',primaryCtaHref:'/products/fuyl-complete'}]}}}
@@ -10,7 +13,7 @@ export async function updateHeroSection(input:HeroSection):Promise<void>{await a
 export interface AnnouncementBarData{text:string;linkHref:string;linkText:string;dismissible:boolean}
 export interface AnnouncementBarSection{isActive:boolean;data:AnnouncementBarData}
 const ANNOUNCEMENT_BAR_DEFAULTS:AnnouncementBarData={text:'FUYL COMPLETE+ LAUNCHING SOON — JOIN THE WAITLIST FOR EARLY ACCESS',linkHref:'/pages/contact',linkText:'',dismissible:true}
-export async function getAnnouncementBar():Promise<AnnouncementBarSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<AnnouncementBarSection>>('/admin/content/storefront-sections/announcement-bar').catch(()=>null);return{isActive:raw?.isActive??true,data:{...ANNOUNCEMENT_BAR_DEFAULTS,...(raw?.data??{})}}}
+export async function getAnnouncementBar():Promise<AnnouncementBarSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<AnnouncementBarSection>>('/admin/content/storefront-sections/announcement-bar');return{isActive:raw?.isActive??true,data:{...ANNOUNCEMENT_BAR_DEFAULTS,...(raw?.data??{})}}}
 export async function updateAnnouncementBar(input:AnnouncementBarSection):Promise<void>{await adminApiFetch('/admin/content/storefront-sections/announcement-bar',{method:'PUT',body:{title:'Announcement Bar',...input}})}
 
 // ─── Prebooking Modal ────────────────────────────────────────────────────────
@@ -55,14 +58,14 @@ const PREBOOKING_MODAL_DEFAULTS:PrebookingModalData={
   whatsappButtonLabel:'Join our WhatsApp community',
   continueShoppingLabel:'Continue shopping',
 }
-export async function getPrebookingModal():Promise<PrebookingModalSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<PrebookingModalSection>>('/admin/content/storefront-sections/prebooking-modal').catch(()=>null);return{isActive:raw?.isActive??true,data:{...PREBOOKING_MODAL_DEFAULTS,...(raw?.data??{})}}}
+export async function getPrebookingModal():Promise<PrebookingModalSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<PrebookingModalSection>>('/admin/content/storefront-sections/prebooking-modal');return{isActive:raw?.isActive??true,data:{...PREBOOKING_MODAL_DEFAULTS,...(raw?.data??{})}}}
 export async function updatePrebookingModal(input:PrebookingModalSection):Promise<void>{await adminApiFetch('/admin/content/storefront-sections/prebooking-modal',{method:'PUT',body:{title:'Prebooking Modal',...input}})}
 
 // ─── Popup Banner ────────────────────────────────────────────────────────────
 export interface PopupBannerData{title:string;body:string;imageUrl:string;ctaLabel:string;ctaHref:string;delayMs:number;frequency:'always'|'once_per_session'|'once_ever'}
 export interface PopupBannerSection{isActive:boolean;data:PopupBannerData}
 const POPUP_BANNER_DEFAULTS:PopupBannerData={title:'',body:'',imageUrl:'',ctaLabel:'',ctaHref:'',delayMs:2000,frequency:'once_per_session'}
-export async function getPopupBanner():Promise<PopupBannerSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<PopupBannerSection>>('/admin/content/storefront-sections/popup-banner').catch(()=>null);return{isActive:raw?.isActive??false,data:{...POPUP_BANNER_DEFAULTS,...(raw?.data??{})}}}
+export async function getPopupBanner():Promise<PopupBannerSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<PopupBannerSection>>('/admin/content/storefront-sections/popup-banner');return{isActive:raw?.isActive??false,data:{...POPUP_BANNER_DEFAULTS,...(raw?.data??{})}}}
 export async function updatePopupBanner(input:PopupBannerSection):Promise<void>{await adminApiFetch('/admin/content/storefront-sections/popup-banner',{method:'PUT',body:{title:'Popup Banner',...input}})}
 
 // ─── CMS Pages ──────────────────────────────────────────────────────────────
@@ -120,6 +123,8 @@ export interface PageQualityAudit {
     type: string
     severity: 'error' | 'warning'
     message: string
+    editHref?: string
+    storefrontPath?: string
   }>
   checkedAt: string
 }
@@ -334,6 +339,7 @@ interface BackendFAQ {
   question: string
   answer: string
   isActive: boolean
+  order: number
 }
 
 export interface FAQRecord {
@@ -341,12 +347,13 @@ export interface FAQRecord {
   question: string
   answer: string
   isActive: boolean
+  order: number
 }
 
-export type FAQInput = Omit<FAQRecord, 'id'>
+export type FAQInput = Omit<FAQRecord, 'id' | 'order'> & { order?: number }
 
 function mapFAQ(f: BackendFAQ): FAQRecord {
-  return { id: f._id, question: f.question, answer: f.answer, isActive: f.isActive }
+  return { id: f._id, question: f.question, answer: f.answer, isActive: f.isActive, order: f.order ?? 0 }
 }
 
 export async function listAdminFAQs(): Promise<FAQRecord[]> {
@@ -396,7 +403,7 @@ const OUR_STORY_DEFAULTS: OurStoryData = {
   ctaLabel: 'Try FUYL Complete+ — ₹1,499 for 15 sachets',
   ctaHref: '/products/fuyl-complete',
 }
-export async function getOurStorySection(): Promise<OurStorySection> { const raw = await adminApiFetch<({_id?:string}|null)&Partial<OurStorySection>>('/admin/content/storefront-sections/page-our-story').catch(()=>null); return { isActive: raw?.isActive ?? true, data: { ...OUR_STORY_DEFAULTS, ...(raw?.data ?? {}) } } }
+export async function getOurStorySection(): Promise<OurStorySection> { const raw = await adminApiFetch<({_id?:string}|null)&Partial<OurStorySection>>('/admin/content/storefront-sections/page-our-story'); return { isActive: raw?.isActive ?? true, data: { ...OUR_STORY_DEFAULTS, ...(raw?.data ?? {}) } } }
 export async function updateOurStorySection(input: OurStorySection): Promise<void> { await adminApiFetch('/admin/content/storefront-sections/page-our-story', { method: 'PUT', body: { title: 'Our Story Page', ...input } }) }
 
 // ─── Why FUYL ────────────────────────────────────────────────────────────────
@@ -411,7 +418,7 @@ const WHY_FUYL_DEFAULTS: WhyFuylData = {
   pillarsHeadline: 'PILLARS THAT MAKE FUYL',
   pillarsSubheadline: 'DISCOVER THE USPs THAT MAKE OUR PRODUCTS EXCEPTIONAL',
 }
-export async function getWhyFuylSection(): Promise<WhyFuylSection> { const raw = await adminApiFetch<({_id?:string}|null)&Partial<WhyFuylSection>>('/admin/content/storefront-sections/page-why-fuyl').catch(()=>null); return { isActive: raw?.isActive ?? true, data: { ...WHY_FUYL_DEFAULTS, ...(raw?.data ?? {}) } } }
+export async function getWhyFuylSection(): Promise<WhyFuylSection> { const raw = await adminApiFetch<({_id?:string}|null)&Partial<WhyFuylSection>>('/admin/content/storefront-sections/page-why-fuyl'); return { isActive: raw?.isActive ?? true, data: { ...WHY_FUYL_DEFAULTS, ...(raw?.data ?? {}) } } }
 export async function updateWhyFuylSection(input: WhyFuylSection): Promise<void> { await adminApiFetch('/admin/content/storefront-sections/page-why-fuyl', { method: 'PUT', body: { title: 'Why FUYL Page', ...input } }) }
 
 // ─── Legal pages (shared shape) ──────────────────────────────────────────────
@@ -420,7 +427,7 @@ export interface LegalPageData { lastUpdated: string; subtitle: string; sections
 export interface LegalPageSection { isActive: boolean; data: LegalPageData }
 
 async function getLegalSection(key: string, defaults: LegalPageData): Promise<LegalPageSection> {
-  const raw = await adminApiFetch<({_id?:string}|null)&Partial<LegalPageSection>>(`/admin/content/storefront-sections/${key}`).catch(()=>null)
+  const raw = await adminApiFetch<({_id?:string}|null)&Partial<LegalPageSection>>(`/admin/content/storefront-sections/${key}`)
   return { isActive: raw?.isActive ?? true, data: { ...defaults, ...(raw?.data ?? {}) } }
 }
 async function updateLegalSection(key: string, title: string, input: LegalPageSection): Promise<void> {

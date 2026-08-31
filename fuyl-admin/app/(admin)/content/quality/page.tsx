@@ -12,6 +12,8 @@ const TYPE_LABELS: Record<string, string> = {
   unlinked_page: 'Navigation',
   missing_image_alt: 'Accessibility',
   broken_page_link: 'Broken link',
+  using_code_defaults: 'Not configured',
+  empty_managed_section: 'Empty section',
 }
 
 export default async function ContentQualityPage() {
@@ -43,7 +45,7 @@ export default async function ContentQualityPage() {
       <div className="space-y-3">{Array.from(grouped.entries()).map(([pageId, issues]) => <section key={pageId} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
           <div><h2 className="font-semibold text-slate-900">{issues[0].title}</h2><p className="mt-0.5 text-xs text-slate-400">/pages/{issues[0].slug} · {issues.length} issue{issues.length === 1 ? '' : 's'}</p></div>
-          <div className="flex items-center gap-2"><a href={`https://fuyl.in/pages/${issues[0].slug}`} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-slate-200 p-2 text-slate-400 hover:text-[#558476]" title="Open storefront page"><ExternalLink className="h-4 w-4" /></a><Link href={`/content/pages/${pageId}`} className="flex items-center gap-2 rounded-lg bg-[#558476] px-3 py-2 text-sm font-medium text-white hover:bg-[#457366]">Fix page <ArrowRight className="h-4 w-4" /></Link></div>
+          <div className="flex items-center gap-2"><a href={`${process.env.STOREFRONT_URL ?? 'https://fuyl.in'}${issues[0].storefrontPath ?? `/pages/${issues[0].slug}`}`} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-slate-200 p-2 text-slate-400 hover:text-[#558476]" title="Open storefront page"><ExternalLink className="h-4 w-4" /></a><Link href={issues[0].editHref ?? `/content/pages/${pageId}`} className="flex items-center gap-2 rounded-lg bg-[#558476] px-3 py-2 text-sm font-medium text-white hover:bg-[#457366]">Fix content <ArrowRight className="h-4 w-4" /></Link></div>
         </div>
         <ul className="divide-y divide-slate-100">{issues.map((issue, index) => <li key={`${issue.type}-${index}`} className="flex gap-3 px-5 py-3">
           {issue.severity === 'error' ? <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" /> : <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />}

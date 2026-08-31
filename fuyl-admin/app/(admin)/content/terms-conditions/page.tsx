@@ -11,6 +11,8 @@ export default async function TermsConditionsAdminPage() {
         <p className="text-sm text-slate-500 mt-0.5">Edit sections, last updated date and subtitle</p>
       </div>
       <LegalPageForm initial={section} saveAction={updateTermsConditionsAction} />
+      <SectionHistoryPanel sectionKey="page-terms-conditions" />
     </div>
   )
 }
+import { SectionHistoryPanel } from '@/components/content/SectionHistoryPanel'

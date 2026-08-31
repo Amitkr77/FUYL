@@ -5,6 +5,7 @@ import { CheckCircle2, AlertCircle, ImagePlus, X } from 'lucide-react'
 import { updatePrebookingModalAction, getContentImageUploadSignature } from '@/app/(admin)/content/actions'
 import { uploadImage } from '@/lib/upload'
 import type { PrebookingModalSection } from '@/lib/content'
+import { useContentDraftGuard } from './useContentDraftGuard'
 
 interface Props { initial: PrebookingModalSection }
 
@@ -16,6 +17,7 @@ export function PrebookingModalForm({ initial }: Props) {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const qrFileRef = useRef<HTMLInputElement>(null)
+  const { markSaved } = useContentDraftGuard({ isActive, data })
 
   const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -34,6 +36,7 @@ export function PrebookingModalForm({ initial }: Props) {
     startTransition(async () => {
       const res = await updatePrebookingModalAction({ isActive, data })
       setResult(res.error ? { error: res.error } : { ok: true })
+      if (!res.error) markSaved({ isActive, data })
     })
   }
 

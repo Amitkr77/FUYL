@@ -6,6 +6,16 @@ export class IngredientRepository {
     return IngredientModel.create(data);
   }
 
+  async nextOrder(): Promise<number> {
+    const last = await IngredientModel.findOne({}).sort({ order: -1 }).select('order').lean();
+    return (last?.order ?? -1) + 1;
+  }
+
+  async setOrder(ids: string[]): Promise<void> {
+    if (!ids.length) return;
+    await IngredientModel.bulkWrite(ids.map((id, order) => ({ updateOne: { filter: { _id: id }, update: { $set: { order } } } })));
+  }
+
   async findById(id: string | Types.ObjectId): Promise<IIngredient | null> {
     return IngredientModel.findById(id);
   }

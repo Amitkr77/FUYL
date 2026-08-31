@@ -11,6 +11,8 @@ export default async function ShippingPolicyAdminPage() {
         <p className="text-sm text-slate-500 mt-0.5">Edit sections, last updated date and subtitle</p>
       </div>
       <LegalPageForm initial={section} saveAction={updateShippingPolicyAction} />
+      <SectionHistoryPanel sectionKey="page-shipping-policy" />
     </div>
   )
 }
+import { SectionHistoryPanel } from '@/components/content/SectionHistoryPanel'

@@ -5,6 +5,7 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { PillarTabs } from "@/components/why-fuyl/PillarTabs";
 import { getWhyFuylCMS } from "@/lib/api/content";
+import { notFound } from "next/navigation";
 
 export const metadata = generateSEO({
   title: "Why FUYL",
@@ -25,15 +26,17 @@ const DEFAULT_PILLARS_SUBHEADLINE =
 
 export default async function WhyFuylPage() {
   const cms = await getWhyFuylCMS();
+  if (cms?.isActive === false) notFound();
+  const managed = cms?.data;
 
-  const heroHeadline = cms?.heroHeadline ?? DEFAULT_HEADLINE;
-  const heroDescription = cms?.heroDescription ?? DEFAULT_DESCRIPTION;
-  const heroImage = cms?.heroImage ?? DEFAULT_IMAGE;
-  const ctaLabel = cms?.ctaLabel ?? DEFAULT_CTA_LABEL;
-  const ctaHref = cms?.ctaHref ?? DEFAULT_CTA_HREF;
-  const pillarsHeadline = cms?.pillarsHeadline ?? DEFAULT_PILLARS_HEADLINE;
+  const heroHeadline = managed?.heroHeadline ?? DEFAULT_HEADLINE;
+  const heroDescription = managed?.heroDescription ?? DEFAULT_DESCRIPTION;
+  const heroImage = managed?.heroImage ?? DEFAULT_IMAGE;
+  const ctaLabel = managed?.ctaLabel ?? DEFAULT_CTA_LABEL;
+  const ctaHref = managed?.ctaHref ?? DEFAULT_CTA_HREF;
+  const pillarsHeadline = managed?.pillarsHeadline ?? DEFAULT_PILLARS_HEADLINE;
   const pillarsSubheadline =
-    cms?.pillarsSubheadline ?? DEFAULT_PILLARS_SUBHEADLINE;
+    managed?.pillarsSubheadline ?? DEFAULT_PILLARS_SUBHEADLINE;
 
   return (
     <>

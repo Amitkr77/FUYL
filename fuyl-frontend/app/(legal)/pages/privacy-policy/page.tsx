@@ -1,6 +1,7 @@
 import { generateSEO } from '@/lib/utils/seo'
 import { LegalPage } from '@/components/content/LegalPage'
 import { getPrivacyPolicyCMS } from '@/lib/api/content'
+import { notFound } from 'next/navigation'
 
 export const metadata = generateSEO({ title: 'Privacy Policy', noIndex: true })
 
@@ -41,10 +42,12 @@ const FALLBACK_SECTIONS = [
 
 export default async function PrivacyPolicyPage() {
   const cms = await getPrivacyPolicyCMS()
+  if (cms?.isActive === false) notFound()
+  const managed = cms?.data
 
-  const lastUpdated = cms?.lastUpdated ?? 'January 2025'
-  const subtitle    = cms?.subtitle    ?? 'How we collect, use and protect your personal information.'
-  const sections    = cms?.sections.map((s) => ({
+  const lastUpdated = managed?.lastUpdated ?? 'January 2025'
+  const subtitle    = managed?.subtitle    ?? 'How we collect, use and protect your personal information.'
+  const sections    = managed?.sections.map((s) => ({
     heading: s.heading,
     body: s.isList ? s.body.split('\n').filter(Boolean) : s.body,
   })) ?? FALLBACK_SECTIONS

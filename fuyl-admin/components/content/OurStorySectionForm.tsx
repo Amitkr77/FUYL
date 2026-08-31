@@ -5,6 +5,7 @@ import { Plus, Trash2, ChevronUp, ChevronDown, ImagePlus, CheckCircle2, AlertCir
 import type { OurStorySection, OurStoryFounder, OurStoryMilestone } from '@/lib/content'
 import { updateOurStoryAction, getContentImageUploadSignature } from '@/app/(admin)/content/actions'
 import { uploadImage } from '@/lib/upload'
+import { useContentDraftGuard } from './useContentDraftGuard'
 
 const INPUT = 'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#558476] focus:ring-2 focus:ring-[#558476]/20'
 const LABEL = 'mb-1.5 block text-xs font-semibold text-slate-700'
@@ -129,6 +130,7 @@ export function OurStorySectionForm({ initial }: { initial: OurStorySection }) {
   const [section, setSection] = useState(initial)
   const [result, setResult] = useState<{ error?: string; ok?: true } | null>(null)
   const [pending, startTransition] = useTransition()
+  const { dirty, markSaved } = useContentDraftGuard(section)
 
   const setData = (patch: Partial<typeof section.data>) =>
     setSection((s) => ({ ...s, data: { ...s.data, ...patch } }))
@@ -168,6 +170,7 @@ export function OurStorySectionForm({ initial }: { initial: OurStorySection }) {
     startTransition(async () => {
       const res = await updateOurStoryAction(section)
       setResult(res.error ? { error: res.error } : { ok: true })
+      if (!res.error) markSaved(section)
     })
   }
 
@@ -248,6 +251,7 @@ export function OurStorySectionForm({ initial }: { initial: OurStorySection }) {
 
       {/* Footer */}
       <div className="flex flex-wrap items-center justify-end gap-3">
+        {dirty && <span className="text-xs font-medium text-amber-600">Unsaved changes</span>}
         {result?.error && (
           <span className="flex items-center gap-1.5 text-sm text-red-600"><AlertCircle className="h-4 w-4" />{result.error}</span>
         )}

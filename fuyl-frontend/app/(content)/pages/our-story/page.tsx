@@ -6,6 +6,7 @@ import { generateSEO } from "@/lib/utils/seo";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { getOurStoryCMS } from "@/lib/api/content";
+import { notFound } from "next/navigation";
 
 export const metadata = generateSEO({
   title: "Our Story",
@@ -77,12 +78,14 @@ const DEFAULT_CTA_HREF = "/products/fuyl-complete";
 
 export default async function OurStoryPage() {
   const cms = await getOurStoryCMS();
+  if (cms?.isActive === false) notFound();
+  const managed = cms?.data;
 
-  const founders = cms?.founders ?? DEFAULT_FOUNDERS;
-  const milestones = cms?.milestones ?? DEFAULT_MILESTONES;
-  const heroQuote = cms?.heroQuote ?? DEFAULT_QUOTE;
-  const ctaLabel = cms?.ctaLabel ?? DEFAULT_CTA_LABEL;
-  const ctaHref = cms?.ctaHref ?? DEFAULT_CTA_HREF;
+  const founders = managed?.founders ?? DEFAULT_FOUNDERS;
+  const milestones = managed?.milestones ?? DEFAULT_MILESTONES;
+  const heroQuote = managed?.heroQuote ?? DEFAULT_QUOTE;
+  const ctaLabel = managed?.ctaLabel ?? DEFAULT_CTA_LABEL;
+  const ctaHref = managed?.ctaHref ?? DEFAULT_CTA_HREF;
 
   return (
     <>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
+import type { FAQ } from "@/types/content";
 
 const FAQS = [
   {
@@ -57,8 +58,11 @@ const FAQS = [
   },
 ];
 
-export function FaqSection() {
-  const [open, setOpen] = useState("01");
+export function FaqSection({ managed }: { managed?: FAQ[] }) {
+  const items = managed ?? FAQS;
+  const [open, setOpen] = useState(items[0]?.id ?? "");
+
+  if (!items.length) return null;
 
   return (
     <section id="faq" className="bg-brand-cream py-14 sm:py-20 lg:py-32 overflow-hidden scroll-mt-24">
@@ -133,7 +137,7 @@ export function FaqSection() {
           <ScrollReveal delay={120} className="lg:relative">
             <div className="flex flex-col lg:absolute lg:inset-0 lg:overflow-y-auto lg:overflow-x-hidden lg:px-5 scrollbar-none [&::-webkit-scrollbar]:hidden">
               <div className="divide-y divide-brand-border/40">
-                {FAQS.map((item) => {
+                {items.map((item) => {
                   const active = open === item.id;
                   return (
                     <div

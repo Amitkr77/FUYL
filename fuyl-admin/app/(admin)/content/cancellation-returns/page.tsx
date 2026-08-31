@@ -11,6 +11,8 @@ export default async function CancellationReturnsAdminPage() {
         <p className="text-sm text-slate-500 mt-0.5">Edit sections, last updated date and subtitle</p>
       </div>
       <LegalPageForm initial={section} saveAction={updateCancellationReturnsAction} />
+      <SectionHistoryPanel sectionKey="page-cancellation-returns" />
     </div>
   )
 }
+import { SectionHistoryPanel } from '@/components/content/SectionHistoryPanel'

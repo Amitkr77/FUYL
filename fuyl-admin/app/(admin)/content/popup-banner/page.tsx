@@ -10,6 +10,8 @@ export default async function Page() {
         <p className="text-sm text-slate-500 mt-0.5">A generic promotional popup — add a title, body, optional image, and a CTA button.</p>
       </div>
       <PopupBannerForm initial={initial} />
+      <SectionHistoryPanel sectionKey="popup-banner" />
     </div>
   )
 }
+import { SectionHistoryPanel } from '@/components/content/SectionHistoryPanel'

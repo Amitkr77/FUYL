@@ -21,6 +21,7 @@ import { cacheService } from "../../../shared/services/cache.service";
 import { env } from "../../../config/env";
 import { logger } from "../../../config/logger";
 import crypto from "crypto";
+import { StorefrontSectionModel } from "../models/storefrontSection.model";
 
 const postRepo = new PostRepository();
 const cmsPageRepo = new CMSPageRepository();
@@ -249,14 +250,18 @@ class ContentService {
   }
 
   async auditPageQuality() {
-    const pages = await cmsPageRepo.listForQualityAudit();
+    const [pages, storefrontSections] = await Promise.all([
+      cmsPageRepo.listForQualityAudit(),
+      StorefrontSectionModel.find({}).select('key title isActive data').lean(),
+    ]);
     const publishedSlugs = new Set(pages.filter((page) => page.status === "published").map((page) => page.slug));
-    const issues: Array<{ pageId: string; title: string; slug: string; type: string; severity: "error" | "warning"; message: string }> = [];
+    const issues: Array<{ pageId: string; title: string; slug: string; type: string; severity: "error" | "warning"; message: string; editHref?: string; storefrontPath?: string }> = [];
 
     for (const page of pages) {
       const plainText = page.body.replace(/<[^>]*>/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
       const add = (type: string, severity: "error" | "warning", message: string) => issues.push({
         pageId: String(page._id), title: page.title, slug: page.slug, type, severity, message,
+        editHref: `/content/pages/${page._id}`, storefrontPath: `/pages/${page.slug}`,
       });
 
       if (!page.seoTitle?.trim()) add("missing_seo_title", "warning", "SEO title is missing.");
@@ -278,13 +283,42 @@ class ContentService {
       }
     }
 
+    const managedDefinitions: Record<string, { title:string; editHref:string; storefrontPath:string }> = {
+      'home-hero': { title:'Homepage Hero', editHref:'/content/hero', storefrontPath:'/' },
+      'announcement-bar': { title:'Announcement Bar', editHref:'/content/announcement', storefrontPath:'/' },
+      'prebooking-modal': { title:'Pre-booking Popup', editHref:'/content/prebooking-modal', storefrontPath:'/' },
+      'popup-banner': { title:'Popup Banner', editHref:'/content/popup-banner', storefrontPath:'/' },
+      'page-our-story': { title:'Our Story', editHref:'/content/our-story', storefrontPath:'/pages/our-story' },
+      'page-why-fuyl': { title:'Why FUYL', editHref:'/content/why-fuyl', storefrontPath:'/pages/why-fuyl' },
+      'page-privacy-policy': { title:'Privacy Policy', editHref:'/content/privacy-policy', storefrontPath:'/pages/privacy-policy' },
+      'page-shipping-policy': { title:'Shipping Policy', editHref:'/content/shipping-policy', storefrontPath:'/pages/shipping-policy' },
+      'page-cancellation-returns': { title:'Cancellation & Returns', editHref:'/content/cancellation-returns', storefrontPath:'/pages/cancellation-returns-refunds' },
+      'page-terms-conditions': { title:'Terms & Conditions', editHref:'/content/terms-conditions', storefrontPath:'/pages/terms-conditions' },
+    };
+    const configured = new Map(storefrontSections.map((section) => [section.key, section]));
+    for (const [key, definition] of Object.entries(managedDefinitions)) {
+      const section = configured.get(key);
+      const add = (type:string,severity:"error"|"warning",message:string) => issues.push({
+        pageId:key,title:definition.title,slug:key,type,severity,message,editHref:definition.editHref,storefrontPath:definition.storefrontPath,
+      });
+      if (!section) { add("using_code_defaults","warning","This section has not been saved in the CMS and is using code defaults."); continue; }
+      if (!section.isActive) continue;
+      if (!section.data || typeof section.data !== "object" || !Object.keys(section.data).length) add("empty_managed_section","error","Visible section has no configured content.");
+      if (key === "home-hero") {
+        const slides = Array.isArray((section.data as {slides?:unknown}).slides) ? (section.data as {slides:Array<{isActive?:boolean;imageAlt?:string;mediaType?:string;image?:string;video?:string}>}).slides : [];
+        if (!slides.some((slide) => slide.isActive !== false)) add("empty_managed_section","error","Hero is visible but has no active slides.");
+        const missingAlt = slides.filter((slide) => slide.isActive !== false && slide.mediaType !== "video" && slide.image && !slide.imageAlt?.trim()).length;
+        if (missingAlt) add("missing_image_alt","warning",`${missingAlt} active hero image${missingAlt===1?" is":"s are"} missing alt text.`);
+      }
+    }
+
     const errorCount = issues.filter((issue) => issue.severity === "error").length;
     const warningCount = issues.length - errorCount;
     const affectedPages = new Set(issues.map((issue) => issue.pageId)).size;
-    const totalChecks = Math.max(1, pages.length * 5);
+    const totalChecks = Math.max(1, (pages.length + Object.keys(managedDefinitions).length) * 5);
     const score = Math.max(0, Math.round(100 - ((errorCount * 2 + warningCount) / totalChecks) * 100));
     return {
-      summary: { score, totalPages: pages.length, publishedPages: pages.filter((page) => page.status === "published").length, affectedPages, errorCount, warningCount },
+      summary: { score, totalPages: pages.length + Object.keys(managedDefinitions).length, publishedPages: pages.filter((page) => page.status === "published").length, affectedPages, errorCount, warningCount },
       issues,
       checkedAt: new Date().toISOString(),
     };
@@ -309,21 +343,21 @@ class ContentService {
   // ─── Ingredients ────────────────────────────────────────────────
   async createIngredient(dto: CreateIngredientDTO) {
     const slug = await this.uniqueIngredientSlug(dto.name);
-    const ingredient = await ingredientRepo.create({ ...dto, slug });
-    void revalidateStorefront(["/pages/ingredients"]);
+    const ingredient = await ingredientRepo.create({ ...dto, slug, order: dto.order ?? await ingredientRepo.nextOrder() });
+    void revalidateStorefront(["/", "/pages/ingredients"]);
     return ingredient;
   }
 
   async updateIngredient(id: string, dto: UpdateIngredientDTO) {
     const updated = await ingredientRepo.update(id, dto);
     if (!updated) throw new NotFoundError("Ingredient");
-    void revalidateStorefront(["/pages/ingredients"]);
+    void revalidateStorefront(["/", "/pages/ingredients"]);
     return updated;
   }
 
   async deleteIngredient(id: string) {
     await ingredientRepo.delete(id);
-    void revalidateStorefront(["/pages/ingredients"]);
+    void revalidateStorefront(["/", "/pages/ingredients"]);
   }
 
   async getIngredientById(id: string) {
@@ -342,7 +376,7 @@ class ContentService {
 
   // ─── Testimonials ───────────────────────────────────────────────
   async createTestimonial(dto: CreateTestimonialDTO) {
-    const testimonial = await testimonialRepo.create(dto);
+    const testimonial = await testimonialRepo.create({ ...dto, order: dto.order ?? await testimonialRepo.nextOrder() });
     void revalidateStorefront(["/"]);
     return testimonial;
   }
@@ -375,7 +409,7 @@ class ContentService {
 
   // ─── FAQs ───────────────────────────────────────────────────────
   async createFAQ(dto: CreateFAQDTO) {
-    const faq = await faqRepo.create(dto);
+    const faq = await faqRepo.create({ ...dto, order: dto.order ?? await faqRepo.nextOrder() });
     void revalidateStorefront(["/"]);
     return faq;
   }
@@ -404,6 +438,17 @@ class ContentService {
 
   async listFAQsAdmin(page = 1, limit = 50) {
     return faqRepo.paginate({}, page, limit);
+  }
+
+  async reorderManagedContent(kind: "ingredients" | "testimonials" | "faqs", ids: string[]) {
+    if (!Array.isArray(ids) || !ids.length || ids.length > 500 || new Set(ids).size !== ids.length || ids.some((id) => !/^[a-f\d]{24}$/i.test(id))) {
+      throw new BadRequestError("Invalid content order");
+    }
+    if (kind === "ingredients") await ingredientRepo.setOrder(ids);
+    else if (kind === "testimonials") await testimonialRepo.setOrder(ids);
+    else await faqRepo.setOrder(ids);
+    await revalidateStorefront(kind === "ingredients" ? ["/", "/pages/ingredients"] : ["/"]);
+    return { updated: ids.length };
   }
 
   // ─── Instagram feed ─────────────────────────────────────────────

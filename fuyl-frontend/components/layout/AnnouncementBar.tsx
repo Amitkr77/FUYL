@@ -30,7 +30,7 @@ export function AnnouncementBar({ cms }: Props) {
     setDismissed(true);
   };
 
-  if (dismissed) return null;
+  if (cms?.isActive === false || dismissed) return null;
 
   return (
     <div className="relative bg-brand-forest text-white text-center py-2.5 px-12 sm:px-10">

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Plus, Trash2, ChevronUp, ChevronDown, CheckCircle2, AlertCircle } from 'lucide-react'
 import type { LegalPageSection, LegalSection } from '@/lib/content'
+import { useContentDraftGuard } from './useContentDraftGuard'
 
 const INPUT = 'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#558476] focus:ring-2 focus:ring-[#558476]/20'
 const LABEL = 'mb-1.5 block text-xs font-semibold text-slate-700'
@@ -74,6 +75,7 @@ export function LegalPageForm({ initial, saveAction }: Props) {
   const [page, setPage] = useState(initial)
   const [result, setResult] = useState<{ error?: string; ok?: true } | null>(null)
   const [pending, startTransition] = useTransition()
+  const { dirty, markSaved } = useContentDraftGuard(page)
 
   const setData = (patch: Partial<typeof page.data>) =>
     setPage((p) => ({ ...p, data: { ...p.data, ...patch } }))
@@ -100,6 +102,7 @@ export function LegalPageForm({ initial, saveAction }: Props) {
     startTransition(async () => {
       const res = await saveAction(page)
       setResult(res.error ? { error: res.error } : { ok: true })
+      if (!res.error) markSaved(page)
     })
   }
 
@@ -159,6 +162,7 @@ export function LegalPageForm({ initial, saveAction }: Props) {
 
       {/* Footer */}
       <div className="flex flex-wrap items-center justify-end gap-3">
+        {dirty && <span className="text-xs font-medium text-amber-600">Unsaved changes</span>}
         {result?.error && (
           <span className="flex items-center gap-1.5 text-sm text-red-600"><AlertCircle className="h-4 w-4" />{result.error}</span>
         )}

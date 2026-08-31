@@ -5,6 +5,7 @@ import { Plus, Trash2, ChevronUp, ChevronDown, ImagePlus, Film, CheckCircle2, Al
 import type { HeroSection, HeroSlide } from '@/lib/content'
 import { updateHeroAction, getContentImageUploadSignature, getContentVideoUploadSignature } from '@/app/(admin)/content/actions'
 import { uploadImage } from '@/lib/upload'
+import { useContentDraftGuard } from './useContentDraftGuard'
 
 const INPUT = 'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#558476] focus:ring-2 focus:ring-[#558476]/20'
 
@@ -216,6 +217,7 @@ export function HeroSectionForm({ initial }: { initial: HeroSection }) {
   const [hero, setHero] = useState(initial)
   const [result, setResult] = useState<{ error?: string; ok?: true } | null>(null)
   const [pending, startTransition] = useTransition()
+  const { markSaved } = useContentDraftGuard(hero)
 
   const updateSlide = (index: number, key: keyof HeroSlide, value: string | boolean) => {
     setHero((h) => ({
@@ -248,6 +250,7 @@ export function HeroSectionForm({ initial }: { initial: HeroSection }) {
     startTransition(async () => {
       const res = await updateHeroAction(hero)
       setResult(res.error ? { error: res.error } : { ok: true })
+      if (!res.error) markSaved(hero)
     })
   }
 
