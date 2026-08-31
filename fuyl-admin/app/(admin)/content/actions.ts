@@ -18,7 +18,14 @@ export type ContentActionState = { error: string; success?: never; id?: never } 
 // Same signature-then-direct-to-Cloudinary flow as the blog/product uploaders.
 export async function getContentImageUploadSignature(): Promise<SignatureResult> {
   try {
-    return await adminApiFetch('/uploads/sign', { method: 'POST', body: { folder: 'content' } })
+    return await adminApiFetch('/uploads/sign', { method: 'POST', body: { folder: 'content', resourceType: 'image' } })
+  } catch (err) {
+    return { error: getErrorMessage(err, 'Could not authorize the upload.') }
+  }
+}
+export async function getContentVideoUploadSignature(): Promise<SignatureResult> {
+  try {
+    return await adminApiFetch('/uploads/sign', { method: 'POST', body: { folder: 'content', resourceType: 'video' } })
   } catch (err) {
     return { error: getErrorMessage(err, 'Could not authorize the upload.') }
   }

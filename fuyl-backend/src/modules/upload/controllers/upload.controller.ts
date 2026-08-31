@@ -10,7 +10,7 @@ export class UploadController {
     validate(signUploadSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        return success(res, uploadService.createSignedParams(req.body.folder));
+        return success(res, uploadService.createSignedParams(req.body.folder, req.body.resourceType));
       } catch (err) { next(err); }
     },
   ];

@@ -1,6 +1,6 @@
 import { apiFetch } from './client'
 import type { CMSPage, BlogPost, Ingredient, Testimonial, FAQ, InstagramPost } from '@/types/content'
-export interface StorefrontHeroSlide{id:string;eyebrow:string;headline:string;subheading:string;image:string;imageAlt:string;primaryCtaLabel:string;primaryCtaHref:string;secondaryCtaLabel?:string;secondaryCtaHref?:string}
+export interface StorefrontHeroSlide{id:string;eyebrow:string;headline:string;subheading:string;mediaType?:'image'|'video';image:string;imageAlt:string;video?:string;isActive?:boolean;primaryCtaLabel:string;primaryCtaHref:string;secondaryCtaLabel?:string;secondaryCtaHref?:string}
 export interface StorefrontHero{isActive:boolean;autoplayMs:number;slides:StorefrontHeroSlide[]}
 export async function getStorefrontHero():Promise<StorefrontHero|null>{try{const section=await apiFetch<{isActive:boolean;data:Omit<StorefrontHero,'isActive'>}|null>('/storefront-sections/home-hero',{revalidate:60,tags:['storefront-hero']});return section?{isActive:section.isActive,...section.data}:null}catch{return null}}
 

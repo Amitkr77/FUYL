@@ -2,7 +2,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import { env } from '../../../config/env';
 import { BadRequestError } from '../../../shared/errors';
 
-export type UploadFolder = 'products' | 'blog' | 'avatars' | 'reviews' | 'returns' | 'categories';
+export type UploadFolder = 'products' | 'blog' | 'avatars' | 'reviews' | 'returns' | 'categories' | 'content';
 
 class UploadService {
   /**
@@ -10,7 +10,7 @@ class UploadService {
    * straight to Cloudinary's API using these — the file never passes
    * through this server. api_secret never leaves the backend.
    */
-  createSignedParams(folder: UploadFolder) {
+  createSignedParams(folder: UploadFolder, resourceType: 'image' | 'video' = 'image') {
     if (!env.cloudinary.cloudName || !env.cloudinary.apiKey || !env.cloudinary.apiSecret) {
       throw new BadRequestError('File uploads are not configured — Cloudinary credentials are missing');
     }
@@ -25,7 +25,7 @@ class UploadService {
       apiKey:    env.cloudinary.apiKey,
       cloudName: env.cloudinary.cloudName,
       folder:    paramsToSign.folder,
-      uploadUrl: `https://api.cloudinary.com/v1_1/${env.cloudinary.cloudName}/image/upload`,
+      uploadUrl: `https://api.cloudinary.com/v1_1/${env.cloudinary.cloudName}/${resourceType}/upload`,
     };
   }
 }
