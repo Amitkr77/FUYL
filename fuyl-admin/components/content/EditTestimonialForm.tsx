@@ -76,33 +76,58 @@ export function EditTestimonialForm({ testimonial }: { testimonial: TestimonialR
       )}
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+        {/* Type toggle */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Type</label>
+          <div className="flex rounded-lg border border-slate-200 overflow-hidden w-fit">
+            {(['customer', 'expert'] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => set({ type: t })}
+                className={`px-5 py-2 text-sm font-medium transition-colors capitalize ${
+                  form.type === t
+                    ? 'bg-[#558476] text-white'
+                    : 'bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 mt-1.5">
+            {form.type === 'expert'
+              ? 'Shown in the Experts tab on the storefront homepage'
+              : 'Shown in the Customers tab on the storefront homepage'}
+          </p>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Name</label>
             <input type="text" value={form.name} onChange={(e) => set({ name: e.target.value })} className={inputCls} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Title (optional)</label>
-            <input type="text" value={form.title} onChange={(e) => set({ title: e.target.value })} className={inputCls} />
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              {form.type === 'expert' ? 'Credentials / Role' : 'Title (optional)'}
+            </label>
+            <input
+              type="text"
+              value={form.title}
+              onChange={(e) => set({ title: e.target.value })}
+              placeholder={form.type === 'expert' ? 'e.g. MD, Internal Medicine · Mumbai' : 'e.g. Marketing Manager · Pune'}
+              className={inputCls}
+            />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Type</label>
-            <select value={form.type} onChange={(e) => set({ type: e.target.value as 'expert' | 'customer' })} className={inputCls}>
-              <option value="customer">Customer</option>
-              <option value="expert">Expert</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Rating (optional)</label>
-            <div className="flex items-center gap-1 h-[42px]">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button key={n} type="button" onClick={() => set({ rating: form.rating === n ? undefined : n })}>
-                  <Star className={`w-5 h-5 ${form.rating && n <= form.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
-                </button>
-              ))}
-            </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Rating (optional)</label>
+          <div className="flex items-center gap-1 h-[42px]">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button key={n} type="button" onClick={() => set({ rating: form.rating === n ? undefined : n })}>
+                <Star className={`w-5 h-5 ${form.rating && n <= form.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
+              </button>
+            ))}
           </div>
         </div>
         <div>
