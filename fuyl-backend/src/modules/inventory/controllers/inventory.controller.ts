@@ -125,6 +125,10 @@ export class InventoryController {
     try { await inventoryService.deleteLocation(req.params.id); return success(res, { deleted: true }); } catch (err) { next(err); }
   };
 
+  migrateLegacyDefault = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try { return success(res, await inventoryService.migrateLegacyDefault()); } catch (err) { next(err); }
+  };
+
   // ─── Stats ────────────────────────────────────────────────────
   consumptionStats = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {

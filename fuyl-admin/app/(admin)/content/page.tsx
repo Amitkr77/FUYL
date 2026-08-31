@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Plus, AlertCircle, Star, Image, ExternalLink, Search, ListTree } from 'lucide-react'
+import { Plus, AlertCircle, Star, Image, ExternalLink, Search, ListTree, SearchCheck } from 'lucide-react'
 import { ReorderButtons } from '@/components/content/ReorderButtons'
 import Badge from '@/components/ui/Badge'
 import { getErrorMessage } from '@/lib/api'
@@ -71,6 +71,7 @@ export default async function ContentPage({
           <p className="text-sm text-slate-500 mt-0.5">Manage pages, ingredients, testimonials & FAQs shown on the storefront</p>
         </div>
         <div className="flex items-center gap-2">
+          {tab === 'pages' && <Link href="/content/quality" className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"><SearchCheck className="h-4 w-4" />Content quality</Link>}
           {tab === 'pages' && <Link href="/content/navigation" className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"><ListTree className="h-4 w-4" />Manage navigation</Link>}
           <Link
             href={newHref[tab]}

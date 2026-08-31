@@ -28,6 +28,7 @@ const LABELS: Record<string, string> = {
   payouts: 'Payouts',
   payments: 'Payments',
   products: 'Products',
+  quality: 'Content Quality',
   programs: 'Programs',
   referrals: 'Referrals',
   returns: 'Returns',

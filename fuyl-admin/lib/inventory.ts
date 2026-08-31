@@ -141,4 +141,8 @@ export async function getConsumptionStats(days = 30): Promise<ConsumptionStats> 
   return adminApiFetch<ConsumptionStats>(`/inventory/stats/consumption?days=${days}`)
 }
 
+export async function migrateLegacyDefault(): Promise<{ migratedCount: number; warehouseCode: string }> {
+  return adminApiFetch('/inventory/locations/migrate-legacy', { method: 'POST' })
+}
+
 export { AdminApiError }

@@ -23,7 +23,8 @@ router.post('/inventory/release', authRequired, inventoryController.release);
 router.get('/inventory/locations',        authRequired, requirePermission(Permissions.INVENTORY_MANAGE), inventoryController.listLocations);
 router.post('/inventory/locations',       authRequired, requirePermission(Permissions.INVENTORY_MANAGE), inventoryController.createLocation);
 router.put('/inventory/locations/:id',    authRequired, requirePermission(Permissions.INVENTORY_MANAGE), inventoryController.updateLocation);
-router.delete('/inventory/locations/:id', authRequired, requirePermission(Permissions.INVENTORY_MANAGE), inventoryController.deleteLocation);
+router.delete('/inventory/locations/:id',          authRequired, requirePermission(Permissions.INVENTORY_MANAGE), inventoryController.deleteLocation);
+router.post('/inventory/locations/migrate-legacy', authRequired, requirePermission(Permissions.INVENTORY_MANAGE), inventoryController.migrateLegacyDefault);
 
 // Stats
 router.get('/inventory/stats/consumption', authRequired, requirePermission(Permissions.INVENTORY_MANAGE), inventoryController.consumptionStats);

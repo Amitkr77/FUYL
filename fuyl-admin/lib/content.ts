@@ -45,6 +45,26 @@ export interface CMSPageRevision {
   savedAt: string
 }
 
+export interface PageQualityAudit {
+  summary: {
+    score: number
+    totalPages: number
+    publishedPages: number
+    affectedPages: number
+    errorCount: number
+    warningCount: number
+  }
+  issues: Array<{
+    pageId: string
+    title: string
+    slug: string
+    type: string
+    severity: 'error' | 'warning'
+    message: string
+  }>
+  checkedAt: string
+}
+
 export interface CMSPageInput {
   title: string
   body: string
@@ -106,6 +126,10 @@ export async function listPageRevisions(id: string): Promise<CMSPageRevision[]> 
 
 export async function restorePageRevision(id: string, revisionId: string): Promise<void> {
   await adminApiFetch(`/admin/content/pages/${id}/revisions/${revisionId}/restore`, { method: 'POST' })
+}
+
+export async function getPageQualityAudit(): Promise<PageQualityAudit> {
+  return adminApiFetch<PageQualityAudit>('/admin/content/pages-quality')
 }
 
 export async function updatePageNavigation(items: Array<Pick<CMSPageSummary, 'id' | 'navigationPlacement' | 'navigationLabel' | 'navigationOrder'>>): Promise<void> {

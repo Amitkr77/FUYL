@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { MapPin, Plus, Pencil, Trash2, Star, X, Check } from 'lucide-react'
+import { MapPin, Plus, Pencil, Trash2, Star, X, Check, Loader2 } from 'lucide-react'
 import type { WarehouseLocation } from '@/lib/inventory'
 import {
   listLocationsAction,
@@ -28,8 +28,9 @@ export function LocationManager({ initialLocations }: Props) {
   const [isAdding, setIsAdding]   = useState(false)
   const [editId, setEditId]       = useState<string | null>(null)
   const [form, setForm]           = useState(emptyForm)
-  const [saving, setSaving]       = useState(false)
-  const [error, setError]         = useState('')
+  const [saving, setSaving]         = useState(false)
+  const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null)
+  const [error, setError]           = useState('')
 
   const refresh = () =>
     listLocationsAction().then(setLocations).catch(() => {})
@@ -78,6 +79,21 @@ export function LocationManager({ initialLocations }: Props) {
       setError(e?.message ?? 'Failed to save location')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleSetDefault = async (id: string) => {
+    setSettingDefaultId(id)
+    setError('')
+    try {
+      const result = await updateLocationAction(id, { isDefault: true })
+      if ('error' in result) { setError(result.error); return }
+      await refresh()
+      router.refresh()
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to set default')
+    } finally {
+      setSettingDefaultId(null)
     }
   }
 
@@ -234,7 +250,22 @@ export function LocationManager({ initialLocations }: Props) {
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+              <div className="flex items-center gap-1.5 ml-4 flex-shrink-0">
+                {!loc.isDefault && (
+                  <button
+                    onClick={() => handleSetDefault(loc.id)}
+                    disabled={settingDefaultId === loc.id}
+                    className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-600 hover:text-amber-700 hover:bg-amber-50 border border-amber-200 rounded-lg transition-colors disabled:opacity-50"
+                    title="Set as default warehouse"
+                  >
+                    {settingDefaultId === loc.id ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Star className="w-3 h-3" />
+                    )}
+                    Set default
+                  </button>
+                )}
                 <button
                   onClick={() => openEdit(loc)}
                   className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"

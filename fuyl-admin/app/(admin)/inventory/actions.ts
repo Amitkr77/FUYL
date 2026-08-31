@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import {
-  adjustStock, listLocations, createLocation, updateLocation, deleteLocation,
+  adjustStock, listLocations, createLocation, updateLocation, deleteLocation, migrateLegacyDefault,
   type AdjustStockInput, type WarehouseLocation,
 } from '@/lib/inventory'
 import { getErrorMessage } from '@/lib/api'
@@ -57,5 +57,15 @@ export async function deleteLocationAction(id: string): Promise<{ success: true 
     return { success: true }
   } catch (err) {
     return { error: getErrorMessage(err, 'Could not delete location.') }
+  }
+}
+
+export async function migrateLegacyDefaultAction(): Promise<{ migratedCount: number; warehouseCode: string } | { error: string }> {
+  try {
+    const result = await migrateLegacyDefault()
+    revalidatePath('/inventory')
+    return result
+  } catch (err) {
+    return { error: getErrorMessage(err, 'Migration failed.') }
   }
 }

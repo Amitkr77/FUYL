@@ -583,6 +583,18 @@ class InventoryService {
     return WarehouseLocationModel.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true });
   }
 
+  async migrateLegacyDefault(): Promise<{ migratedCount: number; warehouseCode: string }> {
+    const defaultLoc = await WarehouseLocationModel.findOne({ isDefault: true, isActive: true });
+    if (!defaultLoc) {
+      throw new BadRequestError('No default warehouse location is set. Please mark one location as default first, then run the migration.');
+    }
+    const [stockResult, reservationResult] = await Promise.all([
+      InventoryStockModel.updateMany({ warehouseId: 'default' }, { $set: { warehouseId: defaultLoc.code } }),
+      StockReservationModel.updateMany({ warehouseId: 'default' }, { $set: { warehouseId: defaultLoc.code } }),
+    ]);
+    return { migratedCount: stockResult.modifiedCount, warehouseCode: defaultLoc.code };
+  }
+
   async deleteLocation(id: string) {
     const loc = await WarehouseLocationModel.findById(id);
     if (!loc) throw new NotFoundError('Location not found');
