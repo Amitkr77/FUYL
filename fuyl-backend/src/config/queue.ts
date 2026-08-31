@@ -7,6 +7,7 @@ import { logger } from './logger';
 // structurally identical but TypeScript sees them as different — cast through
 // unknown to bridge the gap. The runtime value is a normal IORedis instance.
 export const redisConnection = new IORedis(redisConfig) as unknown as any;
+redisConnection.on('error', (err: Error) => logger.error('[queue] Redis connection error', err.message));
 
 export const QUEUE_NAMES = {
   SUBSCRIPTION_BILLING: 'subscription-billing',

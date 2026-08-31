@@ -17,7 +17,9 @@ class CacheService {
       this.connected = true;
       logger.info('[cache] Redis client connected');
     });
-    this.client.on('error', (err) => logger.error('[cache] Redis client error', err));
+    this.client.on('error', (err) => logger.error('[cache] Redis client error', err.message));
+    this.subscriber.on('error', (err) => logger.error('[cache] Redis subscriber error', err.message));
+    this.publisher.on('error', (err) => logger.error('[cache] Redis publisher error', err.message));
   }
 
   async get<T = unknown>(key: string): Promise<T | null> {
