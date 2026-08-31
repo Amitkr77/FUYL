@@ -11,21 +11,57 @@ export interface AnnouncementBarData{text:string;linkHref:string;linkText:string
 export interface AnnouncementBarSection{isActive:boolean;data:AnnouncementBarData}
 const ANNOUNCEMENT_BAR_DEFAULTS:AnnouncementBarData={text:'FUYL COMPLETE+ LAUNCHING SOON — JOIN THE WAITLIST FOR EARLY ACCESS',linkHref:'/pages/contact',linkText:'',dismissible:true}
 export async function getAnnouncementBar():Promise<AnnouncementBarSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<AnnouncementBarSection>>('/admin/content/storefront-sections/announcement-bar').catch(()=>null);return{isActive:raw?.isActive??true,data:{...ANNOUNCEMENT_BAR_DEFAULTS,...(raw?.data??{})}}}
-export async function updateAnnouncementBar(input:AnnouncementBarSection):Promise<void>{await adminApiFetch('/admin/content/storefront-sections/announcement-bar',{method:'PUT',body:input})}
+export async function updateAnnouncementBar(input:AnnouncementBarSection):Promise<void>{await adminApiFetch('/admin/content/storefront-sections/announcement-bar',{method:'PUT',body:{title:'Announcement Bar',...input}})}
 
 // ─── Prebooking Modal ────────────────────────────────────────────────────────
-export interface PrebookingModalData{badge:string;headline:string;description:string;delayMs:number;capacity:number}
+export interface PrebookingModalData{
+  // Trigger
+  floatingButtonLabel:string
+  delayMs:number
+  capacity:number
+  // Form copy
+  badge:string
+  headline:string
+  description:string
+  submitButtonLabel:string
+  privacyNote:string
+  // Donation section
+  showDonation:boolean
+  donationLabel:string
+  donationSublabel:string
+  // Success screen
+  successHeadline:string
+  successDescription:string
+  whatsappButtonLabel:string
+  continueShoppingLabel:string
+}
 export interface PrebookingModalSection{isActive:boolean;data:PrebookingModalData}
-const PREBOOKING_MODAL_DEFAULTS:PrebookingModalData={badge:'Launching soon',headline:'BE FIRST IN LINE',description:'Join the FUYL pre-booking list for early access and launch updates.',delayMs:900,capacity:500}
+const PREBOOKING_MODAL_DEFAULTS:PrebookingModalData={
+  floatingButtonLabel:'Pre-book now',
+  delayMs:900,
+  capacity:500,
+  badge:'Launching soon',
+  headline:'BE FIRST IN LINE',
+  description:'Join the FUYL pre-booking list for early access and launch updates.',
+  submitButtonLabel:'Join pre-booking list',
+  privacyNote:"We'll only use your details for FUYL pre-booking updates.",
+  showDonation:true,
+  donationLabel:'I would like to make an optional donation',
+  donationSublabel:'You can still join the pre-booking list without donating.',
+  successHeadline:"YOU'RE ON THE LIST!",
+  successDescription:"We've emailed your confirmation. You'll be among the first to know when pre-booking opens.",
+  whatsappButtonLabel:'Join our WhatsApp community',
+  continueShoppingLabel:'Continue shopping',
+}
 export async function getPrebookingModal():Promise<PrebookingModalSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<PrebookingModalSection>>('/admin/content/storefront-sections/prebooking-modal').catch(()=>null);return{isActive:raw?.isActive??true,data:{...PREBOOKING_MODAL_DEFAULTS,...(raw?.data??{})}}}
-export async function updatePrebookingModal(input:PrebookingModalSection):Promise<void>{await adminApiFetch('/admin/content/storefront-sections/prebooking-modal',{method:'PUT',body:input})}
+export async function updatePrebookingModal(input:PrebookingModalSection):Promise<void>{await adminApiFetch('/admin/content/storefront-sections/prebooking-modal',{method:'PUT',body:{title:'Prebooking Modal',...input}})}
 
 // ─── Popup Banner ────────────────────────────────────────────────────────────
 export interface PopupBannerData{title:string;body:string;imageUrl:string;ctaLabel:string;ctaHref:string;delayMs:number;frequency:'always'|'once_per_session'|'once_ever'}
 export interface PopupBannerSection{isActive:boolean;data:PopupBannerData}
 const POPUP_BANNER_DEFAULTS:PopupBannerData={title:'',body:'',imageUrl:'',ctaLabel:'',ctaHref:'',delayMs:2000,frequency:'once_per_session'}
 export async function getPopupBanner():Promise<PopupBannerSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<PopupBannerSection>>('/admin/content/storefront-sections/popup-banner').catch(()=>null);return{isActive:raw?.isActive??false,data:{...POPUP_BANNER_DEFAULTS,...(raw?.data??{})}}}
-export async function updatePopupBanner(input:PopupBannerSection):Promise<void>{await adminApiFetch('/admin/content/storefront-sections/popup-banner',{method:'PUT',body:input})}
+export async function updatePopupBanner(input:PopupBannerSection):Promise<void>{await adminApiFetch('/admin/content/storefront-sections/popup-banner',{method:'PUT',body:{title:'Popup Banner',...input}})}
 
 // ─── CMS Pages ──────────────────────────────────────────────────────────────
 interface BackendCMSPage {

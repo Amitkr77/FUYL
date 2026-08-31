@@ -7,7 +7,23 @@ export async function getStorefrontHero():Promise<StorefrontHero|null>{try{const
 export interface AnnouncementBarCMS{text:string;linkHref:string;linkText:string;dismissible:boolean}
 export async function getAnnouncementBar():Promise<AnnouncementBarCMS|null>{try{const s=await apiFetch<{isActive:boolean;data:AnnouncementBarCMS}|null>('/storefront-sections/announcement-bar',{revalidate:300,tags:['announcement-bar']});return(s?.isActive&&s.data?.text)?s.data:null}catch{return null}}
 
-export interface PrebookingModalCMS{badge:string;headline:string;description:string;delayMs:number;capacity:number}
+export interface PrebookingModalCMS{
+  floatingButtonLabel:string
+  delayMs:number
+  capacity:number
+  badge:string
+  headline:string
+  description:string
+  submitButtonLabel:string
+  privacyNote:string
+  showDonation:boolean
+  donationLabel:string
+  donationSublabel:string
+  successHeadline:string
+  successDescription:string
+  whatsappButtonLabel:string
+  continueShoppingLabel:string
+}
 export async function getPrebookingModalSettings():Promise<PrebookingModalCMS|null>{try{const s=await apiFetch<{isActive:boolean;data:PrebookingModalCMS}|null>('/storefront-sections/prebooking-modal',{revalidate:300,tags:['prebooking-modal']});return s?.isActive?s.data:null}catch{return null}}
 
 export interface PopupBannerCMS{title:string;body:string;imageUrl:string;ctaLabel:string;ctaHref:string;delayMs:number;frequency:'always'|'once_per_session'|'once_ever'}
