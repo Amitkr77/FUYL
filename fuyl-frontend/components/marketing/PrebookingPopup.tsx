@@ -9,7 +9,7 @@ import type { PrebookingModalCMS } from '@/lib/api/content'
 const SUBMITTED_KEY = 'fuyl_prebooking_submitted'
 const DISMISSED_KEY = 'fuyl_prebooking_dismissed'
 const WHATSAPP_COMMUNITY_URL = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL?.trim()
-const DONATION_QR_URL = process.env.NEXT_PUBLIC_PREBOOKING_DONATION_QR_URL?.trim()
+const ENV_DONATION_QR_URL = process.env.NEXT_PUBLIC_PREBOOKING_DONATION_QR_URL?.trim()
 
 interface Props {
   cms?: PrebookingModalCMS | null
@@ -31,6 +31,7 @@ export function PrebookingPopup({ cms }: Props) {
   const successDescription    = cms?.successDescription    ?? "We've emailed your confirmation. You'll be among the first to know when pre-booking opens."
   const whatsappButtonLabel   = cms?.whatsappButtonLabel   ?? 'Join our WhatsApp community'
   const continueShoppingLabel = cms?.continueShoppingLabel ?? 'Continue shopping'
+  const donationQrUrl = (cms?.donationQrUrl || ENV_DONATION_QR_URL) ?? ''
 
   const [open, setOpen] = useState(false)
   const [available, setAvailable] = useState(false)
@@ -170,8 +171,8 @@ export function PrebookingPopup({ cms }: Props) {
                       </label>
                       {wantsToDonate && (
                         <div className="rounded-xl border border-brand-border bg-white p-4 text-center">
-                          {DONATION_QR_URL
-                            ? <><img src={DONATION_QR_URL} alt="Scan to make an optional donation" className="mx-auto h-44 w-44 rounded-lg object-contain" /><p className="mt-2 text-xs text-brand-muted">Scan this QR code with your preferred payment app.</p></>
+                          {donationQrUrl
+                            ? <><img src={donationQrUrl} alt="Scan to make an optional donation" className="mx-auto h-44 w-44 rounded-lg object-contain" /><p className="mt-2 text-xs text-brand-muted">Scan this QR code with your preferred payment app.</p></>
                             : <p className="text-xs text-amber-700">Donation QR is being configured. You can submit the form without donating.</p>
                           }
                         </div>

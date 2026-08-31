@@ -19,6 +19,7 @@ export interface PrebookingModalCMS{
   showDonation:boolean
   donationLabel:string
   donationSublabel:string
+  donationQrUrl:string
   successHeadline:string
   successDescription:string
   whatsappButtonLabel:string

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { CheckCircle2, AlertCircle } from 'lucide-react'
-import { updatePrebookingModalAction } from '@/app/(admin)/content/actions'
+import { useRef, useState, useTransition } from 'react'
+import { CheckCircle2, AlertCircle, ImagePlus, X } from 'lucide-react'
+import { updatePrebookingModalAction, getContentImageUploadSignature } from '@/app/(admin)/content/actions'
+import { uploadImage } from '@/lib/upload'
 import type { PrebookingModalSection } from '@/lib/content'
 
 interface Props { initial: PrebookingModalSection }
@@ -12,6 +13,21 @@ export function PrebookingModalForm({ initial }: Props) {
   const [isActive, setIsActive] = useState(initial.isActive)
   const [result, setResult] = useState<{ error?: string; ok?: true } | null>(null)
   const [pending, startTransition] = useTransition()
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const qrFileRef = useRef<HTMLInputElement>(null)
+
+  const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setUploadError('')
+    setUploading(true)
+    const result = await uploadImage(file, getContentImageUploadSignature)
+    setUploading(false)
+    if ('error' in result) { setUploadError(result.error); return }
+    set('donationQrUrl', result.url)
+  }
 
   const save = () => {
     setResult(null)
@@ -109,9 +125,49 @@ export function PrebookingModalForm({ initial }: Props) {
         <SectionTitle>Donation section</SectionTitle>
         {toggle('Show optional donation checkbox in the form', 'showDonation')}
         {data.showDonation && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-7">
-            {text('Checkbox label', 'donationLabel', 'e.g. I would like to make an optional donation')}
-            {text('Checkbox sub-label', 'donationSublabel', 'e.g. You can still join without donating.')}
+          <div className="pl-7 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {text('Checkbox label', 'donationLabel', 'e.g. I would like to make an optional donation')}
+              {text('Checkbox sub-label', 'donationSublabel', 'e.g. You can still join without donating.')}
+            </div>
+
+            {/* QR image upload */}
+            <div>
+              <span className="mb-1 block text-xs font-semibold text-slate-700">Donation QR code image</span>
+              <input ref={qrFileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleQrUpload} />
+              {data.donationQrUrl ? (
+                <div className="flex items-start gap-4">
+                  <div className="relative group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={data.donationQrUrl} alt="Donation QR" className="h-32 w-32 rounded-lg border border-slate-200 object-contain bg-white" />
+                    <div className="absolute inset-0 rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
+                      <button type="button" onClick={() => qrFileRef.current?.click()} disabled={uploading} className="px-2.5 py-1 rounded bg-white text-xs font-medium text-slate-700 hover:text-[#558476]">
+                        {uploading ? 'Uploading…' : 'Replace'}
+                      </button>
+                      <button type="button" onClick={() => set('donationQrUrl', '')} className="px-2.5 py-1 rounded bg-white text-xs font-medium text-red-500">
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">Hover the image to replace or remove it.</p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => qrFileRef.current?.click()}
+                  disabled={uploading}
+                  className="flex items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-500 hover:border-[#558476] hover:text-[#558476] transition-colors disabled:opacity-60"
+                >
+                  <ImagePlus className="h-4 w-4" />
+                  {uploading ? 'Uploading…' : 'Upload QR code image'}
+                </button>
+              )}
+              {uploadError && (
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-red-600">
+                  <X className="h-3 w-3" />{uploadError}
+                </p>
+              )}
+            </div>
           </div>
         )}
 

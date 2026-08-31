@@ -29,6 +29,7 @@ export interface PrebookingModalData{
   showDonation:boolean
   donationLabel:string
   donationSublabel:string
+  donationQrUrl:string
   // Success screen
   successHeadline:string
   successDescription:string
@@ -48,6 +49,7 @@ const PREBOOKING_MODAL_DEFAULTS:PrebookingModalData={
   showDonation:true,
   donationLabel:'I would like to make an optional donation',
   donationSublabel:'You can still join the pre-booking list without donating.',
+  donationQrUrl:'',
   successHeadline:"YOU'RE ON THE LIST!",
   successDescription:"We've emailed your confirmation. You'll be among the first to know when pre-booking opens.",
   whatsappButtonLabel:'Join our WhatsApp community',
