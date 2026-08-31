@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { generateSEO } from "@/lib/utils/seo";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { getOurStoryCMS } from "@/lib/api/content";
 
 export const metadata = generateSEO({
   title: "Our Story",
@@ -16,11 +17,11 @@ export const metadata = generateSEO({
 // `body` may contain simple inline HTML (e.g. <strong>word</strong> to bold
 // it) — rendered via dangerouslySetInnerHTML below, same pattern already
 // used for blog post content elsewhere in this app.
-const FOUNDERS = [
+const DEFAULT_FOUNDERS = [
   {
     image: "/images/hero-slide-1.webp",
-    title: "SWEEKAR SAXENA",
-    body: `I am a product of "<strong>Kota Factory</strong>", an engineer, an Executive MBA from IIM Lucknow, health conscious individual. Yet, for most of my adult life, I was quietly undernourished. From avoiding vegetables as a child to surviving hostel food and then navigating a demanding career across startups like Indus OS, KiranaKing, Jugnoo, Ola and Mercedes-Benz. I discovered something many of us do far too late: <strong>eating better does not necessarily mean nourishing better.</strong>
+    name: "SWEEKAR SAXENA",
+    bio: `I am a product of "<strong>Kota Factory</strong>", an engineer, an Executive MBA from IIM Lucknow, health conscious individual. Yet, for most of my adult life, I was quietly undernourished. From avoiding vegetables as a child to surviving hostel food and then navigating a demanding career across startups like Indus OS, KiranaKing, Jugnoo, Ola and Mercedes-Benz. I discovered something many of us do far too late: <strong>eating better does not necessarily mean nourishing better.</strong>
 
 That realization became deeply personal after my wife and I moved to the Gulf in 2017. Over the next several years, we struggled through cycles of gut issues, fatigue, stress, poor sleep, and hormonal imbalances. We tried specialists, diets, exercise, and countless supplements. The lesson that kept emerging was simple: without strong foundations micronutrition, gut health, and cellular recovery everything else works below its potential.
 
@@ -32,8 +33,8 @@ That gap became the founding insight behind <strong>FUYL</strong>. Together with
   },
   {
     image: "/images/fuyl-complete+.webp",
-    title: "ANUPAM PANDEY",
-    body: `The story of an average urban Indian is one long hustle. We don't inherit our place. We earn it, in a crowd, pushing because everyone around us is pushing. But the hustle always takes something in return, and for almost all of us, the first thing it quietly takes is our health.
+    name: "ANUPAM PANDEY",
+    bio: `The story of an average urban Indian is one long hustle. We don't inherit our place. We earn it, in a crowd, pushing because everyone around us is pushing. But the hustle always takes something in return, and for almost all of us, the first thing it quietly takes is our health.
 
 It begins in a hostel mess and never really stops. JEE, then college, then the job in a city that runs faster than you do, then maybe UPSC in Old Rajendra Nagar. And through all of it, your career stays on point while your nutrition slips into the back seat. Then your thirties arrive, the body sends the bill, and you realise you optimised everything in your life except the one thing holding it all up.
 
@@ -45,7 +46,7 @@ So my co-founder Sweekar and I built the thing we wished existed: <strong>one ho
   },
 ];
 
-const MILESTONES = [
+const DEFAULT_MILESTONES = [
   {
     title: "THE IDEA",
     body: "Two founders. One shared frustration. The realisation that no single trustworthy daily nutrition product existed for the urban Indian who actually reads labels.",
@@ -68,8 +69,21 @@ const MILESTONES = [
   },
 ];
 
+const DEFAULT_QUOTE =
+  "We didn't set out to build a supplement brand. We set out to solve our own problem — and found that millions of Indians shared it.";
 
-export default function OurStoryPage() {
+const DEFAULT_CTA_LABEL = "Try FUYL Complete+ — ₹1,499 for 15 sachets";
+const DEFAULT_CTA_HREF = "/products/fuyl-complete";
+
+export default async function OurStoryPage() {
+  const cms = await getOurStoryCMS();
+
+  const founders = cms?.founders ?? DEFAULT_FOUNDERS;
+  const milestones = cms?.milestones ?? DEFAULT_MILESTONES;
+  const heroQuote = cms?.heroQuote ?? DEFAULT_QUOTE;
+  const ctaLabel = cms?.ctaLabel ?? DEFAULT_CTA_LABEL;
+  const ctaHref = cms?.ctaHref ?? DEFAULT_CTA_HREF;
+
   return (
     <>
       {/* ── 1. Hero / Header ─────────────────────────── */}
@@ -95,8 +109,7 @@ export default function OurStoryPage() {
           <span className="not-italic text-brand-sage text-4xl sm:text-[64px] lg:text-[80px] leading-[0.5] align-[-14px] sm:align-[-22px] lg:align-[-28px] mr-1">
             &ldquo;
           </span>
-          We didn&apos;t set out to build a supplement brand. We set out to
-          solve our own problem — and found that millions of Indians shared it.
+          {heroQuote}
           <span className="not-italic text-brand-sage text-4xl sm:text-[64px] lg:text-[80px] leading-[0.5] align-[-14px] sm:align-[-22px] lg:align-[-28px] ml-1">
             &rdquo;
           </span>
@@ -113,8 +126,8 @@ export default function OurStoryPage() {
       <section className="section-py bg-brand-cream">
         <div className="container-brand">
           <div className="flex flex-col items-stretch md:flex-row">
-            {FOUNDERS.map(({ image, title, body }, i) => (
-              <Fragment key={title}>
+            {founders.map(({ image, name, bio }, i) => (
+              <Fragment key={name || i}>
                 {/* Divider — horizontal on mobile, vertical on desktop */}
                 {i > 0 && (
                   <div className="flex items-center justify-center py-10 md:py-0 md:px-8">
@@ -127,7 +140,7 @@ export default function OurStoryPage() {
                     <div className="relative h-64 w-64 sm:h-80 sm:w-80 shrink-0 overflow-hidden rounded-full border-[5px] border-brand-border shadow-lg">
                       <Image
                         src={image}
-                        alt={title}
+                        alt={name}
                         fill
                         className="object-cover"
                         sizes="(max-width: 640px) 256px, 320px"
@@ -135,11 +148,11 @@ export default function OurStoryPage() {
                     </div>
                     <div>
                       <h3 className="text-display-md font-display mb-4 text-center">
-                        {title.toUpperCase()}
+                        {name.toUpperCase()}
                       </h3>
                       <p
                         className="mx-auto max-w-xl whitespace-pre-line text-body-md leading-relaxed text-brand-muted text-justify"
-                        dangerouslySetInnerHTML={{ __html: body }}
+                        dangerouslySetInnerHTML={{ __html: bio }}
                       />
                     </div>
                   </div>
@@ -166,7 +179,7 @@ export default function OurStoryPage() {
                 {/* Single track line behind all dots */}
                 <div className="absolute left-0 right-0 top-4 h-px bg-brand-border" />
 
-                {MILESTONES.map(({ title, body }) => (
+                {milestones.map(({ title, body }) => (
                   <div
                     key={title}
                     className="group relative flex flex-1 flex-col items-center"
@@ -193,30 +206,7 @@ export default function OurStoryPage() {
         </div>
       </section>
 
-      {/* ── 4. Values ─────────────────────────────────── */}
-      {/* <section className="section-py bg-brand-cream">
-        <div className="container-brand">
-          <ScrollReveal>
-            <h2 className="text-display-xl font-display mb-14 text-center">
-              OUR VALUES
-            </h2>
-          </ScrollReveal>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            {VALUES.map(({ title, body }, i) => (
-              <ScrollReveal key={title} delay={i * 80}>
-                <div className="h-full rounded-sm border border-brand-border bg-brand-white p-7 transition-shadow hover:shadow-md">
-                  <p className="text-body-lg font-semibold mb-3">{title}</p>
-                  <p className="text-body-md leading-relaxed text-brand-muted">
-                    {body}
-                  </p>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section> */}
-
-      {/* ── 5. CTA ────────────────────────────────────── */}
+      {/* ── 4. CTA ────────────────────────────────────── */}
       <section className="py-16 sm:py-20 text-center bg-white">
         <ScrollReveal>
           <div className="container-brand mx-auto max-w-3xl">
@@ -229,17 +219,11 @@ export default function OurStoryPage() {
 
             <div className="mb-6 flex flex-wrap justify-center gap-4">
               <Link
-                href="/products/fuyl-complete"
+                href={ctaHref}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-sm bg-brand-forest px-6 sm:px-10 text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:bg-brand-sage hover:text-brand-forest"
               >
-                Try FUYL Complete+ — ₹1,499 for 15 sachets <ArrowRight size={16} />
+                {ctaLabel} <ArrowRight size={16} />
               </Link>
-              {/* <Link
-                href="/pages/contact"
-                className="inline-flex h-12 items-center justify-center rounded-sm border border-brand-border px-8 text-xs font-semibold uppercase tracking-widest text-brand-forest transition-colors hover:border-brand-teal hover:text-brand-teal"
-              >
-                Talk to Us
-              </Link> */}
             </div>
 
             <p className="text-body-xs text-brand-muted/60 uppercase tracking-widest">

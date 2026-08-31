@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Plus, AlertCircle, Star, Image, ExternalLink, Search, ListTree, SearchCheck, Megaphone, Sparkles, Layers } from 'lucide-react'
+import { Plus, AlertCircle, Star, Image, ExternalLink, Search, ListTree, SearchCheck, Megaphone, Sparkles, Layers, BookOpen, Zap, Shield, Truck, RotateCcw, FileText } from 'lucide-react'
 import { ReorderButtons } from '@/components/content/ReorderButtons'
 import Badge from '@/components/ui/Badge'
 import { getErrorMessage } from '@/lib/api'
@@ -73,18 +73,20 @@ export default async function ContentPage({
         <div className="flex items-center gap-2">
           {tab === 'pages' && <Link href="/content/quality" className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"><SearchCheck className="h-4 w-4" />Content quality</Link>}
           {tab === 'pages' && <Link href="/content/navigation" className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"><ListTree className="h-4 w-4" />Manage navigation</Link>}
-          <Link
-            href={newHref[tab]}
-            className="flex items-center gap-2 px-4 py-2 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            New {TABS.find((t) => t.value === tab)?.label.replace(/s$/, '')}
-          </Link>
+          {tab !== 'testimonials' && (
+            <Link
+              href={newHref[tab]}
+              className="flex items-center gap-2 px-4 py-2 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              New {TABS.find((t) => t.value === tab)?.label.replace(/s$/, '')}
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      {/* Storefront sections grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         <Link href="/content/hero" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-[#558476]/10 p-3 text-[#558476]"><Image className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Homepage Hero</h3><p className="text-sm text-slate-500">Slides, headings, images &amp; CTAs</p></div></div>
         </Link>
@@ -96,6 +98,24 @@ export default async function ContentPage({
         </Link>
         <Link href="/content/popup-banner" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-purple-50 p-3 text-purple-600"><Layers className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Popup Banner</h3><p className="text-sm text-slate-500">Generic promotional popup</p></div></div>
+        </Link>
+        <Link href="/content/our-story" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+          <div className="flex items-center gap-4"><div className="rounded-xl bg-green-50 p-3 text-green-600"><BookOpen className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Our Story</h3><p className="text-sm text-slate-500">Founder bios, milestones &amp; CTA</p></div></div>
+        </Link>
+        <Link href="/content/why-fuyl" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+          <div className="flex items-center gap-4"><div className="rounded-xl bg-yellow-50 p-3 text-yellow-600"><Zap className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Why FUYL</h3><p className="text-sm text-slate-500">Hero, description &amp; pillars headings</p></div></div>
+        </Link>
+        <Link href="/content/privacy-policy" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+          <div className="flex items-center gap-4"><div className="rounded-xl bg-blue-50 p-3 text-blue-600"><Shield className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Privacy Policy</h3><p className="text-sm text-slate-500">Data collection &amp; privacy sections</p></div></div>
+        </Link>
+        <Link href="/content/shipping-policy" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+          <div className="flex items-center gap-4"><div className="rounded-xl bg-orange-50 p-3 text-orange-600"><Truck className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Shipping Policy</h3><p className="text-sm text-slate-500">Rates, delivery times &amp; tracking</p></div></div>
+        </Link>
+        <Link href="/content/cancellation-returns" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+          <div className="flex items-center gap-4"><div className="rounded-xl bg-red-50 p-3 text-red-600"><RotateCcw className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Cancellation &amp; Returns</h3><p className="text-sm text-slate-500">Money-back guarantee &amp; returns</p></div></div>
+        </Link>
+        <Link href="/content/terms-conditions" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+          <div className="flex items-center gap-4"><div className="rounded-xl bg-slate-100 p-3 text-slate-600"><FileText className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Terms &amp; Conditions</h3><p className="text-sm text-slate-500">Usage terms &amp; legal notices</p></div></div>
         </Link>
       </div>
 
@@ -251,48 +271,91 @@ function IngredientsTable({ items }: { items: IngredientRecord[] }) {
   )
 }
 
-function TestimonialsTable({ items }: { items: TestimonialRecord[] }) {
+function TestimonialSubsection({
+  title, description, addHref, items,
+}: {
+  title: string
+  description: string
+  addHref: string
+  items: TestimonialRecord[]
+}) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-slate-100">
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Name</th>
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3 hidden md:table-cell">Type</th>
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3 hidden lg:table-cell">Rating</th>
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Status</th>
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {items.length === 0 ? <EmptyRow colSpan={5} label="No testimonials yet." /> : items.map((t,index) => (
-              <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
-                <td className="px-5 py-4">
-                  <p className="text-sm font-medium text-slate-900">{t.name}</p>
-                  {t.title && <p className="text-xs text-slate-400 mt-0.5">{t.title}</p>}
-                </td>
-                <td className="px-5 py-4 hidden md:table-cell capitalize text-sm text-slate-500">{t.type}</td>
-                <td className="px-5 py-4 hidden lg:table-cell">
-                  {t.rating ? (
-                    <div className="flex items-center gap-1 text-sm text-slate-700">
-                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                      {t.rating}
-                    </div>
-                  ) : <span className="text-slate-300">—</span>}
-                </td>
-                <td className="px-5 py-4">
-                  <Badge variant={t.isActive ? 'success' : 'default'}>{t.isActive ? 'Active' : 'Inactive'}</Badge>
-                </td>
-                <td className="px-5 py-4">
-                  <ReorderButtons id={t.id} order={t.order} type="testimonial" first={index===0} last={index===items.length-1} />
-                  <ContentRowActions label="testimonial" editHref={`/content/testimonials/${t.id}`} deleteAction={deleteTestimonialAction.bind(null, t.id)} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
+          <p className="text-xs text-slate-400 mt-0.5">{description}</p>
+        </div>
+        <Link
+          href={addHref}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#558476] hover:bg-[#457366] text-white text-xs font-medium rounded-lg transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add
+        </Link>
       </div>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-100">
+                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Name</th>
+                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3 hidden lg:table-cell">Rating</th>
+                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Status</th>
+                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {items.length === 0
+                ? <EmptyRow colSpan={4} label={`No ${title.toLowerCase()} yet.`} />
+                : items.map((t, index) => (
+                <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-5 py-4">
+                    <p className="text-sm font-medium text-slate-900">{t.name}</p>
+                    {t.title && <p className="text-xs text-slate-400 mt-0.5">{t.title}</p>}
+                  </td>
+                  <td className="px-5 py-4 hidden lg:table-cell">
+                    {t.rating ? (
+                      <div className="flex items-center gap-1 text-sm text-slate-700">
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        {t.rating}
+                      </div>
+                    ) : <span className="text-slate-300">—</span>}
+                  </td>
+                  <td className="px-5 py-4">
+                    <Badge variant={t.isActive ? 'success' : 'default'}>{t.isActive ? 'Active' : 'Inactive'}</Badge>
+                  </td>
+                  <td className="px-5 py-4">
+                    <ReorderButtons id={t.id} order={t.order} type="testimonial" first={index === 0} last={index === items.length - 1} />
+                    <ContentRowActions label="testimonial" editHref={`/content/testimonials/${t.id}`} deleteAction={deleteTestimonialAction.bind(null, t.id)} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TestimonialsTable({ items }: { items: TestimonialRecord[] }) {
+  const customers = items.filter((t) => t.type === 'customer')
+  const experts   = items.filter((t) => t.type === 'expert')
+  return (
+    <div className="space-y-8">
+      <TestimonialSubsection
+        title="Customer Testimonials"
+        description="Real feedback from customers — shown in the Customers tab on the storefront"
+        addHref="/content/testimonials/new?type=customer"
+        items={customers}
+      />
+      <TestimonialSubsection
+        title="Expert Testimonials"
+        description="Endorsements from professionals — shown in the Experts tab on the storefront"
+        addHref="/content/testimonials/new?type=expert"
+        items={experts}
+      />
     </div>
   )
 }

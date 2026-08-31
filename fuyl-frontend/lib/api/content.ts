@@ -30,6 +30,22 @@ export async function getPrebookingModalSettings():Promise<PrebookingModalCMS|nu
 export interface PopupBannerCMS{title:string;body:string;imageUrl:string;ctaLabel:string;ctaHref:string;delayMs:number;frequency:'always'|'once_per_session'|'once_ever'}
 export async function getPopupBanner():Promise<PopupBannerCMS|null>{try{const s=await apiFetch<{isActive:boolean;data:PopupBannerCMS}|null>('/storefront-sections/popup-banner',{revalidate:300,tags:['popup-banner']});return(s?.isActive&&s.data?.title)?s.data:null}catch{return null}}
 
+export interface OurStoryFounder { image: string; name: string; bio: string }
+export interface OurStoryMilestone { title: string; body: string }
+export interface OurStoryCMS { heroQuote: string; founders: OurStoryFounder[]; milestones: OurStoryMilestone[]; ctaLabel: string; ctaHref: string }
+export async function getOurStoryCMS(): Promise<OurStoryCMS|null> { try { const s=await apiFetch<{isActive:boolean;data:OurStoryCMS}|null>('/storefront-sections/page-our-story',{revalidate:300,tags:['page-our-story']}); return s?.isActive?s.data:null } catch { return null } }
+
+export interface WhyFuylCMS { heroHeadline:string; heroDescription:string; heroImage:string; ctaLabel:string; ctaHref:string; pillarsHeadline:string; pillarsSubheadline:string }
+export async function getWhyFuylCMS(): Promise<WhyFuylCMS|null> { try { const s=await apiFetch<{isActive:boolean;data:WhyFuylCMS}|null>('/storefront-sections/page-why-fuyl',{revalidate:300,tags:['page-why-fuyl']}); return s?.isActive?s.data:null } catch { return null } }
+
+export interface LegalSectionCMS { heading:string; body:string; isList:boolean }
+export interface LegalPageCMS { lastUpdated:string; subtitle:string; sections:LegalSectionCMS[] }
+async function fetchLegalPage(key:string,tag:string): Promise<LegalPageCMS|null> { try { const s=await apiFetch<{isActive:boolean;data:LegalPageCMS}|null>(`/storefront-sections/${key}`,{revalidate:3600,tags:[tag]}); return s?.isActive?s.data:null } catch { return null } }
+export async function getPrivacyPolicyCMS(): Promise<LegalPageCMS|null> { return fetchLegalPage('page-privacy-policy','page-privacy-policy') }
+export async function getShippingPolicyCMS(): Promise<LegalPageCMS|null> { return fetchLegalPage('page-shipping-policy','page-shipping-policy') }
+export async function getCancellationReturnsCMS(): Promise<LegalPageCMS|null> { return fetchLegalPage('page-cancellation-returns','page-cancellation-returns') }
+export async function getTermsConditionsCMS(): Promise<LegalPageCMS|null> { return fetchLegalPage('page-terms-conditions','page-terms-conditions') }
+
 // ─── Backend raw shapes — all of these return Mongo's `_id`, not the `id`
 // these frontend types declare, so each needs the same _id -> id mapping
 // mapPost() already does for BlogPost below.

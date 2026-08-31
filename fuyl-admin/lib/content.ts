@@ -375,4 +375,120 @@ export async function deleteFAQ(id: string): Promise<void> {
   await adminApiFetch(`/admin/content/faqs/${id}`, { method: 'DELETE' })
 }
 
+// ─── Our Story ──────────────────────────────────────────────────────────────
+export interface OurStoryFounder { image: string; name: string; bio: string }
+export interface OurStoryMilestone { title: string; body: string }
+export interface OurStoryData { heroQuote: string; founders: OurStoryFounder[]; milestones: OurStoryMilestone[]; ctaLabel: string; ctaHref: string }
+export interface OurStorySection { isActive: boolean; data: OurStoryData }
+const OUR_STORY_DEFAULTS: OurStoryData = {
+  heroQuote: "We didn't set out to build a supplement brand. We set out to solve our own problem — and found that millions of Indians shared it.",
+  founders: [
+    { image: '/images/hero-slide-1.webp', name: 'SWEEKAR SAXENA', bio: 'I am a product of "<strong>Kota Factory</strong>", an engineer, an Executive MBA from IIM Lucknow, health conscious individual. Yet, for most of my adult life, I was quietly undernourished.' },
+    { image: '/images/fuyl-complete+.webp', name: 'ANUPAM PANDEY', bio: 'The story of an average urban Indian is one long hustle. We don\'t inherit our place. We earn it, in a crowd, pushing because everyone around us is pushing.' },
+  ],
+  milestones: [
+    { title: 'THE IDEA', body: 'Two founders. One shared frustration. The realisation that no single trustworthy daily nutrition product existed for the urban Indian who actually reads labels.' },
+    { title: 'THE FORMULATION', body: 'Months of research. Multiple iterations. Dozens of ingredient decisions. Each one made against published clinical evidence, not marketing budgets.' },
+    { title: 'THE TASTE PROBLEM', body: 'A formulation that works means nothing if people stop taking it. We tested, failed, retested. The deep berry crimson drink you hold today is the result of that process.' },
+    { title: 'FIRST BATCH', body: 'Premium looking eco-friendly composite box. The 10g sachet. 15 sachets. ₹1,499. FUYL COMPLETE+ is ready.' },
+    { title: 'THE LAUNCH', body: 'FUYL goes live. The beginning of building one trusted nutritional foundation for urban India.' },
+  ],
+  ctaLabel: 'Try FUYL Complete+ — ₹1,499 for 15 sachets',
+  ctaHref: '/products/fuyl-complete',
+}
+export async function getOurStorySection(): Promise<OurStorySection> { const raw = await adminApiFetch<({_id?:string}|null)&Partial<OurStorySection>>('/admin/content/storefront-sections/page-our-story').catch(()=>null); return { isActive: raw?.isActive ?? true, data: { ...OUR_STORY_DEFAULTS, ...(raw?.data ?? {}) } } }
+export async function updateOurStorySection(input: OurStorySection): Promise<void> { await adminApiFetch('/admin/content/storefront-sections/page-our-story', { method: 'PUT', body: { title: 'Our Story Page', ...input } }) }
+
+// ─── Why FUYL ────────────────────────────────────────────────────────────────
+export interface WhyFuylData { heroHeadline: string; heroDescription: string; heroImage: string; ctaLabel: string; ctaHref: string; pillarsHeadline: string; pillarsSubheadline: string }
+export interface WhyFuylSection { isActive: boolean; data: WhyFuylData }
+const WHY_FUYL_DEFAULTS: WhyFuylData = {
+  heroHeadline: 'WHY FUYL COMPLETE+ IS DIFFERENT',
+  heroDescription: 'We built COMPLETE+ because the daily nutritional supplement industry has failed the health-conscious consumer through token doses, cheap ingredient forms, claims that do not hold up, and products too unpleasant to take consistently.',
+  heroImage: '/images/We_are_different-hero.webp',
+  ctaLabel: 'Taste Now',
+  ctaHref: '/products/fuyl-complete',
+  pillarsHeadline: 'PILLARS THAT MAKE FUYL',
+  pillarsSubheadline: 'DISCOVER THE USPs THAT MAKE OUR PRODUCTS EXCEPTIONAL',
+}
+export async function getWhyFuylSection(): Promise<WhyFuylSection> { const raw = await adminApiFetch<({_id?:string}|null)&Partial<WhyFuylSection>>('/admin/content/storefront-sections/page-why-fuyl').catch(()=>null); return { isActive: raw?.isActive ?? true, data: { ...WHY_FUYL_DEFAULTS, ...(raw?.data ?? {}) } } }
+export async function updateWhyFuylSection(input: WhyFuylSection): Promise<void> { await adminApiFetch('/admin/content/storefront-sections/page-why-fuyl', { method: 'PUT', body: { title: 'Why FUYL Page', ...input } }) }
+
+// ─── Legal pages (shared shape) ──────────────────────────────────────────────
+export interface LegalSection { heading: string; body: string; isList: boolean }
+export interface LegalPageData { lastUpdated: string; subtitle: string; sections: LegalSection[] }
+export interface LegalPageSection { isActive: boolean; data: LegalPageData }
+
+async function getLegalSection(key: string, defaults: LegalPageData): Promise<LegalPageSection> {
+  const raw = await adminApiFetch<({_id?:string}|null)&Partial<LegalPageSection>>(`/admin/content/storefront-sections/${key}`).catch(()=>null)
+  return { isActive: raw?.isActive ?? true, data: { ...defaults, ...(raw?.data ?? {}) } }
+}
+async function updateLegalSection(key: string, title: string, input: LegalPageSection): Promise<void> {
+  await adminApiFetch(`/admin/content/storefront-sections/${key}`, { method: 'PUT', body: { title, ...input } })
+}
+
+// Privacy Policy
+const PRIVACY_DEFAULTS: LegalPageData = {
+  lastUpdated: 'January 2025',
+  subtitle: 'How we collect, use and protect your personal information.',
+  sections: [
+    { heading: 'Information We Collect', body: 'Name, email address, phone number and delivery address when you place an order\nPayment information — processed securely by Razorpay, never stored by us\nUsage data such as pages visited, time on site and device type via anonymised analytics\nCommunications you send us via email, WhatsApp or our contact form', isList: true },
+    { heading: 'How We Use Your Information', body: 'To process and fulfil your orders and send shipping notifications\nTo respond to your queries and provide customer support\nTo send you product updates, offers and educational content (only if you opt in)\nTo improve our website, product and service through anonymised analytics', isList: true },
+    { heading: 'Data Sharing', body: 'We share your data only with partners required to fulfil your order — logistics providers (name and address) and payment processors (Razorpay). We do not sell, rent or trade your personal information to any third parties for marketing purposes.', isList: false },
+    { heading: 'Cookies', body: 'We use essential cookies to keep you logged in and remember your cart. We use analytics cookies (anonymised) to understand how visitors use our site. You can disable non-essential cookies in your browser settings.', isList: false },
+    { heading: 'Data Security', body: 'All data is transmitted over HTTPS. Payment data is processed by Razorpay (PCI-DSS compliant). We store only what is necessary and review our data practices regularly.', isList: false },
+    { heading: 'Your Rights', body: 'Request access to the personal data we hold about you\nRequest correction of inaccurate data\nRequest deletion of your data (subject to legal obligations)\nOpt out of marketing communications at any time\nLodge a complaint with the relevant data protection authority', isList: true },
+    { heading: 'Contact', body: 'For any privacy-related queries, email us at support@fuyl.in. We aim to respond within 5 business days.', isList: false },
+  ],
+}
+export async function getPrivacyPolicySection(): Promise<LegalPageSection> { return getLegalSection('page-privacy-policy', PRIVACY_DEFAULTS) }
+export async function updatePrivacyPolicySection(input: LegalPageSection): Promise<void> { return updateLegalSection('page-privacy-policy', 'Privacy Policy', input) }
+
+// Shipping Policy
+const SHIPPING_DEFAULTS: LegalPageData = {
+  lastUpdated: 'January 2025',
+  subtitle: 'Everything you need to know about how and when we ship your order.',
+  sections: [
+    { heading: 'Processing Time', body: 'All orders are processed within 1–2 business days (Monday to Saturday, excluding public holidays) after receiving your order confirmation email. You will receive a notification when your order has shipped.', isList: false },
+    { heading: 'Shipping Rates & Delivery Times', body: 'Free standard shipping on all orders above ₹499 — delivered within 5–7 business days\nStandard shipping ₹79 for orders below ₹499 — delivered within 5–7 business days\nExpress shipping ₹149 — delivered within 2–3 business days (select cities)', isList: true },
+    { heading: 'Delivery Areas', body: 'We ship to all pin codes across India via Shiprocket and its network of courier partners. For remote areas, delivery may take up to 10 business days. Please ensure your delivery address is correct and complete at the time of ordering.', isList: false },
+    { heading: 'Order Tracking', body: 'Once your order is shipped, you will receive a tracking link via email and SMS. You can also track your order in your account under "Orders".', isList: false },
+    { heading: 'Failed Delivery', body: 'If a delivery attempt fails, the courier will make up to 3 attempts. If all attempts fail, the package will be returned to us and we will contact you to rearrange delivery or issue a refund.', isList: false },
+    { heading: 'Damaged in Transit', body: 'If your order arrives damaged, please photograph the packaging and product immediately and email support@fuyl.in within 48 hours of delivery. We will arrange a replacement or refund promptly.', isList: false },
+  ],
+}
+export async function getShippingPolicySection(): Promise<LegalPageSection> { return getLegalSection('page-shipping-policy', SHIPPING_DEFAULTS) }
+export async function updateShippingPolicySection(input: LegalPageSection): Promise<void> { return updateLegalSection('page-shipping-policy', 'Shipping Policy', input) }
+
+// Cancellation & Returns
+const CANCELLATION_DEFAULTS: LegalPageData = {
+  lastUpdated: 'January 2025',
+  subtitle: 'Our 30-day money-back guarantee and returns process — explained clearly.',
+  sections: [
+    { heading: '30-Day Money-Back Guarantee', body: 'We stand behind FUYL COMPLETE+ with a 30-day money-back guarantee. If you have taken the product consistently for 30 days and do not feel a meaningful improvement in your energy, gut health or overall wellbeing, contact us for a full refund. No questions asked.', isList: false },
+    { heading: 'Order Cancellation', body: 'Orders can be cancelled within 2 hours of placement for a full refund\nOrders already dispatched cannot be cancelled — initiate a return on delivery instead\nTo cancel, email support@fuyl.in immediately with your order number', isList: true },
+    { heading: 'Return Eligibility', body: 'Products returned within 30 days of delivery are eligible for a full refund\nDamaged or defective products are eligible for replacement or refund regardless of timeline\nOpened products are eligible under our 30-day guarantee (see above)', isList: true },
+    { heading: 'How to Initiate a Return', body: 'Email support@fuyl.in with your order number and reason for return\nWe will provide a return shipping label within 24 hours\nOnce the return is received and inspected, refunds are processed within 5–7 business days', isList: true },
+    { heading: 'Refund Method', body: 'Refunds are issued to the original payment method. UPI and wallet refunds typically process within 24 hours. Card refunds may take 5–10 business days depending on your bank.', isList: false },
+  ],
+}
+export async function getCancellationReturnsSection(): Promise<LegalPageSection> { return getLegalSection('page-cancellation-returns', CANCELLATION_DEFAULTS) }
+export async function updateCancellationReturnsSection(input: LegalPageSection): Promise<void> { return updateLegalSection('page-cancellation-returns', 'Cancellation & Returns', input) }
+
+// Terms & Conditions
+const TERMS_DEFAULTS: LegalPageData = {
+  lastUpdated: 'January 2025',
+  subtitle: 'The terms governing your use of fuyl.in and purchase of FUYL products.',
+  sections: [
+    { heading: 'Acceptance of Terms', body: 'By accessing fuyl.in or placing an order, you agree to these Terms and Conditions. If you do not agree, please do not use our website or purchase our products. We reserve the right to update these terms at any time — continued use of the site constitutes acceptance.', isList: false },
+    { heading: 'Products & Descriptions', body: 'We make every effort to ensure product descriptions, ingredient lists and images are accurate. However, we do not warrant that descriptions are error-free. FUYL COMPLETE+ is a food supplement, not a medicine, and is not intended to diagnose, treat, cure or prevent any disease.', isList: false },
+    { heading: 'Pricing & Payment', body: 'All prices are in Indian Rupees (₹) and inclusive of GST\nPrices are subject to change without notice — orders are billed at the price at time of purchase\nPayment is accepted via UPI, credit/debit card, net banking and wallets through Razorpay\nFailed payments will not result in order confirmation', isList: true },
+    { heading: 'Intellectual Property', body: 'All content on fuyl.in — including text, images, logos, and product formulations — is the property of FUYL (Healthful Wellness Pvt Ltd) or its licensors. You may not reproduce, distribute or create derivative works without written permission.', isList: false },
+    { heading: 'Limitation of Liability', body: 'To the maximum extent permitted by law, FUYL is not liable for any indirect, incidental or consequential damages arising from use of our products or website. Our total liability shall not exceed the value of the order in question.', isList: false },
+    { heading: 'Governing Law', body: 'These terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts of [City], India.', isList: false },
+  ],
+}
+export async function getTermsConditionsSection(): Promise<LegalPageSection> { return getLegalSection('page-terms-conditions', TERMS_DEFAULTS) }
+export async function updateTermsConditionsSection(input: LegalPageSection): Promise<void> { return updateLegalSection('page-terms-conditions', 'Terms & Conditions', input) }
+
 export { AdminApiError }

@@ -4,6 +4,7 @@ import { generateSEO } from "@/lib/utils/seo";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { PillarTabs } from "@/components/why-fuyl/PillarTabs";
+import { getWhyFuylCMS } from "@/lib/api/content";
 
 export const metadata = generateSEO({
   title: "Why FUYL",
@@ -12,7 +13,28 @@ export const metadata = generateSEO({
   url: "https://fuyl.in/pages/why-fuyl",
 });
 
-export default function WhyFuylPage() {
+const DEFAULT_HEADLINE = "WHY FUYL COMPLETE+ IS DIFFERENT";
+const DEFAULT_DESCRIPTION =
+  "We built COMPLETE+ because the daily nutritional supplement industry has failed the health-conscious consumer through token doses, cheap ingredient forms, claims that do not hold up, and products too unpleasant to take consistently. Here is exactly how we think about every decision in this formulation.";
+const DEFAULT_IMAGE = "/images/We_are_different-hero.webp";
+const DEFAULT_CTA_LABEL = "Taste Now";
+const DEFAULT_CTA_HREF = "/products/fuyl-complete";
+const DEFAULT_PILLARS_HEADLINE = "PILLARS THAT MAKE FUYL";
+const DEFAULT_PILLARS_SUBHEADLINE =
+  "DISCOVER THE USPs THAT MAKE OUR PRODUCTS EXCEPTIONAL";
+
+export default async function WhyFuylPage() {
+  const cms = await getWhyFuylCMS();
+
+  const heroHeadline = cms?.heroHeadline ?? DEFAULT_HEADLINE;
+  const heroDescription = cms?.heroDescription ?? DEFAULT_DESCRIPTION;
+  const heroImage = cms?.heroImage ?? DEFAULT_IMAGE;
+  const ctaLabel = cms?.ctaLabel ?? DEFAULT_CTA_LABEL;
+  const ctaHref = cms?.ctaHref ?? DEFAULT_CTA_HREF;
+  const pillarsHeadline = cms?.pillarsHeadline ?? DEFAULT_PILLARS_HEADLINE;
+  const pillarsSubheadline =
+    cms?.pillarsSubheadline ?? DEFAULT_PILLARS_SUBHEADLINE;
+
   return (
     <>
       {/* Hero */}
@@ -22,25 +44,17 @@ export default function WhyFuylPage() {
           <Breadcrumbs className="mb-5" items={[{ label: "Why FUYL" }]} />
           <div className="flex flex-1 items-center py-10 lg:py-20">
             <ScrollReveal>
-              {/* <span className="inline-block rounded-md px-3 py-2 bg-brand-sage text-brand-forest text-label mb-5">
-                Our Philosophy
-              </span> */}
               <h1 className="text-display-xl font-display text-brand-forest mb-6">
-                WHY FUYL COMPLETE+ IS DIFFERENT
+                {heroHeadline}
               </h1>
               <p className="text-body-md text-brand-muted leading-relaxed max-w-xl text-justify">
-                We built COMPLETE+ because the daily nutritional supplement
-                industry has failed the health-conscious consumer through token
-                doses, cheap ingredient forms, claims that do not hold up, and
-                products too unpleasant to take consistently. Here is exactly how
-                we think about every decision in this formulation.
+                {heroDescription}
               </p>
-              {/* cta button "shop now" */}
               <Link
-                href="/collections/all"
+                href={ctaHref}
                 className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest mt-6"
               >
-                Shop Now
+                {ctaLabel}
               </Link>
             </ScrollReveal>
           </div>
@@ -49,7 +63,7 @@ export default function WhyFuylPage() {
         {/* Right — Image */}
         <div className="order-1 lg:order-2 relative min-h-[50vh] lg:min-h-0">
           <Image
-            src="/images/We_are_different-hero.webp"
+            src={heroImage}
             alt="FUYL ingredients"
             fill
             priority
@@ -66,18 +80,11 @@ export default function WhyFuylPage() {
       >
         <div className="container-brand">
           <ScrollReveal>
-            {/* <p
-              className="text-label text-center mb-3 text-sm font-bold tracking-widest uppercase"
-              style={{ color: "var(--color-brand-berry)" }}
-            >
-              The FUYL Difference
-            </p> */}
-
             <h2 className="text-display-xl font-display text-center mb-5 text-brand-forest">
-              PILLARS THAT MAKE FUYL
+              {pillarsHeadline}
             </h2>
             <p className="text-body-lg text-brand-muted leading-relaxed max-w-xl mx-auto text-center mb-6">
-              DISCOVER THE USPs THAT MAKE OUR PRODUCTS EXCEPTIONAL
+              {pillarsSubheadline}
             </p>
           </ScrollReveal>
 
@@ -92,21 +99,12 @@ export default function WhyFuylPage() {
             <div className="flex flex-col items-center gap-4">
               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <Link
-                  href="/products/fuyl-complete"
+                  href={ctaHref}
                   className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest bg-brand-forest text-white rounded-sm transition-colors hover:bg-brand-sage hover:text-brand-forest"
                 >
-                  {/* Shop FUYL COMPLETE+ */} Taste Now
+                  {ctaLabel}
                 </Link>
-                {/* <Link
-                  href="/pages/ingredients"
-                  className="inline-flex items-center justify-center h-12 px-8 text-xs font-semibold uppercase tracking-widest border  text-brand-forest border-brand-forest rounded-sm transition-colors hover:border-brand-teal hover:text-white hover:bg-brand-forest"
-                >
-                  Explore Ingredients
-                </Link> */}
               </div>
-              {/* <p className="text-brand-olive-light text-xs tracking-wide">
-                30-day money-back guarantee · FSSAI certified · 100% vegetarian
-              </p> */}
             </div>
           </ScrollReveal>
         </div>
