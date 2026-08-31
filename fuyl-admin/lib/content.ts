@@ -6,6 +6,27 @@ export interface HeroSection {title:string;isActive:boolean;data:{autoplayMs:num
 export async function getHeroSection():Promise<HeroSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<HeroSection>>('/admin/content/storefront-sections/home-hero');return{title:raw?.title??'Homepage hero',isActive:raw?.isActive??true,data:raw?.data??{autoplayMs:5000,slides:[{id:'hero-1',eyebrow:'Introducing FUYL COMPLETE+',headline:'Nourish Daily.\nFeel Stronger.\nLive longer.',subheading:'A Daily Nutrition Powder.',image:'/images/hero-slide-1.webp',imageAlt:'FUYL Complete daily nutrition',primaryCtaLabel:'SHOP FUYL COMPLETE +',primaryCtaHref:'/products/fuyl-complete'},{id:'hero-2',eyebrow:'30-Day Transformation',headline:'One Sachet\nEvery Morning\nEverything covered.',subheading:'Built For Daily Life And Long Term Health.',image:'/images/hero-slide-2.webp',imageAlt:'FUYL daily sachet',primaryCtaLabel:'START TODAY',primaryCtaHref:'/products/fuyl-complete'}]}}}
 export async function updateHeroSection(input:HeroSection):Promise<void>{await adminApiFetch('/admin/content/storefront-sections/home-hero',{method:'PUT',body:input})}
 
+// ─── Announcement Bar ────────────────────────────────────────────────────────
+export interface AnnouncementBarData{text:string;linkHref:string;linkText:string;dismissible:boolean}
+export interface AnnouncementBarSection{isActive:boolean;data:AnnouncementBarData}
+const ANNOUNCEMENT_BAR_DEFAULTS:AnnouncementBarData={text:'FUYL COMPLETE+ LAUNCHING SOON — JOIN THE WAITLIST FOR EARLY ACCESS',linkHref:'/pages/contact',linkText:'',dismissible:true}
+export async function getAnnouncementBar():Promise<AnnouncementBarSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<AnnouncementBarSection>>('/admin/content/storefront-sections/announcement-bar').catch(()=>null);return{isActive:raw?.isActive??true,data:{...ANNOUNCEMENT_BAR_DEFAULTS,...(raw?.data??{})}}}
+export async function updateAnnouncementBar(input:AnnouncementBarSection):Promise<void>{await adminApiFetch('/admin/content/storefront-sections/announcement-bar',{method:'PUT',body:input})}
+
+// ─── Prebooking Modal ────────────────────────────────────────────────────────
+export interface PrebookingModalData{badge:string;headline:string;description:string;delayMs:number;capacity:number}
+export interface PrebookingModalSection{isActive:boolean;data:PrebookingModalData}
+const PREBOOKING_MODAL_DEFAULTS:PrebookingModalData={badge:'Launching soon',headline:'BE FIRST IN LINE',description:'Join the FUYL pre-booking list for early access and launch updates.',delayMs:900,capacity:500}
+export async function getPrebookingModal():Promise<PrebookingModalSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<PrebookingModalSection>>('/admin/content/storefront-sections/prebooking-modal').catch(()=>null);return{isActive:raw?.isActive??true,data:{...PREBOOKING_MODAL_DEFAULTS,...(raw?.data??{})}}}
+export async function updatePrebookingModal(input:PrebookingModalSection):Promise<void>{await adminApiFetch('/admin/content/storefront-sections/prebooking-modal',{method:'PUT',body:input})}
+
+// ─── Popup Banner ────────────────────────────────────────────────────────────
+export interface PopupBannerData{title:string;body:string;imageUrl:string;ctaLabel:string;ctaHref:string;delayMs:number;frequency:'always'|'once_per_session'|'once_ever'}
+export interface PopupBannerSection{isActive:boolean;data:PopupBannerData}
+const POPUP_BANNER_DEFAULTS:PopupBannerData={title:'',body:'',imageUrl:'',ctaLabel:'',ctaHref:'',delayMs:2000,frequency:'once_per_session'}
+export async function getPopupBanner():Promise<PopupBannerSection>{const raw=await adminApiFetch<({_id?:string}|null)&Partial<PopupBannerSection>>('/admin/content/storefront-sections/popup-banner').catch(()=>null);return{isActive:raw?.isActive??false,data:{...POPUP_BANNER_DEFAULTS,...(raw?.data??{})}}}
+export async function updatePopupBanner(input:PopupBannerSection):Promise<void>{await adminApiFetch('/admin/content/storefront-sections/popup-banner',{method:'PUT',body:input})}
+
 // ─── CMS Pages ──────────────────────────────────────────────────────────────
 interface BackendCMSPage {
   _id: string

@@ -9,7 +9,7 @@ import {
   createFAQ, updateFAQ, deleteFAQ, type FAQInput,
   listAdminIngredients, listAdminTestimonials,
 } from '@/lib/content'
-import { updateHeroSection,type HeroSection } from '@/lib/content'
+import { updateHeroSection,type HeroSection,updateAnnouncementBar,type AnnouncementBarSection,updatePrebookingModal,type PrebookingModalSection,updatePopupBanner,type PopupBannerSection } from '@/lib/content'
 import { adminApiFetch, getErrorMessage } from '@/lib/api'
 import type { SignatureResult } from '@/lib/upload'
 
@@ -24,6 +24,9 @@ export async function getContentImageUploadSignature(): Promise<SignatureResult>
   }
 }
 export async function updateHeroAction(input:HeroSection):Promise<{error?:string}>{try{await updateHeroSection(input);revalidatePath('/content/hero');return{}}catch(err){return{error:getErrorMessage(err,'Could not save hero section.')}}}
+export async function updateAnnouncementBarAction(input:AnnouncementBarSection):Promise<{error?:string}>{try{await updateAnnouncementBar(input);revalidatePath('/content/announcement');return{}}catch(err){return{error:getErrorMessage(err,'Could not save announcement bar.')}}}
+export async function updatePrebookingModalAction(input:PrebookingModalSection):Promise<{error?:string}>{try{await updatePrebookingModal(input);revalidatePath('/content/prebooking-modal');return{}}catch(err){return{error:getErrorMessage(err,'Could not save prebooking modal.')}}}
+export async function updatePopupBannerAction(input:PopupBannerSection):Promise<{error?:string}>{try{await updatePopupBanner(input);revalidatePath('/content/popup-banner');return{}}catch(err){return{error:getErrorMessage(err,'Could not save popup banner.')}}}
 export async function reorderIngredientAction(id:string,direction:'up'|'down'){const items=await listAdminIngredients();const index=items.findIndex(i=>i.id===id),target=direction==='up'?index-1:index+1;if(index<0||target<0||target>=items.length)return;await Promise.all([adminApiFetch(`/admin/content/ingredients/${id}`,{method:'PATCH',body:{order:items[target].order}}),adminApiFetch(`/admin/content/ingredients/${items[target].id}`,{method:'PATCH',body:{order:items[index].order}})]);revalidatePath('/content')}
 export async function reorderTestimonialAction(id:string,direction:'up'|'down'){const items=await listAdminTestimonials();const index=items.findIndex(i=>i.id===id),target=direction==='up'?index-1:index+1;if(index<0||target<0||target>=items.length)return;await Promise.all([adminApiFetch(`/admin/content/testimonials/${id}`,{method:'PATCH',body:{order:items[target].order}}),adminApiFetch(`/admin/content/testimonials/${items[target].id}`,{method:'PATCH',body:{order:items[index].order}})]);revalidatePath('/content')}
 

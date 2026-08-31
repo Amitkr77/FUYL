@@ -4,6 +4,15 @@ export interface StorefrontHeroSlide{id:string;eyebrow:string;headline:string;su
 export interface StorefrontHero{isActive:boolean;autoplayMs:number;slides:StorefrontHeroSlide[]}
 export async function getStorefrontHero():Promise<StorefrontHero|null>{try{const section=await apiFetch<{isActive:boolean;data:Omit<StorefrontHero,'isActive'>}|null>('/storefront-sections/home-hero',{revalidate:60,tags:['storefront-hero']});return section?{isActive:section.isActive,...section.data}:null}catch{return null}}
 
+export interface AnnouncementBarCMS{text:string;linkHref:string;linkText:string;dismissible:boolean}
+export async function getAnnouncementBar():Promise<AnnouncementBarCMS|null>{try{const s=await apiFetch<{isActive:boolean;data:AnnouncementBarCMS}|null>('/storefront-sections/announcement-bar',{revalidate:300,tags:['announcement-bar']});return(s?.isActive&&s.data?.text)?s.data:null}catch{return null}}
+
+export interface PrebookingModalCMS{badge:string;headline:string;description:string;delayMs:number;capacity:number}
+export async function getPrebookingModalSettings():Promise<PrebookingModalCMS|null>{try{const s=await apiFetch<{isActive:boolean;data:PrebookingModalCMS}|null>('/storefront-sections/prebooking-modal',{revalidate:300,tags:['prebooking-modal']});return s?.isActive?s.data:null}catch{return null}}
+
+export interface PopupBannerCMS{title:string;body:string;imageUrl:string;ctaLabel:string;ctaHref:string;delayMs:number;frequency:'always'|'once_per_session'|'once_ever'}
+export async function getPopupBanner():Promise<PopupBannerCMS|null>{try{const s=await apiFetch<{isActive:boolean;data:PopupBannerCMS}|null>('/storefront-sections/popup-banner',{revalidate:300,tags:['popup-banner']});return(s?.isActive&&s.data?.title)?s.data:null}catch{return null}}
+
 // ─── Backend raw shapes — all of these return Mongo's `_id`, not the `id`
 // these frontend types declare, so each needs the same _id -> id mapping
 // mapPost() already does for BlogPost below.

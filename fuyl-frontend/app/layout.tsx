@@ -6,9 +6,10 @@ import { serializeJsonLd } from '@/lib/utils/jsonLd'
 import { getProducts } from '@/lib/api/products'
 import type { NavItem } from '@/lib/constants/nav'
 import { PageTracker } from '@/components/analytics/PageTracker'
-import { getNavigationPages } from '@/lib/api/content'
+import { getNavigationPages, getAnnouncementBar, getPrebookingModalSettings, getPopupBanner } from '@/lib/api/content'
 import '@/styles/globals.css'
 import { PrebookingPopup } from '@/components/marketing/PrebookingPopup'
+import { PopupBanner } from '@/components/marketing/PopupBanner'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -43,9 +44,12 @@ async function getShopNavItems(): Promise<NavItem[]> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [shopItems, contentNavigation] = await Promise.all([
+  const [shopItems, contentNavigation, announcementBar, prebookingModal, popupBanner] = await Promise.all([
     getShopNavItems(),
     getNavigationPages().catch(() => []),
+    getAnnouncementBar(),
+    getPrebookingModalSettings(),
+    getPopupBanner(),
   ])
 
   return (
@@ -65,9 +69,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         >
           Skip to content
         </a>
-        <SiteChrome shopItems={shopItems} contentNavigation={contentNavigation}>{children}</SiteChrome>
+        <SiteChrome shopItems={shopItems} contentNavigation={contentNavigation} announcementBar={announcementBar}>{children}</SiteChrome>
         <PageTracker />
-        <PrebookingPopup />
+        <PrebookingPopup cms={prebookingModal} />
+        {popupBanner && <PopupBanner cms={popupBanner} />}
       </body>
     </html>
   )

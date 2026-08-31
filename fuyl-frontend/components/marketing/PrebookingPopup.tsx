@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState, useTransition } from 'react'
 import { CheckCircle2, MessageCircle, Sparkles, X } from 'lucide-react'
 import { getPrebookingAvailability, submitPrebookingLead } from '@/lib/api/content'
 import { getErrorMessage } from '@/lib/api/client'
+import type { PrebookingModalCMS } from '@/lib/api/content'
 
 const SUBMITTED_KEY = 'fuyl_prebooking_submitted'
 const DISMISSED_KEY = 'fuyl_prebooking_dismissed'
@@ -11,13 +12,22 @@ const WHATSAPP_COMMUNITY_URL = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL?.t
 const DONATION_QR_URL = process.env.NEXT_PUBLIC_PREBOOKING_DONATION_QR_URL?.trim()
 const DEFAULT_CAPACITY = 500
 
-export function PrebookingPopup() {
+interface Props {
+  cms?: PrebookingModalCMS | null
+}
+
+export function PrebookingPopup({ cms }: Props) {
+  const badge = cms?.badge ?? 'Launching soon'
+  const headline = cms?.headline ?? 'BE FIRST IN LINE'
+  const description = cms?.description ?? 'Join the FUYL pre-booking list for early access and launch updates.'
+  const delayMs = cms?.delayMs ?? 900
+
   const [open, setOpen] = useState(false)
   const [available, setAvailable] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const [claimed, setClaimed] = useState(0)
-  const [capacity, setCapacity] = useState(DEFAULT_CAPACITY)
+  const [capacity, setCapacity] = useState(cms?.capacity ?? DEFAULT_CAPACITY)
   const [wantsToDonate, setWantsToDonate] = useState(false)
   const [pending, startTransition] = useTransition()
 
@@ -29,7 +39,7 @@ export function PrebookingPopup() {
       .catch(() => { /* retain the safe 0 / 500 display if availability is temporarily unreachable */ })
     const dismissed = sessionStorage.getItem(DISMISSED_KEY) === '1'
     if (!dismissed) {
-      const timer = window.setTimeout(() => setOpen(true), 900)
+      const timer = window.setTimeout(() => setOpen(true), delayMs)
       return () => window.clearTimeout(timer)
     }
   }, [])
@@ -115,9 +125,9 @@ export function PrebookingPopup() {
               </div>
             ) : (
               <>
-                <span className="text-xs font-bold uppercase tracking-[0.2em] text-brand-teal">Launching soon</span>
-                <h2 id="prebooking-title" className="mt-3 pr-8 font-display text-3xl text-brand-forest">BE FIRST IN LINE</h2>
-                <p className="mt-3 text-sm leading-6 text-brand-muted">Join the FUYL pre-booking list for early access and launch updates.</p>
+                <span className="text-xs font-bold uppercase tracking-[0.2em] text-brand-teal">{badge}</span>
+                <h2 id="prebooking-title" className="mt-3 pr-8 font-display text-3xl text-brand-forest">{headline}</h2>
+                <p className="mt-3 text-sm leading-6 text-brand-muted">{description}</p>
                 <div className="mt-4">
                   <div className="mb-1.5 flex items-center justify-between text-xs font-semibold text-brand-forest"><span>{Math.min(claimed, capacity)} claimed</span><span>{Math.max(0, capacity - claimed)} of {capacity} remaining</span></div>
                   <div className="h-2 overflow-hidden rounded-full bg-brand-sage"><div className="h-full rounded-full bg-brand-teal transition-[width] duration-500" style={{ width: `${Math.min(100, (claimed / capacity) * 100)}%` }} /></div>
