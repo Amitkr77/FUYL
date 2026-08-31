@@ -58,9 +58,12 @@ export interface UserActivityRow {
   os:          string
   lat:         number | null
   lng:         number | null
+  city:        string | null
   lastSeen:    string
+  startedAt:   string
   totalTimeMs: number
   eventCount:  number
+  outcome:     'purchased' | 'abandoned' | 'browsed'
 }
 
 export interface GeoPoint {

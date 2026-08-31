@@ -155,11 +155,14 @@ class AnalyticsQueryService {
           _id: { $ifNull: ['$sessionId', { $toString: '$userId' }] },
           userId:      { $first: '$userId' },
           pages:       { $addToSet: '$page' },
+          events:      { $addToSet: '$event' },
           deviceType:  { $first: '$properties.deviceType' },
           os:          { $first: '$properties.os' },
           lat:         { $first: '$properties.lat' },
           lng:         { $first: '$properties.lng' },
+          city:        { $first: '$properties.city' },
           lastSeen:    { $first: '$occurredAt' },
+          startedAt:   { $last: '$occurredAt' },
           totalTimeMs: { $sum: { $ifNull: ['$properties.timeSpentMs', 0] } },
           eventCount:  { $sum: 1 },
         },
@@ -167,18 +170,29 @@ class AnalyticsQueryService {
       { $sort: { lastSeen: -1 } },
       { $limit: limit },
     ]);
-    return sessions.map((s) => ({
-      sessionId:   s._id ?? '—',
-      userId:      s.userId?.toString() ?? null,
-      pages:       (s.pages as (string | null)[]).filter(Boolean),
-      deviceType:  s.deviceType ?? 'Unknown',
-      os:          s.os ?? 'Unknown',
-      lat:         s.lat ?? null,
-      lng:         s.lng ?? null,
-      lastSeen:    s.lastSeen,
-      totalTimeMs: s.totalTimeMs,
-      eventCount:  s.eventCount,
-    }));
+    return sessions.map((s) => {
+      const eventSet = new Set<string>(s.events as string[]);
+      const outcome: 'purchased' | 'abandoned' | 'browsed' = eventSet.has('order.placed')
+        ? 'purchased'
+        : eventSet.has('cart.add') || eventSet.has('checkout.started')
+        ? 'abandoned'
+        : 'browsed';
+      return {
+        sessionId:   s._id ?? '—',
+        userId:      s.userId?.toString() ?? null,
+        pages:       (s.pages as (string | null)[]).filter(Boolean),
+        deviceType:  s.deviceType ?? 'Unknown',
+        os:          s.os ?? 'Unknown',
+        lat:         s.lat ?? null,
+        lng:         s.lng ?? null,
+        city:        (s.city as string | null) ?? null,
+        lastSeen:    s.lastSeen,
+        startedAt:   s.startedAt,
+        totalTimeMs: s.totalTimeMs,
+        eventCount:  s.eventCount,
+        outcome,
+      };
+    });
   }
 
   /** Lat/lng data points for geographic map display. */
