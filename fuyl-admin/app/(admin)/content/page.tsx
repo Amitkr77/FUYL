@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Plus, Edit2, Trash2, AlertCircle, Star, Image, ExternalLink } from 'lucide-react'
+import { Plus, AlertCircle, Star, Image, ExternalLink, Search, ListTree } from 'lucide-react'
 import { ReorderButtons } from '@/components/content/ReorderButtons'
 import Badge from '@/components/ui/Badge'
 import { getErrorMessage } from '@/lib/api'
@@ -7,8 +7,9 @@ import {
   listAdminPages, listAdminIngredients, listAdminTestimonials, listAdminFAQs,
   type CMSPageSummary, type IngredientRecord, type TestimonialRecord, type FAQRecord,
 } from '@/lib/content'
-import { deletePageAction, deleteIngredientAction, deleteTestimonialAction, deleteFAQAction } from './actions'
+import { deletePageAction, duplicatePageAction, deleteIngredientAction, deleteTestimonialAction, deleteFAQAction } from './actions'
 import { formatDate } from '@/lib/utils'
+import { ContentRowActions } from '@/components/content/ContentRowActions'
 
 type Tab = 'pages' | 'ingredients' | 'testimonials' | 'faqs'
 const TABS: { label: string; value: Tab }[] = [
@@ -29,22 +30,24 @@ async function safeList<T>(fn: () => Promise<T[]>): Promise<{ items: T[]; error:
 export default async function ContentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; page?: string; q?: string; status?: string; navigation?: string; sort?: string }>
 }) {
-  const { tab: rawTab } = await searchParams
+  const query = await searchParams
+  const { tab: rawTab, page: rawPage } = query
   const tab: Tab = (['pages', 'ingredients', 'testimonials', 'faqs'] as const).includes(rawTab as Tab)
     ? (rawTab as Tab)
     : 'pages'
 
-  const [pages, ingredients, testimonials, faqs] = await Promise.all([
-    safeList(listAdminPages),
+  const pageNumber = Math.max(1, Number.parseInt(rawPage ?? '1', 10) || 1)
+  const [pagesResult, ingredients, testimonials, faqs] = await Promise.all([
+    listAdminPages({ page: pageNumber, search: query.q, status: query.status as 'draft' | 'published' | 'all' | undefined, navigation: query.navigation as 'none' | 'header' | 'footer' | 'both' | 'all' | undefined, sort: query.sort as 'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc' | 'navigation' | undefined }).then((value) => ({ ...value, error: '' })).catch((err) => ({ items: [] as CMSPageSummary[], meta: { page: pageNumber, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: pageNumber > 1 }, error: getErrorMessage(err, 'Could not load pages.') })),
     safeList(listAdminIngredients),
     safeList(listAdminTestimonials),
     safeList(listAdminFAQs),
   ])
 
   const counts: Record<Tab, number> = {
-    pages: pages.items.length,
+    pages: pagesResult.meta.total,
     ingredients: ingredients.items.length,
     testimonials: testimonials.items.length,
     faqs: faqs.items.length,
@@ -56,7 +59,7 @@ export default async function ContentPage({
     faqs: '/content/faqs/new',
   }
   const errors: Record<Tab, string> = {
-    pages: pages.error, ingredients: ingredients.error, testimonials: testimonials.error, faqs: faqs.error,
+    pages: pagesResult.error, ingredients: ingredients.error, testimonials: testimonials.error, faqs: faqs.error,
   }
 
   return (
@@ -67,13 +70,16 @@ export default async function ContentPage({
           <h2 className="text-xl font-bold text-slate-900">Website Content</h2>
           <p className="text-sm text-slate-500 mt-0.5">Manage pages, ingredients, testimonials & FAQs shown on the storefront</p>
         </div>
-        <Link
-          href={newHref[tab]}
-          className="flex items-center gap-2 px-4 py-2 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          New {TABS.find((t) => t.value === tab)?.label.replace(/s$/, '')}
-        </Link>
+        <div className="flex items-center gap-2">
+          {tab === 'pages' && <Link href="/content/navigation" className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"><ListTree className="h-4 w-4" />Manage navigation</Link>}
+          <Link
+            href={newHref[tab]}
+            className="flex items-center gap-2 px-4 py-2 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New {TABS.find((t) => t.value === tab)?.label.replace(/s$/, '')}
+          </Link>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -104,12 +110,29 @@ export default async function ContentPage({
         </div>
       )}
 
-      {tab === 'pages' && <PagesTable items={pages.items} />}
+      {tab === 'pages' && <><PageFilters values={query} /><PagesTable items={pagesResult.items} /><PagePagination page={pagesResult.meta.page} totalPages={pagesResult.meta.totalPages} total={pagesResult.meta.total} query={query} /></>}
       {tab === 'ingredients' && <IngredientsTable items={ingredients.items} />}
       {tab === 'testimonials' && <TestimonialsTable items={testimonials.items} />}
       {tab === 'faqs' && <FAQsTable items={faqs.items} />}
     </div>
   )
+}
+
+function PageFilters({ values }: { values: { q?: string; status?: string; navigation?: string; sort?: string } }) {
+  return <form method="get" className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(220px,1fr)_160px_180px_180px_auto]">
+    <input type="hidden" name="tab" value="pages" />
+    <label className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input name="q" defaultValue={values.q} placeholder="Search title or URL…" className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-[#558476]" /></label>
+    <select name="status" defaultValue={values.status ?? 'all'} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Draft</option></select>
+    <select name="navigation" defaultValue={values.navigation ?? 'all'} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><option value="all">All navigation</option><option value="header">Header</option><option value="footer">Footer</option><option value="both">Header & footer</option><option value="none">Direct URL only</option></select>
+    <select name="sort" defaultValue={values.sort ?? 'updated_desc'} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><option value="updated_desc">Recently updated</option><option value="updated_asc">Oldest updated</option><option value="title_asc">Title A–Z</option><option value="title_desc">Title Z–A</option><option value="navigation">Navigation order</option></select>
+    <div className="flex gap-2"><button className="rounded-lg bg-[#558476] px-4 py-2 text-sm font-medium text-white">Apply</button><Link href="/content?tab=pages" className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600">Reset</Link></div>
+  </form>
+}
+
+function PagePagination({ page, totalPages, total, query }: { page: number; totalPages: number; total: number; query: Record<string, string | undefined> }) {
+  if (totalPages <= 1) return null
+  const href = (nextPage: number) => { const params = new URLSearchParams(); params.set('tab', 'pages'); params.set('page', String(nextPage)); for (const key of ['q', 'status', 'navigation', 'sort']) if (query[key]) params.set(key, query[key]!); return `/content?${params}` }
+  return <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm"><span className="text-slate-500">Page {page} of {totalPages} · {total} pages</span><div className="flex gap-2">{page > 1 && <Link href={href(page - 1)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 hover:bg-slate-50">Previous</Link>}{page < totalPages && <Link href={href(page + 1)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 hover:bg-slate-50">Next</Link>}</div></div>
 }
 
 function EmptyRow({ colSpan, label }: { colSpan: number; label: string }) {
@@ -119,7 +142,7 @@ function EmptyRow({ colSpan, label }: { colSpan: number; label: string }) {
 }
 
 function PagesTable({ items }: { items: CMSPageSummary[] }) {
-  const storefrontUrl = (process.env.STOREFRONT_URL ?? process.env.NEXT_PUBLIC_STOREFRONT_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+  const storefrontUrl = (process.env.STOREFRONT_URL ?? process.env.NEXT_PUBLIC_STOREFRONT_URL ?? 'https://fuyl.in').replace(/\/$/, '')
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
@@ -138,7 +161,7 @@ function PagesTable({ items }: { items: CMSPageSummary[] }) {
           <tbody className="divide-y divide-slate-50">
             {items.length === 0 ? <EmptyRow colSpan={6} label="No pages yet." /> : items.map((page) => (
               <tr key={page.id} className="hover:bg-slate-50/50 transition-colors">
-                <td className="px-5 py-4"><p className="text-sm font-medium text-slate-900">{page.title}</p></td>
+                <td className="px-5 py-4"><p className="text-sm font-medium text-slate-900">{page.title}</p>{page.status === 'published' && page.navigationPlacement === 'none' && <p className="mt-1 flex items-center gap-1 text-xs text-amber-600"><AlertCircle className="h-3 w-3" />Not linked in navigation</p>}</td>
                 <td className="px-5 py-4 hidden md:table-cell">
                   {page.status === 'published' ? (
                     <a
@@ -164,7 +187,7 @@ function PagesTable({ items }: { items: CMSPageSummary[] }) {
                   </Badge>
                 </td>
                 <td className="px-5 py-4">
-                  <RowActions editHref={`/content/pages/${page.id}`} deleteAction={deletePageAction.bind(null, page.id)} />
+                  <ContentRowActions label="page" editHref={`/content/pages/${page.id}`} storefrontHref={page.status === 'published' ? `${storefrontUrl}/pages/${page.slug}` : undefined} duplicateAction={duplicatePageAction.bind(null, page.id)} deleteAction={deletePageAction.bind(null, page.id)} />
                 </td>
               </tr>
             ))}
@@ -205,7 +228,7 @@ function IngredientsTable({ items }: { items: IngredientRecord[] }) {
                 </td>
                 <td className="px-5 py-4">
                   <ReorderButtons id={ing.id} order={ing.order} type="ingredient" first={index===0} last={index===items.length-1} />
-                  <RowActions editHref={`/content/ingredients/${ing.id}`} deleteAction={deleteIngredientAction.bind(null, ing.id)} />
+                  <ContentRowActions label="ingredient" editHref={`/content/ingredients/${ing.id}`} deleteAction={deleteIngredientAction.bind(null, ing.id)} />
                 </td>
               </tr>
             ))}
@@ -251,7 +274,7 @@ function TestimonialsTable({ items }: { items: TestimonialRecord[] }) {
                 </td>
                 <td className="px-5 py-4">
                   <ReorderButtons id={t.id} order={t.order} type="testimonial" first={index===0} last={index===items.length-1} />
-                  <RowActions editHref={`/content/testimonials/${t.id}`} deleteAction={deleteTestimonialAction.bind(null, t.id)} />
+                  <ContentRowActions label="testimonial" editHref={`/content/testimonials/${t.id}`} deleteAction={deleteTestimonialAction.bind(null, t.id)} />
                 </td>
               </tr>
             ))}
@@ -282,28 +305,13 @@ function FAQsTable({ items }: { items: FAQRecord[] }) {
                   <Badge variant={f.isActive ? 'success' : 'default'}>{f.isActive ? 'Active' : 'Inactive'}</Badge>
                 </td>
                 <td className="px-5 py-4">
-                  <RowActions editHref={`/content/faqs/${f.id}`} deleteAction={deleteFAQAction.bind(null, f.id)} />
+                  <ContentRowActions label="FAQ" editHref={`/content/faqs/${f.id}`} deleteAction={deleteFAQAction.bind(null, f.id)} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </div>
-  )
-}
-
-function RowActions({ editHref, deleteAction }: { editHref: string; deleteAction: () => Promise<void> }) {
-  return (
-    <div className="flex items-center gap-1">
-      <Link href={editHref} className="p-1.5 text-slate-400 hover:text-[#558476] hover:bg-[#558476]/10 rounded-lg transition-colors" title="Edit">
-        <Edit2 className="w-4 h-4" />
-      </Link>
-      <form action={deleteAction}>
-        <button type="submit" className="p-1.5 text-slate-400 hover:text-[#B76E79] hover:bg-[#B76E79]/10 rounded-lg transition-colors" title="Delete">
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </form>
     </div>
   )
 }

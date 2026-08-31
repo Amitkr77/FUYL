@@ -35,6 +35,11 @@ export async function getPage(slug: string): Promise<CMSPage> {
   return mapPage(raw)
 }
 
+export async function getPagePreview(id: string, token: string): Promise<CMSPage> {
+  const raw = await apiFetch<BackendCMSPage>(`/pages/preview/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`, { cache: 'no-store' })
+  return mapPage(raw)
+}
+
 export interface NavigationPage {
   label: string
   href: string
@@ -223,7 +228,13 @@ export async function getInstagramPosts(limit?: number): Promise<InstagramPost[]
   }
 }
 
-export async function submitPrebookingLead(input: { name: string; email: string; phone: string; source?: string }): Promise<{ submitted: boolean; message: string }> {
+export interface PrebookingAvailability { claimed: number; capacity: number; remaining: number; full: boolean }
+
+export async function getPrebookingAvailability(): Promise<PrebookingAvailability> {
+  return apiFetch('/prebookings/availability', { cache: 'no-store' })
+}
+
+export async function submitPrebookingLead(input: { name: string; email: string; phone: string; source?: string; wantsToDonate?: boolean }): Promise<{ submitted: boolean; message: string; claimed: number; capacity: number; remaining: number }> {
   return apiFetch('/prebookings', { method: 'POST', body: input })
 }
 

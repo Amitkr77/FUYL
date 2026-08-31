@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import {
-  createPage, updatePage, deletePage, type CMSPageInput,
+  createPage, updatePage, deletePage, getAdminPage, createPagePreviewToken, updatePageNavigation, restorePageRevision, type CMSPageInput, type CMSPageSummary,
   createIngredient, updateIngredient, deleteIngredient, type IngredientInput,
   createTestimonial, updateTestimonial, deleteTestimonial, type TestimonialInput,
   createFAQ, updateFAQ, deleteFAQ, type FAQInput,
@@ -13,7 +13,7 @@ import { updateHeroSection,type HeroSection } from '@/lib/content'
 import { adminApiFetch, getErrorMessage } from '@/lib/api'
 import type { SignatureResult } from '@/lib/upload'
 
-export type ContentActionState = { error: string } | null
+export type ContentActionState = { error: string; success?: never; id?: never } | { success: true; id?: string; error?: never } | null
 
 // Same signature-then-direct-to-Cloudinary flow as the blog/product uploaders.
 export async function getContentImageUploadSignature(): Promise<SignatureResult> {
@@ -29,13 +29,14 @@ export async function reorderTestimonialAction(id:string,direction:'up'|'down'){
 
 // ─── Pages ──────────────────────────────────────────────────────────────────
 export async function createPageAction(input: CMSPageInput): Promise<ContentActionState> {
+  let id: string
   try {
-    await createPage(input)
+    id = await createPage(input)
   } catch (err) {
     return { error: getErrorMessage(err, 'Could not create the page.') }
   }
   revalidatePath('/content')
-  redirect('/content')
+  return { success: true, id }
 }
 
 export async function updatePageAction(id: string, input: CMSPageInput): Promise<ContentActionState> {
@@ -46,15 +47,55 @@ export async function updatePageAction(id: string, input: CMSPageInput): Promise
   }
   revalidatePath('/content')
   revalidatePath(`/content/pages/${id}`)
-  redirect('/content')
+  return { success: true, id }
+}
+
+export async function duplicatePageAction(id: string): Promise<void> {
+  const page = await getAdminPage(id)
+  if (!page) return
+  const copyId = await createPage({
+    title: `${page.title} Copy`, body: page.body, seoTitle: page.seoTitle,
+    seoDescription: page.seoDescription, status: 'draft', navigationPlacement: 'none',
+    navigationLabel: '', navigationOrder: 0,
+  })
+  revalidatePath('/content')
+  redirect(`/content/pages/${copyId}`)
+}
+
+export async function createPagePreviewAction(id: string): Promise<{ url?: string; error?: string }> {
+  try {
+    const token = await createPagePreviewToken(id)
+    const storefront = (process.env.STOREFRONT_URL ?? 'https://fuyl.in').replace(/\/$/, '')
+    return { url: `${storefront}/preview/pages/${id}?token=${encodeURIComponent(token)}` }
+  } catch (err) { return { error: getErrorMessage(err, 'Could not create a preview link.') } }
+}
+
+export async function updatePageNavigationAction(items: Array<Pick<CMSPageSummary, 'id' | 'navigationPlacement' | 'navigationLabel' | 'navigationOrder'>>): Promise<{ error?: string; success?: true }> {
+  try {
+    await updatePageNavigation(items)
+    revalidatePath('/content')
+    revalidatePath('/content/navigation')
+    return { success: true }
+  } catch (err) {
+    return { error: getErrorMessage(err, 'Could not update website navigation.') }
+  }
+}
+
+export async function restorePageRevisionAction(id: string, revisionId: string): Promise<{ error?: string; success?: true }> {
+  try {
+    await restorePageRevision(id, revisionId)
+    revalidatePath('/content')
+    revalidatePath(`/content/pages/${id}`)
+    return { success: true }
+  } catch (err) {
+    return { error: getErrorMessage(err, 'Could not restore this version.') }
+  }
 }
 
 export async function deletePageAction(id: string): Promise<void> {
-  try {
-    await deletePage(id)
-    revalidatePath('/content')
-  } catch { /* redirect without revalidating on failure */ }
-  redirect('/content')
+  await deletePage(id)
+  revalidatePath('/content')
+  redirect('/content?tab=pages')
 }
 
 // ─── Ingredients ────────────────────────────────────────────────────────────

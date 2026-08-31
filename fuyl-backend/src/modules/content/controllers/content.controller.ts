@@ -14,8 +14,21 @@ import {
   createFAQSchema, updateFAQSchema,
 } from '../validators';
 import { StorefrontSectionModel } from '../models/storefrontSection.model';
+import jwt from 'jsonwebtoken';
+import { UnauthorizedError } from '../../../shared/errors';
 
 export class ContentController {
+  getPagePreview = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const payload = jwt.verify(String(req.query.token ?? ''), env.jwt.accessSecret) as { kind?: string; pageId?: string };
+      if (payload.kind !== 'cms_page_preview' || payload.pageId !== req.params.id) throw new UnauthorizedError('Invalid page preview link');
+      return success(res, await contentService.getPageById(req.params.id));
+    } catch (err) {
+      if (err instanceof jwt.JsonWebTokenError || err instanceof jwt.TokenExpiredError) return next(new UnauthorizedError('Page preview link is invalid or expired'));
+      next(err);
+    }
+  };
+
   // ─── Public ───────────────────────────────────────────────────
   listPublished = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
@@ -106,7 +119,12 @@ export class ContentController {
       try {
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 20;
-        const result = await contentService.listPagesAdmin(page, limit);
+        const result = await contentService.listPagesAdmin(page, limit, {
+          search: (req.query.q as string | undefined)?.trim().slice(0, 100),
+          status: req.query.status as string | undefined,
+          navigation: req.query.navigation as string | undefined,
+          sort: req.query.sort as string | undefined,
+        });
         return paginate(res, result.items, result.total, result.page, result.limit);
       } catch (err) { next(err); }
     },
@@ -120,11 +138,46 @@ export class ContentController {
     },
   ];
 
+  getPageRevisions = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try { return success(res, await contentService.getPageRevisions(req.params.id)); }
+      catch (err) { next(err); }
+    },
+  ];
+
+  restorePageRevision = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try { return success(res, await contentService.restorePageRevision(req.params.id, req.params.revisionId)); }
+      catch (err) { next(err); }
+    },
+  ];
+
+  createPagePreviewToken = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        await contentService.getPageById(req.params.id);
+        const token = jwt.sign({ kind: 'cms_page_preview', pageId: req.params.id }, env.jwt.accessSecret, { expiresIn: '10m' });
+        return success(res, { token, expiresInSeconds: 600 });
+      } catch (err) { next(err); }
+    },
+  ];
+
   createPage = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     validate(createCMSPageSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try { return created(res, await contentService.createPage(req.body)); }
+      catch (err) { next(err); }
+    },
+  ];
+
+  updatePageNavigation = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try { return success(res, await contentService.updatePageNavigation(req.body?.items)); }
       catch (err) { next(err); }
     },
   ];

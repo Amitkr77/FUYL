@@ -10,6 +10,18 @@ export interface ICMSPage extends Document {
   navigationPlacement: 'none' | 'header' | 'footer' | 'both';
   navigationLabel?: string;
   navigationOrder: number;
+  revisions?: Array<{
+    revisionId: string;
+    title: string;
+    body: string;
+    seoTitle?: string;
+    seoDescription?: string;
+    status: 'draft' | 'published';
+    navigationPlacement: 'none' | 'header' | 'footer' | 'both';
+    navigationLabel?: string;
+    navigationOrder: number;
+    savedAt: Date;
+  }>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +37,23 @@ const CMSPageSchema = new Schema<ICMSPage>(
     navigationPlacement: { type: String, enum: ['none', 'header', 'footer', 'both'], default: 'none', index: true },
     navigationLabel: { type: String, trim: true, maxlength: 80 },
     navigationOrder: { type: Number, default: 0 },
+    revisions: {
+      type: [{
+        _id: false,
+        revisionId: { type: String, required: true },
+        title: { type: String, required: true },
+        body: { type: String, required: true },
+        seoTitle: String,
+        seoDescription: String,
+        status: { type: String, enum: ['draft', 'published'], required: true },
+        navigationPlacement: { type: String, enum: ['none', 'header', 'footer', 'both'], required: true },
+        navigationLabel: String,
+        navigationOrder: { type: Number, required: true },
+        savedAt: { type: Date, required: true },
+      }],
+      default: [],
+      select: false,
+    },
   },
   { timestamps: true }
 );

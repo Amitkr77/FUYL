@@ -19,6 +19,7 @@ export const prebookingLeadSchema = z.object({
   email: z.string().trim().email().max(200),
   phone: z.string().trim().min(7).max(24).regex(/^\+?[0-9 ()-]+$/, 'Enter a valid phone number'),
   source: z.string().max(100).optional(),
+  wantsToDonate: z.boolean().optional().default(false),
 });
 
 export const newsletterVerifySchema = z.object({

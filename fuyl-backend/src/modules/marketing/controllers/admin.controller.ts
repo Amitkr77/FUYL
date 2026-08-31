@@ -91,8 +91,8 @@ export class AdminPrebookingController {
   stats = [authorize(Roles.SUPER_ADMIN, Roles.ADMIN), async (_req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
       const start = new Date(); start.setHours(0, 0, 0, 0);
-      const [total, today] = await Promise.all([PrebookingLeadModel.countDocuments(), PrebookingLeadModel.countDocuments({ submittedAt: { $gte: start } })]);
-      return success(res, { total, today });
+      const [total, today, donationInterested] = await Promise.all([PrebookingLeadModel.countDocuments(), PrebookingLeadModel.countDocuments({ submittedAt: { $gte: start } }), PrebookingLeadModel.countDocuments({ wantsToDonate: true })]);
+      return success(res, { total, today, capacity: 500, remaining: Math.max(0, 500 - total), donationInterested });
     } catch (err) { next(err); }
   }];
 }

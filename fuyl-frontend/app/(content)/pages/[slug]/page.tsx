@@ -7,6 +7,14 @@ interface Props {
   params: Promise<{ slug: string }>
 }
 
+function renderablePageBody(body: string): string {
+  if (/<\/?[a-z][\s\S]*>/i.test(body)) return body
+  const escaped = body.replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[character]!)
+  return escaped.split(/\n{2,}/).map((paragraph) => `<p>${paragraph.replace(/\n/g, '<br>')}</p>`).join('')
+}
+
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params
   try {
@@ -35,7 +43,7 @@ export default async function CMSPage({ params }: Props) {
       <h1 className="text-3xl font-bold text-brand-forest mb-8">{page.title}</h1>
       <div
         className="prose prose-slate max-w-none"
-        dangerouslySetInnerHTML={{ __html: sanitizeHtml(page.body) }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderablePageBody(page.body)) }}
       />
     </main>
   )

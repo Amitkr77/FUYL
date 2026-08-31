@@ -13,12 +13,14 @@ import { generateRandomToken, hashToken } from '../../identity/utils/crypto';
 import { notificationService } from '../../notification/services';
 import { env } from '../../../config/env';
 import { logger } from '../../../config/logger';
+import { ConflictError } from '../../../shared/errors';
 
 // How long a double opt-in confirmation link stays valid.
 const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 // Minimum gap between confirmation-email sends for the same address, so
 // repeated submits (or resend spam) don't fan out a burst of emails.
 const RESEND_THROTTLE_MS = 60 * 1000; // 60s
+export const PREBOOKING_CAPACITY = 500;
 
 /**
  * Result the public subscribe endpoint returns. The frontend maps `status`
@@ -31,10 +33,14 @@ export type SubscribeResult = {
 class MarketingService {
   async submitPrebookingLead(dto: PrebookingLeadDTO) {
     const email = dto.email.toLowerCase().trim();
+    const existing = await PrebookingLeadModel.exists({ email });
+    if (!existing && await PrebookingLeadModel.countDocuments() >= PREBOOKING_CAPACITY) {
+      throw new ConflictError('All 500 pre-booking places have been claimed.');
+    }
     const lead = await PrebookingLeadModel.findOneAndUpdate(
       { email },
       {
-        $set: { name: dto.name.trim(), phone: dto.phone.trim(), source: dto.source ?? 'storefront_popup', submittedAt: new Date() },
+        $set: { name: dto.name.trim(), phone: dto.phone.trim(), source: dto.source ?? 'storefront_popup', wantsToDonate: dto.wantsToDonate ?? false, submittedAt: new Date() },
         $setOnInsert: { email },
       },
       { new: true, upsert: true, runValidators: true }
@@ -48,10 +54,17 @@ class MarketingService {
       env.prebookingAdminEmail
         ? this.dispatch(env.prebookingAdminEmail, 'prebooking_admin', {
             name: safe(lead.name), email: safe(lead.email), phone: safe(lead.phone), source: safe(lead.source),
+            donationInterest: lead.wantsToDonate ? 'Yes' : 'No',
           })
         : Promise.resolve(),
     ]);
-    return { submitted: true, message: "You're on the list!" };
+    const claimed = await PrebookingLeadModel.countDocuments();
+    return { submitted: true, message: "You're on the list!", claimed, capacity: PREBOOKING_CAPACITY, remaining: Math.max(0, PREBOOKING_CAPACITY - claimed) };
+  }
+
+  async getPrebookingAvailability() {
+    const claimed = await PrebookingLeadModel.countDocuments();
+    return { claimed, capacity: PREBOOKING_CAPACITY, remaining: Math.max(0, PREBOOKING_CAPACITY - claimed), full: claimed >= PREBOOKING_CAPACITY };
   }
 
   async submitContactMessage(dto: ContactMessageDTO) {

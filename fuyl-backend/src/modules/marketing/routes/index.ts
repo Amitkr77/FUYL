@@ -9,6 +9,7 @@ const router = Router();
 // contact/page.tsx -> POST /contact, lib/api/content.ts subscribeNewsletter -> POST /newsletter/subscribe
 router.post('/contact', marketingController.submitContact);
 router.post('/prebookings', newsletterLimiter, marketingController.submitPrebooking);
+router.get('/prebookings/availability', marketingController.prebookingAvailability);
 
 // Newsletter (double opt-in). Subscribe + resend are rate-limited since they
 // trigger outbound email; verify/unsubscribe act on a token the user already holds.

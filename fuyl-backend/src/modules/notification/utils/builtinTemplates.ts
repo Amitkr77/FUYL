@@ -39,6 +39,7 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         emailDetailRow('Name', '{{name}}') +
         emailDetailRow('Email', '{{email}}') +
         emailDetailRow('Phone', '{{phone}}') +
+        emailDetailRow('Donation interest', '{{donationInterest}}') +
         emailDetailRow('Source', '{{source}}')
       )}
     `),

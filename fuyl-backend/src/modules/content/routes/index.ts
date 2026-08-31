@@ -16,6 +16,7 @@ router.get('/posts/:slug', contentController.getBySlug);
 // fuyl-frontend/lib/api/content.ts's getPage/getIngredients/getTestimonials/getFAQs,
 // which were also defined against this contract before a backend existed for it).
 router.get('/pages/navigation', contentController.listNavigationPages);
+router.get('/pages/preview/:id', contentController.getPagePreview);
 router.get('/pages/:slug', contentController.getPageBySlug);
 router.get('/ingredients', contentController.listIngredients);
 router.get('/testimonials', contentController.listTestimonials);
@@ -38,7 +39,11 @@ router.patch('/admin/content/posts/:id', authRequired, contentController.update)
 router.delete('/admin/content/posts/:id', authRequired, contentController.remove);
 
 router.get('/admin/content/pages', authRequired, contentController.listPagesAdmin);
+router.put('/admin/content/pages/navigation', authRequired, contentController.updatePageNavigation);
+router.get('/admin/content/pages/:id/revisions', authRequired, contentController.getPageRevisions);
+router.post('/admin/content/pages/:id/revisions/:revisionId/restore', authRequired, contentController.restorePageRevision);
 router.get('/admin/content/pages/:id', authRequired, contentController.getPageById);
+router.post('/admin/content/pages/:id/preview-token', authRequired, contentController.createPagePreviewToken);
 router.post('/admin/content/pages', authRequired, contentController.createPage);
 router.patch('/admin/content/pages/:id', authRequired, contentController.updatePage);
 router.delete('/admin/content/pages/:id', authRequired, contentController.removePage);

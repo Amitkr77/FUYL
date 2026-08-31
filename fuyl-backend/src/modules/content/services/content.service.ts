@@ -3,7 +3,7 @@ import { CMSPageRepository } from "../repositories/cmsPage.repository";
 import { IngredientRepository } from "../repositories/ingredient.repository";
 import { TestimonialRepository } from "../repositories/testimonial.repository";
 import { FAQRepository } from "../repositories/faq.repository";
-import { NotFoundError } from "../../../shared/errors";
+import { BadRequestError, NotFoundError } from "../../../shared/errors";
 import {
   CreatePostDTO,
   UpdatePostDTO,
@@ -20,12 +20,20 @@ import { revalidateStorefront } from "../../../shared/services/revalidate.servic
 import { cacheService } from "../../../shared/services/cache.service";
 import { env } from "../../../config/env";
 import { logger } from "../../../config/logger";
+import crypto from "crypto";
 
 const postRepo = new PostRepository();
 const cmsPageRepo = new CMSPageRepository();
 const ingredientRepo = new IngredientRepository();
 const testimonialRepo = new TestimonialRepository();
 const faqRepo = new FAQRepository();
+
+// These slugs are implemented as dedicated Next.js routes. Allowing a CMS
+// page to claim one would save successfully but never render on the storefront.
+const RESERVED_PAGE_SLUGS = new Set([
+  "contact", "ingredients", "learn", "our-story", "refer-and-earn", "science", "why-fuyl",
+  "cancellation-returns-refunds", "privacy-policy", "shipping-policy", "terms-conditions",
+]);
 
 function slugify(title: string): string {
   return title
@@ -48,6 +56,9 @@ class ContentService {
 
   private async uniquePageSlug(title: string): Promise<string> {
     const base = slugify(title) || "page";
+    if (RESERVED_PAGE_SLUGS.has(base)) {
+      throw new BadRequestError(`The URL /pages/${base} is reserved by a built-in storefront page. Choose a different page title.`);
+    }
     let slug = base;
     let n = 1;
     while (await cmsPageRepo.slugExists(slug)) {
@@ -139,16 +150,31 @@ class ContentService {
   async createPage(dto: CreateCMSPageDTO) {
     const slug = await this.uniquePageSlug(dto.title);
     const page = await cmsPageRepo.create({ ...dto, slug });
-    if (dto.status === "published")
-      void revalidateStorefront(["/", `/pages/${slug}`]);
+    // Revalidate navigation even for drafts: this also clears a stale menu
+    // entry if a previous request with the same URL was cached.
+    void revalidateStorefront(["/", `/pages/${slug}`]);
     return page;
   }
 
   async updatePage(id: string, dto: UpdateCMSPageDTO) {
-    const updated = await cmsPageRepo.update(id, dto);
+    const existing = await cmsPageRepo.findById(id);
+    if (!existing) throw new NotFoundError("Page");
+    const updated = await cmsPageRepo.updateWithRevision(id, dto, {
+      revisionId: crypto.randomUUID(),
+      title: existing.title,
+      body: existing.body,
+      seoTitle: existing.seoTitle,
+      seoDescription: existing.seoDescription,
+      status: existing.status,
+      navigationPlacement: existing.navigationPlacement,
+      navigationLabel: existing.navigationLabel,
+      navigationOrder: existing.navigationOrder,
+      savedAt: new Date(),
+    });
     if (!updated) throw new NotFoundError("Page");
-    if (updated.status === "published")
-      void revalidateStorefront(["/", `/pages/${updated.slug}`]);
+    // Publishing, unpublishing and navigation changes must all clear both the
+    // page route and root-layout navigation cache.
+    void revalidateStorefront(Array.from(new Set(["/", `/pages/${existing.slug}`, `/pages/${updated.slug}`])));
     return updated;
   }
 
@@ -164,6 +190,34 @@ class ContentService {
     return page;
   }
 
+  async getPageRevisions(id: string) {
+    const page = await cmsPageRepo.findByIdWithRevisions(id);
+    if (!page) throw new NotFoundError("Page");
+    return [...(page.revisions ?? [])].reverse().map((revision) => ({
+      revisionId: revision.revisionId,
+      title: revision.title,
+      status: revision.status,
+      savedAt: revision.savedAt,
+    }));
+  }
+
+  async restorePageRevision(id: string, revisionId: string) {
+    const page = await cmsPageRepo.findByIdWithRevisions(id);
+    if (!page) throw new NotFoundError("Page");
+    const revision = page.revisions?.find((item) => item.revisionId === revisionId);
+    if (!revision) throw new NotFoundError("Page revision");
+    return this.updatePage(id, {
+      title: revision.title,
+      body: revision.body,
+      seoTitle: revision.seoTitle,
+      seoDescription: revision.seoDescription,
+      status: revision.status,
+      navigationPlacement: revision.navigationPlacement,
+      navigationLabel: revision.navigationLabel,
+      navigationOrder: revision.navigationOrder,
+    });
+  }
+
   async getPageBySlug(slug: string) {
     const page = await cmsPageRepo.findBySlug(slug);
     if (!page || page.status !== "published") throw new NotFoundError("Page");
@@ -174,8 +228,40 @@ class ContentService {
     return cmsPageRepo.listNavigation();
   }
 
-  async listPagesAdmin(page = 1, limit = 20) {
-    return cmsPageRepo.paginate({}, page, limit);
+  async updatePageNavigation(items: Array<{ id: string; navigationPlacement: "none" | "header" | "footer" | "both"; navigationLabel: string; navigationOrder: number }>) {
+    if (!Array.isArray(items) || items.length > 200) throw new BadRequestError("Invalid navigation update");
+    const ids = new Set<string>();
+    const normalized = items.map((item, index) => {
+      if (!item?.id || ids.has(item.id) || !["none", "header", "footer", "both"].includes(item.navigationPlacement)) {
+        throw new BadRequestError("Invalid or duplicate page in navigation update");
+      }
+      ids.add(item.id);
+      return {
+        id: item.id,
+        navigationPlacement: item.navigationPlacement,
+        navigationLabel: String(item.navigationLabel ?? "").trim().slice(0, 80),
+        navigationOrder: index,
+      };
+    });
+    await cmsPageRepo.updateNavigation(normalized);
+    await revalidateStorefront(["/"]);
+    return { updated: normalized.length };
+  }
+
+  async listPagesAdmin(page = 1, limit = 20, options: { search?: string; status?: string; navigation?: string; sort?: string } = {}) {
+    const filter: Record<string, unknown> = {};
+    if (options.search) {
+      const escaped = options.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.$or = [{ title: { $regex: escaped, $options: "i" } }, { slug: { $regex: escaped, $options: "i" } }];
+    }
+    if (options.status === "draft" || options.status === "published") filter.status = options.status;
+    if (["none", "header", "footer", "both"].includes(options.navigation ?? "")) filter.navigationPlacement = options.navigation;
+    const sorts: Record<string, Record<string, 1 | -1>> = {
+      updated_desc: { updatedAt: -1 }, updated_asc: { updatedAt: 1 },
+      title_asc: { title: 1 }, title_desc: { title: -1 },
+      navigation: { navigationOrder: 1, title: 1 },
+    };
+    return cmsPageRepo.paginate(filter, page, limit, sorts[options.sort ?? "updated_desc"] ?? sorts.updated_desc);
   }
 
   // ─── Ingredients ────────────────────────────────────────────────

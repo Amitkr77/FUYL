@@ -1,4 +1,4 @@
-import { adminApiFetch, AdminApiError } from './api'
+import { adminApiFetch, adminApiFetchPaginated, AdminApiError, type PaginationMeta } from './api'
 
 export type ContentStatus = 'draft' | 'published'
 export interface HeroSlide {id:string;eyebrow:string;headline:string;subheading:string;image:string;imageAlt:string;primaryCtaLabel:string;primaryCtaHref:string;secondaryCtaLabel?:string;secondaryCtaHref?:string}
@@ -38,6 +38,13 @@ export interface CMSPageDetail extends CMSPageSummary {
   seoDescription: string
 }
 
+export interface CMSPageRevision {
+  revisionId: string
+  title: string
+  status: ContentStatus
+  savedAt: string
+}
+
 export interface CMSPageInput {
   title: string
   body: string
@@ -53,17 +60,25 @@ function mapPage(p: BackendCMSPage): CMSPageSummary {
   return { id: p._id, slug: p.slug, title: p.title, status: p.status, updatedAt: p.updatedAt, navigationPlacement: p.navigationPlacement ?? 'none', navigationLabel: p.navigationLabel ?? '', navigationOrder: p.navigationOrder ?? 0 }
 }
 
-export async function listAdminPages(): Promise<CMSPageSummary[]> {
-  const raw = await adminApiFetch<BackendCMSPage[]>('/admin/content/pages?limit=100')
-  return raw.map(mapPage)
+export interface PageListOptions { page?: number; limit?: number; search?: string; status?: ContentStatus | 'all'; navigation?: CMSPageSummary['navigationPlacement'] | 'all'; sort?: 'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc' | 'navigation' }
+
+export async function listAdminPages(options: PageListOptions = {}): Promise<{ items: CMSPageSummary[]; meta: PaginationMeta }> {
+  const query = new URLSearchParams({ page: String(options.page ?? 1), limit: String(options.limit ?? 20) })
+  if (options.search?.trim()) query.set('q', options.search.trim())
+  if (options.status && options.status !== 'all') query.set('status', options.status)
+  if (options.navigation && options.navigation !== 'all') query.set('navigation', options.navigation)
+  if (options.sort) query.set('sort', options.sort)
+  const result = await adminApiFetchPaginated<BackendCMSPage>(`/admin/content/pages?${query}`)
+  return { items: result.items.map(mapPage), meta: result.meta }
 }
 
 export async function getAdminPage(id: string): Promise<CMSPageDetail | null> {
   try {
     const p = await adminApiFetch<BackendCMSPage>(`/admin/content/pages/${id}`)
     return { ...mapPage(p), body: p.body, seoTitle: p.seoTitle ?? '', seoDescription: p.seoDescription ?? '', navigationPlacement: p.navigationPlacement ?? 'none', navigationLabel: p.navigationLabel ?? '', navigationOrder: p.navigationOrder ?? 0 }
-  } catch {
-    return null
+  } catch (err) {
+    if (err instanceof AdminApiError && err.status === 404) return null
+    throw err
   }
 }
 
@@ -78,6 +93,23 @@ export async function updatePage(id: string, input: CMSPageInput): Promise<void>
 
 export async function deletePage(id: string): Promise<void> {
   await adminApiFetch(`/admin/content/pages/${id}`, { method: 'DELETE' })
+}
+
+export async function createPagePreviewToken(id: string): Promise<string> {
+  const result = await adminApiFetch<{ token: string }>(`/admin/content/pages/${id}/preview-token`, { method: 'POST' })
+  return result.token
+}
+
+export async function listPageRevisions(id: string): Promise<CMSPageRevision[]> {
+  return adminApiFetch<CMSPageRevision[]>(`/admin/content/pages/${id}/revisions`)
+}
+
+export async function restorePageRevision(id: string, revisionId: string): Promise<void> {
+  await adminApiFetch(`/admin/content/pages/${id}/revisions/${revisionId}/restore`, { method: 'POST' })
+}
+
+export async function updatePageNavigation(items: Array<Pick<CMSPageSummary, 'id' | 'navigationPlacement' | 'navigationLabel' | 'navigationOrder'>>): Promise<void> {
+  await adminApiFetch('/admin/content/pages/navigation', { method: 'PUT', body: { items } })
 }
 
 // ─── Ingredients ────────────────────────────────────────────────────────────

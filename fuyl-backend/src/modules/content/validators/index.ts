@@ -25,6 +25,9 @@ export const createCMSPageSchema = z.object({
   seoTitle: z.string().max(200).optional(),
   seoDescription: z.string().max(300).optional(),
   status: z.enum(['draft', 'published']).default('draft'),
+  navigationPlacement: z.enum(['none', 'header', 'footer', 'both']).default('none'),
+  navigationLabel: z.string().trim().max(80).optional(),
+  navigationOrder: z.number().int().min(0).default(0),
 });
 
 export const updateCMSPageSchema = createCMSPageSchema.partial();

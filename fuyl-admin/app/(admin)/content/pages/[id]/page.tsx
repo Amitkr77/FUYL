@@ -1,9 +1,9 @@
-import { getAdminPage } from '@/lib/content'
+import { getAdminPage, listPageRevisions } from '@/lib/content'
 import { EditPageForm } from '@/components/content/EditPageForm'
 
 export default async function EditContentPagePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const page = await getAdminPage(id)
+  const [page, revisions] = await Promise.all([getAdminPage(id), listPageRevisions(id).catch(() => [])])
 
   if (!page) {
     return (
@@ -13,5 +13,6 @@ export default async function EditContentPagePage({ params }: { params: Promise<
     )
   }
 
-  return <EditPageForm page={page} />
+  const storefrontUrl = (process.env.STOREFRONT_URL ?? 'https://fuyl.in').replace(/\/$/, '')
+  return <EditPageForm page={page} storefrontUrl={storefrontUrl} revisions={revisions} />
 }

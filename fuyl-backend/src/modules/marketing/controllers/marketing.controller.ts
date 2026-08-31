@@ -13,6 +13,11 @@ import {
 } from '../validators';
 
 export class MarketingController {
+  prebookingAvailability = async (_req: AuthedRequest, res: Response, next: NextFunction) => {
+    try { return success(res, await marketingService.getPrebookingAvailability()); }
+    catch (err) { next(err); }
+  };
+
   submitPrebooking = [
     validate(prebookingLeadSchema),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {

@@ -1,4 +1,4 @@
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
@@ -20,5 +20,9 @@ export async function POST(req: NextRequest) {
   }
 
   revalidatePath(path)
+  if (path === '/') {
+    revalidatePath('/', 'layout')
+    revalidateTag('page-navigation', { expire: 0 })
+  }
   return NextResponse.json({ revalidated: true, path, ts: Date.now() })
 }
