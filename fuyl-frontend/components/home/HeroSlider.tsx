@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
@@ -80,6 +81,8 @@ export function HeroSlider({
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const sectionRef = useRef<HTMLElement>(null);
+  const touchStartX = useRef<number | null>(null);
 
   const duration = autoplayMs ?? DURATION;
 
@@ -105,6 +108,11 @@ export function HeroSlider({
     [current, slides.length, goTo],
   );
 
+  const prev = useCallback(
+    () => goTo((current - 1 + slides.length) % slides.length),
+    [current, slides.length, goTo],
+  );
+
   // Auto-advance (skip for video slides — video drives its own timing)
   useEffect(() => {
     if (paused) return;
@@ -127,14 +135,34 @@ export function HeroSlider({
     });
   }, [current]);
 
+  // Keyboard ← → navigation — only fires while hero is in the viewport
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const rect = sectionRef.current?.getBoundingClientRect();
+      if (!rect || rect.bottom < 0 || rect.top > window.innerHeight) return;
+      e.key === "ArrowLeft" ? prev() : next();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [prev, next]);
+
   const slide = slides[current] ?? slides[0];
   if (!slide) return null;
 
   return (
     <section
-      className="relative w-full max-w-full overflow-hidden h-[70dvh] min-h-115 sm:h-dvh sm:min-h-140"
+      ref={sectionRef}
+      className="group relative w-full max-w-full overflow-hidden h-[70dvh] min-h-115 sm:h-dvh sm:min-h-140"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+      onTouchEnd={(e) => {
+        if (touchStartX.current === null) return;
+        const delta = touchStartX.current - e.changedTouches[0].clientX;
+        if (Math.abs(delta) > 50) delta > 0 ? next() : prev();
+        touchStartX.current = null;
+      }}
       aria-label="Hero"
     >
       {/* ── Backgrounds ────────────────────────────────────────────────────── */}
@@ -251,6 +279,26 @@ export function HeroSlider({
           </div>
         )}
       </div>
+
+      {/* ── Arrow navigation (desktop only) ───────────────────────────────── */}
+      {slides.length > 1 && (
+        <>
+          <button
+            onClick={prev}
+            aria-label="Previous slide"
+            className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 hidden sm:flex items-center justify-center h-10 w-10 rounded-full bg-black/25 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 hover:bg-black/45 focus-visible:opacity-100 transition-opacity duration-200"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            onClick={next}
+            aria-label="Next slide"
+            className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 hidden sm:flex items-center justify-center h-10 w-10 rounded-full bg-black/25 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 hover:bg-black/45 focus-visible:opacity-100 transition-opacity duration-200"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </>
+      )}
 
       <style>{`
         @keyframes fadeIn {
