@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Plus, AlertCircle, Star, Image, ExternalLink, Search, ListTree, SearchCheck, Megaphone, Sparkles, Layers, BookOpen, Zap, Shield, Truck, RotateCcw, FileText } from 'lucide-react'
+import { Plus, AlertCircle, Star, Image, ExternalLink, Search, ListTree, SearchCheck, Megaphone, Sparkles, Layers, BookOpen, Zap, Shield, Truck, RotateCcw, FileText, Leaf } from 'lucide-react'
 import { ReorderButtons } from '@/components/content/ReorderButtons'
 import Badge from '@/components/ui/Badge'
 import { getErrorMessage } from '@/lib/api'
@@ -113,6 +113,9 @@ export default async function ContentPage({
         </Link>
         <Link href="/content/why-fuyl" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-yellow-50 p-3 text-yellow-600"><Zap className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Why FUYL</h3><p className="text-sm text-slate-500">Hero, description &amp; pillars headings</p></div></div>
+        </Link>
+        <Link href="/content?tab=ingredients" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+          <div className="flex items-center gap-4"><div className="rounded-xl bg-emerald-50 p-3 text-emerald-600"><Leaf className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Ingredients</h3><p className="text-sm text-slate-500">Add, edit, reorder &amp; publish ingredients</p></div></div>
         </Link>
         <Link href="/content/privacy-policy" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-blue-50 p-3 text-blue-600"><Shield className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Privacy Policy</h3><p className="text-sm text-slate-500">Data collection &amp; privacy sections</p></div></div>
