@@ -47,12 +47,6 @@ export function EditPageForm({ page, storefrontUrl, revisions }: { page: CMSPage
   const openStorefrontPreview = () => {
     const previewWindow = window.open('', '_blank')
     startTransition(async () => {
-      if (dirty) {
-        const savedResult = await updatePageAction(page.id, form)
-        if (savedResult?.error) { previewWindow?.close(); setError(savedResult.error); return }
-        setLastSaved(JSON.stringify(form))
-        router.refresh()
-      }
       const result = await createPagePreviewAction(page.id)
       if (result.error || !result.url) { previewWindow?.close(); setError(result.error ?? 'Could not create preview.'); return }
       if (previewWindow) previewWindow.location.href = result.url
@@ -70,7 +64,7 @@ export function EditPageForm({ page, storefrontUrl, revisions }: { page: CMSPage
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={openStorefrontPreview} disabled={isPending} className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"><Eye className="w-4 h-4" />Preview storefront</button>
+          <button onClick={openStorefrontPreview} disabled={isPending} title={dirty ? 'Preview shows the last saved version. Save changes first to include current edits.' : 'Preview the saved page'} className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"><Eye className="w-4 h-4" />Preview saved page</button>
           <button onClick={handleDelete} disabled={isPending} className="flex items-center gap-2 px-4 py-2 border border-red-200 bg-white text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50">
             <Trash2 className="w-4 h-4" />
             Delete

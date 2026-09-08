@@ -68,9 +68,15 @@ function Stars() {
 
 export function TestimonialsSection({managed}:{managed?:Testimonial[]}) {
   const [tab, setTab] = useState<Tab>("customers");
+  const source = managed === undefined ? TESTIMONIALS : {
+    customers: managed.filter((item) => item.type === 'customer').map((item) => ({ id: item.id, name: item.name, role: item.title ?? '', body: item.body })),
+    experts: managed.filter((item) => item.type === 'expert').map((item) => ({ id: item.id, name: item.name, role: item.title ?? '', body: item.body })),
+  };
+  const availableTabs = (["customers", "experts"] as Tab[]).filter((item) => source[item].length > 0);
+  const selectedTab = availableTabs.includes(tab) ? tab : availableTabs[0];
+  const items = selectedTab ? source[selectedTab] : [];
 
-  const managedItems = managed?.filter(item=>item.type===(tab==='experts'?'expert':'customer')).map(item=>({id:item.id,name:item.name,role:item.title??'',body:item.body}));
-  const items = managedItems?.length ? managedItems : TESTIMONIALS[tab];
+  if (!items.length) return null;
 
   return (
     <section className="section-py bg-brand-cream">
@@ -93,11 +99,11 @@ export function TestimonialsSection({managed}:{managed?:Testimonial[]}) {
           {/* Tabs */}
           <div className="mt-10 flex justify-center">
             <div className="inline-flex items-center rounded-full border border-brand-border bg-white p-1 shadow-sm">
-              {(["customers", "experts"] as Tab[]).map((item) => (
+              {availableTabs.map((item) => (
                 <button
                   key={item}
                   onClick={() => setTab(item)}
-                  aria-pressed={tab === item}
+                  aria-pressed={selectedTab === item}
                   className={cn(
                     `
           relative
@@ -112,7 +118,7 @@ export function TestimonialsSection({managed}:{managed?:Testimonial[]}) {
           transition-all
           duration-300
           `,
-                    tab === item
+                    selectedTab === item
                       ? `
               bg-brand-forest
               text-white

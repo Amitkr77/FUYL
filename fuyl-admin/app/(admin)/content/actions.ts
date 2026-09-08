@@ -136,7 +136,8 @@ export async function createIngredientAction(input: IngredientInput): Promise<Co
     return { error: getErrorMessage(err, 'Could not create the ingredient.') }
   }
   revalidatePath('/content')
-  redirect('/content?tab=ingredients')
+  revalidatePath('/content/ingredients')
+  redirect('/content/ingredients')
 }
 
 export async function updateIngredientAction(id: string, input: IngredientInput): Promise<ContentActionState> {
@@ -146,16 +147,16 @@ export async function updateIngredientAction(id: string, input: IngredientInput)
     return { error: getErrorMessage(err, 'Could not save changes.') }
   }
   revalidatePath('/content')
+  revalidatePath('/content/ingredients')
   revalidatePath(`/content/ingredients/${id}`)
-  redirect('/content?tab=ingredients')
+  redirect('/content/ingredients')
 }
 
 export async function deleteIngredientAction(id: string): Promise<void> {
-  try {
-    await deleteIngredient(id)
-    revalidatePath('/content')
-  } catch { /* redirect without revalidating on failure */ }
-  redirect('/content?tab=ingredients')
+  await deleteIngredient(id)
+  revalidatePath('/content')
+  revalidatePath('/content/ingredients')
+  redirect('/content/ingredients')
 }
 
 // ─── Testimonials ───────────────────────────────────────────────────────────
@@ -181,10 +182,8 @@ export async function updateTestimonialAction(id: string, input: TestimonialInpu
 }
 
 export async function deleteTestimonialAction(id: string): Promise<void> {
-  try {
-    await deleteTestimonial(id)
-    revalidatePath('/content')
-  } catch { /* redirect without revalidating on failure */ }
+  await deleteTestimonial(id)
+  revalidatePath('/content')
   redirect('/content?tab=testimonials')
 }
 
@@ -211,9 +210,7 @@ export async function updateFAQAction(id: string, input: FAQInput): Promise<Cont
 }
 
 export async function deleteFAQAction(id: string): Promise<void> {
-  try {
-    await deleteFAQ(id)
-    revalidatePath('/content')
-  } catch { /* redirect without revalidating on failure */ }
+  await deleteFAQ(id)
+  revalidatePath('/content')
   redirect('/content?tab=faqs')
 }

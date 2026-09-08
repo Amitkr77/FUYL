@@ -23,7 +23,7 @@ export const metadata = generateSEO({
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
-  const [hero,testimonials,faqs,ingredients] = await Promise.all([getStorefrontHero(),getTestimonials(),getFAQs().catch(() => undefined),getIngredients().catch(() => undefined)])
+  const [hero,testimonials,faqs,ingredients] = await Promise.all([getStorefrontHero(),getTestimonials().catch(() => undefined),getFAQs().catch(() => undefined),getIngredients().catch(() => undefined)])
   return (
     <>
       {/* 1 — Hero */}

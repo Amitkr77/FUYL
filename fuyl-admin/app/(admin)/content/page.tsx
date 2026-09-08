@@ -114,7 +114,7 @@ export default async function ContentPage({
         <Link href="/content/why-fuyl" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-yellow-50 p-3 text-yellow-600"><Zap className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Why FUYL</h3><p className="text-sm text-slate-500">Hero, description &amp; pillars headings</p></div></div>
         </Link>
-        <Link href="/content?tab=ingredients" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+        <Link href="/content/ingredients" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-emerald-50 p-3 text-emerald-600"><Leaf className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Ingredients</h3><p className="text-sm text-slate-500">Add, edit, reorder &amp; publish ingredients</p></div></div>
         </Link>
         <Link href="/content/privacy-policy" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
@@ -136,7 +136,7 @@ export default async function ContentPage({
         {TABS.map((t) => (
           <Link
             key={t.value}
-            href={`/content?tab=${t.value}`}
+            href={t.value === 'ingredients' ? '/content/ingredients' : `/content?tab=${t.value}`}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap ${
               tab === t.value
                 ? 'text-[#558476] border-[#558476]'

@@ -18,14 +18,15 @@ export async function revalidateStorefront(paths: string[]): Promise<void> {
   await Promise.all(
     paths.map(async (path) => {
       try {
-        await Promise.race([
+        const response = await Promise.race([
           fetch(`${env.clientUrl}/api/revalidate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ secret: env.revalidateSecret, path }),
           }),
           new Promise((_resolve, reject) => setTimeout(() => reject(new Error('revalidate request timed out')), 3000)),
-        ]);
+        ]) as Response;
+        if (!response.ok) throw new Error(`storefront returned ${response.status}`);
       } catch (err) {
         logger.warn(`[revalidate] failed to revalidate storefront path "${path}"`, err);
       }

@@ -6,6 +6,7 @@ import { generateSEO } from "@/lib/utils/seo";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { getOurStoryCMS } from "@/lib/api/content";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { notFound } from "next/navigation";
 
 export const metadata = generateSEO({
@@ -155,7 +156,7 @@ export default async function OurStoryPage() {
                       </h3>
                       <p
                         className="mx-auto max-w-xl whitespace-pre-line text-body-md leading-relaxed text-brand-muted text-justify"
-                        dangerouslySetInnerHTML={{ __html: bio }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(bio) }}
                       />
                     </div>
                   </div>
