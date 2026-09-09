@@ -5,7 +5,7 @@ import { CommissionStatus } from '../../../shared/enums';
 import { AffiliateModel } from '../models/affiliate.model';
 import { AffiliateAttributionModel } from '../models/attribution.model';
 import mongoose from 'mongoose';
-import { fromPaise, toPaise } from '../../../shared/utils';
+import { calendarDate, fromPaise, reportingDateRange, toPaise } from '../../../shared/utils';
 
 export type PerformanceTab = 'referrals' | 'commission' | 'sales' | 'clicks';
 
@@ -16,7 +16,7 @@ export interface PerformanceDataPoint {
 
 export class PerformanceService {
   async adminAnalytics(params: { from: string; to: string; affiliateId?: string; programId?: string }) {
-    const from = new Date(params.from); const to = new Date(params.to); to.setHours(23, 59, 59, 999);
+    const { since: from, until: to } = reportingDateRange(params.from, params.to);
     if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || to < from || to.getTime() - from.getTime() > 366 * 86400000) return null;
     let affiliateIds: mongoose.Types.ObjectId[] | undefined;
     if (params.affiliateId) affiliateIds = [new mongoose.Types.ObjectId(params.affiliateId)];
@@ -43,7 +43,7 @@ export class PerformanceService {
       row.commission = fromPaise(toPaise(row.commission ?? 0));
     }
     const commissions = new Map(commissionRows.map(r => [r._id, r])); const clicks = new Map(clickRows.map(r => [r._id, r.clicks]));
-    const series=[]; const cursor=new Date(from); cursor.setHours(0,0,0,0); while(cursor<=to){const date=cursor.toISOString().slice(0,10);const c=commissions.get(date);series.push({date,clicks:clicks.get(date)??0,referrals:c?.referrals??0,sales:c?.sales??0,commission:c?.commission??0});cursor.setDate(cursor.getDate()+1)}
+    const series=[]; const cursor=calendarDate(params.from); const seriesEnd=calendarDate(params.to); while(cursor<=seriesEnd){const date=cursor.toISOString().slice(0,10);const c=commissions.get(date);series.push({date,clicks:clicks.get(date)??0,referrals:c?.referrals??0,sales:c?.sales??0,commission:c?.commission??0});cursor.setUTCDate(cursor.getUTCDate()+1)}
     const totals=series.reduce((a,d)=>({clicks:a.clicks+d.clicks,referrals:a.referrals+d.referrals,salesPaise:a.salesPaise+toPaise(d.sales),commissionPaise:a.commissionPaise+toPaise(d.commission)}),{clicks:0,referrals:0,salesPaise:0,commissionPaise:0});
     const sales = fromPaise(totals.salesPaise);
     const commission = fromPaise(totals.commissionPaise);
@@ -59,8 +59,7 @@ export class PerformanceService {
     params: { from: string; to: string; tab: PerformanceTab }
   ): Promise<PerformanceDataPoint[]> {
     const { from, to, tab } = params;
-    const fromDate = new Date(from);
-    const toDate   = new Date(to);
+    const { since: fromDate, until: toDate } = reportingDateRange(from, to);
 
     // Clamp to reasonable range (max 366 days)
     const diffMs = toDate.getTime() - fromDate.getTime();
@@ -90,7 +89,7 @@ export class PerformanceService {
         rawMap = new Map();
     }
 
-    return this.fillGaps(fromDate, toDate, rawMap);
+    return this.fillGaps(calendarDate(from), calendarDate(to), rawMap);
   }
 
   // ── Aggregations ───────────────────────────────────────────────────────────

@@ -3,11 +3,10 @@ import { CartModel } from '../../cart/models/cart.model';
 import { OrderModel } from '../../order/models/order.model';
 import { fromPaise, toPaise } from '../../../shared/utils';
 import { netRevenueStages, recognizedRevenueMatch, validOrderMatch } from '../../../shared/utils/orderFinancials';
+import { reportingDateRange } from '../../../shared/utils/reportingDateRange';
 
 function dateRange(days: number, from?: string, to?: string): { since: Date; until: Date } {
-  const until = to ? new Date(to) : new Date();
-  const since = from ? new Date(from) : new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  return { since, until };
+  return reportingDateRange(from, to, days);
 }
 
 class AnalyticsQueryService {

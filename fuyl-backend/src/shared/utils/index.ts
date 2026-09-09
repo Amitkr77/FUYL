@@ -2,6 +2,7 @@ import { Request } from 'express';
 import { PaginationInput } from '../validators';
 
 export * from './money';
+export * from './reportingDateRange';
 
 export function getPagination(req: Request): PaginationInput {
   return {
