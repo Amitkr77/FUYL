@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { AlertCircle, CreditCard, CheckCircle2, XCircle, RefreshCcw, IndianRupee } from 'lucide-react'
+import { AlertCircle, CheckCircle2, XCircle, RefreshCcw, IndianRupee } from 'lucide-react'
 import { PaymentsTable } from '@/components/payments/PaymentsTable'
 import { listPayments, getPaymentStats } from '@/lib/payments'
 import { getErrorMessage } from '@/lib/api'

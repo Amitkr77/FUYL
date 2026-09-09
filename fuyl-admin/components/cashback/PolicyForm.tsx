@@ -174,7 +174,7 @@ export function PolicyForm({ policy }: Props) {
             <select
               className={inputCls}
               value={form.mode}
-              onChange={(e) => set("mode", e.target.value as any)}
+              onChange={(e) => set("mode", e.target.value as CreatePolicyInput["mode"])}
               disabled={!!policy}
             >
               <option value="standalone">Standalone</option>
@@ -207,7 +207,7 @@ export function PolicyForm({ policy }: Props) {
             <select
               className={inputCls}
               value={form.type}
-              onChange={(e) => set("type", e.target.value as any)}
+              onChange={(e) => set("type", e.target.value as CreatePolicyInput["type"])}
             >
               <option value="percentage">Percentage (%)</option>
               <option value="flat">Flat amount (₹)</option>
@@ -275,7 +275,7 @@ export function PolicyForm({ policy }: Props) {
             <select
               className={inputCls}
               value={form.creditTiming}
-              onChange={(e) => set("creditTiming", e.target.value as any)}
+              onChange={(e) => set("creditTiming", e.target.value as CreatePolicyInput["creditTiming"])}
             >
               <option value="on_order">Immediately on order</option>
               <option value="on_delivery">On delivery</option>

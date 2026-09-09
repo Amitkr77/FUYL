@@ -35,8 +35,8 @@ export const updatePriceBookSchema = z.object({
   status: z.enum(['draft', 'active', 'archived']).optional(),
   description: z.string().max(500).optional(),
   priority: z.number().int().optional(),
-  startsAt: z.string().datetime().optional(),
-  endsAt: z.string().datetime().optional(),
+  startsAt: z.string().datetime().nullable().optional(),
+  endsAt: z.string().datetime().nullable().optional(),
   sellerIds: z.array(z.string().length(24)).optional(),
   categoryIds: z.array(z.string().length(24)).optional(),
   customerRoles: z.array(z.string()).optional(),
@@ -77,8 +77,8 @@ export const updateTaxRuleSchema = z.object({
   isCompound: z.boolean().optional(),
   isReverseCharge: z.boolean().optional(),
   isActive: z.boolean().optional(),
-  startsAt: z.string().datetime().optional(),
-  endsAt: z.string().datetime().optional(),
+  startsAt: z.string().datetime().nullable().optional(),
+  endsAt: z.string().datetime().nullable().optional(),
 });
 
 export type CreatePriceBookDTO = z.infer<typeof createPriceBookSchema>;

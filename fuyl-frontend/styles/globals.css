@@ -40,9 +40,9 @@
   /* deep shadow */
 
   /* ── Fonts — Inter for everything ── */
-  --font-display: var(--font-inter, 'Inter', system-ui, sans-serif);
-  --font-body: var(--font-inter, 'Inter', system-ui, sans-serif);
-  --font-sans: var(--font-inter, 'Inter', system-ui, sans-serif);
+  --font-display: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
 
   /* ── Radius ── */
   --radius-brand: 2px;

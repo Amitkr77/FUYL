@@ -32,8 +32,10 @@ export class PriceBookRepository {
     return { items, total, page, limit };
   }
 
-  async update(id: string, patch: Partial<IPriceBook>): Promise<IPriceBook | null> {
-    return PriceBookModel.findByIdAndUpdate(id, { $set: patch }, { new: true });
+  async update(id: string, patch: Partial<IPriceBook>, unset: string[] = []): Promise<IPriceBook | null> {
+    const update: Record<string, unknown> = { $set: patch };
+    if (unset.length) update.$unset = Object.fromEntries(unset.map((field) => [field, 1]));
+    return PriceBookModel.findByIdAndUpdate(id, update, { new: true, runValidators: true });
   }
 
   async delete(id: string): Promise<void> {

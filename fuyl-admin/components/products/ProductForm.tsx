@@ -1,7 +1,6 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 import { Save, Trash2, CheckCircle2, ImagePlus, AlertCircle, Star, X, Plus, Truck } from 'lucide-react'
 import type {
   AdminProduct, AttributeDef, ProductStatus, AdminVariant,
@@ -50,7 +49,6 @@ function slugify(name: string): string {
 }
 
 export function ProductForm({ product, attributes, tags, isNew = false }: Props) {
-  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')

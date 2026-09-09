@@ -75,8 +75,8 @@ export function LocationManager({ initialLocations }: Props) {
       await refresh()
       setIsAdding(false)
       router.refresh()
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to save location')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to save location')
     } finally {
       setSaving(false)
     }
@@ -90,8 +90,8 @@ export function LocationManager({ initialLocations }: Props) {
       if ('error' in result) { setError(result.error); return }
       await refresh()
       router.refresh()
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to set default')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to set default')
     } finally {
       setSettingDefaultId(null)
     }
@@ -104,8 +104,8 @@ export function LocationManager({ initialLocations }: Props) {
       if ('error' in result) { setError(result.error); return }
       await refresh()
       router.refresh()
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to delete location')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to delete location')
     }
   }
 

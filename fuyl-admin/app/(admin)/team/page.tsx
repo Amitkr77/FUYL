@@ -1,4 +1,4 @@
-import { AlertCircle, Users } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import { listStaff } from '@/lib/staff'
 import { getErrorMessage } from '@/lib/api'
 import { StaffTable } from '@/components/team/StaffTable'

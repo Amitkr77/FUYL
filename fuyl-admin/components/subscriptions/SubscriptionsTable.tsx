@@ -20,7 +20,7 @@ export function SubscriptionsTable({ subscriptions }: { subscriptions: Subscript
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
-    let rows = term
+    const rows = term
       ? subscriptions.filter((s) =>
           s.productName.toLowerCase().includes(term) ||
           s.status.toLowerCase().includes(term)

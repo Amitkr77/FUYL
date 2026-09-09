@@ -29,8 +29,10 @@ export class TaxRuleRepository {
     });
   }
 
-  async update(id: string, patch: Partial<ITaxRule>): Promise<ITaxRule | null> {
-    return TaxRuleModel.findByIdAndUpdate(id, { $set: patch }, { new: true });
+  async update(id: string, patch: Partial<ITaxRule>, unset: string[] = []): Promise<ITaxRule | null> {
+    const update: Record<string, unknown> = { $set: patch };
+    if (unset.length) update.$unset = Object.fromEntries(unset.map((field) => [field, 1]));
+    return TaxRuleModel.findByIdAndUpdate(id, update, { new: true, runValidators: true });
   }
 
   async delete(id: string): Promise<void> {

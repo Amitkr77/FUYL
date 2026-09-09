@@ -291,8 +291,8 @@ function PaymentsTab() {
         if (result.error) throw new Error(result.error)
         setSaved(true)
         setTimeout(() => setSaved(false), 3000)
-      } catch (e: any) {
-        setError(e?.message ?? 'Failed to save payment settings')
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Failed to save payment settings')
       }
     })
   }
@@ -398,7 +398,7 @@ function IntegrationsTab() {
         </div>
         <p className="text-sm text-slate-500">
           Not available yet. Payment gateway credentials are configured via backend environment
-          variables, not through this dashboard, and there's no external API-key system to manage here.
+          variables, not through this dashboard, and there is no external API-key system to manage here.
         </p>
       </div>
     </div>

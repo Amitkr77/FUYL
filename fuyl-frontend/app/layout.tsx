@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import { SiteChrome } from '@/components/layout/SiteChrome'
 import { generateSEO, orgSchema } from '@/lib/utils/seo'
 import { serializeJsonLd } from '@/lib/utils/jsonLd'
@@ -8,15 +7,9 @@ import type { NavItem } from '@/lib/constants/nav'
 import { PageTracker } from '@/components/analytics/PageTracker'
 import { getNavigationPages, getAnnouncementBar, getPrebookingModalSettings, getPopupBanner } from '@/lib/api/content'
 import '@/styles/globals.css'
+import '@fontsource-variable/inter'
 import { PrebookingPopup } from '@/components/marketing/PrebookingPopup'
 import { PopupBanner } from '@/components/marketing/PopupBanner'
-
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-inter',
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   ...generateSEO(),
@@ -53,7 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   ])
 
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en">
       <head>
         <script
           type="application/ld+json"

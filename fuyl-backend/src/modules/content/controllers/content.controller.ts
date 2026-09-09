@@ -20,6 +20,13 @@ import { UnauthorizedError } from '../../../shared/errors';
 import { revalidateStorefront } from '../../../shared/services/revalidate.service';
 import crypto from 'crypto';
 
+export function verifyInstagramSignature(rawBody: string, signature: string | undefined, secret: string): boolean {
+  if (!secret || !signature?.startsWith('sha256=')) return false;
+  const supplied = Buffer.from(signature.slice(7), 'hex');
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest();
+  return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
+}
+
 const STOREFRONT_SECTION_PATHS: Record<string, string[]> = {
   'home-hero': ['/'],
   'announcement-bar': ['/'],
@@ -423,6 +430,11 @@ export class ContentController {
   };
 
   instagramWebhookEvent = async (req: Request, res: Response) => {
+    const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body ?? {});
+    if (!verifyInstagramSignature(rawBody, req.header('x-hub-signature-256'), env.instagram.appSecret)) {
+      logger.warn('[webhook] instagram event rejected - invalid signature');
+      return res.sendStatus(401);
+    }
     // Acknowledge immediately — Meta retries if it doesn't get a 200 fast.
     res.sendStatus(200);
     try {

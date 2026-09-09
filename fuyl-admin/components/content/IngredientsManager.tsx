@@ -1,5 +1,8 @@
 'use client'
 
+/* Ingredient thumbnails are remote CMS URLs and intentionally bypass Next image optimization. */
+/* eslint-disable @next/next/no-img-element */
+
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ExternalLink, Leaf, Plus, Search } from 'lucide-react'

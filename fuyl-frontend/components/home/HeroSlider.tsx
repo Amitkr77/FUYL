@@ -141,7 +141,8 @@ export function HeroSlider({
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       const rect = sectionRef.current?.getBoundingClientRect();
       if (!rect || rect.bottom < 0 || rect.top > window.innerHeight) return;
-      e.key === "ArrowLeft" ? prev() : next();
+      if (e.key === "ArrowLeft") prev();
+      else next();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -160,7 +161,10 @@ export function HeroSlider({
       onTouchEnd={(e) => {
         if (touchStartX.current === null) return;
         const delta = touchStartX.current - e.changedTouches[0].clientX;
-        if (Math.abs(delta) > 50) delta > 0 ? next() : prev();
+        if (Math.abs(delta) > 50) {
+          if (delta > 0) next();
+          else prev();
+        }
         touchStartX.current = null;
       }}
       aria-label="Hero"

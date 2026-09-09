@@ -66,7 +66,7 @@ function CheckoutSuccessContent() {
   const [error, setError]     = useState<string | null>(null)
 
   useEffect(() => {
-    if (!token) { setLoading(false); return }
+    if (!token) { startTransition(() => setLoading(false)); return }
     if (!orderId) { router.replace('/collections/all'); return }
     startTransition(() => setLoading(true))
     getOrder(token, orderId)

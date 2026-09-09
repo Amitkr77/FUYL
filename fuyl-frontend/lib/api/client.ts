@@ -12,6 +12,8 @@ type RequestOptions = {
   revalidate?: number | false
   /** Internal — set on the automatic retry after a token refresh, so we never retry twice. */
   _isRetry?: boolean
+  /** Return the complete backend envelope when pagination metadata is needed. */
+  unwrap?: boolean
 }
 
 // Access tokens are short-lived (15min). The backend also sets an httpOnly,
@@ -88,7 +90,7 @@ export function getErrorMessage(err: unknown, fallback: string): string {
 
 export async function apiFetch<T>(
   path: string,
-  { method = 'GET', body, token, guestId, cache, tags, revalidate, _isRetry }: RequestOptions = {}
+  { method = 'GET', body, token, guestId, cache, tags, revalidate, _isRetry, unwrap = true }: RequestOptions = {}
 ): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -124,7 +126,7 @@ export async function apiFetch<T>(
       const { useAuthStore } = await import('@/lib/store/authStore')
       if (newToken) {
         useAuthStore.setState({ token: newToken })
-        return apiFetch<T>(path, { method, body, token: newToken, guestId, cache, tags, revalidate, _isRetry: true })
+        return apiFetch<T>(path, { method, body, token: newToken, guestId, cache, tags, revalidate, _isRetry: true, unwrap })
       }
       // Refresh failed too — the session is truly over, not just the access token.
       useAuthStore.setState({ token: null, user: null })
@@ -161,7 +163,7 @@ export async function apiFetch<T>(
   // payload the caller actually asked for. A handful of routes (health
   // checks) return { success:true, ... } with no `data` key — fall back to
   // the raw body for those rather than returning undefined.
-  if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
+  if (unwrap && json && typeof json === 'object' && 'success' in json && 'data' in json) {
     return json.data as T
   }
   return json as T

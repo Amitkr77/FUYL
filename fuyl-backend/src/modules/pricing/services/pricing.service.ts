@@ -92,8 +92,11 @@ class PricingService {
 
   async updatePriceBook(id: string, dto: UpdatePriceBookDTO) {
     const patch: Record<string, unknown> = { ...dto };
-    if (dto.startsAt !== undefined) patch.startsAt = dto.startsAt ? new Date(dto.startsAt) : undefined;
-    if (dto.endsAt !== undefined) patch.endsAt = dto.endsAt ? new Date(dto.endsAt) : undefined;
+    const unset: string[] = [];
+    if (dto.startsAt === null) { delete patch.startsAt; unset.push('startsAt'); }
+    else if (dto.startsAt !== undefined) patch.startsAt = new Date(dto.startsAt);
+    if (dto.endsAt === null) { delete patch.endsAt; unset.push('endsAt'); }
+    else if (dto.endsAt !== undefined) patch.endsAt = new Date(dto.endsAt);
     if (dto.sellerIds !== undefined) patch.sellerIds = dto.sellerIds.map((id) => new Types.ObjectId(id));
     if (dto.categoryIds !== undefined) patch.categoryIds = dto.categoryIds.map((id) => new Types.ObjectId(id));
     if (dto.entries !== undefined) {
@@ -112,7 +115,7 @@ class PricingService {
         appliesToProductId: t.appliesToProductId ? new Types.ObjectId(t.appliesToProductId) : undefined,
       }));
     }
-    const updated = await priceBookRepo.update(id, patch);
+    const updated = await priceBookRepo.update(id, patch, unset);
     if (!updated) throw new NotFoundError('PriceBook');
     return updated;
   }
@@ -160,11 +163,14 @@ class PricingService {
 
   async updateTaxRule(id: string, dto: UpdateTaxRuleDTO) {
     const patch: Record<string, unknown> = { ...dto };
-    if (dto.startsAt !== undefined) patch.startsAt = dto.startsAt ? new Date(dto.startsAt) : undefined;
-    if (dto.endsAt !== undefined) patch.endsAt = dto.endsAt ? new Date(dto.endsAt) : undefined;
+    const unset: string[] = [];
+    if (dto.startsAt === null) { delete patch.startsAt; unset.push('startsAt'); }
+    else if (dto.startsAt !== undefined) patch.startsAt = new Date(dto.startsAt);
+    if (dto.endsAt === null) { delete patch.endsAt; unset.push('endsAt'); }
+    else if (dto.endsAt !== undefined) patch.endsAt = new Date(dto.endsAt);
     if (dto.categoryIds !== undefined) patch.categoryIds = dto.categoryIds.map((id) => new Types.ObjectId(id));
     if (dto.sellerIds !== undefined) patch.sellerIds = dto.sellerIds.map((id) => new Types.ObjectId(id));
-    const updated = await taxRuleRepo.update(id, patch);
+    const updated = await taxRuleRepo.update(id, patch, unset);
     if (!updated) throw new NotFoundError('TaxRule');
     return updated;
   }

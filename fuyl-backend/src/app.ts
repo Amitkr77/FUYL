@@ -57,6 +57,7 @@ export function createApp() {
   // Cashfree — one-time order payments + recurring subscriptions.
   app.use(`/${env.apiPrefix}/webhooks/cashfree/payment`, express.raw({ type: 'application/json' }), captureRawBody);
   app.use(`/${env.apiPrefix}/webhooks/cashfree/subscription`, express.raw({ type: 'application/json' }), captureRawBody);
+  app.use(`/${env.apiPrefix}/webhooks/instagram`, express.raw({ type: 'application/json' }), captureRawBody);
 
   // Body parsers
   app.use(express.json({ limit: '10mb' }));

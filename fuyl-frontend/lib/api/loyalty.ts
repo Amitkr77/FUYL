@@ -27,6 +27,10 @@ export interface LoyaltyTransaction {
   createdAt: string
 }
 
+interface BackendLoyaltyTransaction extends Omit<LoyaltyTransaction, 'id'> {
+  _id: string
+}
+
 export async function getLoyaltyBalance(token: string): Promise<LoyaltyBalance> {
   return apiFetch<LoyaltyBalance>('/loyalty/me', { token })
 }
@@ -35,10 +39,13 @@ export async function getLoyaltyTransactions(token: string, page = 1, limit = 20
   // Paginated backend responses put the records directly in `data` and
   // pagination details in `meta`. apiFetch unwraps `data`, so `raw` is the
   // array itself (not an object containing an `items` property).
-  const raw = await apiFetch<any[]>(`/loyalty/me/transactions?page=${page}&limit=${limit}`, { token })
-  const records = Array.isArray(raw) ? raw : []
+  const response = await apiFetch<{ data: BackendLoyaltyTransaction[]; meta?: { total?: number } }>(
+    `/loyalty/me/transactions?page=${page}&limit=${limit}`,
+    { token, unwrap: false },
+  )
+  const records = Array.isArray(response.data) ? response.data : []
   return {
-    total: records.length,
+    total: response.meta?.total ?? records.length,
     items: records.map((t) => ({
       id:            t._id,
       type:          t.type,

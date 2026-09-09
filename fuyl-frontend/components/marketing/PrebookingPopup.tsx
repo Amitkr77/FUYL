@@ -1,6 +1,7 @@
 'use client'
 
-import { FormEvent, useEffect, useState, useTransition } from 'react'
+import { FormEvent, useCallback, useEffect, useState, useTransition } from 'react'
+import Image from 'next/image'
 import { CheckCircle2, MessageCircle, Sparkles, X } from 'lucide-react'
 import { getPrebookingAvailability, submitPrebookingLead } from '@/lib/api/content'
 import { getErrorMessage } from '@/lib/api/client'
@@ -42,10 +43,16 @@ export function PrebookingPopup({ cms }: Props) {
   const [wantsToDonate, setWantsToDonate] = useState(false)
   const [pending, startTransition] = useTransition()
 
+  const dismiss = useCallback(() => {
+    setOpen(false)
+    if (success) { setAvailable(false); return }
+    sessionStorage.setItem(DISMISSED_KEY, '1')
+  }, [success])
+
   useEffect(() => {
     if (cms?.isActive === false) return
     if (localStorage.getItem(SUBMITTED_KEY) === '1') return
-    setAvailable(true)
+    startTransition(() => setAvailable(true))
     getPrebookingAvailability()
       .then((value) => { setClaimed(value.claimed); setCapacity(value.capacity) })
       .catch(() => { /* retain safe defaults if availability is temporarily unreachable */ })
@@ -63,13 +70,7 @@ export function PrebookingPopup({ cms }: Props) {
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = previous }
-  }, [open])
-
-  const dismiss = () => {
-    setOpen(false)
-    if (success) { setAvailable(false); return }
-    sessionStorage.setItem(DISMISSED_KEY, '1')
-  }
+  }, [open, dismiss])
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -174,7 +175,7 @@ export function PrebookingPopup({ cms }: Props) {
                       {wantsToDonate && (
                         <div className="rounded-xl border border-brand-border bg-white p-4 text-center">
                           {donationQrUrl
-                            ? <><img src={donationQrUrl} alt="Scan to make an optional donation" className="mx-auto h-44 w-44 rounded-lg object-contain" /><p className="mt-2 text-xs text-brand-muted">Scan this QR code with your preferred payment app.</p></>
+                            ? <><Image src={donationQrUrl} alt="Scan to make an optional donation" width={176} height={176} unoptimized className="mx-auto h-44 w-44 rounded-lg object-contain" /><p className="mt-2 text-xs text-brand-muted">Scan this QR code with your preferred payment app.</p></>
                             : <p className="text-xs text-amber-700">Donation QR is being configured. You can submit the form without donating.</p>
                           }
                         </div>

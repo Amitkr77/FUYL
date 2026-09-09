@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Banknote, ExternalLink, Mail, MousePointerClick, ShoppingBag, UserRound } from "lucide-react";
 import { getAffiliate } from "@/lib/affiliate";

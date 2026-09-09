@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Plus, AlertCircle, Star, Image, ExternalLink, Search, ListTree, SearchCheck, Megaphone, Sparkles, Layers, BookOpen, Zap, Shield, Truck, RotateCcw, FileText, Leaf } from 'lucide-react'
+import { Plus, AlertCircle, Star, Image as ImageIcon, ExternalLink, Search, ListTree, SearchCheck, Megaphone, Sparkles, Layers, BookOpen, Zap, Shield, Truck, RotateCcw, FileText, Leaf } from 'lucide-react'
 import { ReorderButtons } from '@/components/content/ReorderButtons'
 import Badge from '@/components/ui/Badge'
 import { getErrorMessage } from '@/lib/api'
@@ -92,7 +92,7 @@ export default async function ContentPage({
         <div><h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Homepage & marketing</h2><p className="text-xs text-slate-400">Manage globally visible sections and promotional overlays.</p></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         <Link href="/content/hero" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
-          <div className="flex items-center gap-4"><div className="rounded-xl bg-[#558476]/10 p-3 text-[#558476]"><Image className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Homepage Hero</h3><p className="text-sm text-slate-500">Slides, headings, images &amp; CTAs</p></div></div>
+          <div className="flex items-center gap-4"><div className="rounded-xl bg-[#558476]/10 p-3 text-[#558476]"><ImageIcon className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Homepage Hero</h3><p className="text-sm text-slate-500">Slides, headings, images &amp; CTAs</p></div></div>
         </Link>
         <Link href="/content/announcement" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-amber-50 p-3 text-amber-600"><Megaphone className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Announcement Bar</h3><p className="text-sm text-slate-500">Top-of-page banner &amp; link</p></div></div>

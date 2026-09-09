@@ -31,7 +31,7 @@ function isActive(pathname: string, href: string, exact: boolean) {
 export function AffiliateSidebar() {
   const pathname  = usePathname()
   const router    = useRouter()
-  const { user, logout } = useAuthStore()
+  const logout = useAuthStore((state) => state.logout)
 
   const handleLogout = () => {
     logout()

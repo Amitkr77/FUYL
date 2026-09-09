@@ -119,13 +119,18 @@ export function StaffTable({ initialStaff }: { initialStaff: StaffMember[] }) {
     setError('')
     try {
       const result = editId
-        ? await updateStaffAction(editId, (({ email: _e, password: _p, ...patch }) => patch)(form))
+        ? await updateStaffAction(editId, {
+            firstName: form.firstName,
+            lastName: form.lastName,
+            role: form.role,
+            permissions: form.permissions,
+          })
         : await createStaffAction(form)
       if ('error' in result) { setError(result.error); return }
       await refresh()
       setIsAdding(false)
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to save')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to save')
     } finally {
       setSaving(false)
     }
@@ -139,8 +144,8 @@ export function StaffTable({ initialStaff }: { initialStaff: StaffMember[] }) {
         : await updateStaffAction(member.id, { isActive: true })
       if ('error' in result) { setError(result.error); return }
       await refresh()
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to update')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to update')
     }
   }
 

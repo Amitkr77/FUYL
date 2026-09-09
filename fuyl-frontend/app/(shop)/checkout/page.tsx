@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, startTransition } from 'react'
+import { useCallback, useEffect, useRef, useState, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -158,12 +158,6 @@ export default function CheckoutPage() {
   const [checkoutToken, setCheckoutToken] = useState<string | null>(null)
   const [isWhatsAppNumber, setIsWhatsAppNumber] = useState(true)
   const [whatsappPhone, setWhatsappPhone] = useState('')
-  const needsPassword = false
-  const password = ''
-  const passwordError = ''
-  const setNeedsPassword = (_value: boolean) => undefined
-  const setPassword = (_value: string) => undefined
-  const setPasswordError = (_value: string) => undefined
   const [identifying, setIdentifying] = useState(false)
   const [autoSubmitting, setAutoSubmitting] = useState(false)
   const [checkingEmail, setCheckingEmail] = useState(false)
@@ -432,7 +426,7 @@ export default function CheckoutPage() {
 
   // Attempts payment for an already-placed order. Safe to call again on
   // retry — never creates a new order.
-  const attemptPayment = async (order: { orderId: string; orderNumber: string }) => {
+  const attemptPayment = useCallback(async (order: { orderId: string; orderNumber: string }) => {
     try {
       const accessToken = token ?? checkoutToken
       if (!accessToken) {
@@ -480,12 +474,12 @@ export default function CheckoutPage() {
       setError(getErrorMessage(err, 'Could not start payment for this order.'))
       setStep('error')
     }
-  }
+  }, [checkoutToken, paymentMethod, preview, router, token, useLoyalty, useWallet])
 
   const [confirming, setConfirming] = useState(false)
   const confirmingRef = useRef(false)
 
-  const handleConfirm = async () => {
+  const handleConfirm = useCallback(async () => {
     if (confirmingRef.current || !preview || previewLoading) return
     const accessToken = token ?? checkoutToken
     if (!accessToken) {
@@ -522,7 +516,11 @@ export default function CheckoutPage() {
       confirmingRef.current = false
       setConfirming(false)
     }
-  }
+  }, [
+    address, appliedCoupon, attemptPayment, checkoutToken, isWhatsAppNumber,
+    loyaltyBalance, orderNote, paymentMethod, preview, previewLoading,
+    token, useLoyalty, useWallet, walletBalance, whatsappPhone,
+  ])
 
   useEffect(() => {
     if (step === 'review' && autoPlaceRef.current && preview && !previewLoading && !confirmingRef.current) {
@@ -533,7 +531,7 @@ export default function CheckoutPage() {
       setError(previewError)
       setStep('error')
     }
-  }, [step, preview, previewLoading, previewError])
+  }, [step, preview, previewLoading, previewError, handleConfirm])
 
   const handleRetry = () => {
     setError('')
@@ -583,23 +581,7 @@ export default function CheckoutPage() {
                     error={emailError}
                     autoFocus
                   />
-                  {needsPassword && (
-                    <>
-                      <Field
-                        id="password"
-                        label="Password"
-                        value={password}
-                        onChange={(e) => { setPassword(e.target.value); setPasswordError('') }}
-                        type="password"
-                        error={passwordError}
-                        autoFocus
-                      />
-                      <p className="text-body-xs text-brand-muted">
-                        Looks like you already have an account with this email — enter your password to continue.
-                      </p>
-                    </>
-                  )}
-                  {!needsPassword && email && !emailError && (
+                  {email && !emailError && (
                     <p className="text-body-xs text-brand-muted">
                       We&apos;ll set up your account automatically — no separate sign-up needed.
                     </p>

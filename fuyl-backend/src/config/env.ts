@@ -154,6 +154,7 @@ export const env = {
     // Any string you choose — set the same value in Meta Developer Console
     // under Webhooks > Verify Token when registering the webhook URL.
     webhookVerifyToken: process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN ?? '',
+    appSecret: process.env.INSTAGRAM_APP_SECRET ?? '',
   },
 
   subscription: {

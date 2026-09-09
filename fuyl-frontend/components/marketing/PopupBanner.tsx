@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { X } from 'lucide-react'
@@ -15,6 +15,15 @@ interface Props {
 export function PopupBanner({ cms }: Props) {
   const [open, setOpen] = useState(false)
   const dismissalVersion = `${cms.title}|${cms.ctaHref}|${cms.imageUrl}`
+
+  const close = useCallback(() => {
+    setOpen(false)
+    if (cms.frequency === 'once_ever') {
+      localStorage.setItem(STORAGE_KEY, dismissalVersion)
+    } else if (cms.frequency === 'once_per_session') {
+      sessionStorage.setItem(STORAGE_KEY, dismissalVersion)
+    }
+  }, [cms.frequency, dismissalVersion])
 
   useEffect(() => {
     const { frequency, delayMs } = cms
@@ -36,16 +45,7 @@ export function PopupBanner({ cms }: Props) {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
-  }, [open])
-
-  const close = () => {
-    setOpen(false)
-    if (cms.frequency === 'once_ever') {
-      localStorage.setItem(STORAGE_KEY, dismissalVersion)
-    } else if (cms.frequency === 'once_per_session') {
-      sessionStorage.setItem(STORAGE_KEY, dismissalVersion)
-    }
-  }
+  }, [open, close])
 
   if (!open) return null
 

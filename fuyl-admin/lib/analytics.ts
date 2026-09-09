@@ -22,11 +22,8 @@ function rangeParams(range: DateRange): Record<string, string | number | undefin
 }
 
 // ─── Raw shapes ──────────────────────────────────────────────────────────────
-interface BackendTimeseriesPoint  { date: string; count: number; value: number }
 interface BackendRevenuePoint     { date: string; revenue: number; orders: number }
 interface BackendSummary          { revenueTotal: number; successfulOrderCount: number; eventsByType: { _id: string; count: number }[] }
-interface BackendOrderItem        { name: string; quantity: number; totalPrice: number }
-interface BackendOrder            { items: BackendOrderItem[] }
 
 // ─── Public types ────────────────────────────────────────────────────────────
 export interface ChartPoint   { date: string; revenue: number; orders: number }
