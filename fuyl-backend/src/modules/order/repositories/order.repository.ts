@@ -2,6 +2,7 @@ import { FilterQuery, Types } from 'mongoose';
 import { IOrder, OrderModel } from '../models/order.model';
 import { OrderStatus } from '../../../shared/enums';
 import { fromPaise, toPaise } from '../../../shared/utils';
+import { netRevenueStages, recognizedRevenueMatch } from '../../../shared/utils/orderFinancials';
 
 export class OrderRepository {
   async create(data: Partial<IOrder>): Promise<IOrder> {
@@ -98,8 +99,9 @@ export class OrderRepository {
       OrderModel.countDocuments({ status: OrderStatus.CANCELLED }),
     ]);
     const revenueAgg = await OrderModel.aggregate([
-      { $match: { status: { $in: [OrderStatus.COMPLETED, OrderStatus.DELIVERED] } } },
-      { $group: { _id: null, total: { $sum: '$grandTotal' } } },
+      { $match: recognizedRevenueMatch() },
+      ...netRevenueStages,
+      { $group: { _id: null, total: { $sum: '$_netRevenue' } } },
     ]);
     return {
       pending, confirmed, shipped, delivered, completed, cancelled,

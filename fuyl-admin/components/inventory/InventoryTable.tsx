@@ -321,7 +321,7 @@ export function InventoryTable({ stock, locations, initialFilter = 'all' }: { st
       )
       if (!matchesProduct && !matchesVariant) return false
     }
-    if (filter === 'out') return g.hasOut || g.totalAvailable === 0
+    if (filter === 'out') return g.totalAvailable === 0
     if (filter === 'low') return g.hasLow
     return true
   })
@@ -341,7 +341,7 @@ export function InventoryTable({ stock, locations, initialFilter = 'all' }: { st
   const TABS: { label: string; value: StockLevel; count: number }[] = [
     { label: 'All',        value: 'all', count: allGroups.length },
     { label: 'Low stock',  value: 'low', count: allGroups.filter((g) => g.hasLow).length },
-    { label: 'Out of stock', value: 'out', count: allGroups.filter((g) => g.hasOut || g.totalAvailable === 0).length },
+    { label: 'Out of stock', value: 'out', count: allGroups.filter((g) => g.totalAvailable === 0).length },
   ]
 
   return (
@@ -460,7 +460,7 @@ export function InventoryTable({ stock, locations, initialFilter = 'all' }: { st
                 const hasVariants  = group.rows.length > 1 || group.rows[0]?.variantName !== null
                 const singleRow    = group.rows[0]
                 const groupIsLow   = group.hasLow
-                const groupIsOut   = group.hasOut || group.totalAvailable === 0
+                const groupIsOut   = group.totalAvailable === 0
 
                 return (
                   <Fragment key={group.productId}>

@@ -45,16 +45,24 @@ export default async function InventoryPage({
   const hasLegacyDefault = stock.some((s) => s.warehouseId === 'default') && !locations.some((l) => l.code === 'default')
   const defaultLocation  = locations.find((l) => l.isDefault) ?? null
 
-  const productCount    = new Set(stock.map((s) => s.productId)).size
-  const inStockCount    = stock.filter((s) => s.available > 0).length
-  const lowStockCount   = stock.filter((s) => s.reorderThreshold > 0 && s.available > 0 && s.available <= s.reorderThreshold).length
-  const outOfStockCount = stock.filter((s) => s.available === 0).length
+  const productRows = Array.from(stock.reduce((groups, row) => {
+    const current = groups.get(row.productId) ?? { available: 0, low: false }
+    current.available += row.available
+    current.low ||= row.reorderThreshold > 0 && row.available > 0 && row.available <= row.reorderThreshold
+    groups.set(row.productId, current)
+    return groups
+  }, new Map<string, { available: number; low: boolean }>()).values())
+  const productCount    = productRows.length
+  const lowStockCount   = productRows.filter((product) => product.low).length
+  const outOfStockCount = productRows.filter((product) => product.available === 0).length
+  const locationCount   = locations.filter((location) => location.isActive).length
 
   const stats = [
-    { label: 'Products tracked', value: productCount,    Icon: Boxes,         color: 'text-slate-500',   bg: 'bg-slate-100',  href: '/inventory'            },
-    { label: 'In stock',         value: inStockCount,    Icon: PackageCheck,  color: 'text-emerald-600', bg: 'bg-emerald-50', href: '/inventory'            },
-    { label: 'Low stock',        value: lowStockCount,   Icon: AlertTriangle, color: 'text-amber-600',   bg: 'bg-amber-50',   href: '/inventory?filter=low' },
-    { label: 'Out of stock',     value: outOfStockCount, Icon: PackageX,      color: 'text-rose-500',    bg: 'bg-rose-50',    href: '/inventory?filter=out' },
+    { label: 'Products tracked',     value: productCount,    Icon: Boxes,         color: 'text-slate-500',   bg: 'bg-slate-100',  href: '/inventory'            },
+    { label: 'SKU-location records', value: stock.length,    Icon: PackageCheck,  color: 'text-emerald-600', bg: 'bg-emerald-50', href: '/inventory'            },
+    { label: 'Low-stock products',   value: lowStockCount,   Icon: AlertTriangle, color: 'text-amber-600',   bg: 'bg-amber-50',   href: '/inventory?filter=low' },
+    { label: 'Out-of-stock products',value: outOfStockCount, Icon: PackageX,      color: 'text-rose-500',    bg: 'bg-rose-50',    href: '/inventory?filter=out' },
+    { label: 'Active locations',     value: locationCount,   Icon: Boxes,         color: 'text-blue-600',    bg: 'bg-blue-50',    href: '/inventory'            },
   ]
 
   return (
@@ -81,7 +89,7 @@ export default async function InventoryPage({
         />
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {stats.map(({ label, value, Icon, color, bg, href }) => (
           <Link
             key={label}

@@ -2,6 +2,7 @@ import { AnalyticsEventModel, AnalyticsMetricModel } from '../models/event.model
 import { CartModel } from '../../cart/models/cart.model';
 import { OrderModel } from '../../order/models/order.model';
 import { fromPaise, toPaise } from '../../../shared/utils';
+import { netRevenueStages, recognizedRevenueMatch, validOrderMatch } from '../../../shared/utils/orderFinancials';
 
 function dateRange(days: number, from?: string, to?: string): { since: Date; until: Date } {
   const until = to ? new Date(to) : new Date();
@@ -14,7 +15,7 @@ class AnalyticsQueryService {
   async summary(days = 30, from?: string, to?: string) {
     const { since, until } = dateRange(days, from, to);
 
-    const [eventsByType, totalsByType, revenueTotal] = await Promise.all([
+    const [eventsByType, totalsByType, revenueTotal, successfulOrderCount] = await Promise.all([
       AnalyticsEventModel.aggregate([
         { $match: { occurredAt: { $gte: since, $lte: until } } },
         { $group: { _id: '$event', count: { $sum: 1 } } },
@@ -25,10 +26,11 @@ class AnalyticsQueryService {
         { $group: { _id: '$event', total: { $sum: '$value' }, count: { $sum: 1 } } },
         { $sort: { total: -1 } },
       ]),
-      AnalyticsEventModel.aggregate([
-        { $match: { occurredAt: { $gte: since, $lte: until }, event: { $in: ['order.placed', 'subscription.charged'] } } },
-        { $group: { _id: null, total: { $sum: '$value' } } },
+      OrderModel.aggregate([
+        { $match: recognizedRevenueMatch({ placedAt: { $gte: since, $lte: until } }) }, ...netRevenueStages,
+        { $group: { _id: null, total: { $sum: '$_netRevenue' } } },
       ]),
+      OrderModel.countDocuments(validOrderMatch({ placedAt: { $gte: since, $lte: until } })),
     ]);
 
     return {
@@ -37,6 +39,7 @@ class AnalyticsQueryService {
       eventsByType,
       totalsByType: totalsByType.map((row) => ({ ...row, total: fromPaise(toPaise(row.total ?? 0)) })),
       revenueTotal: fromPaise(toPaise(revenueTotal[0]?.total ?? 0)),
+      successfulOrderCount,
     };
   }
 
@@ -61,12 +64,13 @@ class AnalyticsQueryService {
   async revenueTimeseries(granularity: 'day' | 'week' | 'month' = 'day', days = 30, from?: string, to?: string) {
     const { since, until } = dateRange(days, from, to);
     const fmtMap = { day: '%Y-%m-%d', week: '%Y-%U', month: '%Y-%m' };
-    const series = await AnalyticsEventModel.aggregate([
-      { $match: { event: 'order.placed', occurredAt: { $gte: since, $lte: until } } },
+    const series = await OrderModel.aggregate([
+      { $match: recognizedRevenueMatch({ placedAt: { $gte: since, $lte: until } }) },
+      ...netRevenueStages,
       {
         $group: {
-          _id: { $dateToString: { format: fmtMap[granularity], date: '$occurredAt' } },
-          revenue: { $sum: { $ifNull: ['$value', 0] } },
+          _id: { $dateToString: { format: fmtMap[granularity], date: '$placedAt' } },
+          revenue: { $sum: '$_netRevenue' },
           orders: { $sum: 1 },
         },
       },
@@ -94,13 +98,14 @@ class AnalyticsQueryService {
       { $group: { _id: '$event', count: { $sum: 1 } } },
     ]);
     const byEvent = Object.fromEntries(results.map((r) => [r._id, r.count]));
+    const successfulOrders = await OrderModel.countDocuments(validOrderMatch({ placedAt: { $gte: since, $lte: until } }));
     return [
       { step: 'Visitors',        event: 'page.view',          count: byEvent['page.view']          ?? 0 },
       { step: 'Product Views',   event: 'product.viewed',     count: byEvent['product.viewed']     ?? 0 },
       { step: 'Add to Cart',     event: 'cart.add',           count: byEvent['cart.add']           ?? 0 },
       { step: 'Checkout',        event: 'checkout.started',   count: byEvent['checkout.started']   ?? 0 },
       { step: 'Payment',         event: 'payment.initiated',  count: byEvent['payment.initiated']  ?? 0 },
-      { step: 'Successful Orders', event: 'order.placed',     count: byEvent['order.placed']       ?? 0 },
+      { step: 'Successful Orders', event: 'order.placed',     count: successfulOrders },
     ];
   }
 
@@ -228,7 +233,7 @@ class AnalyticsQueryService {
   async customerSegments(days = 30, from?: string, to?: string) {
     const { since, until } = dateRange(days, from, to);
     const [segments] = await OrderModel.aggregate([
-      { $match: { createdAt: { $gte: since, $lte: until } } },
+      { $match: validOrderMatch({ placedAt: { $gte: since, $lte: until } }) },
       { $group: { _id: '$customerId', orderCount: { $sum: 1 } } },
       {
         $group: {
@@ -259,7 +264,7 @@ class AnalyticsQueryService {
   async topProducts(limit = 10, days = 30, from?: string, to?: string) {
     const { since, until } = dateRange(days, from, to);
     const results = await OrderModel.aggregate([
-      { $match: { createdAt: { $gte: since, $lte: until }, status: { $nin: ['cancelled', 'returned'] } } },
+      { $match: recognizedRevenueMatch({ placedAt: { $gte: since, $lte: until } }) },
       { $unwind: '$items' },
       {
         $group: {

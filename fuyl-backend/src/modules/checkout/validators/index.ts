@@ -36,6 +36,9 @@ export const checkoutSchema = z.object({
   paymentMethod: z.enum(['cashfree', 'razorpay', 'upi', 'cod', 'wallet', 'split']),
   couponCode: z.string().max(30).optional(),
   referralCode: z.string().max(50).optional(),
+  // Storefront-domain attribution cookie forwarded by the checkout client.
+  // This is an opaque UUID and is still resolved/validated server-side.
+  affiliationToken: z.string().uuid().optional(),
   razorpayPaymentId: z.string().optional(),
   razorpayOrderId: z.string().optional(),
   razorpaySignature: z.string().optional(),

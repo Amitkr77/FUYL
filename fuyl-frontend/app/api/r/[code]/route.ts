@@ -18,6 +18,5 @@ export async function GET(
   { params }: { params: Promise<{ code: string }> }
 ) {
   const { code } = await params
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1'
-  return NextResponse.redirect(`${apiUrl}/r/${code}`)
+  return NextResponse.redirect(new URL(`/r/${encodeURIComponent(code)}`, _req.url))
 }

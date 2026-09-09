@@ -217,6 +217,7 @@ interface BackendStock {
   productId: string
   variantId?: string
   onHand: number
+  available?: number
 }
 
 // Media has no guaranteed array order from the backend — position is the
@@ -361,9 +362,9 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
   const stockByProduct = new Map<string, number>()
   for (const s of stockRows) {
     if (s.variantId) {
-      stockByVariant.set(s.variantId, (stockByVariant.get(s.variantId) ?? 0) + s.onHand)
+      stockByVariant.set(s.variantId, (stockByVariant.get(s.variantId) ?? 0) + (s.available ?? s.onHand))
     } else {
-      stockByProduct.set(s.productId, (stockByProduct.get(s.productId) ?? 0) + s.onHand)
+      stockByProduct.set(s.productId, (stockByProduct.get(s.productId) ?? 0) + (s.available ?? s.onHand))
     }
   }
   const variantsByProduct = await Promise.all(
@@ -416,7 +417,7 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
 export async function getAdminProduct(id: string): Promise<AdminProduct | null> {
   try {
     const [product, rawVariants, tags] = await Promise.all([
-      adminApiFetch<BackendProduct>(`/catalog/products/${id}`),
+      adminApiFetch<BackendProduct>(`/admin/catalog/products/${id}`),
       adminApiFetch<BackendVariant[]>(`/catalog/products/${id}/variants`).catch(() => [] as BackendVariant[]),
       getTags(),
     ])
@@ -429,9 +430,9 @@ export async function getAdminProduct(id: string): Promise<AdminProduct | null> 
     let productLevelStock = 0
     for (const s of stockRows) {
       if (s.variantId) {
-        stockByVariant.set(s.variantId, (stockByVariant.get(s.variantId) ?? 0) + s.onHand)
+        stockByVariant.set(s.variantId, (stockByVariant.get(s.variantId) ?? 0) + (s.available ?? s.onHand))
       } else {
-        productLevelStock += s.onHand
+        productLevelStock += s.available ?? s.onHand
       }
     }
 
@@ -588,5 +589,9 @@ export async function updateAdminProduct(id: string, input: AdminProductInput): 
 }
 
 export async function archiveAdminProduct(id: string): Promise<void> {
-  await adminApiFetch(`/admin/catalog/products/${id}`, { method: 'DELETE' })
+  await adminApiFetch(`/admin/catalog/products/${id}/archive`, { method: 'POST' })
+}
+
+export async function restoreAdminProduct(id: string): Promise<void> {
+  await adminApiFetch(`/admin/catalog/products/${id}/restore`, { method: 'POST' })
 }

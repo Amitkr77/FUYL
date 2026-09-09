@@ -6,6 +6,7 @@ import {
   createAdminProduct,
   updateAdminProduct,
   archiveAdminProduct,
+  restoreAdminProduct,
   type AdminProductInput,
 } from '@/lib/products'
 import { adminApiFetch, getErrorMessage } from '@/lib/api'
@@ -50,6 +51,16 @@ export async function archiveProductAction(id: string): Promise<ProductActionSta
     await archiveAdminProduct(id)
   } catch (err) {
     return { error: getErrorMessage(err, 'Could not archive the product.') }
+  }
+  revalidatePath('/products')
+  redirect('/products')
+}
+
+export async function restoreProductAction(id: string): Promise<ProductActionState> {
+  try {
+    await restoreAdminProduct(id)
+  } catch (err) {
+    return { error: getErrorMessage(err, 'Could not restore the product.') }
   }
   revalidatePath('/products')
   redirect('/products')

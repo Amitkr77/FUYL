@@ -81,12 +81,28 @@ class DiscountService {
   }
 
   async updateDiscount(id: string, dto: UpdateDiscountDTO) {
+    const current = await this.getDiscount(id);
+    const finalStart = dto.startsAt ? new Date(dto.startsAt) : current.startsAt;
+    const finalEnd = dto.endsAt === null
+      ? undefined
+      : dto.endsAt
+        ? new Date(dto.endsAt)
+        : current.endsAt;
+    if (finalEnd && finalEnd <= finalStart) {
+      throw new BadRequestError('End date must be after start date');
+    }
+
     const patch: Record<string, unknown> = { ...dto };
+    const unset: string[] = [];
     if (dto.startsAt !== undefined) patch.startsAt = new Date(dto.startsAt);
-    if (dto.endsAt !== undefined) patch.endsAt = dto.endsAt ? new Date(dto.endsAt) : undefined;
+    if (dto.endsAt === null) {
+      delete patch.endsAt;
+      unset.push('endsAt');
+    } else if (dto.endsAt !== undefined) {
+      patch.endsAt = new Date(dto.endsAt);
+    }
     if (dto.customerIds !== undefined) patch.customerIds = dto.customerIds.map((id) => new Types.ObjectId(id));
     if (dto.coupons !== undefined) {
-      const current = await this.getDiscount(id);
       // Re-validate codes
       for (const c of dto.coupons) {
         const upper = c.code.toUpperCase();
@@ -103,7 +119,7 @@ class DiscountService {
         endsAt: c.endsAt ? new Date(c.endsAt) : undefined,
       }));
     }
-    const updated = await discountRepo.update(id, patch);
+    const updated = await discountRepo.update(id, patch, unset);
     if (!updated) throw new NotFoundError('Discount');
     return updated;
   }

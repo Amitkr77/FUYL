@@ -20,12 +20,13 @@ export default async function ProductsPage() {
     error = getErrorMessage(err, 'Could not load products.')
   }
 
-  const activeCount    = products.filter((p) => p.status === 'active' && p.isPublished).length
-  const lowStockCount  = products.filter((p) => p.stock > 0 && p.stock < 20).length
-  const outOfStockCount = products.filter((p) => p.stock === 0).length
+  const currentProducts = products.filter((p) => p.status !== 'archived')
+  const activeCount    = currentProducts.filter((p) => p.status === 'active' && p.isPublished).length
+  const lowStockCount  = currentProducts.filter((p) => p.stock > 0 && p.stock < 20).length
+  const outOfStockCount = currentProducts.filter((p) => p.stock === 0).length
 
   const stats = [
-    { label: 'Total Products',     value: products.length, Icon: Package,       color: 'text-slate-500',   bg: 'bg-slate-100'   },
+    { label: 'Current Products',   value: currentProducts.length, Icon: Package, color: 'text-slate-500',  bg: 'bg-slate-100'   },
     { label: 'Active & Published', value: activeCount,     Icon: TrendingUp,    color: 'text-emerald-600', bg: 'bg-emerald-50'  },
     { label: 'Low Stock',          value: lowStockCount,   Icon: AlertTriangle, color: 'text-amber-600',   bg: 'bg-amber-50'    },
     { label: 'Out of Stock',       value: outOfStockCount, Icon: PackageX,      color: 'text-rose-500',    bg: 'bg-rose-50'     },

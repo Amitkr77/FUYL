@@ -3,6 +3,7 @@ import { OrderModel } from '../../order/models/order.model';
 import { RoleEnum, OrderStatus } from '../../../shared/enums';
 import { NotFoundError } from '../../../shared/errors';
 import { fromPaise, toPaise } from '../../../shared/utils';
+import { netRevenueStages, recognizedRevenueMatch, validOrderMatch } from '../../../shared/utils/orderFinancials';
 
 class AdminCustomersService {
   /**
@@ -25,11 +26,19 @@ class AdminCustomersService {
     ]);
 
     const userIds = users.map((u) => u._id);
-    const orderStats = await OrderModel.aggregate([
-      { $match: { customerId: { $in: userIds }, status: { $ne: OrderStatus.CANCELLED } } },
-      { $group: { _id: '$customerId', orders: { $sum: 1 }, totalSpent: { $sum: '$grandTotal' } } },
-    ]);
-    const statsById = new Map(orderStats.map((s) => [s._id.toString(), s]));
+    const [orderCounts, spendStats] = await Promise.all([OrderModel.aggregate([
+      { $match: validOrderMatch({ customerId: { $in: userIds } }) },
+      { $group: { _id: '$customerId', orders: { $sum: 1 } } },
+    ]), OrderModel.aggregate([
+      { $match: recognizedRevenueMatch({ customerId: { $in: userIds } }) },
+      ...netRevenueStages,
+      { $group: { _id: '$customerId', totalSpent: { $sum: '$_netRevenue' } } },
+    ])]);
+    const statsById = new Map(orderCounts.map((s) => [s._id.toString(), { orders: s.orders, totalSpent: 0 }]));
+    for (const spend of spendStats) {
+      const id = spend._id.toString();
+      statsById.set(id, { orders: statsById.get(id)?.orders ?? 0, totalSpent: spend.totalSpent });
+    }
 
     const items = users.map((u) => {
       const stats = statsById.get(u._id.toString());
@@ -51,10 +60,15 @@ class AdminCustomersService {
     const user = await UserModel.findOne({ _id: id, role: RoleEnum.CUSTOMER, isDeleted: false });
     if (!user) throw new NotFoundError('Customer');
 
-    const orders = await OrderModel.find({ customerId: id }).sort({ placedAt: -1 });
-    const totalSpent = orders
-      .filter((o) => o.status !== OrderStatus.CANCELLED)
-      .reduce((sum, order) => sum + toPaise(order.grandTotal), 0);
+    const [orders, spend] = await Promise.all([
+      OrderModel.find({ customerId: id }).sort({ placedAt: -1 }),
+      OrderModel.aggregate([
+        { $match: recognizedRevenueMatch({ customerId: user._id }) },
+        ...netRevenueStages,
+        { $group: { _id: null, total: { $sum: '$_netRevenue' } } },
+      ]),
+    ]);
+    const validOrdersCount = await OrderModel.countDocuments(validOrderMatch({ customerId: user._id }));
 
     return {
       id: user._id,
@@ -62,8 +76,8 @@ class AdminCustomersService {
       email: user.email,
       phone: user.phone,
       joined: user.createdAt,
-      ordersCount: orders.length,
-      totalSpent: fromPaise(totalSpent),
+      ordersCount: validOrdersCount,
+      totalSpent: fromPaise(toPaise(spend[0]?.total ?? 0)),
       orders: orders.map((o) => ({
         id: o._id,
         orderNumber: o.orderNumber,

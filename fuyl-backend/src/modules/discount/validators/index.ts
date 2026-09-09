@@ -16,7 +16,7 @@ export const couponSchema = z.object({
   buyTargetIds: z.array(z.string().length(24)).optional(),
   getTargetIds: z.array(z.string().length(24)).optional(),
   startsAt: z.string().datetime(),
-  endsAt: z.string().datetime().optional(),
+  endsAt: z.string().datetime().nullable().optional(),
   isFirstOrderOnly: z.boolean().default(false),
   isReferralReward: z.boolean().default(false),
   isActive: z.boolean().default(true),
@@ -48,7 +48,7 @@ export const createDiscountSchema = z.object({
   status: z.enum(['draft', 'active', 'paused', 'ended']).default('draft'),
   type: z.enum(['coupon', 'automatic', 'bundle', 'flash_sale']).default('coupon'),
   startsAt: z.string().datetime(),
-  endsAt: z.string().datetime().optional(),
+  endsAt: z.string().datetime().nullable().optional(),
   coupons: z.array(couponSchema).default([]),
   autoRule: z.object({
     discountType: z.enum(['percent', 'flat', 'per_unit', 'free_shipping']),
@@ -80,7 +80,8 @@ export const updateDiscountSchema = z.object({
   description: z.string().max(1000).optional(),
   status: z.enum(['draft', 'active', 'paused', 'ended']).optional(),
   startsAt: z.string().datetime().optional(),
-  endsAt: z.string().datetime().optional(),
+  // null explicitly removes an existing end date; omission leaves it unchanged.
+  endsAt: z.string().datetime().nullable().optional(),
   coupons: z.array(couponSchema).optional(),
   customerRoles: z.array(z.string()).optional(),
   customerIds: z.array(z.string().length(24)).optional(),

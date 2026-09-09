@@ -34,13 +34,19 @@ export class CatalogService {
 
   async getProduct(id: string) {
     const p = await productRepo.findById(id);
-    if (!p || p.isDeleted) throw new NotFoundError('Product');
+    if (!p || p.isDeleted || !p.isPublished || p.status !== 'active') throw new NotFoundError('Product');
+    return p;
+  }
+
+  async getAdminProduct(id: string) {
+    const p = await productRepo.findById(id);
+    if (!p) throw new NotFoundError('Product');
     return p;
   }
 
   async getProductBySlug(slug: string) {
     const p = await productRepo.findBySlug(slug);
-    if (!p || p.isDeleted) throw new NotFoundError('Product');
+    if (!p || p.isDeleted || !p.isPublished || p.status !== 'active') throw new NotFoundError('Product');
     return p;
   }
 
@@ -51,10 +57,24 @@ export class CatalogService {
     return updated;
   }
 
-  async deleteProduct(id: string) {
+  async archiveProduct(id: string) {
     const existing = await productRepo.findById(id);
-    await productRepo.softDelete(id);
+    if (!existing) throw new NotFoundError('Product');
+    const archived = await productRepo.archive(id);
     void revalidateStorefront(['/', '/collections/all', ...(existing ? [`/products/${existing.seo?.slug}`] : [])]);
+    return archived;
+  }
+
+  async restoreProduct(id: string) {
+    const restored = await productRepo.restore(id);
+    if (!restored) throw new NotFoundError('Product');
+    // Restored products are drafts and therefore remain hidden on storefront.
+    return restored;
+  }
+
+  /** @deprecated Kept for older admin deployments; DELETE now archives safely. */
+  async deleteProduct(id: string) {
+    return this.archiveProduct(id);
   }
 
   async publish(id: string) {
@@ -77,7 +97,8 @@ export class CatalogService {
   }
 
   async listProducts(page = 1, limit = 20, filter: Record<string, unknown> = {}) {
-    return productRepo.paginate({ isDeleted: false, ...filter }, page, limit);
+    // Include legacy archived records that were incorrectly marked deleted.
+    return productRepo.paginate({ $or: [{ isDeleted: false }, { status: 'archived' }], ...filter }, page, limit);
   }
 
   async listPublished(page = 1, limit = 20, filter: Record<string, unknown> = {}) {

@@ -16,19 +16,19 @@ export class InventoryStockRepository {
     if (variantId) filter.variantId = new Types.ObjectId(variantId.toString());
     else filter.variantId = { $exists: false };
 
-    const existing = await InventoryStockModel.findOne(filter);
-    if (existing) return existing;
-    return InventoryStockModel.create({
-      productId: new Types.ObjectId(productId.toString()),
-      variantId: variantId ? new Types.ObjectId(variantId.toString()) : undefined,
-      sellerId: new Types.ObjectId(sellerId.toString()),
-      warehouseId,
-      onHand: 0,
-      reserved: 0,
-      available: 0,
-      reorderThreshold: 0,
-      reorderQuantity: 0,
-    });
+    return InventoryStockModel.findOneAndUpdate(filter, {
+      $setOnInsert: {
+        productId: new Types.ObjectId(productId.toString()),
+        variantId: variantId ? new Types.ObjectId(variantId.toString()) : undefined,
+        sellerId: new Types.ObjectId(sellerId.toString()),
+        warehouseId,
+        onHand: 0,
+        reserved: 0,
+        available: 0,
+        reorderThreshold: 0,
+        reorderQuantity: 0,
+      },
+    }, { new: true, upsert: true, setDefaultsOnInsert: true });
   }
 
   async findByProduct(productId: string | Types.ObjectId, variantId?: string | Types.ObjectId) {

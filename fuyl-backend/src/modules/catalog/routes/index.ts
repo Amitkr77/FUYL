@@ -21,7 +21,10 @@ router.get('/catalog/collections/slug/:slug', authOptional, catalogController.ge
 
 // ─── Admin/seller: products ──────────────────────────────────────
 router.post('/admin/catalog/products', authRequired, catalogController.createProduct);
+router.get('/admin/catalog/products/:id', authRequired, catalogController.getAdminProduct);
 router.patch('/admin/catalog/products/:id', authRequired, catalogController.updateProduct);
+router.post('/admin/catalog/products/:id/archive', authRequired, catalogController.archiveProduct);
+router.post('/admin/catalog/products/:id/restore', authRequired, catalogController.restoreProduct);
 router.delete('/admin/catalog/products/:id', authRequired, catalogController.deleteProduct);
 router.post('/admin/catalog/products/:id/publish', authRequired, catalogController.publishProduct);
 router.post('/admin/catalog/products/:id/unpublish', authRequired, catalogController.unpublishProduct);

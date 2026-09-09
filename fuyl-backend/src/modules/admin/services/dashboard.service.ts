@@ -12,6 +12,7 @@ import { AnalyticsEventModel } from '../../analytics/models/event.model';
 import { InventoryStockModel } from '../../inventory/models/stock.model';
 import { logger } from '../../../config/logger';
 import { fromPaise, toPaise } from '../../../shared/utils';
+import { netRevenueStages, recognizedRevenueMatch, validOrderMatch } from '../../../shared/utils/orderFinancials';
 
 class AdminDashboardService {
   /**
@@ -39,21 +40,21 @@ class AdminDashboardService {
       UserModel.countDocuments({ createdAt: { $gte: since30d }, isDeleted: false }),
       UserModel.countDocuments({ createdAt: { $gte: since7d }, isDeleted: false }),
       UserModel.countDocuments({ createdAt: { $gte: since1d }, isDeleted: false }),
-      OrderModel.countDocuments({}),
-      OrderModel.countDocuments({ placedAt: { $gte: since30d } }),
-      OrderModel.countDocuments({ placedAt: { $gte: since7d } }),
-      OrderModel.countDocuments({ placedAt: { $gte: since1d } }),
+      OrderModel.countDocuments(validOrderMatch()),
+      OrderModel.countDocuments(validOrderMatch({ placedAt: { $gte: since30d } })),
+      OrderModel.countDocuments(validOrderMatch({ placedAt: { $gte: since7d } })),
+      OrderModel.countDocuments(validOrderMatch({ placedAt: { $gte: since1d } })),
       OrderModel.aggregate([
-        { $match: { placedAt: { $gte: since30d }, status: { $ne: 'cancelled' } } },
-        { $group: { _id: null, total: { $sum: '$grandTotal' } } },
+        { $match: recognizedRevenueMatch({ placedAt: { $gte: since30d } }) }, ...netRevenueStages,
+        { $group: { _id: null, total: { $sum: '$_netRevenue' } } },
       ]),
       OrderModel.aggregate([
-        { $match: { placedAt: { $gte: since7d }, status: { $ne: 'cancelled' } } },
-        { $group: { _id: null, total: { $sum: '$grandTotal' } } },
+        { $match: recognizedRevenueMatch({ placedAt: { $gte: since7d } }) }, ...netRevenueStages,
+        { $group: { _id: null, total: { $sum: '$_netRevenue' } } },
       ]),
       OrderModel.aggregate([
-        { $match: { placedAt: { $gte: since1d }, status: { $ne: 'cancelled' } } },
-        { $group: { _id: null, total: { $sum: '$grandTotal' } } },
+        { $match: recognizedRevenueMatch({ placedAt: { $gte: since1d } }) }, ...netRevenueStages,
+        { $group: { _id: null, total: { $sum: '$_netRevenue' } } },
       ]),
       SubscriptionModel.countDocuments({ status: 'active' }),
       SubscriptionModel.countDocuments({}),

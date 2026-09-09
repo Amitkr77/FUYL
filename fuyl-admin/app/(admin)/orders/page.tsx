@@ -27,7 +27,10 @@ export default async function OrdersPage({
     error = getErrorMessage(err, 'Could not load orders.')
   }
 
-  const revenue        = orders.filter((o) => !['cancelled', 'returned'].includes(o.status)).reduce((sum, o) => sum + o.total, 0)
+  const revenue        = orders.filter((o) =>
+    ['success', 'partially_refunded'].includes(o.paymentStatus)
+      || (o.paymentMethod === 'cod' && ['delivered', 'closed', 'completed'].includes(o.status)),
+  ).reduce((sum, o) => sum + o.total, 0)
   const awaitingAction = orders.filter((o) => ['pending', 'confirmed', 'packed'].includes(o.status)).length
   const fulfilled      = orders.filter((o) => ['delivered', 'completed'].includes(o.status)).length
 

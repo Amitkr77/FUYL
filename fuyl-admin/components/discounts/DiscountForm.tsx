@@ -46,9 +46,12 @@ export function DiscountForm({ products = [], initial }: { products?: Target[]; 
     if (needsValue && (!value || Number(value) <= 0)) return setError('Enter a discount value greater than zero.')
     if (kind === 'product' && !targetIds.length) return setError('Select at least one eligible product.')
     if (kind === 'buy_x_get_y' && (!buyTargetIds.length || !getTargetIds.length)) return setError('Select qualifying and reward products.')
+    if (!startsAt || Number.isNaN(new Date(startsAt).getTime())) return setError('Enter a valid start date and time.')
+    if (endsAt && Number.isNaN(new Date(endsAt).getTime())) return setError('Enter a valid end date and time.')
+    if (endsAt && new Date(endsAt) <= new Date(startsAt)) return setError('End date must be after the start date.')
 
     const startIso = new Date(startsAt).toISOString()
-    const endIso = endsAt ? new Date(endsAt).toISOString() : undefined
+    const endIso = endsAt ? new Date(endsAt).toISOString() : initial ? null : undefined
     startTransition(async () => {
       const payload: CreateDiscountInput = {
         name: name.trim(), description: description.trim() || undefined, type: 'coupon' as const, status: initial?.status ?? 'active' as const, startsAt: startIso, endsAt: endIso,
@@ -98,7 +101,7 @@ export function DiscountForm({ products = [], initial }: { products?: Target[]; 
       <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={firstOrderOnly} onChange={(e) => setFirstOrderOnly(e.target.checked)} />First order only</label>
     </Card>
 
-    <Card title="Active dates"><div className="grid gap-4 sm:grid-cols-2"><Field label="Starts"><input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className={inputCls} /></Field><Field label="Ends (optional)"><input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} className={inputCls} /></Field></div></Card>
+    <Card title="Active dates"><div className="grid gap-4 sm:grid-cols-2"><Field label="Starts"><input type="datetime-local" required value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className={inputCls} /></Field><Field label="Ends (optional)"><input type="datetime-local" min={startsAt || undefined} value={endsAt} onChange={(e) => setEndsAt(e.target.value)} className={inputCls} /><span className="mt-1 block text-xs font-normal text-slate-400">Leave blank to keep the discount active without an end date.</span></Field></div></Card>
     {error && <div className="flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-600"><AlertCircle className="h-4 w-4" />{error}</div>}
     <button onClick={submit} disabled={pending} className="rounded-lg bg-[#12291F] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{pending ? 'Saving…' : initial ? 'Save discount' : 'Create discount'}</button>
   </div>

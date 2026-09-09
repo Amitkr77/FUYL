@@ -15,7 +15,8 @@ function escapeRegex(input: string): string {
 function deriveFlags(status: typeof ProductStatus[keyof typeof ProductStatus]) {
   return {
     isPublished: status === ProductStatus.ACTIVE,
-    isDeleted: status === ProductStatus.ARCHIVED,
+    // Archive is a reversible catalogue state, not deletion.
+    isDeleted: false,
   };
 }
 
@@ -46,10 +47,17 @@ export class ProductRepository {
     return ProductModel.findByIdAndUpdate(id, { $set: set }, { new: true, runValidators: true });
   }
 
-  async softDelete(id: string | Types.ObjectId): Promise<void> {
-    await ProductModel.findByIdAndUpdate(id, {
+  async archive(id: string | Types.ObjectId): Promise<IProduct | null> {
+    return ProductModel.findByIdAndUpdate(id, {
       $set: { status: ProductStatus.ARCHIVED, ...deriveFlags(ProductStatus.ARCHIVED) },
-    });
+    }, { new: true });
+  }
+
+  async restore(id: string | Types.ObjectId): Promise<IProduct | null> {
+    return ProductModel.findByIdAndUpdate(id, {
+      // Restore to draft so an archived product is never republished by accident.
+      $set: { status: ProductStatus.DRAFT, ...deriveFlags(ProductStatus.DRAFT) },
+    }, { new: true });
   }
 
   async publish(id: string | Types.ObjectId): Promise<IProduct | null> {

@@ -8,6 +8,24 @@ import { BadRequestError, NotFoundError } from '../../../shared/errors';
 import { env } from '../../../config/env';
 
 export class AffiliateController {
+  /**
+   * Resolve a storefront tracking link without redirecting. The storefront
+   * uses this endpoint server-to-server so it can set the attribution cookie
+   * on the storefront domain (a cookie set by the Render API domain is not
+   * available to fuyl.in during checkout).
+   */
+  async resolveTracking(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await trackingService.recordClick({
+        code: req.params.code,
+        ip: req.ip ?? '0.0.0.0',
+        userAgent: req.headers['user-agent'],
+        landingPage: (req.query.lp as string | undefined) ?? '/',
+      });
+      res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+  }
+
   async exchangeImpersonation(req:Request,res:Response,next:NextFunction){try{if(!req.body.code)throw new BadRequestError('code is required');res.json({success:true,data:await affiliateService.exchangeImpersonation(req.body.code)})}catch(err){next(err)}}
   async settings(_req: any,res: Response,next: NextFunction){try{res.json({success:true,data:{settings:await affiliateService.affiliateSettings(true)}})}catch(err){next(err)}}
   /** POST /affiliate/apply — public */
@@ -156,7 +174,8 @@ export class AffiliateController {
         customerId:  userId,
       });
 
-      // Set a first-party cookie the storefront reads at checkout
+      // Legacy direct-API links keep working, but production storefront links
+      // use resolveTracking so the cookie belongs to the storefront domain.
       const isProd = env.isProd;
       res.cookie('aff_token', result.token, {
         httpOnly: true,

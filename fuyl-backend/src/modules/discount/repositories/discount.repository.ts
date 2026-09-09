@@ -44,8 +44,10 @@ export class DiscountRepository {
     return DiscountModel.findOne({ 'coupons.code': code.toUpperCase().trim() });
   }
 
-  async update(id: string, patch: Partial<IDiscount>): Promise<IDiscount | null> {
-    return DiscountModel.findByIdAndUpdate(id, { $set: patch }, { new: true });
+  async update(id: string, patch: Partial<IDiscount>, unset: string[] = []): Promise<IDiscount | null> {
+    const update: Record<string, unknown> = { $set: patch };
+    if (unset.length) update.$unset = Object.fromEntries(unset.map((field) => [field, 1]));
+    return DiscountModel.findByIdAndUpdate(id, update, { new: true, runValidators: true });
   }
 
   async delete(id: string): Promise<void> {

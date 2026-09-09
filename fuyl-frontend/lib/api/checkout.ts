@@ -26,6 +26,7 @@ export interface CheckoutInput {
   loyaltyPointsToRedeem?:   number
   saveAddress?:             boolean
   notes?:                   string
+  affiliationToken?:        string
 }
 
 interface BackendPreview {
@@ -105,7 +106,17 @@ export interface PlaceOrderResult {
 // Creates the order (stock reservation, order record). Does NOT charge the
 // customer — that's a separate call to createPayment() in lib/api/payment.ts.
 export async function placeOrder(token: string, input: CheckoutInput): Promise<PlaceOrderResult> {
-  const raw = await apiFetch<BackendPlaceOrderResult>('/checkout/place-order', { method: 'POST', body: input, token })
+  const attributionToken = typeof document === 'undefined'
+    ? undefined
+    : document.cookie
+        .split('; ')
+        .find((entry) => entry.startsWith('aff_token='))
+        ?.slice('aff_token='.length)
+  const raw = await apiFetch<BackendPlaceOrderResult>('/checkout/place-order', {
+    method: 'POST',
+    body: { ...input, affiliationToken: input.affiliationToken ?? attributionToken },
+    token,
+  })
   return { orderId: raw.order._id, orderNumber: raw.order.orderNumber, grandTotal: raw.grandTotal }
 }
 

@@ -1,5 +1,18 @@
 import { z } from 'zod';
 
+export function normalizeIndianMobile(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  let digits = value.replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+  if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  return /^[6-9]\d{9}$/.test(digits) ? `+91${digits}` : value.trim();
+}
+
+const indianMobileSchema = z.preprocess(
+  normalizeIndianMobile,
+  z.string().regex(/^\+91[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number'),
+);
+
 export const contactMessageSchema = z.object({
   name: z.string().min(1).max(200),
   email: z.string().email().max(200),
@@ -17,7 +30,7 @@ export const newsletterSubscribeSchema = z.object({
 export const prebookingLeadSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().email().max(200),
-  phone: z.string().trim().min(7).max(24).regex(/^\+?[0-9 ()-]+$/, 'Enter a valid phone number'),
+  phone: indianMobileSchema,
   source: z.string().max(100).optional(),
   wantsToDonate: z.boolean().optional().default(false),
 });

@@ -16,8 +16,11 @@ router.post('/inventory/adjust', authRequired, requirePermission(Permissions.INV
 router.put('/inventory/reorder/:productId', authRequired, requirePermission(Permissions.INVENTORY_MANAGE), inventoryController.setReorder);
 
 // Reservations (called internally by checkout module)
-router.post('/inventory/reserve', authRequired, inventoryController.reserve);
-router.post('/inventory/release', authRequired, inventoryController.release);
+// Checkout and order workflows reserve/release stock through inventoryService
+// directly. These HTTP endpoints are operational escape hatches only, so a
+// normal customer session must never be able to mutate reservation state.
+router.post('/inventory/reserve', authRequired, requirePermission(Permissions.INVENTORY_MANAGE), inventoryController.reserve);
+router.post('/inventory/release', authRequired, requirePermission(Permissions.INVENTORY_MANAGE), inventoryController.release);
 
 // Warehouse locations
 router.get('/inventory/locations',        authRequired, requirePermission(Permissions.INVENTORY_MANAGE), inventoryController.listLocations);

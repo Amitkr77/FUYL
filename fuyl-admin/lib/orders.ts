@@ -109,6 +109,8 @@ export interface AdminOrder {
   itemCount:    number
   total:        number
   status:       OrderStatus
+  paymentMethod: string
+  paymentStatus: string
 }
 
 export interface AdminOrderDetail extends AdminOrder {
@@ -143,6 +145,8 @@ function mapOrder(o: BackendOrder): AdminOrder {
     itemCount:    o.items.length,
     total:        o.grandTotal,
     status:       o.status,
+    paymentMethod: o.paymentMethod ?? 'unknown',
+    paymentStatus: o.paymentStatus ?? 'pending',
   }
 }
 

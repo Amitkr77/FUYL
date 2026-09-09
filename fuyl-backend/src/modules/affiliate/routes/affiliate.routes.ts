@@ -11,6 +11,7 @@ const adminOnly = authorize('admin', 'super_admin');
 // ─── Public tracking redirect ─────────────────────────────────────────────────
 // Storefront hits /r/:code on every affiliate link click
 router.get('/r/:code', affiliateController.track.bind(affiliateController));
+router.get('/affiliate/track/:code', affiliateController.resolveTracking.bind(affiliateController));
 
 // ─── Public ───────────────────────────────────────────────────────────────────
 router.post('/affiliate/apply', authOptional, affiliateController.apply.bind(affiliateController));

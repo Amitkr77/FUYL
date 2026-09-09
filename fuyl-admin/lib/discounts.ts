@@ -46,8 +46,8 @@ export interface CreateDiscountInput {
   type: DiscountMethod
   status?: DiscountStatus
   startsAt: string
-  endsAt?: string
-  coupons: Array<Omit<DiscountCode, 'redemptionsCount' | 'isActive'> & { startsAt: string; endsAt?: string }>
+  endsAt?: string | null
+  coupons: Array<Omit<DiscountCode, 'redemptionsCount' | 'isActive'> & { startsAt: string; endsAt?: string | null }>
 }
 
 export async function listDiscounts(): Promise<Discount[]> {

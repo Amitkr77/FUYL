@@ -24,7 +24,7 @@ function rangeParams(range: DateRange): Record<string, string | number | undefin
 // ─── Raw shapes ──────────────────────────────────────────────────────────────
 interface BackendTimeseriesPoint  { date: string; count: number; value: number }
 interface BackendRevenuePoint     { date: string; revenue: number; orders: number }
-interface BackendSummary          { revenueTotal: number; eventsByType: { _id: string; count: number }[] }
+interface BackendSummary          { revenueTotal: number; successfulOrderCount: number; eventsByType: { _id: string; count: number }[] }
 interface BackendOrderItem        { name: string; quantity: number; totalPrice: number }
 interface BackendOrder            { items: BackendOrderItem[] }
 
@@ -92,7 +92,7 @@ export async function getAnalyticsSummary(range: DateRange = { preset: '30d' }):
   const summary = await adminApiFetch<BackendSummary>(
     `/admin/analytics/summary${qs(rangeParams(range))}`
   )
-  const orderCount = summary.eventsByType.find((e) => e._id === 'order.placed')?.count ?? 0
+  const orderCount = summary.successfulOrderCount
   return {
     revenue: summary.revenueTotal,
     orderCount,

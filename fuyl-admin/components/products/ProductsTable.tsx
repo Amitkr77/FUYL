@@ -2,11 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { Search, Edit2, Archive, ChevronDown, X, PackageOpen } from 'lucide-react'
+import { Search, Edit2, Archive, ChevronDown, X, PackageOpen, RotateCcw } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import { formatCurrency } from '@/lib/utils'
 import type { AdminProduct, ProductStatus } from '@/lib/products'
-import { archiveProductAction } from '@/app/(admin)/products/actions'
+import { archiveProductAction, restoreProductAction } from '@/app/(admin)/products/actions'
 import { Pagination } from '@/components/ui/Pagination'
 
 type TabFilter = 'all' | ProductStatus
@@ -51,6 +51,7 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
   const [page,        setPage]        = useState(1)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [archivingId,  setArchivingId]  = useState<string | null>(null)
+  const [restoringId,  setRestoringId]  = useState<string | null>(null)
   const [isPending,    startTransition] = useTransition()
   const PAGE_SIZE = 15
 
@@ -86,6 +87,14 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
     startTransition(async () => {
       await archiveProductAction(id)
       setArchivingId(null)
+    })
+  }
+
+  const handleRestore = (id: string) => {
+    setRestoringId(id)
+    startTransition(async () => {
+      await restoreProductAction(id)
+      setRestoringId(null)
     })
   }
 
@@ -318,14 +327,14 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
                         </div>
                       ) : (
                         <div className="flex items-center justify-end gap-0.5">
-                          <Link
+                          {product.status !== 'archived' && <Link
                             href={`/products/${product.id}`}
                             className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:text-[#558476] hover:bg-[#558476]/10 rounded-lg transition-colors"
                             title="Edit product"
                           >
                             <Edit2 className="w-3.5 h-3.5 flex-shrink-0" />
                             <span className="hidden sm:inline">Edit</span>
-                          </Link>
+                          </Link>}
                           {product.status !== 'archived' && (
                             <button
                               onClick={() => setConfirmingId(product.id)}
@@ -333,6 +342,17 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
                               title="Archive product"
                             >
                               <Archive className="w-3.5 h-3.5 flex-shrink-0" />
+                            </button>
+                          )}
+                          {product.status === 'archived' && (
+                            <button
+                              onClick={() => handleRestore(product.id)}
+                              disabled={isPending && restoringId === product.id}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-[#558476] hover:bg-[#558476]/10 rounded-lg transition-colors disabled:opacity-60"
+                              title="Restore product as draft"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="hidden sm:inline">{isPending && restoringId === product.id ? 'Restoring…' : 'Restore'}</span>
                             </button>
                           )}
                         </div>

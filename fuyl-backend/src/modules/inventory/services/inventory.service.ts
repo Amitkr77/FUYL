@@ -40,26 +40,52 @@ class InventoryService {
    * before this — /inventory/mine required a specific sellerId, so an admin
    * had no way to see stock across the whole catalog in one call.
    */
-  async listAllForAdmin(page = 1, limit = 50) {
-    const result = await stockRepo.findAll(page, limit);
+  async listAllForAdmin(page = 1, limit = 50, fallbackSellerId?: string) {
     const { ProductModel } = await import('../../catalog/models/product.model');
     const { VariantModel } = await import('../../catalog/models/variant.model');
 
-    const productIds = [...new Set(result.items.map((s) => s.productId.toString()))];
-    const [products, variants] = await Promise.all([
-      // Match the admin Products page: drafts and active products are visible,
-      // while archived (soft-deleted) and missing products are not.
-      ProductModel.find(
-        { _id: { $in: productIds }, isDeleted: false },
-        { name: 1 },
-      ),
-      productIds.length > 0
-        ? VariantModel.find(
-            { productId: { $in: productIds }, isActive: true },
-            { productId: 1, name: 1, sku: 1 },
-          )
-        : Promise.resolve([]),
-    ]);
+    const products = await ProductModel.find(
+      { isDeleted: false, status: { $ne: 'archived' } },
+      { name: 1 },
+    );
+    const productIds = products.map((product) => product._id);
+    const variants = productIds.length
+      ? await VariantModel.find({ productId: { $in: productIds }, isActive: true }, { productId: 1, name: 1, sku: 1 })
+      : [];
+
+    // Repair coverage left by legacy imports or a previously failed async
+    // PRODUCT_CREATED/VARIANT_CREATED subscriber. One zero row is created only
+    // when that product/SKU has no stock record at any location.
+    if (fallbackSellerId) {
+      const existing = await InventoryStockModel.find({ productId: { $in: productIds } });
+      const existingKeys = new Set(existing.map((row) => `${row.productId}:${row.variantId?.toString() ?? 'product'}`));
+      const sellerByProduct = new Map(existing.map((row) => [row.productId.toString(), row.sellerId.toString()]));
+      const defaultLocation = await WarehouseLocationModel.findOne({ isActive: true, isDefault: true });
+      const warehouseId = defaultLocation?.code ?? 'default';
+      const variantsByProduct = new Map<string, typeof variants>();
+      for (const variant of variants) {
+        const key = variant.productId.toString();
+        variantsByProduct.set(key, [...(variantsByProduct.get(key) ?? []), variant]);
+      }
+      for (const product of products) {
+        const productId = product._id.toString();
+        const productVariants = variantsByProduct.get(productId) ?? [];
+        const sellerId = sellerByProduct.get(productId) ?? fallbackSellerId;
+        if (productVariants.length) {
+          for (const variant of productVariants) {
+            if (!existingKeys.has(`${productId}:${variant._id}`)) {
+              await stockRepo.findOrCreate(productId, sellerId, variant._id, warehouseId);
+            }
+          }
+        } else if (!existingKeys.has(`${productId}:product`)) {
+          await stockRepo.findOrCreate(productId, sellerId, undefined, warehouseId);
+        }
+      }
+    }
+
+    // Paginate after removing archived/missing products and obsolete legacy
+    // product-level rows, otherwise the response total and visible rows differ.
+    const allStock = await InventoryStockModel.find({ productId: { $in: productIds } }).sort({ updatedAt: -1 });
 
     const nameById    = new Map(products.map((p) => [p._id.toString(), p.name]));
     const visibleProductIds = new Set(nameById.keys());
@@ -69,16 +95,19 @@ class InventoryService {
     // A product has exactly one inventory mode. Legacy product-level rows may
     // remain after variants are added, but exposing those alongside the real
     // variants creates a misleading third "default" variant in the admin UI.
-    const visibleItems = result.items.filter((stock) => {
+    const visibleItems = allStock.filter((stock) => {
       const productId = stock.productId.toString();
       if (!visibleProductIds.has(productId)) return false;
       if (!stock.variantId) return !productsWithVariants.has(productId);
       return variantById.has(stock.variantId.toString());
     });
 
+    const skip = (page - 1) * limit;
     return {
-      ...result,
-      items: visibleItems.map((s) => {
+      page,
+      limit,
+      total: visibleItems.length,
+      items: visibleItems.slice(skip, skip + limit).map((s) => {
         const variant = s.variantId ? variantById.get(s.variantId.toString()) : undefined;
         return {
           ...s.toObject(),

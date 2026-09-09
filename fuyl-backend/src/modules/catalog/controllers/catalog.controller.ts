@@ -61,6 +61,14 @@ export class CatalogController {
     catch (err) { next(err); }
   };
 
+  getAdminProduct = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try { return success(res, serializeProduct(await catalogService.getAdminProduct(req.params.id), req)); }
+      catch (err) { next(err); }
+    },
+  ];
+
   getProductBySlug = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try { return success(res, serializeProduct(await catalogService.getProductBySlug(req.params.slug), req)); }
     catch (err) { next(err); }
@@ -87,20 +95,43 @@ export class CatalogController {
     },
   ];
 
+  archiveProduct = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        const product = await catalogService.archiveProduct(req.params.id);
+        logAudit({ actorId:req.user!.userId, actorEmail:req.user!.email ?? '', actorName:req.user!.email ?? '', section:'products', action:'archived', targetId:req.params.id, targetLabel:(product as any)?.name });
+        return success(res, product);
+      } catch (err) { next(err); }
+    },
+  ];
+
+  restoreProduct = [
+    authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
+      try {
+        const product = await catalogService.restoreProduct(req.params.id);
+        logAudit({ actorId:req.user!.userId, actorEmail:req.user!.email ?? '', actorName:req.user!.email ?? '', section:'products', action:'restored', targetId:req.params.id, targetLabel:(product as any)?.name });
+        return success(res, product);
+      } catch (err) { next(err); }
+    },
+  ];
+
   deleteProduct = [
     authorize(Roles.SUPER_ADMIN, Roles.ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        await catalogService.deleteProduct(req.params.id);
+        const product = await catalogService.deleteProduct(req.params.id);
         logAudit({
           actorId:     req.user!.userId,
           actorEmail:  req.user!.email ?? '',
           actorName:   req.user!.email ?? '',
           section:     'products',
-          action:      'deleted',
+          action:      'archived',
           targetId:    req.params.id,
+          targetLabel: (product as any)?.name,
         });
-        return success(res, { deleted: true });
+        return success(res, { archived: true });
       }
       catch (err) { next(err); }
     },

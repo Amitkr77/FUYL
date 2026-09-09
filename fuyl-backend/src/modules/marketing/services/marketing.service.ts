@@ -33,14 +33,21 @@ export type SubscribeResult = {
 class MarketingService {
   async submitPrebookingLead(dto: PrebookingLeadDTO) {
     const email = dto.email.toLowerCase().trim();
-    const existing = await PrebookingLeadModel.exists({ email });
-    if (!existing && await PrebookingLeadModel.countDocuments() >= PREBOOKING_CAPACITY) {
+    const phoneNormalized = dto.phone;
+    const [existingByEmail, existingByPhone] = await Promise.all([
+      PrebookingLeadModel.findOne({ email }),
+      PrebookingLeadModel.findOne({ phoneNormalized }),
+    ]);
+    if (existingByPhone && existingByPhone.email !== email) {
+      throw new ConflictError('This mobile number is already on the pre-booking list with another email address.');
+    }
+    if (!existingByEmail && await PrebookingLeadModel.countDocuments() >= PREBOOKING_CAPACITY) {
       throw new ConflictError('All 500 pre-booking places have been claimed.');
     }
     const lead = await PrebookingLeadModel.findOneAndUpdate(
       { email },
       {
-        $set: { name: dto.name.trim(), phone: dto.phone.trim(), source: dto.source ?? 'storefront_popup', wantsToDonate: dto.wantsToDonate ?? false, submittedAt: new Date() },
+        $set: { name: dto.name.trim(), phone: phoneNormalized, phoneNormalized, source: dto.source ?? 'storefront_popup', wantsToDonate: dto.wantsToDonate ?? false, submittedAt: new Date() },
         $setOnInsert: { email },
       },
       { new: true, upsert: true, runValidators: true }

@@ -77,10 +77,11 @@ export function PrebookingPopup({ cms }: Props) {
     const data = new FormData(event.currentTarget)
     startTransition(async () => {
       try {
+        const localPhone = String(data.get('phone') ?? '').replace(/\D/g, '')
         const result = await submitPrebookingLead({
           name: String(data.get('name') ?? '').trim(),
           email: String(data.get('email') ?? '').trim(),
-          phone: String(data.get('phone') ?? '').trim(),
+          phone: `+91${localPhone}`,
           source: 'storefront_popup',
           wantsToDonate,
         })
@@ -160,7 +161,7 @@ export function PrebookingPopup({ cms }: Props) {
                 <form onSubmit={submit} className="mt-6 space-y-4">
                   <label className="block"><span className="mb-1.5 block text-xs font-semibold text-brand-forest">Name</span><input name="name" required minLength={2} maxLength={120} autoComplete="name" className="w-full rounded-lg border border-brand-border px-4 py-3 text-sm outline-none focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20" /></label>
                   <label className="block"><span className="mb-1.5 block text-xs font-semibold text-brand-forest">Email</span><input name="email" type="email" required maxLength={200} autoComplete="email" className="w-full rounded-lg border border-brand-border px-4 py-3 text-sm outline-none focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20" /></label>
-                  <label className="block"><span className="mb-1.5 block text-xs font-semibold text-brand-forest">Phone</span><input name="phone" type="tel" required minLength={7} maxLength={24} autoComplete="tel" className="w-full rounded-lg border border-brand-border px-4 py-3 text-sm outline-none focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20" /></label>
+                  <label className="block"><span className="mb-1.5 block text-xs font-semibold text-brand-forest">Mobile number</span><span className="flex overflow-hidden rounded-lg border border-brand-border bg-white focus-within:border-brand-teal focus-within:ring-2 focus-within:ring-brand-teal/20"><span className="flex items-center border-r border-brand-border bg-brand-sage/30 px-3 text-sm font-semibold text-brand-forest">+91</span><input name="phone" type="tel" required inputMode="numeric" pattern="[6-9][0-9]{9}" minLength={10} maxLength={10} autoComplete="tel-national" placeholder="9876543210" title="Enter a valid 10-digit Indian mobile number" className="min-w-0 flex-1 px-4 py-3 text-sm outline-none" /></span></label>
                   {showDonation && (
                     <>
                       <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-brand-border bg-brand-sage/20 p-3">
