@@ -1,4 +1,4 @@
-import { adminApiFetch } from './api'
+import { adminApiFetch, adminApiFetchAllPages, adminApiFetchPaginated } from './api'
 
 export type CashbackType     = 'percentage' | 'flat'
 export type CashbackMode     = 'standalone' | 'attached'
@@ -103,7 +103,7 @@ function mapEarning(e: BackendEarning): CashbackEarning {
 // ─── Policies ─────────────────────────────────────────────────────────────────
 
 export async function listCashbackPolicies(): Promise<CashbackPolicy[]> {
-  const raw = await adminApiFetch<BackendPolicy[]>('/admin/cashback/policies?limit=100')
+  const raw = await adminApiFetchAllPages<BackendPolicy>('/admin/cashback/policies')
   return raw.map(mapPolicy)
 }
 
@@ -162,6 +162,10 @@ export async function listCashbackEarnings(params?: {
   if (params?.page)   qs.set('page',   String(params.page))
   // Fetch a larger slice so the summary card total is accurate enough
   qs.set('limit', String(params?.limit ?? 50))
-  const items = await adminApiFetch<BackendEarning[]>(`/admin/cashback/earnings?${qs.toString()}`)
+  if (params?.page) {
+    const result = await adminApiFetchPaginated<BackendEarning>(`/admin/cashback/earnings?${qs.toString()}`)
+    return { items: result.items.map(mapEarning), total: result.meta.total }
+  }
+  const items = await adminApiFetchAllPages<BackendEarning>(`/admin/cashback/earnings?${qs.toString()}`, params?.limit ?? 100)
   return { items: items.map(mapEarning), total: items.length }
 }

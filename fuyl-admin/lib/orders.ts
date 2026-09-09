@@ -1,4 +1,4 @@
-import { adminApiFetch, AdminApiError } from './api'
+import { adminApiFetch, adminApiFetchAllPages, AdminApiError } from './api'
 import type { OrderStatus } from './orderStatus'
 
 // ─── Backend raw shapes (subset of fields this file uses) ──────────────────
@@ -151,8 +151,18 @@ function mapOrder(o: BackendOrder): AdminOrder {
 }
 
 export async function listAdminOrders(): Promise<AdminOrder[]> {
-  const orders = await adminApiFetch<BackendOrder[]>('/admin/orders?limit=50')
+  const orders = await adminApiFetchAllPages<BackendOrder>('/admin/orders')
   return orders.map(mapOrder)
+}
+
+export interface AdminOrderStats {
+  total: number
+  revenue: number
+  statuses: Record<string, number>
+}
+
+export async function getAdminOrderStats(): Promise<AdminOrderStats> {
+  return adminApiFetch<AdminOrderStats>('/admin/orders/stats')
 }
 
 export async function getAdminOrder(id: string): Promise<AdminOrderDetail | null> {

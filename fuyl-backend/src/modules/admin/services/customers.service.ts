@@ -6,6 +6,55 @@ import { fromPaise, toPaise } from '../../../shared/utils';
 import { netRevenueStages, recognizedRevenueMatch, validOrderMatch } from '../../../shared/utils/orderFinancials';
 
 class AdminCustomersService {
+  async stats() {
+    const activeCustomerMatch = {
+      'customer.role': RoleEnum.CUSTOMER,
+      'customer.isDeleted': false,
+    };
+    const customerLookup = {
+      $lookup: {
+        from: 'users',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'customer',
+      },
+    } as const;
+
+    const [totalCustomers, orderStats, revenueStats] = await Promise.all([
+      UserModel.countDocuments({ role: RoleEnum.CUSTOMER, isDeleted: false }),
+      OrderModel.aggregate([
+        { $match: validOrderMatch() },
+        { $group: { _id: '$customerId', orders: { $sum: 1 } } },
+        customerLookup,
+        { $unwind: '$customer' },
+        { $match: activeCustomerMatch },
+        {
+          $group: {
+            _id: null,
+            purchasingCustomers: { $sum: 1 },
+            repeatCustomers: { $sum: { $cond: [{ $gt: ['$orders', 1] }, 1, 0] } },
+          },
+        },
+      ]),
+      OrderModel.aggregate([
+        { $match: recognizedRevenueMatch() },
+        ...netRevenueStages,
+        { $group: { _id: '$customerId', totalSpent: { $sum: '$_netRevenue' } } },
+        customerLookup,
+        { $unwind: '$customer' },
+        { $match: activeCustomerMatch },
+        { $group: { _id: null, totalRevenue: { $sum: '$totalSpent' } } },
+      ]),
+    ]);
+
+    return {
+      totalCustomers,
+      purchasingCustomers: orderStats[0]?.purchasingCustomers ?? 0,
+      repeatCustomers: orderStats[0]?.repeatCustomers ?? 0,
+      totalRevenue: fromPaise(toPaise(revenueStats[0]?.totalRevenue ?? 0)),
+    };
+  }
+
   /**
    * Paginated customer list with order-count/lifetime-spend aggregated per
    * customer. No admin customer-lookup endpoint existed before this — the

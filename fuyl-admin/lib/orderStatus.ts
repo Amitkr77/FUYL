@@ -9,8 +9,15 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   payment_failed: 'Payment Failed',
   on_hold: 'On Hold', shipped: 'Shipped', in_transit: 'In Transit',
   out_for_delivery: 'Out for Delivery', delivered: 'Delivered', closed: 'Closed',
-  cancelled: 'Cancelled', packed: 'Ready to Ship (legacy)',
-  dispatched: 'Shipped (legacy)', completed: 'Closed (legacy)', returned: 'Returned (legacy)',
+  cancelled: 'Cancelled', packed: 'Ready to Ship',
+  dispatched: 'Shipped', completed: 'Closed', returned: 'Returned',
+}
+
+export function canonicalOrderStatus(status: OrderStatus): OrderStatus {
+  if (status === 'packed') return 'ready_to_ship'
+  if (status === 'dispatched') return 'shipped'
+  if (status === 'completed') return 'closed'
+  return status
 }
 
 export const STATUS_FLOW: OrderStatus[] = [

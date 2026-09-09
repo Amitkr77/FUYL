@@ -90,21 +90,27 @@ export class OrderRepository {
   }
 
   async statsForAdmin() {
-    const [pending, confirmed, shipped, delivered, completed, cancelled] = await Promise.all([
-      OrderModel.countDocuments({ status: OrderStatus.PENDING }),
-      OrderModel.countDocuments({ status: OrderStatus.CONFIRMED }),
-      OrderModel.countDocuments({ status: OrderStatus.SHIPPED }),
-      OrderModel.countDocuments({ status: OrderStatus.DELIVERED }),
-      OrderModel.countDocuments({ status: OrderStatus.COMPLETED }),
-      OrderModel.countDocuments({ status: OrderStatus.CANCELLED }),
-    ]);
-    const revenueAgg = await OrderModel.aggregate([
+    const [statusRows, total, revenueAgg] = await Promise.all([
+      OrderModel.aggregate<{ _id: string; count: number }>([
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+      ]),
+      OrderModel.countDocuments(),
+      OrderModel.aggregate([
       { $match: recognizedRevenueMatch() },
       ...netRevenueStages,
       { $group: { _id: null, total: { $sum: '$_netRevenue' } } },
+      ]),
     ]);
+    const counts = Object.fromEntries(statusRows.map((row) => [row._id, row.count]));
     return {
-      pending, confirmed, shipped, delivered, completed, cancelled,
+      total,
+      statuses: counts,
+      pending: counts[OrderStatus.PENDING] ?? 0,
+      confirmed: counts[OrderStatus.CONFIRMED] ?? 0,
+      shipped: counts[OrderStatus.SHIPPED] ?? 0,
+      delivered: counts[OrderStatus.DELIVERED] ?? 0,
+      completed: counts[OrderStatus.COMPLETED] ?? 0,
+      cancelled: counts[OrderStatus.CANCELLED] ?? 0,
       revenue: fromPaise(toPaise(revenueAgg[0]?.total ?? 0)),
     };
   }

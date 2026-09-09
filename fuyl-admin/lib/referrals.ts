@@ -1,4 +1,4 @@
-import { adminApiFetch, AdminApiError } from './api'
+import { adminApiFetch, adminApiFetchAllPages, AdminApiError } from './api'
 
 export interface ReferralStats {
   total: number
@@ -41,7 +41,7 @@ export interface Referral {
 }
 
 export async function listReferrals(): Promise<Referral[]> {
-  const raw = await adminApiFetch<BackendReferral[]>('/admin/referrals?limit=100')
+  const raw = await adminApiFetchAllPages<BackendReferral>('/admin/referrals')
   return raw.map((r) => ({
     id: r._id, referrerId: r.referrerId, refereeId: r.refereeId, code: r.code,
     status: r.status, sharedAt: r.sharedAt, rewardedAt: r.rewardedAt,

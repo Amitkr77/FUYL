@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { AlertCircle, IndianRupee, Repeat2, UserRoundCheck, Users } from 'lucide-react'
 import { CustomersTable } from '@/components/customers/CustomersTable'
-import { listCustomers } from '@/lib/customers'
+import { getCustomerStats, listCustomers, type CustomerStats } from '@/lib/customers'
 import { getErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import { CsvExportButton } from '@/components/ui/CsvExportButton'
@@ -15,19 +15,21 @@ export default async function CustomersPage({
   const initialSegment  = params.segment ?? 'all'
 
   let customers: Awaited<ReturnType<typeof listCustomers>> = []
+  let customerStats: CustomerStats | null = null
   let error = ''
   try {
-    customers = await listCustomers()
+    ;[customers, customerStats] = await Promise.all([listCustomers(), getCustomerStats()])
   } catch (err) {
     error = getErrorMessage(err, 'Could not load customers.')
   }
 
-  const totalRevenue        = customers.reduce((sum, c) => sum + c.totalSpent, 0)
-  const repeatCustomers     = customers.filter((c) => c.orders > 1).length
-  const purchasingCustomers = customers.filter((c) => c.orders > 0).length
+  const totalRevenue         = customerStats?.totalRevenue ?? 0
+  const repeatCustomers      = customerStats?.repeatCustomers ?? 0
+  const purchasingCustomers  = customerStats?.purchasingCustomers ?? 0
+  const totalCustomers       = customerStats?.totalCustomers ?? customers.length
 
   const stats = [
-    { label: 'Total customers',      value: String(customers.length),  Icon: Users,         color: 'text-slate-600',   bg: 'bg-slate-100',   href: '/customers'              },
+    { label: 'Total customers',      value: String(totalCustomers),  Icon: Users,         color: 'text-slate-600',   bg: 'bg-slate-100',   href: '/customers'              },
     { label: 'Purchasing customers', value: String(purchasingCustomers), Icon: UserRoundCheck, color: 'text-blue-600', bg: 'bg-blue-50',     href: '/customers?segment=single' },
     { label: 'Repeat customers',     value: String(repeatCustomers),   Icon: Repeat2,       color: 'text-violet-600',  bg: 'bg-violet-50',   href: '/customers?segment=repeat' },
     { label: 'Customer revenue',     value: formatCurrency(totalRevenue), Icon: IndianRupee, color: 'text-emerald-600', bg: 'bg-emerald-50', href: '/customers'              },

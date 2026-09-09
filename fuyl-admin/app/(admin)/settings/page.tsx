@@ -191,7 +191,7 @@ function NotificationsTab() {
 
   const notifs = [
     { key: 'newOrder' as const, label: 'New Order Received', desc: 'Get notified when a new order is placed' },
-    { key: 'orderShipped' as const, label: 'Order Shipped', desc: 'Notify when an order is dispatched' },
+    { key: 'orderShipped' as const, label: 'Order Shipped', desc: 'Notify when an order is handed to the courier' },
     { key: 'lowStock' as const, label: 'Low Stock Alert', desc: 'Alert when product stock falls below 20 units' },
     { key: 'newCustomer' as const, label: 'New Customer Registration', desc: 'Notify when a new customer signs up' },
     { key: 'weeklyReport' as const, label: 'Weekly Summary Report', desc: 'Receive weekly business performance summary' },

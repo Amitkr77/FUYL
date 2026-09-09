@@ -1,4 +1,4 @@
-import { adminApiFetch, AdminApiError } from './api'
+import { adminApiFetch, adminApiFetchAllPages, AdminApiError } from './api'
 
 export type ReturnStatus =
   | 'requested' | 'approved' | 'rejected' | 'pickup_scheduled'
@@ -43,7 +43,7 @@ function mapReturn(r: BackendReturn): ReturnRequest {
 }
 
 export async function listReturns(): Promise<ReturnRequest[]> {
-  const raw = await adminApiFetch<BackendReturn[]>('/admin/orders/returns?limit=100')
+  const raw = await adminApiFetchAllPages<BackendReturn>('/admin/orders/returns')
   return raw.map(mapReturn)
 }
 

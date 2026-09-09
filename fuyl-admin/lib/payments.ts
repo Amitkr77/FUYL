@@ -1,4 +1,4 @@
-import { adminApiFetch } from './api'
+import { adminApiFetch, adminApiFetchAllPages } from './api'
 
 export type PaymentStatus = 'pending' | 'success' | 'failed' | 'refunded' | 'partially_refunded'
 export type PaymentMethod = 'cashfree' | 'razorpay' | 'upi' | 'cod' | 'wallet' | 'loyalty' | 'split'
@@ -71,7 +71,7 @@ function mapPayment(p: BackendPayment): Payment {
 }
 
 export async function listPayments(): Promise<Payment[]> {
-  const raw = await adminApiFetch<BackendPayment[]>('/admin/payments?limit=100')
+  const raw = await adminApiFetchAllPages<BackendPayment>('/admin/payments')
   return raw.map(mapPayment)
 }
 

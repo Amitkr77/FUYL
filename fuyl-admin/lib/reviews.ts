@@ -1,4 +1,4 @@
-import { adminApiFetch, AdminApiError } from './api'
+import { adminApiFetch, adminApiFetchAllPages, AdminApiError } from './api'
 
 // Mirrors fuyl-backend's review/models/review.model.ts.
 export type ReviewStatus = 'pending' | 'approved' | 'rejected' | 'flagged'
@@ -45,7 +45,7 @@ interface BackendProductLite {
 // rather than N+1'ing per review (mirrors listAdminProducts' categoryName map).
 async function getProductNames(): Promise<Map<string, string>> {
   try {
-    const raw = await adminApiFetch<BackendProductLite[]>('/admin/catalog/products?limit=200')
+    const raw = await adminApiFetchAllPages<BackendProductLite>('/admin/catalog/products', 200)
     return new Map(raw.map((p) => [p._id, p.name]))
   } catch {
     return new Map()
@@ -76,7 +76,7 @@ export async function listAdminReviews(status?: ReviewStatus): Promise<AdminRevi
   const qs = new URLSearchParams({ limit: '100' })
   if (status) qs.set('status', status)
   const [raw, nameById] = await Promise.all([
-    adminApiFetch<BackendReview[]>(`/admin/reviews?${qs.toString()}`),
+    adminApiFetchAllPages<BackendReview>(`/admin/reviews?${qs.toString()}`),
     getProductNames(),
   ])
   return raw.map((r) => mapReview(r, nameById))

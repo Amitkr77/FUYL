@@ -1,4 +1,4 @@
-import { adminApiFetch } from './api'
+import { adminApiFetch, adminApiFetchAllPages } from './api'
 
 export type DiscountValueType = 'percent' | 'flat' | 'per_unit' | 'free_shipping' | 'buy_x_get_y'
 export type DiscountStatus = 'draft' | 'active' | 'paused' | 'ended'
@@ -51,7 +51,7 @@ export interface CreateDiscountInput {
 }
 
 export async function listDiscounts(): Promise<Discount[]> {
-  const raw = await adminApiFetch<BackendDiscount[]>('/admin/discounts?limit=100')
+  const raw = await adminApiFetchAllPages<BackendDiscount>('/admin/discounts')
   return raw.map(mapDiscount)
 }
 export async function getDiscount(id: string): Promise<Discount | null> { try { return mapDiscount(await adminApiFetch<BackendDiscount>(`/admin/discounts/${id}`)) } catch { return null } }

@@ -1,4 +1,4 @@
-import { adminApiFetch, AdminApiError } from './api'
+import { adminApiFetch, adminApiFetchPaginated, AdminApiError } from './api'
 
 interface BackendStock {
   _id: string
@@ -52,8 +52,15 @@ function mapStock(s: BackendStock): StockRow {
 }
 
 export async function listInventory(): Promise<StockRow[]> {
-  const raw = await adminApiFetch<BackendStock[]>('/admin/inventory?limit=200')
-  const rows = raw.map(mapStock)
+  const rows: StockRow[] = []
+  const limit = 200
+  let page = 1
+  while (true) {
+    const result = await adminApiFetchPaginated<BackendStock>(`/admin/inventory?page=${page}&limit=${limit}`)
+    rows.push(...result.items.map(mapStock))
+    if (!result.meta.hasNext) break
+    page += 1
+  }
   const productsWithVariants = new Set(
     rows.filter((row) => Boolean(row.variantId)).map((row) => row.productId),
   )

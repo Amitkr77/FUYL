@@ -1,4 +1,4 @@
-import { adminApiFetch, AdminApiError } from './api'
+import { adminApiFetch, adminApiFetchPaginated, AdminApiError } from './api'
 import { getSession } from './auth'
 import { getTags, resolveTagIds } from './tags'
 
@@ -345,11 +345,23 @@ export async function getAttributes(): Promise<AttributeDef[]> {
 // variants — an N+1 pattern, acceptable at this catalog's scale but worth
 // revisiting if the product count grows significantly.
 export async function listAdminProducts(): Promise<AdminProduct[]> {
-  const sellerId = await requireSellerId()
+  const fetchAll = async <T,>(path: string): Promise<T[]> => {
+    const items: T[] = []
+    const limit = 200
+    let page = 1
+    while (true) {
+      const separator = path.includes('?') ? '&' : '?'
+      const result = await adminApiFetchPaginated<T>(`${path}${separator}page=${page}&limit=${limit}`)
+      items.push(...result.items)
+      if (!result.meta.hasNext) break
+      page += 1
+    }
+    return items
+  }
 
   const [products, stockRows, tags] = await Promise.all([
-    adminApiFetch<BackendProduct[]>('/admin/catalog/products?limit=200'),
-    adminApiFetch<BackendStock[]>(`/inventory/mine?sellerId=${sellerId}&limit=200`).catch(() => [] as BackendStock[]),
+    fetchAll<BackendProduct>('/admin/catalog/products'),
+    fetchAll<BackendStock>('/admin/inventory').catch(() => [] as BackendStock[]),
     getTags(),
   ])
   const tagNameById = new Map(tags.map((t) => [t.id, t.name]))

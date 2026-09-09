@@ -21,6 +21,12 @@ export class AdminController {
     } catch (err) { next(err); }
   };
 
+  customerStats = async (_req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      return success(res, await adminCustomersService.stats());
+    } catch (err) { next(err); }
+  };
+
   getCustomer = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
       return success(res, await adminCustomersService.getById(req.params.id));

@@ -181,3 +181,20 @@ export async function adminApiFetchPaginated<T>(
   }
   return { items: envelope.data, meta: envelope.meta }
 }
+
+/** Read every page from a paginated admin endpoint in bounded batches. */
+export async function adminApiFetchAllPages<T>(path: string, batchSize = 100): Promise<T[]> {
+  const [pathname, query = ''] = path.split('?')
+  const params = new URLSearchParams(query)
+  const items: T[] = []
+  let page = 1
+
+  while (true) {
+    params.set('page', String(page))
+    params.set('limit', String(batchSize))
+    const result = await adminApiFetchPaginated<T>(`${pathname}?${params.toString()}`)
+    items.push(...result.items)
+    if (!result.meta.hasNext) return items
+    page += 1
+  }
+}

@@ -18,6 +18,7 @@ const anyStaff  = [authRequired, authorize(Roles.ADMIN, Roles.SUPER_ADMIN, Roles
 router.get('/admin/overview',         ...anyStaff,  adminController.overview);
 router.get('/admin/recent-activity',  ...anyStaff,  adminController.recentActivity);
 router.get('/admin/customers',        authRequired, requirePermission(Permissions.CUSTOMERS_MANAGE), adminController.listCustomers);
+router.get('/admin/customers/stats',  authRequired, requirePermission(Permissions.CUSTOMERS_MANAGE), adminController.customerStats);
 router.get('/admin/customers/:id',    authRequired, requirePermission(Permissions.CUSTOMERS_MANAGE), adminController.getCustomer);
 router.get('/admin/system-health',    ...adminOnly, adminController.systemHealth);
 

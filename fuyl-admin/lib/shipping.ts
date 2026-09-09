@@ -1,4 +1,4 @@
-import { adminApiFetch, AdminApiError } from './api'
+import { adminApiFetch, adminApiFetchAllPages, AdminApiError } from './api'
 
 export type ShipmentStatus =
   | 'pending' | 'label_created' | 'picked_up' | 'in_transit'
@@ -62,7 +62,7 @@ function mapShipment(s: BackendShipment): Shipment {
 export async function listShipments(status?: ShipmentStatus): Promise<Shipment[]> {
   const qs = new URLSearchParams({ limit: '100' })
   if (status) qs.set('status', status)
-  const raw = await adminApiFetch<BackendShipment[]>(`/admin/shipping?${qs.toString()}`)
+  const raw = await adminApiFetchAllPages<BackendShipment>(`/admin/shipping?${qs.toString()}`)
   return raw.map(mapShipment)
 }
 

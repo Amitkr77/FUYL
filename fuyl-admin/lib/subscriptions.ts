@@ -1,4 +1,4 @@
-import { adminApiFetch, AdminApiError } from './api'
+import { adminApiFetch, adminApiFetchAllPages, AdminApiError } from './api'
 
 export type SubscriptionStatus = 'pending' | 'active' | 'paused' | 'past_due' | 'cancelled' | 'expired'
 
@@ -47,7 +47,7 @@ export interface Subscription {
 export async function listSubscriptions(status?: SubscriptionStatus): Promise<Subscription[]> {
   const qs = new URLSearchParams({ limit: '100' })
   if (status) qs.set('status', status)
-  const raw = await adminApiFetch<BackendSubscription[]>(`/admin/subscription?${qs.toString()}`)
+  const raw = await adminApiFetchAllPages<BackendSubscription>(`/admin/subscription?${qs.toString()}`)
   return raw.map((s) => ({
     id: s._id, customerId: s.customerId, productName: s.productName, status: s.status,
     interval: s.interval, intervalCount: s.intervalCount, finalPrice: s.finalPrice, currency: s.currency,

@@ -72,7 +72,7 @@ class ShippingService {
     }
     const shippableStatuses: string[] = [OrderStatus.READY_TO_SHIP, OrderStatus.PACKED];
     if (!shippableStatuses.includes(order.status)) {
-      throw new BadRequestError(`Cannot ship an order in "${order.status}" state — must be confirmed or packed first`);
+      throw new BadRequestError(`Cannot ship an order in "${order.status}" state — it must be Ready to Ship first`);
     }
 
     // Seller: explicit → order's seller → the actor (single-seller store).

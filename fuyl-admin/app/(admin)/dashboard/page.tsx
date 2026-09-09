@@ -8,6 +8,7 @@ import RevenueChart from '@/components/dashboard/RevenueChart'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { adminApiFetch, getErrorMessage } from '@/lib/api'
 import { listAdminOrders, type OrderStatus } from '@/lib/orders'
+import { canonicalOrderStatus, ORDER_STATUS_LABEL } from '@/lib/orderStatus'
 import {
   getRevenueChartData,
   getAnalyticsSummary,
@@ -20,33 +21,36 @@ import {
 
 const STATUS_DOT: Record<string, string> = {
   pending:    'bg-amber-400',
+  payment_failed: 'bg-rose-500',
   confirmed:  'bg-blue-500',
+  ready_to_ship: 'bg-blue-400',
+  on_hold: 'bg-amber-500',
   packed:     'bg-blue-400',
   dispatched: 'bg-sky-500',
   shipped:    'bg-sky-400',
   in_transit: 'bg-teal-500',
+  out_for_delivery: 'bg-teal-600',
   delivered:  'bg-emerald-500',
   completed:  'bg-emerald-600',
+  closed:     'bg-emerald-600',
   cancelled:  'bg-rose-400',
   returned:   'bg-slate-400',
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  pending: 'Pending', confirmed: 'Confirmed', packed: 'Packed',
-  dispatched: 'Dispatched', shipped: 'Shipped', in_transit: 'In Transit',
-  delivered: 'Delivered', completed: 'Completed',
-  cancelled: 'Cancelled', returned: 'Returned',
-}
-
 const STATUS_TEXT: Record<string, string> = {
   pending:    'text-amber-700 bg-amber-50',
+  payment_failed: 'text-rose-600 bg-rose-50',
   confirmed:  'text-blue-700 bg-blue-50',
+  ready_to_ship: 'text-blue-700 bg-blue-50',
+  on_hold: 'text-amber-700 bg-amber-50',
   packed:     'text-blue-700 bg-blue-50',
   dispatched: 'text-sky-700 bg-sky-50',
   shipped:    'text-sky-700 bg-sky-50',
   in_transit: 'text-teal-700 bg-teal-50',
+  out_for_delivery: 'text-teal-700 bg-teal-50',
   delivered:  'text-emerald-700 bg-emerald-50',
   completed:  'text-emerald-700 bg-emerald-50',
+  closed:     'text-emerald-700 bg-emerald-50',
   cancelled:  'text-rose-600 bg-rose-50',
   returned:   'text-slate-600 bg-slate-100',
 }
@@ -56,9 +60,9 @@ const STATUS_TEXT: Record<string, string> = {
 type StatusGroup = { label: string; bar: string; dot: string; statuses: OrderStatus[] }
 
 const STATUS_GROUPS: StatusGroup[] = [
-  { label: 'Pending',   bar: 'bg-amber-400',   dot: 'bg-amber-400',   statuses: ['pending'] },
-  { label: 'Active',    bar: 'bg-blue-500',    dot: 'bg-blue-500',    statuses: ['confirmed', 'packed', 'dispatched', 'shipped', 'in_transit'] },
-  { label: 'Delivered', bar: 'bg-emerald-500', dot: 'bg-emerald-500', statuses: ['delivered', 'completed'] },
+  { label: 'Pending',   bar: 'bg-amber-400',   dot: 'bg-amber-400',   statuses: ['pending', 'payment_failed'] },
+  { label: 'Active',    bar: 'bg-blue-500',    dot: 'bg-blue-500',    statuses: ['confirmed', 'ready_to_ship', 'on_hold', 'packed', 'dispatched', 'shipped', 'in_transit', 'out_for_delivery'] },
+  { label: 'Delivered', bar: 'bg-emerald-500', dot: 'bg-emerald-500', statuses: ['delivered', 'closed', 'completed'] },
   { label: 'Cancelled', bar: 'bg-rose-400',    dot: 'bg-rose-400',    statuses: ['cancelled', 'returned'] },
 ]
 
@@ -358,9 +362,10 @@ export default async function DashboardPage() {
           ) : (
             <div className="divide-y divide-slate-50">
               {recentOrders.map((order) => {
-                const dot   = STATUS_DOT[order.status]  ?? 'bg-slate-400'
-                const label = STATUS_LABEL[order.status] ?? order.status
-                const pill  = STATUS_TEXT[order.status]  ?? 'text-slate-600 bg-slate-100'
+                const canonical = canonicalOrderStatus(order.status)
+                const dot   = STATUS_DOT[canonical]  ?? 'bg-slate-400'
+                const label = ORDER_STATUS_LABEL[order.status] ?? order.status
+                const pill  = STATUS_TEXT[canonical]  ?? 'text-slate-600 bg-slate-100'
                 return (
                   <Link
                     key={order.id}

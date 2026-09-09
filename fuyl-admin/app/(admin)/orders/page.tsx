@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { AlertCircle, Banknote, Clock3, PackageCheck, ShoppingBag } from 'lucide-react'
 import { OrdersTable, ExportButton } from '@/components/orders/OrdersTable'
-import { listAdminOrders } from '@/lib/orders'
+import { getAdminOrderStats, listAdminOrders, type AdminOrderStats } from '@/lib/orders'
 import { getErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import { ActivityFeed } from '@/components/ui/ActivityFeed'
@@ -17,28 +17,30 @@ export default async function OrdersPage({
 
   let orders: Awaited<ReturnType<typeof listAdminOrders>> = []
   let auditLogs: AuditLogEntry[] = []
+  let orderStats: AdminOrderStats | null = null
   let error = ''
   try {
-    ;[orders, auditLogs] = await Promise.all([
+    ;[orders, orderStats, auditLogs] = await Promise.all([
       listAdminOrders(),
+      getAdminOrderStats(),
       getAuditLogs({ section: 'orders', limit: 20 }).catch(() => []),
     ])
   } catch (err) {
     error = getErrorMessage(err, 'Could not load orders.')
   }
 
-  const revenue        = orders.filter((o) =>
-    ['success', 'partially_refunded'].includes(o.paymentStatus)
-      || (o.paymentMethod === 'cod' && ['delivered', 'closed', 'completed'].includes(o.status)),
-  ).reduce((sum, o) => sum + o.total, 0)
-  const awaitingAction = orders.filter((o) => ['pending', 'confirmed', 'packed'].includes(o.status)).length
-  const fulfilled      = orders.filter((o) => ['delivered', 'completed'].includes(o.status)).length
+  const statuses       = orderStats?.statuses ?? {}
+  const revenue        = orderStats?.revenue ?? 0
+  const awaitingAction = ['pending', 'confirmed', 'ready_to_ship', 'packed', 'on_hold']
+    .reduce((sum, status) => sum + (statuses[status] ?? 0), 0)
+  const fulfilled      = ['delivered', 'closed', 'completed']
+    .reduce((sum, status) => sum + (statuses[status] ?? 0), 0)
 
   const stats = [
-    { label: 'Total orders',    value: String(orders.length), Icon: ShoppingBag,  color: 'text-slate-600',   bg: 'bg-slate-100',  href: '/orders'           },
+    { label: 'Total orders',    value: String(orderStats?.total ?? orders.length), Icon: ShoppingBag,  color: 'text-slate-600',   bg: 'bg-slate-100',  href: '/orders'           },
     { label: 'Order value',     value: formatCurrency(revenue), Icon: Banknote,   color: 'text-emerald-600', bg: 'bg-emerald-50', href: '/orders'           },
     { label: 'Awaiting action', value: String(awaitingAction), Icon: Clock3,      color: 'text-amber-600',   bg: 'bg-amber-50',   href: '/orders?tab=pending'   },
-    { label: 'Fulfilled',       value: String(fulfilled),       Icon: PackageCheck, color: 'text-blue-600',  bg: 'bg-blue-50',    href: '/orders?tab=completed' },
+    { label: 'Fulfilled',       value: String(fulfilled),       Icon: PackageCheck, color: 'text-blue-600',  bg: 'bg-blue-50',    href: '/orders?tab=delivered' },
   ]
 
   return (

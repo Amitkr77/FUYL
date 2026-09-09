@@ -8,6 +8,7 @@ import { CsvExportButton } from '@/components/ui/CsvExportButton'
 import { Pagination } from '@/components/ui/Pagination'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import type { AdminOrder, OrderStatus } from '@/lib/orders'
+import { canonicalOrderStatus, ORDER_STATUS_LABEL } from '@/lib/orderStatus'
 
 type TabFilter = 'all' | OrderStatus
 type SortCol   = 'date' | 'total'
@@ -16,18 +17,20 @@ type SortDir   = 'asc' | 'desc'
 const TABS: { label: string; value: TabFilter }[] = [
   { label: 'All', value: 'all' }, { label: 'Pending', value: 'pending' },
   { label: 'Payment Failed', value: 'payment_failed' },
-  { label: 'Confirmed', value: 'confirmed' }, { label: 'Packed', value: 'packed' },
-  { label: 'Shipped', value: 'shipped' }, { label: 'Delivered', value: 'delivered' },
-  { label: 'Completed', value: 'completed' }, { label: 'Cancelled', value: 'cancelled' },
+  { label: 'Confirmed', value: 'confirmed' }, { label: 'Ready to Ship', value: 'ready_to_ship' },
+  { label: 'On Hold', value: 'on_hold' }, { label: 'Shipped', value: 'shipped' },
+  { label: 'In Transit', value: 'in_transit' }, { label: 'Out for Delivery', value: 'out_for_delivery' },
+  { label: 'Delivered', value: 'delivered' }, { label: 'Closed', value: 'closed' }, { label: 'Cancelled', value: 'cancelled' },
   { label: 'Returned', value: 'returned' },
 ]
 
 const VALID_TABS = TABS.map((t) => t.value)
 
 const statusVariant = (status: OrderStatus): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
-  if (['completed', 'delivered'].includes(status)) return 'success'
-  if (['shipped', 'confirmed', 'dispatched', 'in_transit'].includes(status)) return 'info'
-  if (status === 'packed') return 'warning'
+  const canonical = canonicalOrderStatus(status)
+  if (['closed', 'delivered'].includes(canonical)) return 'success'
+  if (['shipped', 'confirmed', 'in_transit', 'out_for_delivery'].includes(canonical)) return 'info'
+  if (['ready_to_ship', 'on_hold'].includes(canonical)) return 'warning'
   if (['cancelled', 'returned', 'payment_failed'].includes(status)) return 'danger'
   return 'default'
 }
@@ -68,7 +71,7 @@ export function OrdersTable({ orders, initialTab = 'all' }: { orders: AdminOrder
 
   const filtered = useMemo(() => orders.filter((order) => {
     const term = search.trim().toLowerCase()
-    return (activeTab === 'all' || order.status === activeTab) && (!term
+    return (activeTab === 'all' || canonicalOrderStatus(order.status) === activeTab) && (!term
       || order.orderNumber.toLowerCase().includes(term)
       || order.customerName.toLowerCase().includes(term)
       || order.phone.toLowerCase().includes(term))
@@ -81,7 +84,7 @@ export function OrdersTable({ orders, initialTab = 'all' }: { orders: AdminOrder
   const pageCount   = Math.max(1, Math.ceil(filtered.length / pageSize))
   const currentPage = Math.min(page, pageCount)
   const visible     = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-  const tabCount    = (tab: TabFilter) => tab === 'all' ? orders.length : orders.filter((o) => o.status === tab).length
+  const tabCount    = (tab: TabFilter) => tab === 'all' ? orders.length : orders.filter((o) => canonicalOrderStatus(o.status) === tab).length
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -154,7 +157,7 @@ export function OrdersTable({ orders, initialTab = 'all' }: { orders: AdminOrder
                 <td className="px-5 py-4 text-sm text-slate-500 whitespace-nowrap">{formatDateTime(order.date)}</td>
                 <td className="px-5 py-4 text-sm text-slate-500">{order.itemCount} item{order.itemCount !== 1 ? 's' : ''}</td>
                 <td className="px-5 py-4 text-sm font-semibold text-slate-900">{formatCurrency(order.total)}</td>
-                <td className="px-5 py-4"><Badge variant={statusVariant(order.status)}>{order.status.replace('_', ' ').replace(/^./, (c) => c.toUpperCase())}</Badge></td>
+                <td className="px-5 py-4"><Badge variant={statusVariant(order.status)}>{ORDER_STATUS_LABEL[order.status]}</Badge></td>
                 <td className="px-5 py-4">
                   <Link href={`/orders/${order.id}`} aria-label={`View order ${order.orderNumber}`} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-white">
                     <Eye className="w-3.5 h-3.5" />View
