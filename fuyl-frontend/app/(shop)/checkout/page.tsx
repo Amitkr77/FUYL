@@ -21,7 +21,7 @@ import { getAddresses, type Address } from '@/lib/api/customer'
 import { checkEmailExists, checkoutIdentify } from '@/lib/api/account'
 import { createPayment, verifyPayment } from '@/lib/api/payment'
 import { getCashfree } from '@/lib/utils/cashfree'
-import { lookupPincode } from '@/lib/utils/pincode'
+import { lookupPincode, type PincodeResult } from '@/lib/utils/pincode'
 import { formatPrice } from '@/lib/utils/formatPrice'
 import { getErrorMessage } from '@/lib/api/client'
 import { trackEvent } from '@/lib/analytics/track'
@@ -120,7 +120,7 @@ function validateAddressField(key: AddressField, address: CheckoutAddressInput):
       return address.state.trim() ? '' : 'State is required'
     case 'pincode':
       if (!address.pincode.trim()) return 'Pincode is required'
-      if (address.country === 'IN' && !/^\d{6}$/.test(address.pincode.trim())) return 'Enter a valid 6-digit pincode'
+      if (address.country === 'IN' && !/^[1-9]\d{5}$/.test(address.pincode.trim())) return 'Enter a valid 6-digit pincode'
       if (address.country !== 'IN' && !/^[A-Za-z0-9 -]{3,12}$/.test(address.pincode.trim())) return 'Enter a valid postal code'
       return ''
   }
@@ -226,18 +226,25 @@ export default function CheckoutPage() {
   // fires once the shopper stops typing a plausible 6-digit code, and never
   // overwrites fields the shopper is actively editing mid-keystroke.
   const [pincodeStatus, setPincodeStatus] = useState<'idle' | 'loading' | 'notfound'>('idle')
+  const [pincodeResult, setPincodeResult] = useState<PincodeResult | null>(null)
   useEffect(() => {
-    if (address.country !== 'IN' || !/^\d{6}$/.test(address.pincode)) { startTransition(() => setPincodeStatus('idle')); return }
+    if (address.country !== 'IN' || !/^[1-9]\d{5}$/.test(address.pincode)) {
+      startTransition(() => { setPincodeStatus('idle'); setPincodeResult(null) })
+      return
+    }
     let cancelled = false
-    startTransition(() => setPincodeStatus('loading'))
+    const requestedPincode = address.pincode
+    startTransition(() => { setPincodeStatus('loading'); setPincodeResult(null) })
     const t = setTimeout(async () => {
       const result = await lookupPincode(address.pincode)
       if (cancelled) return
       if (result) {
-        setAddress((a) => ({ ...a, city: result.city, state: result.state }))
+        setAddress((a) => a.pincode === requestedPincode ? ({ ...a, city: result.city, state: result.state }) : a)
+        setPincodeResult(result)
         setFieldErrors((e) => ({ ...e, city: undefined, state: undefined }))
         setPincodeStatus('idle')
       } else {
+        setPincodeResult(null)
         setPincodeStatus('notfound')
       }
     }, 400)
@@ -810,7 +817,11 @@ export default function CheckoutPage() {
                       maxLength={address.country === 'IN' ? 6 : 12}
                       loading={pincodeStatus === 'loading'}
                       error={fieldErrors.pincode}
-                      hint={pincodeStatus === 'notfound' ? "Couldn't find this pincode — enter city/state manually below." : undefined}
+                      hint={pincodeStatus === 'notfound'
+                        ? "Couldn't verify this pincode — enter city/state manually below."
+                        : pincodeResult
+                          ? `Verified: ${pincodeResult.locality}, ${pincodeResult.city}, ${pincodeResult.state}${pincodeResult.localities.length > 1 ? ` (${pincodeResult.localities.length} nearby post offices)` : ''}`
+                          : undefined}
                     />
                     <div className="grid grid-cols-2 gap-4">
                       <Field id="city" label="City" value={address.city} onChange={set('city')} onBlur={blurField('city')} error={fieldErrors.city} />

@@ -4,6 +4,8 @@
 export interface PincodeResult {
   city: string
   state: string
+  locality: string
+  localities: string[]
 }
 
 interface PostOffice {
@@ -17,14 +19,20 @@ interface PincodeApiResponse {
 }
 
 export async function lookupPincode(pincode: string): Promise<PincodeResult | null> {
-  if (!/^\d{6}$/.test(pincode)) return null
+  if (!/^[1-9]\d{5}$/.test(pincode)) return null
   try {
     const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`)
     if (!res.ok) return null
     const data: PincodeApiResponse[] = await res.json()
-    const office = data[0]?.PostOffice?.[0]
+    const offices = data[0]?.PostOffice
+    const office = offices?.[0]
     if (data[0]?.Status !== 'Success' || !office) return null
-    return { city: office.District, state: office.State }
+    return {
+      city: office.District,
+      state: office.State,
+      locality: office.Name,
+      localities: [...new Set((offices ?? []).map((item) => item.Name).filter(Boolean))],
+    }
   } catch {
     // Offline, API hiccup, CORS, etc. — fail silently, the shopper can just
     // type city/state manually, exactly as before this feature existed.

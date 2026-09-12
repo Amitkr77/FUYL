@@ -10,6 +10,7 @@ type RequestOptions = {
   cache?:   RequestCache
   tags?:    string[]
   revalidate?: number | false
+  signal?: AbortSignal
   /** Internal — set on the automatic retry after a token refresh, so we never retry twice. */
   _isRetry?: boolean
   /** Return the complete backend envelope when pagination metadata is needed. */
@@ -90,7 +91,7 @@ export function getErrorMessage(err: unknown, fallback: string): string {
 
 export async function apiFetch<T>(
   path: string,
-  { method = 'GET', body, token, guestId, cache, tags, revalidate, _isRetry, unwrap = true }: RequestOptions = {}
+  { method = 'GET', body, token, guestId, cache, tags, revalidate, signal, _isRetry, unwrap = true }: RequestOptions = {}
 ): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -114,6 +115,7 @@ export async function apiFetch<T>(
     body:  body ? JSON.stringify(body) : undefined,
     cache: cache ?? (revalidate !== undefined ? 'force-cache' : 'no-store'),
     next:  Object.keys(nextConfig).length ? nextConfig : undefined,
+    signal,
   })
 
   if (!res.ok) {
@@ -126,7 +128,7 @@ export async function apiFetch<T>(
       const { useAuthStore } = await import('@/lib/store/authStore')
       if (newToken) {
         useAuthStore.setState({ token: newToken })
-        return apiFetch<T>(path, { method, body, token: newToken, guestId, cache, tags, revalidate, _isRetry: true, unwrap })
+        return apiFetch<T>(path, { method, body, token: newToken, guestId, cache, tags, revalidate, signal, _isRetry: true, unwrap })
       }
       // Refresh failed too — the session is truly over, not just the access token.
       useAuthStore.setState({ token: null, user: null })

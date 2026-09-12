@@ -10,6 +10,13 @@ import { BadRequestError, ForbiddenError, UnauthorizedError } from '../../../sha
 import { orderService } from '../../order/services';
 import { logger } from '../../../config/logger';
 
+function requireIndianPincode(value: unknown): string {
+  if (typeof value !== 'string' || !/^[1-9]\d{5}$/.test(value)) {
+    throw new BadRequestError('Enter a valid 6-digit Indian pincode');
+  }
+  return value;
+}
+
 export class ShippingController {
   create = [
     authorize(Roles.ADMIN, Roles.SUPER_ADMIN),
@@ -25,7 +32,7 @@ export class ShippingController {
   // Public — checkout serviceability + rate lookups.
   serviceability = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      return success(res, await shippingService.checkServiceability(req.params.pincode));
+      return success(res, await shippingService.checkServiceability(requireIndianPincode(req.params.pincode)));
     } catch (err) { next(err); }
   };
 
@@ -33,7 +40,7 @@ export class ShippingController {
   // GET /shipping/serviceability/:pincode/product?productId=xxx&variantId=yyy&weight=500
   serviceabilityProduct = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      const { pincode } = req.params;
+      const pincode = requireIndianPincode(req.params.pincode);
       const productId  = req.query.productId  as string | undefined;
       const variantId  = req.query.variantId  as string | undefined;
       const weight     = req.query.weight ? Number(req.query.weight) : undefined;
@@ -44,7 +51,7 @@ export class ShippingController {
 
   rate = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      const pincode = req.query.pincode as string;
+      const pincode = requireIndianPincode(req.query.pincode);
       const weightGrams = req.query.weight ? Number(req.query.weight) : undefined;
       const paymentMode = req.query.paymentMode === 'COD' ? 'COD' : 'Prepaid';
       return success(res, await shippingService.quoteRate({ pincode, weightGrams, paymentMode }));

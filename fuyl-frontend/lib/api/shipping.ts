@@ -14,9 +14,10 @@ export interface PincodeServiceabilityProduct extends PincodeServiceability {
 // Public — GET /shipping/serviceability/:pincode (see fuyl-backend
 // shipping.controller.ts). Falls back to serviceable:true when no carrier is
 // configured yet (dev), matching the backend's own fallback.
-export async function checkPincodeServiceability(pincode: string): Promise<PincodeServiceability> {
+export async function checkPincodeServiceability(pincode: string, signal?: AbortSignal): Promise<PincodeServiceability> {
   return apiFetch<PincodeServiceability>(`/shipping/serviceability/${pincode}`, {
     cache: 'no-store',
+    signal,
   })
 }
 
@@ -27,12 +28,13 @@ export async function checkPincodeServiceabilityForProduct(
   productId: string,
   variantId?: string,
   weightGrams?: number,
+  signal?: AbortSignal,
 ): Promise<PincodeServiceabilityProduct> {
   const params = new URLSearchParams({ productId })
   if (variantId)    params.set('variantId', variantId)
   if (weightGrams)  params.set('weight', String(weightGrams))
   return apiFetch<PincodeServiceabilityProduct>(
     `/shipping/serviceability/${pincode}/product?${params.toString()}`,
-    { cache: 'no-store' },
+    { cache: 'no-store', signal },
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { MapPin, Check, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { checkPincodeServiceability, checkPincodeServiceabilityForProduct } from '@/lib/api/shipping'
@@ -21,27 +21,35 @@ export function PincodeCheck({ productId, variantId, weightGrams }: PincodeCheck
   const [status, setStatus] = useState<Status>('idle')
   const [result, setResult] = useState<{
     serviceable: boolean
-    cod: boolean
     etdDays: number | null
-    warehouseCity?: string | null
+    checkedPincode: string
   } | null>(null)
   const [error, setError] = useState('')
+  const requestRef = useRef<{ id: number; controller?: AbortController }>({ id: 0 })
 
   const handleCheck = async () => {
-    if (!PINCODE_RE.test(pincode)) {
+    const checkedPincode = pincode
+    if (!PINCODE_RE.test(checkedPincode)) {
       setStatus('error')
       setError('Enter a valid 6-digit pincode')
       return
     }
     setStatus('loading')
     setError('')
+    setResult(null)
+    requestRef.current.controller?.abort()
+    const requestId = requestRef.current.id + 1
+    const controller = new AbortController()
+    requestRef.current = { id: requestId, controller }
     try {
       const res = productId
-        ? await checkPincodeServiceabilityForProduct(pincode, productId, variantId, weightGrams)
-        : await checkPincodeServiceability(pincode)
-      setResult(res)
+        ? await checkPincodeServiceabilityForProduct(checkedPincode, productId, variantId, weightGrams, controller.signal)
+        : await checkPincodeServiceability(checkedPincode, controller.signal)
+      if (requestRef.current.id !== requestId) return
+      setResult({ serviceable: res.serviceable, etdDays: res.etdDays, checkedPincode })
       setStatus('checked')
     } catch (err) {
+      if (controller.signal.aborted || requestRef.current.id !== requestId) return
       setError(getErrorMessage(err, 'Could not check this pincode. Please try again.'))
       setStatus('error')
     }
@@ -60,8 +68,12 @@ export function PincodeCheck({ productId, variantId, weightGrams }: PincodeCheck
             placeholder="Enter pincode"
             value={pincode}
             onChange={(e) => {
+              requestRef.current.controller?.abort()
+              requestRef.current = { id: requestRef.current.id + 1 }
               setPincode(e.target.value.replace(/\D/g, ''))
               setStatus('idle')
+              setResult(null)
+              setError('')
             }}
             onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
             className="h-11 w-full rounded-sm border pl-9 pr-3 text-body-sm"
@@ -86,17 +98,15 @@ export function PincodeCheck({ productId, variantId, weightGrams }: PincodeCheck
           {result.serviceable ? (
             <>
               <Check size={14} />
-              Delivery available to {pincode}
+              Delivery available to {result.checkedPincode}
               {result.etdDays != null
-                ? ` · Arrives in ${result.etdDays}–${result.etdDays + 1} day${result.etdDays > 1 ? 's' : ''}`
+                ? ` · Estimated delivery in ${result.etdDays}–${result.etdDays + 1} day${result.etdDays > 1 ? 's' : ''}`
                 : ''}
-              {result.warehouseCity ? ` · Ships from ${result.warehouseCity}` : ''}
-              {result.cod ? ' · COD available' : ' · Prepaid only'}
             </>
           ) : (
             <>
               <AlertCircle size={14} />
-              Sorry, we don&apos;t deliver to {pincode} yet
+              Sorry, we don&apos;t deliver to {result.checkedPincode} yet
             </>
           )}
         </p>
