@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
+import { trackEvent as _track } from '@/lib/analytics/track'
 
 /** Lightweight client-side event tracker.
  *  Fires on every route change, records time-on-page, device/OS, and
@@ -26,27 +27,8 @@ function getOS(): string {
   return 'Other'
 }
 
-function getSessionId(): string {
-  const key = '_fuyl_sid'
-  let sid = sessionStorage.getItem(key)
-  if (!sid) {
-    sid = `${Date.now()}-${Math.random().toString(36).slice(2)}`
-    sessionStorage.setItem(key, sid)
-  }
-  return sid
-}
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL ?? ''
-
-async function sendEvent(payload: Record<string, unknown>) {
-  try {
-    await fetch(`${BACKEND_URL}/analytics/track`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      keepalive: true,       // survives page unload (needed for exit events)
-    })
-  } catch { /* analytics errors must never affect the storefront */ }
+async function sendEvent(event: string, page: string, properties: Record<string, unknown>) {
+  await _track(event, properties, { page })
 }
 
 let locationCache: { lat: number; lng: number } | null = null
@@ -84,17 +66,12 @@ export function PageTracker() {
 
     // Fire an exit event for the previous page before recording the new one
     if (prevPath && timeSpentMs > 0) {
-      sendEvent({
-        event:     'page.exit',
-        sessionId: getSessionId(),
-        page:      prevPath,
-        properties: {
-          timeSpentMs,
-          deviceType: getDeviceType(),
-          os:         getOS(),
-          lat:        locationCache?.lat ?? null,
-          lng:        locationCache?.lng ?? null,
-        },
+      sendEvent('page.exit', prevPath, {
+        timeSpentMs,
+        deviceType: getDeviceType(),
+        os:         getOS(),
+        lat:        locationCache?.lat ?? null,
+        lng:        locationCache?.lng ?? null,
       })
     }
 
@@ -102,17 +79,12 @@ export function PageTracker() {
     prevPathRef.current = pathname
     entryTimeRef.current = now
 
-    sendEvent({
-      event:     'page.view',
-      sessionId: getSessionId(),
-      page:      pathname,
-      referrer:  typeof document !== 'undefined' ? document.referrer : '',
-      properties: {
-        deviceType: getDeviceType(),
-        os:         getOS(),
-        lat:        locationCache?.lat ?? null,
-        lng:        locationCache?.lng ?? null,
-      },
+    sendEvent('page.view', pathname, {
+      deviceType: getDeviceType(),
+      os:         getOS(),
+      lat:        locationCache?.lat ?? null,
+      lng:        locationCache?.lng ?? null,
+      referrer:   typeof document !== 'undefined' ? document.referrer : '',
     })
   }, [pathname])
 
@@ -120,17 +92,12 @@ export function PageTracker() {
   useEffect(() => {
     const handleBeforeUnload = () => {
       const timeSpentMs = Date.now() - entryTimeRef.current
-      sendEvent({
-        event:     'page.exit',
-        sessionId: getSessionId(),
-        page:      pathname,
-        properties: {
-          timeSpentMs,
-          deviceType: getDeviceType(),
-          os:         getOS(),
-          lat:        locationCache?.lat ?? null,
-          lng:        locationCache?.lng ?? null,
-        },
+      sendEvent('page.exit', pathname, {
+        timeSpentMs,
+        deviceType: getDeviceType(),
+        os:         getOS(),
+        lat:        locationCache?.lat ?? null,
+        lng:        locationCache?.lng ?? null,
       })
     }
     window.addEventListener('beforeunload', handleBeforeUnload)

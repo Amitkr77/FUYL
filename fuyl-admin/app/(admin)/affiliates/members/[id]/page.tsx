@@ -6,6 +6,7 @@ import { AffiliateProfileEditor } from "@/components/affiliates/AffiliateProfile
 import { AffiliateReviewCard } from "@/components/affiliates/AffiliateReviewCard";
 import { AffiliateLinkManager } from "@/components/affiliates/AffiliateLinkManager";
 import { LoginAsAffiliateButton } from "@/components/affiliates/LoginAsAffiliateButton";
+import { listDiscounts } from "@/lib/discounts";
 
 function money(value: number) { return `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`; }
 function programName(program: Awaited<ReturnType<typeof getAffiliate>>["affiliate"]["programId"]) { return typeof program === "string" ? program : program.name; }
@@ -14,14 +15,15 @@ export default async function AffiliateDetailPage({ params }: { params: Promise<
   const { id } = await params;
   let data: Awaited<ReturnType<typeof getAffiliate>>;
   let programs: Awaited<ReturnType<typeof listAffiliatePrograms>> = [];
-  try { [data, programs] = await Promise.all([getAffiliate(id), listAffiliatePrograms()]); } catch (error) { if (error instanceof AdminApiError && error.status === 404) notFound(); throw error; }
+  let discounts: Awaited<ReturnType<typeof listDiscounts>> = [];
+  try { [data, programs, discounts] = await Promise.all([getAffiliate(id), listAffiliatePrograms(), listDiscounts()]); } catch (error) { if (error instanceof AdminApiError && error.status === 404) notFound(); throw error; }
   const { affiliate, links, commissions, payouts } = data;
   const totals = commissions.reduce<Record<string, number>>((sum, item) => ({ ...sum, [item.status]: (sum[item.status] ?? 0) + item.amount }), {});
 
   return <div className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div><h2 className="text-xl font-bold text-slate-900">{affiliate.name}</h2><p className="text-sm text-slate-500">Joined {new Date(affiliate.createdAt).toLocaleDateString("en-IN")}</p></div>
-      <div className="flex items-center gap-3"><LoginAsAffiliateButton id={affiliate.id} disabled={affiliate.status !== "approved"} /><AffiliateProfileEditor affiliate={affiliate} programs={programs} /><span className="rounded-full bg-[#558476]/10 px-3 py-1.5 text-sm font-semibold capitalize text-[#315f52]">{affiliate.status}</span></div>
+      <div className="flex items-center gap-3"><LoginAsAffiliateButton id={affiliate.id} disabled={affiliate.status !== "approved"} /><AffiliateProfileEditor affiliate={affiliate} programs={programs} coupons={discounts.flatMap(discount => discount.coupons.map(coupon => ({ code: coupon.code, discountName: discount.name, status: discount.status, isActive: discount.isActive && coupon.isActive })))} /><span className="rounded-full bg-[#558476]/10 px-3 py-1.5 text-sm font-semibold capitalize text-[#315f52]">{affiliate.status}</span></div>
     </div>
 
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

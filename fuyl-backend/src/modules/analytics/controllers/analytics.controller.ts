@@ -142,6 +142,12 @@ export class AnalyticsController {
     } catch (err) { next(err); }
   };
 
+  orderJourney = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      return success(res, await analyticsQueryService.getOrderJourney(req.params.orderId));
+    } catch (err) { next(err); }
+  };
+
   /** Public endpoint — storefront sends page-view events here (no auth). */
   track = async (req: Request, res: Response, next: NextFunction) => {
     try {

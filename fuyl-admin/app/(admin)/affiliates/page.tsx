@@ -71,7 +71,12 @@ export default async function AffiliateOverviewPage() {
               {recent.map((affiliate) => (
                 <div key={affiliate.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-800">{affiliate.name}</p>
+                    <Link
+                      href={`/affiliates/members/${affiliate.id}`}
+                      className="block truncate text-sm font-medium text-slate-800 transition-colors hover:text-[#315f52] hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#558476]"
+                    >
+                      {affiliate.name}
+                    </Link>
                     <p className="truncate text-xs text-slate-400">{affiliate.email}</p>
                   </div>
                   <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium capitalize text-slate-600">

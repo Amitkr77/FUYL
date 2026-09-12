@@ -157,4 +157,24 @@ export async function getOrdersByStatus(range: DateRange = { preset: '30d' }): P
   )
 }
 
+// ─── Order user journey ───────────────────────────────────────────────────────
+export interface OrderJourneyEvent {
+  event:       string
+  page:        string | null
+  occurredAt:  string
+  sessionId:   string | null
+  properties:  Record<string, unknown>
+}
+
+export interface OrderJourney {
+  events:      OrderJourneyEvent[]
+  sessionId:   string | null
+  deviceType:  string | null
+  os:          string | null
+}
+
+export async function getOrderJourney(orderId: string): Promise<OrderJourney> {
+  return adminApiFetch<OrderJourney>(`/admin/analytics/orders/${orderId}/journey`)
+}
+
 export { AdminApiError }

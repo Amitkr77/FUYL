@@ -289,6 +289,62 @@ class AnalyticsQueryService {
     if (metric) filter.metric = metric;
     return AnalyticsMetricModel.find(filter).sort({ bucketStart: -1 }).limit(limit).lean();
   }
+
+  /**
+   * Reconstruct the full user journey that led to (or failed to lead to) an
+   * order. Queries all analytics events for the order's customer in the 6
+   * hours before the order was placed, sorted chronologically so an admin can
+   * see every page the user visited, when checkout was started, where they
+   * entered their address, when payment was initiated, and whether it
+   * succeeded — or exactly which step they dropped off at.
+   */
+  async getOrderJourney(orderId: string): Promise<{
+    events: Array<{
+      event: string;
+      page: string | null;
+      occurredAt: Date;
+      sessionId: string | null;
+      properties: Record<string, unknown>;
+    }>;
+    sessionId: string | null;
+    deviceType: string | null;
+    os: string | null;
+  }> {
+    const order = await OrderModel.findById(orderId)
+      .select('customerId placedAt')
+      .lean();
+    if (!order) return { events: [], sessionId: null, deviceType: null, os: null };
+
+    const until = (order as any).placedAt ?? new Date();
+    // Look back 6 hours before the order was placed to capture the full session
+    const since = new Date(until.getTime() - 6 * 60 * 60 * 1000);
+
+    const rows = await AnalyticsEventModel.find({
+      userId:      (order as any).customerId,
+      occurredAt:  { $gte: since, $lte: until },
+    })
+      .sort({ occurredAt: 1 })
+      .select('event page properties occurredAt sessionId')
+      .limit(300)
+      .lean();
+
+    const sessionId   = (rows.find((r) => r.sessionId)?.sessionId as string | undefined) ?? null;
+    const deviceType  = (rows.find((r) => (r.properties as any)?.deviceType)?.properties as any)?.deviceType ?? null;
+    const os          = (rows.find((r) => (r.properties as any)?.os)?.properties as any)?.os ?? null;
+
+    return {
+      events: rows.map((r) => ({
+        event:       r.event as string,
+        page:        (r.page as string | undefined) ?? null,
+        occurredAt:  r.occurredAt as Date,
+        sessionId:   (r.sessionId as string | undefined) ?? null,
+        properties:  (r.properties as Record<string, unknown>) ?? {},
+      })),
+      sessionId,
+      deviceType,
+      os,
+    };
+  }
 }
 
 export const analyticsQueryService = new AnalyticsQueryService();

@@ -15,12 +15,14 @@ import { AffiliateStatus } from '../../../shared/enums';
 import { NotFoundError, ConflictError, BadRequestError } from '../../../shared/errors';
 import { logger } from '../../../config/logger';
 import mongoose from 'mongoose';
+import { DiscountRepository } from '../../discount/repositories/discount.repository';
 
 const affiliateRepo  = new AffiliateRepository();
 const programRepo    = new ProgramRepository();
 const linkRepo       = new LinkRepository();
 const commissionRepo = new CommissionRepository();
 const payoutRepo     = new PayoutRepository();
+const discountRepo   = new DiscountRepository();
 
 export class AffiliateService {
   /** Public: submit an affiliate application. */
@@ -314,7 +316,15 @@ export class AffiliateService {
     const affiliate = await affiliateRepo.findById(affiliateId);
     if (!affiliate) throw new NotFoundError('Affiliate');
     if (patch.programId) { const program=await programRepo.findById(patch.programId);if(!program)throw new NotFoundError('Affiliate program');if(!program.isActive)throw new BadRequestError('Affiliate must be assigned to an active program'); }
-    if (patch.couponCodes) { patch.couponCodes=[...new Set(patch.couponCodes.map(code=>code.trim().toUpperCase()).filter(Boolean))];if(patch.couponCodes.some(code=>!/^[A-Z0-9_-]{3,30}$/.test(code)))throw new BadRequestError('Coupon codes must be 3-30 letters, numbers, dashes, or underscores'); }
+    if (patch.couponCodes) {
+      patch.couponCodes=[...new Set(patch.couponCodes.map(code=>code.trim().toUpperCase()).filter(Boolean))];
+      if(patch.couponCodes.some(code=>!/^[A-Z0-9_-]{3,30}$/.test(code)))throw new BadRequestError('Coupon codes must be 3-30 letters, numbers, dashes, or underscores');
+      for (const code of patch.couponCodes) {
+        if (!(await discountRepo.findByCouponCode(code))) throw new BadRequestError(`Coupon ${code} does not exist in Discounts & Cashback`);
+        const owner = await affiliateRepo.findByCouponCode(code);
+        if (owner && owner._id.toString() !== affiliateId) throw new ConflictError(`Coupon ${code} is already assigned to ${owner.name}`);
+      }
+    }
     return affiliateRepo.update(affiliateId, patch as Partial<IAffiliate>);
   }
 

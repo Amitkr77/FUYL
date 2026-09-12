@@ -4,6 +4,7 @@ import { getAdminOrder } from '@/lib/orders'
 import { OrderStatusPanel } from '@/components/orders/OrderStatusPanel'
 import { BookShipmentPanel } from '@/components/shipping/BookShipmentPanel'
 import { OrderTimeline } from '@/components/orders/OrderTimeline'
+import { OrderJourneyPanel } from '@/components/orders/OrderJourneyPanel'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
@@ -139,6 +140,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </div>
             )}
           </div>
+          {/* User journey — shows checkout funnel steps + where the user dropped off */}
+          <OrderJourneyPanel orderId={order.id} />
         </div>
 
         {/* Right: Customer + Address + Timeline */}

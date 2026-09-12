@@ -27,6 +27,7 @@ router.get('/admin/analytics/top-products',         ...adminGuard, analyticsCont
 router.get('/admin/analytics/events/recent',        ...adminGuard, analyticsController.recentEvents);
 router.get('/admin/analytics/metrics',              ...adminGuard, analyticsController.metrics);
 router.post('/admin/analytics/rollup', authRequired, authorize(Roles.SUPER_ADMIN), analyticsController.forceRollup);
+router.get('/admin/analytics/orders/:orderId/journey', ...adminGuard, analyticsController.orderJourney);
 
 // ── Health ────────────────────────────────────────────────────────────────────
 router.get('/analytics/health', (_req, res) => {

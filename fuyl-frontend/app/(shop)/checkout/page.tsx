@@ -24,6 +24,7 @@ import { getCashfree } from '@/lib/utils/cashfree'
 import { lookupPincode } from '@/lib/utils/pincode'
 import { formatPrice } from '@/lib/utils/formatPrice'
 import { getErrorMessage } from '@/lib/api/client'
+import { trackEvent } from '@/lib/analytics/track'
 import type { User } from '@/types/user'
 
 type Step = 'address' | 'review' | 'paying' | 'error'
@@ -43,17 +44,56 @@ const COUNTRIES = [
 ]
 const COUNTRY_MAP = new Map(COUNTRIES.map((country) => [country.code, country]))
 
+const PHONE_RULES: Record<string, { pattern: RegExp; example: string; maxLength: number }> = {
+  IN: { pattern: /^[6-9]\d{9}$/, example: '10 digits, starting with 6–9', maxLength: 10 },
+  US: { pattern: /^[2-9]\d{2}[2-9]\d{6}$/, example: 'a valid 10-digit number', maxLength: 10 },
+  CA: { pattern: /^[2-9]\d{2}[2-9]\d{6}$/, example: 'a valid 10-digit number', maxLength: 10 },
+  GB: { pattern: /^\d{10,11}$/, example: '10 or 11 digits', maxLength: 11 },
+  AE: { pattern: /^\d{9}$/, example: '9 digits', maxLength: 9 },
+  SG: { pattern: /^[3689]\d{7}$/, example: '8 digits, starting with 3, 6, 8 or 9', maxLength: 8 },
+  AU: { pattern: /^\d{9}$/, example: '9 digits', maxLength: 9 },
+  NZ: { pattern: /^\d{8,10}$/, example: '8 to 10 digits', maxLength: 10 },
+}
+
+function nationalPhone(value: string, countryCode: string): string {
+  const digits = value.replace(/\D/g, '')
+  const callingCode = (COUNTRY_MAP.get(countryCode)?.phoneCode ?? '').replace(/\D/g, '')
+  const maxLength = PHONE_RULES[countryCode]?.maxLength ?? 15
+  return callingCode && digits.startsWith(callingCode) && digits.length > maxLength
+    ? digits.slice(callingCode.length)
+    : digits
+}
+
+function phoneError(value: string, countryCode: string, label = 'Phone number'): string {
+  const digits = nationalPhone(value, countryCode)
+  if (!digits) return `${label} is required`
+  const rule = PHONE_RULES[countryCode]
+  if (rule && !rule.pattern.test(digits)) return `Enter ${rule.example} for ${label.toLowerCase()}`
+  if (!rule && !/^\d{8,15}$/.test(digits)) return `Enter a valid ${label.toLowerCase()}`
+  return ''
+}
+
+function toE164(value: string, countryCode: string): string {
+  return `${COUNTRY_MAP.get(countryCode)?.phoneCode ?? ''}${nationalPhone(value, countryCode)}`
+}
+
+function emailErrorFor(value: string): string {
+  const normalized = value.trim()
+  if (!normalized) return 'Email address is required'
+  if (normalized.length > 254 || !/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(normalized)) return 'Enter a valid email address'
+  return ''
+}
+
 const EMPTY_ADDRESS: CheckoutAddressInput = {
   fullName: '', phone: '', line1: '', line2: '', city: '', state: '', pincode: '', country: 'IN', type: 'home',
 }
 
-function addressForApi(address: CheckoutAddressInput, isWhatsAppNumber: boolean, whatsappPhone: string): CheckoutAddressInput {
-  const prefix = COUNTRY_MAP.get(address.country ?? 'IN')?.phoneCode ?? ''
-  const normalize = (phone: string) => phone.startsWith('+') ? phone : `${prefix}${phone.replace(/\D/g, '')}`
+function addressForApi(address: CheckoutAddressInput, isWhatsAppNumber: boolean, whatsappPhone: string, whatsappCountry: string): CheckoutAddressInput {
+  const country = address.country ?? 'IN'
   return {
     ...address,
-    phone: normalize(address.phone),
-    whatsappPhone: normalize(isWhatsAppNumber ? address.phone : whatsappPhone),
+    phone: toE164(address.phone, country),
+    whatsappPhone: isWhatsAppNumber ? toE164(address.phone, country) : toE164(whatsappPhone, whatsappCountry),
   }
 }
 
@@ -70,10 +110,7 @@ function validateAddressField(key: AddressField, address: CheckoutAddressInput):
     case 'fullName':
       return address.fullName.trim() ? '' : 'Full name is required'
     case 'phone': {
-      const digits = address.phone.replace(/\D/g, '')
-      if (!digits) return 'Phone number is required'
-      if (digits.length < 8 || digits.length > 15) return 'Enter a valid phone number'
-      return ''
+      return phoneError(address.phone, address.country ?? 'IN')
     }
     case 'line1':
       return address.line1.trim() ? '' : 'Address is required'
@@ -99,7 +136,7 @@ function toCheckoutAddress(a: Address, user: User | null): CheckoutAddressInput 
   const type: CheckoutAddressInput['type'] = label === 'home' ? 'home' : label === 'work' || label === 'office' ? 'office' : 'other'
   return {
     fullName: user ? `${user.firstName} ${user.lastName}`.trim() : '',
-    phone:    a.phone || user?.phone || '',
+    phone:    nationalPhone(a.phone || user?.phone || '', a.country || 'IN'),
     line1:    a.line1,
     line2:    a.line2,
     city:     a.city,
@@ -120,6 +157,11 @@ export default function CheckoutPage() {
   // password) section to logged-in users before it flipped to the real form.
   const [authReady, setAuthReady] = useState(false)
   useEffect(() => { startTransition(() => setAuthReady(true)) }, [])
+
+  // Fire checkout.started once when the page mounts so the user journey
+  // query can detect that checkout was initiated even if the user dropped off
+  // before placing an order.
+  useEffect(() => { void trackEvent('checkout.started') }, [])
   // BUG FIXED (found live — reported as "subtotal shows ₹0 until Review
   // Order"): this page used to read `subtotal`/`itemCount` straight off
   // useCartStore(), which are defined as getters on the store's initial
@@ -158,16 +200,19 @@ export default function CheckoutPage() {
   const [checkoutToken, setCheckoutToken] = useState<string | null>(null)
   const [isWhatsAppNumber, setIsWhatsAppNumber] = useState(true)
   const [whatsappPhone, setWhatsappPhone] = useState('')
+  const [whatsappCountry, setWhatsappCountry] = useState('IN')
+  const [whatsappError, setWhatsappError] = useState('')
   const [identifying, setIdentifying] = useState(false)
   const [autoSubmitting, setAutoSubmitting] = useState(false)
   const [checkingEmail, setCheckingEmail] = useState(false)
 
   const handleEmailBlur = async () => {
-    setEmailError(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? 'Enter a valid email address' : '')
-    if (token || !email || !email.includes('@')) return
+    const validationError = emailErrorFor(email)
+    setEmailError(validationError)
+    if (token || validationError) return
     setCheckingEmail(true)
     try {
-      const exists = await checkEmailExists(email)
+      const exists = await checkEmailExists(email.trim().toLowerCase())
       void exists
     } catch {
       // Non-fatal — worst case the password prompt only appears after
@@ -228,6 +273,7 @@ export default function CheckoutPage() {
     setSelectedAddressId(a.id)
     setAddress(toCheckoutAddress(a, user))
     setFieldErrors({})
+    setWhatsappError('')
     setStep('address')
   }
 
@@ -311,7 +357,7 @@ export default function CheckoutPage() {
   // just because a debounce timer fired would be the wrong tradeoff.
   useEffect(() => {
     const accessToken = token ?? checkoutToken
-    if (!accessToken || !addressComplete(address, accessToken, email)) {
+    if (!accessToken || !addressComplete(address, accessToken, email, isWhatsAppNumber, whatsappPhone, whatsappCountry)) {
       startTransition(() => { setPreview(null); setPreviewLoading(false); setPreviewError('') })
       return
     }
@@ -322,7 +368,7 @@ export default function CheckoutPage() {
     const t = setTimeout(async () => {
       try {
         const result = await previewCheckout(accessToken, {
-          shippingAddress: addressForApi(address, isWhatsAppNumber, whatsappPhone),
+          shippingAddress: addressForApi(address, isWhatsAppNumber, whatsappPhone, whatsappCountry),
           paymentMethod,
           couponCode: appliedCoupon?.code,
           walletRedemptionAmount: walletAmount > 0 ? walletAmount : undefined,
@@ -340,7 +386,7 @@ export default function CheckoutPage() {
     }, 500)
     return () => { cancelled = true; clearTimeout(t) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, checkoutToken, address, paymentMethod, appliedCoupon?.code, previewRetry, useWallet, walletBalance, useLoyalty, loyaltyBalance, isWhatsAppNumber, whatsappPhone])
+  }, [token, checkoutToken, address, paymentMethod, appliedCoupon?.code, previewRetry, useWallet, walletBalance, useLoyalty, loyaltyBalance, isWhatsAppNumber, whatsappPhone, whatsappCountry])
 
   const set = (k: keyof CheckoutAddressInput) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setAddress((a) => ({ ...a, [k]: e.target.value }))
@@ -371,20 +417,16 @@ export default function CheckoutPage() {
     })
     setFieldErrors(addrErrors)
 
-    let guestEmailError = ''
-    if (!token) {
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) guestEmailError = 'Enter a valid email address'
-    }
+    const guestEmailError = token ? '' : emailErrorFor(email)
     setEmailError(guestEmailError)
 
-    if (!isWhatsAppNumber && whatsappPhone.replace(/\D/g, '').length < 8) {
-      setError('Enter a valid WhatsApp number or select that your phone number is available on WhatsApp.')
-      return
-    }
+    const nextWhatsAppError = isWhatsAppNumber ? '' : phoneError(whatsappPhone, whatsappCountry, 'WhatsApp number')
+    setWhatsappError(nextWhatsAppError)
 
     const invalidKeys = [
       guestEmailError && 'email',
       ...Object.keys(addrErrors),
+      nextWhatsAppError && 'whatsappPhone',
     ].filter(Boolean) as string[]
     if (invalidKeys.length > 0) {
       // A saved address can still be missing a field (e.g. no phone on file).
@@ -405,9 +447,9 @@ export default function CheckoutPage() {
       try {
         const guestId = useCartStore.getState().guestId ?? undefined
         const result = await checkoutIdentify({
-          email,
+          email: email.trim().toLowerCase(),
           fullName: address.fullName,
-          phone: address.phone,
+          phone: toE164(address.phone, address.country ?? 'IN'),
           guestId,
         })
         skipAutoSelectRef.current = true
@@ -419,6 +461,7 @@ export default function CheckoutPage() {
         setIdentifying(false)
       }
     }
+    void trackEvent('checkout.address_saved', { city: address.city, state: address.state, country: address.country })
     autoPlaceRef.current = true
     setAutoSubmitting(true)
     setStep('review')
@@ -497,8 +540,9 @@ export default function CheckoutPage() {
       const walletCoversAll = useWallet && orderFullyCovered
       const loyaltyCoversAll = useLoyalty && !useWallet && orderFullyCovered
       const method = walletCoversAll ? 'wallet' : loyaltyCoversAll ? 'loyalty' : paymentMethod
+      void trackEvent('payment.initiated', { paymentMethod: method, grandTotal: preview.grandTotal })
       const order = await placeOrder(accessToken, {
-        shippingAddress: addressForApi(address, isWhatsAppNumber, whatsappPhone),
+        shippingAddress: addressForApi(address, isWhatsAppNumber, whatsappPhone, whatsappCountry),
         paymentMethod: method,
         couponCode: appliedCoupon?.code,
         walletRedemptionAmount: walletAmount > 0 ? walletAmount : undefined,
@@ -686,7 +730,10 @@ export default function CheckoutPage() {
                       <div className="flex">
                         <select
                           value={address.country}
-                          onChange={(e) => setAddress((current) => ({ ...current, country: e.target.value }))}
+                          onChange={(e) => {
+                            setAddress((current) => ({ ...current, country: e.target.value }))
+                            setFieldErrors((current) => ({ ...current, phone: undefined, pincode: undefined }))
+                          }}
                           aria-label="Phone country code"
                           className="h-11 rounded-l-sm border border-r-0 border-brand-border bg-white px-2 text-body-sm"
                         >
@@ -697,7 +744,7 @@ export default function CheckoutPage() {
                           type="tel"
                           inputMode="numeric"
                           value={address.phone}
-                          onChange={setDigitsOnly('phone', 15)}
+                          onChange={setDigitsOnly('phone', PHONE_RULES[address.country ?? 'IN']?.maxLength ?? 15)}
                           onBlur={blurField('phone')}
                           className={`h-11 min-w-0 flex-1 rounded-r-sm border px-3 text-body-sm outline-none focus:border-brand-berry ${fieldErrors.phone ? 'border-red-400' : 'border-brand-border'}`}
                         />
@@ -705,18 +752,39 @@ export default function CheckoutPage() {
                       {fieldErrors.phone && <p className="text-body-xs mt-1 text-red-600">{fieldErrors.phone}</p>}
                     </div>
                     <label className="flex items-center gap-2 text-body-sm text-brand-muted">
-                      <input type="checkbox" checked={isWhatsAppNumber} onChange={(e) => setIsWhatsAppNumber(e.target.checked)} />
+                      <input type="checkbox" checked={isWhatsAppNumber} onChange={(e) => { setIsWhatsAppNumber(e.target.checked); setWhatsappError('') }} />
                       This phone number is available on WhatsApp
                     </label>
                     {!isWhatsAppNumber && (
-                      <Field
-                        label="WhatsApp Number"
-                        value={whatsappPhone}
-                        onChange={(e) => setWhatsappPhone(e.target.value.replace(/\D/g, '').slice(0, 15))}
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={15}
-                      />
+                      <div>
+                        <label htmlFor="field-whatsappPhone" className="block text-label mb-1.5 text-brand-muted">WhatsApp Number</label>
+                        <div className="flex">
+                          <select
+                            value={whatsappCountry}
+                            onChange={(e) => { setWhatsappCountry(e.target.value); setWhatsappError('') }}
+                            aria-label="WhatsApp country code"
+                            className="h-11 rounded-l-sm border border-r-0 border-brand-border bg-white px-2 text-body-sm"
+                          >
+                            {COUNTRIES.map((country) => <option key={country.code} value={country.code}>{country.phoneCode}</option>)}
+                          </select>
+                          <input
+                            id="field-whatsappPhone"
+                            type="tel"
+                            inputMode="numeric"
+                            value={whatsappPhone}
+                            maxLength={PHONE_RULES[whatsappCountry]?.maxLength ?? 15}
+                            onChange={(e) => {
+                              const max = PHONE_RULES[whatsappCountry]?.maxLength ?? 15
+                              setWhatsappPhone(e.target.value.replace(/\D/g, '').slice(0, max))
+                              setWhatsappError('')
+                            }}
+                            onBlur={() => setWhatsappError(phoneError(whatsappPhone, whatsappCountry, 'WhatsApp number'))}
+                            aria-invalid={Boolean(whatsappError)}
+                            className={`h-11 min-w-0 flex-1 rounded-r-sm border px-3 text-body-sm outline-none focus:border-brand-berry ${whatsappError ? 'border-red-400' : 'border-brand-border'}`}
+                          />
+                        </div>
+                        {whatsappError && <p className="text-body-xs mt-1 text-red-600">{whatsappError}</p>}
+                      </div>
                     )}
                     <Field
                       id="line1"
@@ -1043,11 +1111,19 @@ export default function CheckoutPage() {
   )
 }
 
-function addressComplete(address: CheckoutAddressInput, token: string | null, email: string): boolean {
-  return Boolean(
-    address.fullName && address.phone && address.line1 && address.city && address.state && address.pincode &&
-    (token || email)
-  )
+function addressComplete(
+  address: CheckoutAddressInput,
+  token: string | null,
+  email: string,
+  isWhatsAppNumber: boolean,
+  whatsappPhone: string,
+  whatsappCountry: string,
+): boolean {
+  const addressIsValid = (Object.keys(FIELD_LABELS) as AddressField[])
+    .every((field) => !validateAddressField(field, address))
+  const contactIsValid = Boolean(token) || !emailErrorFor(email)
+  const whatsappIsValid = isWhatsAppNumber || !phoneError(whatsappPhone, whatsappCountry, 'WhatsApp number')
+  return addressIsValid && contactIsValid && whatsappIsValid
 }
 
 // Pins its children (the step's primary action button) to the bottom of the
