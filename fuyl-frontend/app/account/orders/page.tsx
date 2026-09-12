@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState, startTransition } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Package, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { formatPrice } from '@/lib/utils/formatPrice'
-import { getOrders } from '@/lib/api/account'
+import { getOrdersPage } from '@/lib/api/account'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge'
 import type { Order } from '@/types/user'
@@ -57,11 +58,12 @@ function Thumbnails({ order }: { order: Order }) {
   return (
     <div className="flex -space-x-3 shrink-0">
       {shown.map((item, i) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           key={item.id}
           src={item.image}
           alt={item.name}
+          width={64}
+          height={64}
           className="w-12 h-12 rounded-lg object-cover ring-2 ring-white"
           style={{ zIndex: shown.length - i }}
         />
@@ -81,15 +83,41 @@ export default function OrdersPage() {
   const [isLoading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterKey>('all')
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [hasNext, setHasNext] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
     if (!token) return
     startTransition(() => setLoading(true))
-    getOrders(token)
-      .then(setOrders)
+    getOrdersPage(token)
+      .then((result) => {
+        setOrders(result.items)
+        setTotal(result.total)
+        setHasNext(result.hasNext)
+        setPage(1)
+      })
       .catch((err) => setError(getErrorMessage(err, 'Failed to load orders')))
       .finally(() => setLoading(false))
   }, [token])
+
+  const loadMore = async () => {
+    if (!token || loadingMore || !hasNext) return
+    setLoadingMore(true)
+    try {
+      const nextPage = page + 1
+      const result = await getOrdersPage(token, nextPage)
+      setOrders((current) => [...current, ...result.items])
+      setTotal(result.total)
+      setHasNext(result.hasNext)
+      setPage(nextPage)
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to load more orders'))
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const counts = useMemo(() => {
     const c: Record<FilterKey, number> = { all: orders.length, active: 0, delivered: 0, cancelled: 0 }
@@ -121,7 +149,7 @@ export default function OrdersPage() {
         <h1 className="text-display-xl font-display text-brand-forest">MY ORDERS</h1>
         {!isLoading && !error && orders.length > 0 && (
           <p className="text-body-sm text-brand-muted mt-1">
-            {orders.length} order{orders.length === 1 ? '' : 's'} placed
+            {total} order{total === 1 ? '' : 's'} placed
           </p>
         )}
       </div>
@@ -215,6 +243,18 @@ export default function OrdersPage() {
               </div>
             </Link>
           ))}
+        </div>
+      )}
+      {!isLoading && !error && hasNext && (
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="h-11 rounded-sm border border-brand-forest px-7 text-xs font-semibold uppercase tracking-widest text-brand-forest transition-colors hover:bg-brand-forest hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loadingMore ? 'Loading…' : 'Load more orders'}
+          </button>
         </div>
       )}
     </div>

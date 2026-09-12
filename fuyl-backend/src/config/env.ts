@@ -46,6 +46,8 @@ export const env = {
 
   mongo: {
     uri: required('MONGODB_URI', 'mongodb://localhost:27017/fuyl'),
+    minPoolSize: Math.max(0, parseInt(process.env.MONGODB_MIN_POOL_SIZE ?? '2', 10)),
+    maxPoolSize: Math.max(1, parseInt(process.env.MONGODB_MAX_POOL_SIZE ?? '20', 10)),
   },
 
   redis: {

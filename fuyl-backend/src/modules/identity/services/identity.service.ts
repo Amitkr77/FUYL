@@ -293,7 +293,7 @@ export class IdentityService {
     dto: CheckoutIdentifyDTO,
     meta: { ip?: string; userAgent?: string; deviceFingerprint?: string },
     guestId?: string
-  ): Promise<{ user: unknown; accessToken: string; isNewAccount: boolean }> {
+  ): Promise<{ user: unknown; accessToken: string; refreshToken?: string; isNewAccount: boolean }> {
     const existing = await userRepo.findByEmail(dto.email);
 
     if (existing) {
@@ -301,20 +301,12 @@ export class IdentityService {
       if (existing.lockedUntil && existing.lockedUntil > new Date()) {
         throw new ForbiddenError('Account temporarily locked. Try again later.');
       }
-      if (guestId) {
-        const { cartService } = await import('../../cart/services/cart.service');
-        await cartService.mergeGuestCartIntoUser(guestId, existing.id);
-      }
-      const { cartService } = await import('../../cart/services/cart.service');
-      const cart = await cartService.getCart({ userId: existing.id });
-      return {
-        user: existing,
-        accessToken: signShortAccessToken({
-          userId: existing.id, role: 'checkout_guest', email: existing.email,
-          permissions: [], checkoutOnly: true, checkoutCartId: cart?._id.toString(), checkoutNewAccount: false,
-        }, '2h'),
-        isNewAccount: false,
-      };
+      // Never bind an unauthenticated email-only request to an existing
+      // customer's real identity. The storefront verifies the existing
+      // account through /auth/otp/verify first, then continues checkout with
+      // that authenticated session. This prevents cart, wallet and loyalty
+      // operations from being performed against a victim whose email is known.
+      throw new UnauthorizedError('This email already has an account. Verify the email OTP to continue.');
     }
 
     // New email — create the account silently, right from the checkout form.
@@ -345,6 +337,7 @@ export class IdentityService {
 
     return {
       user: registerResult.user,
+      refreshToken: registerResult.refreshToken,
       accessToken: signShortAccessToken({
         userId: registerResult.user.id, role: 'checkout_guest', email: registerResult.user.email,
         permissions: [], checkoutOnly: true, checkoutNewAccount: true,

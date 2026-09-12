@@ -262,10 +262,10 @@ export async function getInstagramPosts(limit?: number): Promise<InstagramPost[]
   try {
     const query = limit ? `?limit=${limit}` : ''
     return await apiFetch<InstagramPost[]>(`/instagram${query}`, {
-      // The backend already caches the complete feed and the Instagram
-      // webhook invalidates it. Avoid a second frontend cache that could keep
-      // an empty/stale feed visible for another hour.
-      cache: 'no-store',
+      // Keep the homepage statically renderable. The backend still owns the
+      // longer Instagram cache; this short ISR window limits feed staleness.
+      revalidate: 300,
+      tags: ['instagram-feed'],
     })
   } catch {
     return []

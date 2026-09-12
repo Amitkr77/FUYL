@@ -2,6 +2,7 @@
 
 import { useEffect, useState, startTransition, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useCartStore } from '@/lib/store/cartStore'
 import { formatPrice } from '@/lib/utils/formatPrice'
@@ -133,8 +134,7 @@ export default function WishlistPage() {
               <div key={keyOf(row)} className="border rounded-sm p-5 flex items-center gap-4" style={{ borderColor: 'var(--color-brand-border)' }}>
                 <Link href={`/products/${row.product.slug}`} className="flex-shrink-0">
                   {row.product.images[0] && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={row.product.images[0].url} alt={row.product.name} className="w-16 h-16 object-cover rounded-sm" />
+                    <Image src={row.product.images[0].url} alt={row.product.name} width={64} height={64} className="w-16 h-16 object-cover rounded-sm" />
                   )}
                 </Link>
                 <div className="flex-1 min-w-0">

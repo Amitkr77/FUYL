@@ -182,7 +182,7 @@ export class CatalogController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
+        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
         const result = await catalogService.listProducts(page, limit);
         return paginate(res, result.items.map((p) => serializeProduct(p, req)), result.total, result.page, result.limit);
       } catch (err) { next(err); }
@@ -192,12 +192,12 @@ export class CatalogController {
   listPublished = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
       const filter: Record<string, unknown> = {};
-      if (req.query.tagId) filter.tagIds = req.query.tagId;
-      if (req.query.brand) filter.brand = req.query.brand;
+      if (typeof req.query.tagId === 'string') filter.tagIds = req.query.tagId;
+      if (typeof req.query.brand === 'string') filter.brand = req.query.brand;
       const result = await catalogService.listPublished(page, limit, filter);
-      return paginate(res, result.items.map((p) => serializeProduct(p, req)), result.total, result.page, result.limit);
+      return paginate(res, result.items.map((p: any) => serializeProduct(p, req)), result.total, result.page, result.limit);
     } catch (err) { next(err); }
   };
 
@@ -205,7 +205,7 @@ export class CatalogController {
     try {
       const q = (req.query.q as string) || '';
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
       const result = await catalogService.search(q, page, limit);
       return paginate(res, result.items.map((p) => serializeProduct(p, req)), result.total, result.page, result.limit);
     } catch (err) { next(err); }

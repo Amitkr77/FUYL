@@ -222,7 +222,7 @@ class InventoryService {
     const referenceId = dto.cartId ?? dto.orderId;
     if (!referenceId) throw new BadRequestError('Either cartId or orderId required');
 
-    for (const item of dto.items) {
+    await Promise.all(dto.items.map(async (item) => {
       const idempotencyKey = `${referenceType}:${referenceId}:${item.productId}:${item.variantId ?? 'default'}:${item.sellerId}`;
       const session = await mongoose.startSession();
       try {
@@ -294,7 +294,7 @@ class InventoryService {
       } finally {
         await session.endSession();
       }
-    }
+    }));
 
     logger.info(`[inventory] reserved ${reserved.length} items, ${failed.length} failed`);
     return { reserved, failed };

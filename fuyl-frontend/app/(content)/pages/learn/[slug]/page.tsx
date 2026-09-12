@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { generateSEO } from "@/lib/utils/seo";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
@@ -61,11 +62,12 @@ export default async function BlogPostPage({ params }: Props) {
             className="relative aspect-video overflow-hidden rounded-sm mt-6 mb-8"
             style={{ background: "var(--color-brand-cream)" }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={post.image}
               alt={post.imageAlt}
-              className="w-full h-full object-cover"
+              fill
+              sizes="(max-width: 768px) 100vw, 1200px"
+              className="object-cover"
             />
           </div>
         )}

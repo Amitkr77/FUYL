@@ -3,6 +3,7 @@
 import { useEffect, useState, startTransition } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   MapPin,
   Truck,
@@ -16,7 +17,9 @@ import {
 import { useAuthStore } from "@/lib/store/authStore";
 import { formatPrice } from "@/lib/utils/formatPrice";
 import { getOrder, getMyReturns, type CustomerReturn } from "@/lib/api/account";
-import { getOrderPayments, type OrderPayment } from "@/lib/api/payment";
+import { createPayment, getOrderPayments, verifyPayment, type OrderPayment } from "@/lib/api/payment";
+import { getCashfree } from "@/lib/utils/cashfree";
+import { Button } from "@/components/ui/Button";
 import { CancelOrderPanel } from "@/components/orders/CancelOrderPanel";
 import { RefundRequestPanel } from "@/components/orders/RefundRequestPanel";
 import {
@@ -149,6 +152,27 @@ export default function OrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [reviewingItemId, setReviewingItemId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [retryingPayment, setRetryingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+
+  const retryPayment = async () => {
+    if (!token || !order || retryingPayment) return;
+    setRetryingPayment(true);
+    setPaymentError("");
+    try {
+      const payment = await createPayment(token, order.id, "cashfree");
+      if (payment.method !== "cashfree") throw new Error("Online payment is unavailable for this order");
+      const cashfree = await getCashfree(payment.mode);
+      await cashfree.checkout({ paymentSessionId: payment.paymentSessionId, redirectTarget: "_modal" });
+      await verifyPayment(token, { cfOrderId: payment.cfOrderId });
+      setReloadKey((key) => key + 1);
+    } catch (err) {
+      setPaymentError(getErrorMessage(err, "Payment was not completed. You can retry when ready."));
+      setReloadKey((key) => key + 1);
+    } finally {
+      setRetryingPayment(false);
+    }
+  };
 
   useEffect(() => {
     if (!token || !params.id) return;
@@ -286,10 +310,11 @@ export default function OrderDetailPage() {
                       >
                         <div className="flex items-center gap-4">
                           {item.image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
+                            <Image
                               src={item.image}
                               alt={item.name}
+                              width={64}
+                              height={64}
                               className="w-16 h-16 object-cover rounded-lg shrink-0"
                             />
                           ) : (
@@ -579,6 +604,24 @@ export default function OrderDetailPage() {
                     )}
                   </div>
                 )}
+                {order.paymentMethod === "cashfree" &&
+                  ["pending", "failed"].includes(order.paymentStatus) &&
+                  ["pending", "payment_failed"].includes(order.status) && (
+                    <div className="mt-4 border-t border-brand-border pt-4">
+                      <Button
+                        variant="primary"
+                        size="md"
+                        fullWidth
+                        disabled={retryingPayment}
+                        onClick={retryPayment}
+                      >
+                        {retryingPayment ? "Opening payment…" : "Retry Payment"}
+                      </Button>
+                      {paymentError && (
+                        <p className="mt-2 text-body-xs text-red-700" role="alert">{paymentError}</p>
+                      )}
+                    </div>
+                  )}
               </Card>
             </div>
           </div>

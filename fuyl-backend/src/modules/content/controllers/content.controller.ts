@@ -56,7 +56,7 @@ export class ContentController {
   listPublished = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
       const result = await contentService.listPublished(page, limit);
       return paginate(res, result.items, result.total, result.page, result.limit);
     } catch (err) { next(err); }
@@ -66,7 +66,7 @@ export class ContentController {
     try {
       const q = (req.query.q as string) || '';
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 10, 1), 50);
       const result = await contentService.searchPosts(q, page, limit);
       return paginate(res, result.items, result.total, result.page, result.limit);
     } catch (err) { next(err); }
@@ -83,7 +83,7 @@ export class ContentController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
+        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
         const result = await contentService.listAdmin(page, limit);
         return paginate(res, result.items, result.total, result.page, result.limit);
       } catch (err) { next(err); }
@@ -141,7 +141,7 @@ export class ContentController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
+        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
         const result = await contentService.listPagesAdmin(page, limit, {
           search: (req.query.q as string | undefined)?.trim().slice(0, 100),
           status: req.query.status as string | undefined,
@@ -242,7 +242,7 @@ export class ContentController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 50;
+        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 200);
         const result = await contentService.listIngredientsAdmin(page, limit);
         return paginate(res, result.items, result.total, result.page, result.limit);
       } catch (err) { next(err); }
@@ -297,7 +297,7 @@ export class ContentController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 50;
+        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 200);
         const result = await contentService.listTestimonialsAdmin(page, limit);
         return paginate(res, result.items, result.total, result.page, result.limit);
       } catch (err) { next(err); }
@@ -350,7 +350,7 @@ export class ContentController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 50;
+        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 200);
         const result = await contentService.listFAQsAdmin(page, limit);
         return paginate(res, result.items, result.total, result.page, result.limit);
       } catch (err) { next(err); }
@@ -406,7 +406,9 @@ export class ContentController {
   instagramFeed = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
       const parsedLimit = parseInt(req.query.limit as string, 10);
-      const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
+      const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
+        ? Math.min(parsedLimit, 100)
+        : undefined;
       return success(res, await contentService.getInstagramFeed(limit));
     } catch (err) { next(err); }
   };

@@ -1,11 +1,6 @@
 import { FilterQuery, Types } from 'mongoose';
 import { IPost, PostModel } from '../models/post.model';
 
-/** Escape regex metacharacters so search input is treated as a literal. */
-function escapeRegex(input: string): string {
-  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 export class PostRepository {
   async create(data: Partial<IPost>): Promise<IPost> {
     return PostModel.create(data);
@@ -53,13 +48,11 @@ export class PostRepository {
    */
   async search(query: string, filter: FilterQuery<IPost> = {}, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-    const re = { $regex: escapeRegex(query), $options: 'i' };
-    const finalFilter: FilterQuery<IPost> = {
-      ...filter,
-      $or: [{ title: re }, { excerpt: re }, { tags: re }],
-    };
+    const finalFilter: FilterQuery<IPost> = { ...filter, $text: { $search: query } };
     const [items, total] = await Promise.all([
-      PostModel.find(finalFilter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      PostModel.find(finalFilter, { score: { $meta: 'textScore' } })
+        .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
+        .skip(skip).limit(limit).lean(),
       PostModel.countDocuments(finalFilter),
     ]);
     return { items, total, page, limit };

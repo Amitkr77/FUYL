@@ -23,7 +23,10 @@ export default function AccountPage() {
 function AccountPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect");
+  const requestedRedirect = searchParams.get("redirect");
+  const redirectTo = requestedRedirect?.startsWith("/") && !requestedRedirect.startsWith("//")
+    ? requestedRedirect
+    : null;
   const referralCode = searchParams.get("ref");
 
   const [mode, setMode] = useState<Mode>(referralCode ? "register" : "login");

@@ -220,28 +220,20 @@ class CheckoutService {
     const addr = shippingAddress as { pincode?: string; postalCode?: string };
     const pincode = addr.pincode ?? addr.postalCode;
 
-    let fixedTotal = 0;
-    let calculatedWeightGrams = 0;
-    let hasCalculatedItems = false;
-
-    for (const item of cart.items) {
+    const contributions = await Promise.all(cart.items.map(async (item) => {
       let product: Awaited<ReturnType<typeof catalogService.getProduct>> | null = null;
       try { product = await catalogService.getProduct(String(item.productId)); } catch { /* not found */ }
 
       const mode = product?.shippingInfo?.shippingMode ?? 'calculated';
 
       if (mode === 'free' || product?.shippingInfo?.isPhysical === false) {
-        // free shipping or digital — contributes nothing
-        continue;
+        return { fixed: 0, weight: 0, calculated: false };
       }
 
       if (mode === 'fixed') {
-        fixedTotal += product?.shippingInfo?.fixedShippingRate ?? 0;
-        continue;
+        return { fixed: product?.shippingInfo?.fixedShippingRate ?? 0, weight: 0, calculated: false };
       }
 
-      // calculated — add weight to the carrier pool
-      hasCalculatedItems = true;
       let unitWeight = 500;
       if (item.variantId) {
         try {
@@ -251,8 +243,12 @@ class CheckoutService {
       } else if (product?.shippingInfo?.weight) {
         unitWeight = toGrams(product.shippingInfo.weight, product.shippingInfo.weightUnit);
       }
-      calculatedWeightGrams += unitWeight * item.quantity;
-    }
+      return { fixed: 0, weight: unitWeight * item.quantity, calculated: true };
+    }));
+
+    const fixedTotal = contributions.reduce((sum, item) => sum + item.fixed, 0);
+    const calculatedWeightGrams = contributions.reduce((sum, item) => sum + item.weight, 0);
+    const hasCalculatedItems = contributions.some((item) => item.calculated);
 
     // No carrier quote needed when there are no calculated items
     if (!hasCalculatedItems || !pincode) {

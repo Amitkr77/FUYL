@@ -1,14 +1,12 @@
 import type { NextConfig } from "next";
 
-// Report-only for now: validates against real traffic without risking Next's
-// inline runtime / JSON-LD blocks. Promote the header key to
-// "Content-Security-Policy" once reports are clean. The storefront's real XSS
-// defense is render-time HTML sanitization (see components/content/RichText);
-// this is defense-in-depth + clickjacking protection.
+// Enforced browser policy. Inline scripts/styles remain temporarily allowed for
+// Next's runtime and JSON-LD, while eval, framing and unsafe form targets are
+// blocked.
 const contentSecurityPolicy = [
   "default-src 'self'",
   "img-src 'self' data: https:",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "connect-src 'self' https:",
@@ -29,7 +27,7 @@ const securityHeaders = [
     key: "Strict-Transport-Security",
     value: "max-age=63072000; includeSubDomains; preload",
   },
-  { key: "Content-Security-Policy-Report-Only", value: contentSecurityPolicy },
+  { key: "Content-Security-Policy", value: contentSecurityPolicy },
 ];
 
 const nextConfig: NextConfig = {
@@ -61,7 +59,6 @@ const nextConfig: NextConfig = {
         hostname: "res.cloudinary.com",
       },
       { protocol: "https", hostname: "cdn.shopify.com" },
-      { protocol: "https", hostname: "example.com" },
     ],
   },
 };

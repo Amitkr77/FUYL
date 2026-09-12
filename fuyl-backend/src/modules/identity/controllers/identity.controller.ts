@@ -35,7 +35,7 @@ export class IdentityController {
         res.cookie(env.jwt.cookieName, result.refreshToken, {
           httpOnly: true,
           secure: env.isProd,
-          sameSite: 'strict',
+          sameSite: env.isProd ? 'none' : 'lax',
           maxAge: 30 * 24 * 60 * 60 * 1000,
         });
         return created(res, {
@@ -56,7 +56,7 @@ export class IdentityController {
         res.cookie(env.jwt.cookieName, result.refreshToken, {
           httpOnly: true,
           secure: env.isProd,
-          sameSite: 'strict',
+          sameSite: env.isProd ? 'none' : 'lax',
           maxAge: 30 * 24 * 60 * 60 * 1000,
         });
         return success(res, { user: result.user, accessToken: result.accessToken });
@@ -81,6 +81,14 @@ export class IdentityController {
         const meta = IdentityService.extractMeta(req);
         const guestId = req.headers['x-guest-id'] as string | undefined;
         const result = await identityService.checkoutIdentify(req.body, meta, guestId);
+        if (result.refreshToken) {
+          res.cookie(env.jwt.cookieName, result.refreshToken, {
+            httpOnly: true,
+            secure: env.isProd,
+            sameSite: env.isProd ? 'none' : 'lax',
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+          });
+        }
         return success(res, {
           status: 'checkout_ready',
           user: result.user,
@@ -102,7 +110,7 @@ export class IdentityController {
         res.cookie(env.jwt.cookieName, tokens.refreshToken, {
           httpOnly: true,
           secure: env.isProd,
-          sameSite: 'strict',
+          sameSite: env.isProd ? 'none' : 'lax',
           maxAge: 30 * 24 * 60 * 60 * 1000,
         });
         return success(res, tokens);
@@ -274,7 +282,7 @@ export class IdentityController {
         res.cookie(env.jwt.cookieName, result.refreshToken, {
           httpOnly: true,
           secure: env.isProd,
-          sameSite: 'strict',
+          sameSite: env.isProd ? 'none' : 'lax',
           maxAge: 30 * 24 * 60 * 60 * 1000,
         });
         return success(res, { user: result.user, accessToken: result.accessToken });

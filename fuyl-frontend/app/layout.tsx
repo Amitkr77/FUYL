@@ -8,8 +8,7 @@ import { PageTracker } from '@/components/analytics/PageTracker'
 import { getNavigationPages, getAnnouncementBar, getPrebookingModalSettings, getPopupBanner } from '@/lib/api/content'
 import '@/styles/globals.css'
 import '@fontsource-variable/inter'
-import { PrebookingPopup } from '@/components/marketing/PrebookingPopup'
-import { PopupBanner } from '@/components/marketing/PopupBanner'
+import { DeferredMarketing } from '@/components/marketing/DeferredMarketing'
 
 export const metadata: Metadata = {
   ...generateSEO(),
@@ -64,8 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         <SiteChrome shopItems={shopItems} contentNavigation={contentNavigation} announcementBar={announcementBar}>{children}</SiteChrome>
         <PageTracker />
-        <PrebookingPopup cms={prebookingModal} />
-        {popupBanner && <PopupBanner cms={popupBanner} />}
+        <DeferredMarketing prebookingModal={prebookingModal} popupBanner={popupBanner} />
       </body>
     </html>
   )

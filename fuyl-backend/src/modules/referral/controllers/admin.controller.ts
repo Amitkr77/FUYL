@@ -29,7 +29,7 @@ export class AdminReferralController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
+        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
         const r = await programService.list(page, limit);
         return paginate(res, r.items, r.total, r.page, r.limit);
       } catch (err) { next(err); }
@@ -80,7 +80,7 @@ export class AdminReferralController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
+        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
         const filter: Record<string, unknown> = {};
         if (req.query.status) filter.status = req.query.status;
         if (req.query.referrerId) filter.referrerId = req.query.referrerId;
@@ -96,7 +96,7 @@ export class AdminReferralController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
+        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
         const r = await fraudFlagRepo.paginate(page, limit);
         return paginate(res, r.items, r.total, r.page, r.limit);
       } catch (err) { next(err); }

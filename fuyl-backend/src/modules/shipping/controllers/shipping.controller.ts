@@ -41,9 +41,9 @@ export class ShippingController {
   serviceabilityProduct = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
       const pincode = requireIndianPincode(req.params.pincode);
-      const productId  = req.query.productId  as string | undefined;
-      const variantId  = req.query.variantId  as string | undefined;
-      const weight     = req.query.weight ? Number(req.query.weight) : undefined;
+      const productId  = typeof req.query.productId === 'string' ? req.query.productId : undefined;
+      const variantId  = typeof req.query.variantId === 'string' ? req.query.variantId : undefined;
+      const weight     = typeof req.query.weight === 'string' ? Number(req.query.weight) : undefined;
       if (!productId) return next(new BadRequestError('productId is required'));
       return success(res, await shippingService.checkServiceabilityForProduct(pincode, productId, variantId, weight));
     } catch (err) { next(err); }
@@ -82,7 +82,7 @@ export class ShippingController {
     authorize(Roles.ADMIN, Roles.SUPER_ADMIN),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
-        const sellerId = req.query.sellerId as string;
+        const sellerId = typeof req.query.sellerId === 'string' ? req.query.sellerId : '';
         if (!sellerId) return success(res, []);
         const page = Number(req.query.page ?? 1);
         const limit = Math.min(Number(req.query.limit ?? 20), 100);
@@ -110,7 +110,7 @@ export class ShippingController {
         const page = Number(req.query.page ?? 1);
         const limit = Math.min(Number(req.query.limit ?? 20), 100);
         const filter: Record<string, unknown> = {};
-        if (req.query.status) filter.status = req.query.status;
+        if (typeof req.query.status === 'string') filter.status = req.query.status;
         const result = await shippingService.listAllForAdmin(filter, page, limit);
         return paginate(res, result.items, result.total, result.page, result.limit);
       } catch (err) { next(err); }

@@ -93,16 +93,19 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name:       'fuyl_auth',
+      version:    2,
       storage:    createJSONStorage(() => localStorage),
-      // Persist BOTH the access token and the user. Keeping the token out of
-      // localStorage (memory-only) made session continuity depend entirely on
-      // the /auth/refresh cookie, which isn't reliably sent across the payment
-      // gateway return (refresh cookie is sameSite=strict) — that logged users
-      // out after completing checkout. Persisting the token restores continuity
-      // across reloads/redirects. (XSS exposure is mitigated by the storefront
-      // HTML sanitizer + CSP.) rehydrate() below stays as a no-op safety net:
-      // it only acts when a user is present but the token is somehow missing.
-      partialize: (state) => ({ token: state.token, user: state.user, isAffiliateImpersonation:state.isAffiliateImpersonation }),
+      // Keep bearer credentials out of localStorage. Session continuity comes
+      // from the httpOnly refresh cookie, which JavaScript and injected CMS
+      // content cannot read. Affiliate impersonation is intentionally
+      // memory-only as well because it is a short privileged session.
+      partialize: (state) => ({ user: state.user }),
+      // Version 1 persisted bearer tokens. Explicitly discard those legacy
+      // fields during hydration instead of leaving old installations exposed.
+      migrate: (persisted) => {
+        const previous = persisted as Partial<AuthState> | undefined
+        return { user: previous?.user ?? null, token: null, isAffiliateImpersonation: false }
+      },
       // If the token didn't come back from storage but the user did, restore it
       // from the refresh cookie (defensive; normally the token is persisted).
       onRehydrateStorage: () => (state) => {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { ChevronDown, ShoppingBag, ShieldCheck, Truck, RotateCcw } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
 import { CouponInput, type AppliedCoupon } from '@/components/checkout/CouponInput'
@@ -76,8 +77,7 @@ export function OrderSummary({
             <div key={item.id} className="flex gap-3">
               <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-sm bg-brand-sage">
                 {item.image && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.image} alt="" className="h-full w-full object-cover" />
+                  <Image src={item.image} alt="" fill sizes="56px" className="object-cover" />
                 )}
                 <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-forest text-[10px] font-semibold text-white">
                   {item.quantity}

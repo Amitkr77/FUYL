@@ -178,6 +178,22 @@ export async function getOrders(token: string): Promise<Order[]> {
   return res.map(mapOrder)
 }
 
+export async function getOrdersPage(token: string, page = 1, limit = 20): Promise<{
+  items: Order[]
+  total: number
+  hasNext: boolean
+}> {
+  const res = await apiFetch<{
+    data: BackendOrder[]
+    meta: { total: number; hasNext: boolean }
+  }>(`/orders/me?page=${page}&limit=${limit}`, { token, unwrap: false })
+  return {
+    items: (res.data ?? []).map(mapOrder),
+    total: res.meta?.total ?? 0,
+    hasNext: res.meta?.hasNext ?? false,
+  }
+}
+
 export async function getOrder(token: string, orderId: string): Promise<Order> {
   const res = await apiFetch<BackendOrder>(`/orders/${orderId}`, { token })
   return mapOrder(res)

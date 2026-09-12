@@ -21,6 +21,7 @@ import { RecommendedProducts } from "@/components/product/RecommendedProducts";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import type { Product } from "@/types/product";
+import { Suspense } from "react";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -61,49 +62,25 @@ export default async function ProductPage({ params }: Props) {
     notFound();
   }
 
-  // Fetch live inventory for every variant in parallel so the quantity
-  // selector can cap at the real available stock for whichever variant the
-  // customer picks. Failures are non-fatal — the selector just shows no cap.
-  try {
-    const stockResults = await Promise.allSettled(
-      product.variants.map((v) =>
-        getProductStock(product.id, v.id || undefined)
-      )
-    );
-    product.variants = product.variants.map((v, i) => {
-      const result = stockResults[i];
-      if (result.status === "fulfilled" && result.value !== null) {
-        return { ...v, available: v.available && result.value > 0, availableQty: result.value };
-      }
-      // Stock must be explicitly configured before an item can be purchased;
-      // the cart API enforces the same rule authoritatively.
-      return { ...v, available: false, availableQty: 0 };
-    });
-  } catch {
-    // If stock fetches fail, the product page still renders — just with no qty cap.
-  }
+  // Inventory, plans and reviews are independent. Fetch them together so a
+  // slow secondary service does not serially delay the conversion UI.
+  const [stockResults, plansResult, reviewsResult] = await Promise.all([
+    Promise.allSettled(product.variants.map((v) => getProductStock(product.id, v.id || undefined))),
+    product.isSubscribable ? getActivePlans().catch(() => [] as SubscriptionPlan[]) : Promise.resolve([] as SubscriptionPlan[]),
+    getProductReviews(product.id).catch(() => null),
+  ]);
 
-  // Subscription plans are platform-wide; only offered for subscribable products.
-  let plans: SubscriptionPlan[] = [];
-  if (product.isSubscribable) {
-    try {
-      plans = await getActivePlans();
-    } catch {
-      /* plans unavailable — hide the option */
+  product.variants = product.variants.map((v, i) => {
+    const result = stockResults[i];
+    if (result?.status === "fulfilled" && result.value !== null) {
+      return { ...v, available: v.available && result.value > 0, availableQty: result.value };
     }
-  }
-
-  let reviews: ReviewCard[] = [];
-  let averageRating = product.rating ?? 0;
-  let totalCount = product.reviewCount ?? 0;
-  try {
-    const reviewData = await getProductReviews(product.id);
-    reviews = reviewData.reviews;
-    averageRating = reviewData.averageRating;
-    totalCount = reviewData.totalCount;
-  } catch {
-    // No reviews yet, or the reviews service hiccuped — not fatal to the page.
-  }
+    return { ...v, available: false, availableQty: 0 };
+  });
+  const plans = plansResult;
+  const reviews: ReviewCard[] = reviewsResult?.reviews ?? [];
+  const averageRating = reviewsResult?.averageRating ?? product.rating ?? 0;
+  const totalCount = reviewsResult?.totalCount ?? product.reviewCount ?? 0;
 
   return (
     <>
@@ -169,7 +146,9 @@ export default async function ProductPage({ params }: Props) {
         </div>
 
         <div className="mt-10">
-          <RecommendedProducts excludeProductId={product.id} />
+          <Suspense fallback={<div className="h-72 animate-pulse rounded-xl bg-brand-sage/20" aria-label="Loading recommendations" />}>
+            <RecommendedProducts excludeProductId={product.id} />
+          </Suspense>
         </div>
       </div>
     </>

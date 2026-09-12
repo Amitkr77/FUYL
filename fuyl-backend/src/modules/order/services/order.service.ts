@@ -307,9 +307,9 @@ export class OrderService {
     return order;
   }
 
-  async listMine(customerId: string, status?: string) {
+  async listMine(customerId: string, status?: string, page = 1, limit = 20) {
     const filter = status ? { status } : {};
-    return orderRepo.findByCustomer(customerId, filter);
+    return orderRepo.paginateByCustomer(customerId, filter, page, limit);
   }
 
   async listAll(page = 1, limit = 20, filter: Record<string, unknown> = {}) {

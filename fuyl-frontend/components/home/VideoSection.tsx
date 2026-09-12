@@ -10,13 +10,31 @@ import { useCountdown } from "@/lib/hooks/useCountdown";
 const LAUNCH_DATE = "2026-08-01T00:00:00+05:30";
 
 export function VideoSection() {
+  const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
+  const [shouldLoad, setShouldLoad] = useState(false);
   const { isComplete } = useCountdown(LAUNCH_DATE);
 
   useEffect(() => {
-    videoRef.current?.play().catch(() => {});
+    const section = sectionRef.current;
+    if (!section) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "400px 0px" },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (shouldLoad) videoRef.current?.play().catch(() => {});
+  }, [shouldLoad]);
 
   const toggleMute = () => {
     const v = videoRef.current;
@@ -26,19 +44,20 @@ export function VideoSection() {
   };
 
   return (
-    <section className="relative w-full max-w-full overflow-hidden min-h-dvh">
+    <section ref={sectionRef} className="relative w-full max-w-full overflow-hidden min-h-dvh">
       {/* Background video */}
       <video
         ref={videoRef}
         className="absolute inset-0 w-full h-full object-cover"
         playsInline
-        autoPlay
+        autoPlay={shouldLoad}
+        preload="none"
         loop
         muted
         poster="https://fuyl.in/cdn/shop/files/FUYL_Complete_Product_Shot.jpg"
         aria-hidden="true"
       >
-        <source src="/video/fuyl-reveal.mp4" type="video/mp4" />
+        {shouldLoad && <source src="/video/fuyl-reveal.mp4" type="video/mp4" />}
       </video>
 
       {/* Dark overlay — heavier at top and bottom, lighter in the middle so video shows */}

@@ -13,12 +13,14 @@ import { InventoryStockModel } from '../../inventory/models/stock.model';
 import { logger } from '../../../config/logger';
 import { fromPaise, toPaise } from '../../../shared/utils';
 import { netRevenueStages, recognizedRevenueMatch, validOrderMatch } from '../../../shared/utils/orderFinancials';
+import { cacheService } from '../../../shared/services/cache.service';
 
 class AdminDashboardService {
   /**
    * Comprehensive top-line metrics for the admin dashboard.
    */
   async getOverview() {
+    try { const cached = await cacheService.get<any>('admin:dashboard:overview'); if (cached) return cached; } catch { /* optional cache */ }
     const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const since1d = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000);
@@ -69,7 +71,7 @@ class AdminDashboardService {
       CouponRedemptionModel.countDocuments({ appliedAt: { $gte: since30d }, status: 'applied' }),
     ]);
 
-    return {
+    const result = {
       users: {
         total: usersTotal,
         new30d: usersNew30d,
@@ -113,6 +115,8 @@ class AdminDashboardService {
         lowStockItems: lowStockItems,
       },
     };
+    try { await cacheService.set('admin:dashboard:overview', result, 45); } catch { /* optional cache */ }
+    return result;
   }
 
   /**

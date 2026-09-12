@@ -2,10 +2,15 @@ import { FilterQuery, Types } from 'mongoose';
 import { IProduct, ProductModel } from '../models/product.model';
 import { ProductStatus } from '../../../shared/enums';
 
-/** Escape regex metacharacters so search input is treated as a literal. */
-function escapeRegex(input: string): string {
-  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+// Product cards do not need long descriptions, FAQ blocks, supplement facts,
+// certifications, or internal pricing data. Keeping this projection here
+// prevents every collection/search request from transferring full PDP records.
+const PUBLIC_LIST_PROJECTION = {
+  name: 1, shortDescription: 1, brand: 1, seo: 1, media: 1,
+  basePrice: 1, salePrice: 1, compareAtPrice: 1, currency: 1,
+  shipping: 1, isPublished: 1, isSubscribable: 1,
+  ratingAverage: 1, ratingCount: 1, tagIds: 1,
+};
 
 /**
  * isPublished/isDeleted remain the fields every existing query filters on;
@@ -95,20 +100,11 @@ export class ProductRepository {
     // hit — the `$text` index only matches whole, stemmed terms. Covers the
     // fields a shopper would actually type; `description` (long HTML) is left
     // out on purpose. Input is escaped so it can't act as a regex.
-    const re = { $regex: escapeRegex(query), $options: 'i' };
-    const finalFilter = {
-      ...filter,
-      $or: [
-        { name: re },
-        { shortDescription: re },
-        { brand: re },
-        { 'seo.keywords': re },
-        { ingredients: re },
-        { benefits: re },
-      ],
-    };
+    const finalFilter = { ...filter, $text: { $search: query } };
     const [items, total] = await Promise.all([
-      ProductModel.find(finalFilter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      ProductModel.find(finalFilter, { ...PUBLIC_LIST_PROJECTION, score: { $meta: 'textScore' } })
+        .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
+        .skip(skip).limit(limit).lean(),
       ProductModel.countDocuments(finalFilter),
     ]);
     return { items, total, page, limit };
@@ -119,7 +115,13 @@ export class ProductRepository {
    */
   async listPublished(filter: FilterQuery<IProduct> = {}, page = 1, limit = 20) {
     const finalFilter = { isPublished: true, isDeleted: false, ...filter };
-    return this.paginate(finalFilter, page, limit);
+    const skip = (page - 1) * limit;
+    const [items, total] = await Promise.all([
+      ProductModel.find(finalFilter, PUBLIC_LIST_PROJECTION)
+        .sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      ProductModel.countDocuments(finalFilter),
+    ]);
+    return { items, total, page, limit };
   }
 
   async updateRating(productId: string | Types.ObjectId, average: number, count: number): Promise<void> {

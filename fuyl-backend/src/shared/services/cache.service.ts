@@ -44,6 +44,15 @@ class CacheService {
     }
   }
 
+  async delByPattern(pattern: string): Promise<void> {
+    let cursor = '0';
+    do {
+      const [nextCursor, keys] = await this.client.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      cursor = nextCursor;
+      if (keys.length) await this.client.del(...keys);
+    } while (cursor !== '0');
+  }
+
   async incr(key: string, ttlSeconds?: number): Promise<number> {
     const n = await this.client.incr(key);
     if (n === 1 && ttlSeconds) {

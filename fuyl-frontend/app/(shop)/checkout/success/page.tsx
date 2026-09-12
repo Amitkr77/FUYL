@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState, startTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import { CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -109,8 +110,7 @@ function CheckoutSuccessContent() {
             {order.items.map((item) => (
               <div key={item.id} className="flex items-center gap-4">
                 {item.image && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-sm" />
+                  <Image src={item.image} alt={item.name} width={56} height={56} className="w-14 h-14 object-cover rounded-sm" />
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-body-sm font-semibold truncate">{item.name}</p>

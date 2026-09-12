@@ -175,11 +175,14 @@ export const useCartStore = create<CartState>()(
         // mount so a returning visitor (or an expired/rotated session)
         // doesn't keep trusting stale localStorage data indefinitely.
         syncCart: async () => {
+          set({ isLoading: true })
           try {
             const cart = await getCart(currentAuth())
             set({ items: cart.items })
           } catch (err) {
             console.error('syncCart failed', err)
+          } finally {
+            set({ isLoading: false })
           }
         },
 

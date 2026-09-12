@@ -2,6 +2,7 @@
 
 import { useEffect, useState, startTransition, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuthStore } from '@/lib/store/authStore'
 import { formatPrice } from '@/lib/utils/formatPrice'
 import { getErrorMessage } from '@/lib/api/client'
@@ -122,8 +123,7 @@ export default function SubscriptionsPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     {s.productImage && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={s.productImage} alt={s.productName} className="w-14 h-14 object-cover rounded-sm" />
+                      <Image src={s.productImage} alt={s.productName} width={56} height={56} className="w-14 h-14 object-cover rounded-sm" />
                     )}
                     <div>
                       <p className="text-body-md font-semibold">{s.productName}</p>

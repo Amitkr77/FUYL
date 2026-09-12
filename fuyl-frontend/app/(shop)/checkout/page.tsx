@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -18,7 +19,7 @@ import { previewCheckout, placeOrder, getPaymentConfig, type CheckoutAddressInpu
 import { getWalletBalance } from '@/lib/api/wallet'
 import { getLoyaltyBalance, type LoyaltyBalance } from '@/lib/api/loyalty'
 import { getAddresses, type Address } from '@/lib/api/customer'
-import { checkEmailExists, checkoutIdentify } from '@/lib/api/account'
+import { checkEmailExists, checkoutIdentify, requestOtp, verifyOtp } from '@/lib/api/account'
 import { createPayment, verifyPayment } from '@/lib/api/payment'
 import { getCashfree } from '@/lib/utils/cashfree'
 import { lookupPincode, type PincodeResult } from '@/lib/utils/pincode'
@@ -149,7 +150,7 @@ function toCheckoutAddress(a: Address, user: User | null): CheckoutAddressInput 
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { token, user } = useAuthStore()
+  const { token, user, setSession } = useAuthStore()
   // Zustand's persist middleware rehydrates the auth store from localStorage
   // asynchronously right after the first client render, so `token` reads as
   // null for a brief moment even for an already-logged-in shopper — without
@@ -205,6 +206,10 @@ export default function CheckoutPage() {
   const [identifying, setIdentifying] = useState(false)
   const [autoSubmitting, setAutoSubmitting] = useState(false)
   const [checkingEmail, setCheckingEmail] = useState(false)
+  const [knownAccount, setKnownAccount] = useState<boolean | null>(null)
+  const [checkoutOtp, setCheckoutOtp] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpError, setOtpError] = useState('')
 
   const handleEmailBlur = async () => {
     const validationError = emailErrorFor(email)
@@ -213,12 +218,46 @@ export default function CheckoutPage() {
     setCheckingEmail(true)
     try {
       const exists = await checkEmailExists(email.trim().toLowerCase())
-      void exists
+      setKnownAccount(exists)
     } catch {
       // Non-fatal — worst case the password prompt only appears after
       // Continue is clicked instead of proactively on blur.
     } finally {
       setCheckingEmail(false)
+    }
+  }
+
+  const sendCheckoutOtp = async () => {
+    const normalizedEmail = email.trim().toLowerCase()
+    const validationError = emailErrorFor(normalizedEmail)
+    if (validationError) { setEmailError(validationError); return }
+    setIdentifying(true)
+    setOtpError('')
+    try {
+      await requestOtp(normalizedEmail)
+      setKnownAccount(true)
+      setOtpSent(true)
+    } catch (err) {
+      setOtpError(getErrorMessage(err, 'Could not send the verification code. Please try again.'))
+    } finally {
+      setIdentifying(false)
+    }
+  }
+
+  const verifyCheckoutOtp = async () => {
+    if (!/^\d{6}$/.test(checkoutOtp)) { setOtpError('Enter the 6-digit code sent to your email.'); return }
+    setIdentifying(true)
+    setOtpError('')
+    try {
+      const result = await verifyOtp(email.trim().toLowerCase(), checkoutOtp)
+      skipAutoSelectRef.current = true
+      setSession(result.accessToken, result.user)
+      setCheckoutToken(result.accessToken)
+      await useCartStore.getState().mergeGuestCart()
+    } catch (err) {
+      setOtpError(getErrorMessage(err, 'The verification code is invalid or expired.'))
+    } finally {
+      setIdentifying(false)
     }
   }
 
@@ -452,9 +491,20 @@ export default function CheckoutPage() {
     if (!token) {
       setIdentifying(true)
       try {
+        const normalizedEmail = email.trim().toLowerCase()
+        const exists = knownAccount ?? await checkEmailExists(normalizedEmail)
+        setKnownAccount(exists)
+        if (exists) {
+          if (!otpSent) {
+            await requestOtp(normalizedEmail)
+            setOtpSent(true)
+          }
+          setError('Verify the code sent to your email before continuing.')
+          return
+        }
         const guestId = useCartStore.getState().guestId ?? undefined
         const result = await checkoutIdentify({
-          email: email.trim().toLowerCase(),
+          email: normalizedEmail,
           fullName: address.fullName,
           phone: toE164(address.phone, address.country ?? 'IN'),
           guestId,
@@ -625,17 +675,41 @@ export default function CheckoutPage() {
                     id="email"
                     label="Email"
                     value={email}
-                    onChange={(e) => { setEmail(e.target.value); setEmailError(''); setCheckoutToken(null) }}
+                    onChange={(e) => {
+                      setEmail(e.target.value); setEmailError(''); setCheckoutToken(null)
+                      setKnownAccount(null); setOtpSent(false); setCheckoutOtp(''); setOtpError('')
+                    }}
                     onBlur={handleEmailBlur}
                     type="email"
                     loading={checkingEmail}
                     error={emailError}
                     autoFocus
                   />
-                  {email && !emailError && (
+                  {email && !emailError && knownAccount !== true && (
                     <p className="text-body-xs text-brand-muted">
                       We&apos;ll set up your account automatically — no separate sign-up needed.
                     </p>
+                  )}
+                  {knownAccount === true && (
+                    <div className="rounded-xl border border-brand-border bg-brand-sage/10 p-4 space-y-3">
+                      <p className="text-body-sm font-semibold text-brand-forest">Verify your existing account</p>
+                      <p className="text-body-xs text-brand-muted">Confirm this email before using its orders, wallet or loyalty benefits.</p>
+                      {otpSent ? (
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <input id="field-checkoutOtp" value={checkoutOtp}
+                              onChange={(e) => { setCheckoutOtp(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError('') }}
+                              inputMode="numeric" autoComplete="one-time-code" placeholder="6-digit code"
+                              className="h-11 min-w-0 flex-1 rounded-sm border border-brand-border px-3 text-body-sm outline-none focus:border-brand-berry" />
+                            <Button type="button" variant="primary" loading={identifying} onClick={verifyCheckoutOtp}>Verify</Button>
+                          </div>
+                          <button type="button" disabled={identifying} onClick={sendCheckoutOtp} className="text-body-xs font-semibold text-brand-teal hover:underline disabled:opacity-50">Resend code</button>
+                        </div>
+                      ) : (
+                        <Button type="button" variant="outline" loading={identifying} onClick={sendCheckoutOtp}>Send verification code</Button>
+                      )}
+                      {otpError && <p className="text-body-xs text-red-600">{otpError}</p>}
+                    </div>
                   )}
                 </div>
               )}
@@ -981,7 +1055,7 @@ export default function CheckoutPage() {
                       <div className="relative w-12 h-12 shrink-0 rounded-sm overflow-hidden bg-brand-sage">
                         {item.image && (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.image} alt="" className="w-full h-full object-cover" />
+                          <Image src={item.image} alt="" fill sizes="48px" className="object-cover" />
                         )}
                         <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center rounded-full bg-brand-forest text-[9px] font-bold text-white">
                           {item.quantity}

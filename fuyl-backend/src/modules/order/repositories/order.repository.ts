@@ -20,7 +20,27 @@ export class OrderRepository {
   async findByCustomer(customerId: string | Types.ObjectId, filter: FilterQuery<IOrder> = {}) {
     return OrderModel
       .find({ customerId: new Types.ObjectId(customerId), ...filter })
-      .sort({ createdAt: -1 });
+      .select('-timeline -staffComments -adminNotes')
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+  }
+
+  async paginateByCustomer(
+    customerId: string | Types.ObjectId,
+    filter: FilterQuery<IOrder> = {},
+    page = 1,
+    limit = 20,
+  ) {
+    const query = { customerId: new Types.ObjectId(customerId), ...filter };
+    const skip = (page - 1) * limit;
+    const [items, total] = await Promise.all([
+      OrderModel.find(query)
+        .select('-timeline -staffComments -adminNotes')
+        .sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      OrderModel.countDocuments(query),
+    ]);
+    return { items, total, page, limit };
   }
 
   async existsByCustomer(customerId: string | Types.ObjectId, filter: FilterQuery<IOrder> = {}): Promise<boolean> {
@@ -31,7 +51,10 @@ export class OrderRepository {
   async findBySubscription(subscriptionId: string | Types.ObjectId) {
     return OrderModel
       .find({ subscriptionId: new Types.ObjectId(subscriptionId) })
-      .sort({ createdAt: -1 });
+      .select('-timeline -staffComments -adminNotes')
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
   }
 
   async findByRazorpayOrderId(razorpayOrderId: string): Promise<IOrder | null> {

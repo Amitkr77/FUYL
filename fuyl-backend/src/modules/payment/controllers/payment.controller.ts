@@ -49,7 +49,7 @@ export class PaymentController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
+        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
         const r = await paymentService.listAll(page, limit);
         return paginate(res, r.items, r.total, r.page, r.limit);
       } catch (err) { next(err); }

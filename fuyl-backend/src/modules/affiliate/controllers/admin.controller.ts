@@ -10,7 +10,7 @@ export class AffiliateAdminController {
   async list(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
       const page   = parseInt(req.query.page as string) || 1;
-      const limit  = parseInt(req.query.limit as string) || 20;
+      const limit  = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
       const data = await affiliateService.adminList({ page, limit: Math.min(limit, 100), status: req.query.status as string | undefined, programId: req.query.programId as string | undefined, search: req.query.search as string | undefined, sort: req.query.sort as string | undefined, direction: req.query.direction as string | undefined });
       res.json({ success: true, data });
     } catch (err) { next(err); }
@@ -82,7 +82,7 @@ export class AffiliateAdminController {
   async listCommissions(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
       const page   = parseInt(req.query.page as string) || 1;
-      const limit  = parseInt(req.query.limit as string) || 20;
+      const limit  = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
       const data = await commissionService.adminList(page, Math.min(limit, 100), { status: req.query.status as string | undefined, affiliateId: req.query.affiliateId as string | undefined, createdAtFrom: req.query.createdAtFrom as string | undefined, createdAtTo: req.query.createdAtTo as string | undefined });
       res.json({ success: true, data });
     } catch (err) { next(err); }

@@ -344,6 +344,7 @@ class ContentService {
   async createIngredient(dto: CreateIngredientDTO) {
     const slug = await this.uniqueIngredientSlug(dto.name);
     const ingredient = await ingredientRepo.create({ ...dto, slug, order: dto.order ?? await ingredientRepo.nextOrder() });
+    void cacheService.del("content:ingredients:active");
     void revalidateStorefront(["/", "/pages/ingredients"]);
     return ingredient;
   }
@@ -351,12 +352,14 @@ class ContentService {
   async updateIngredient(id: string, dto: UpdateIngredientDTO) {
     const updated = await ingredientRepo.update(id, dto);
     if (!updated) throw new NotFoundError("Ingredient");
+    void cacheService.del("content:ingredients:active");
     void revalidateStorefront(["/", "/pages/ingredients"]);
     return updated;
   }
 
   async deleteIngredient(id: string) {
     await ingredientRepo.delete(id);
+    void cacheService.del("content:ingredients:active");
     void revalidateStorefront(["/", "/pages/ingredients"]);
   }
 
@@ -367,7 +370,11 @@ class ContentService {
   }
 
   async listIngredients() {
-    return ingredientRepo.list({ isActive: true });
+    const key = "content:ingredients:active";
+    try { const cached = await cacheService.get<any[]>(key); if (cached) return cached; } catch { /* optional cache */ }
+    const result = await ingredientRepo.list({ isActive: true });
+    try { await cacheService.set(key, result, 120); } catch { /* optional cache */ }
+    return result;
   }
 
   async listIngredientsAdmin(page = 1, limit = 50) {
@@ -377,6 +384,7 @@ class ContentService {
   // ─── Testimonials ───────────────────────────────────────────────
   async createTestimonial(dto: CreateTestimonialDTO) {
     const testimonial = await testimonialRepo.create({ ...dto, order: dto.order ?? await testimonialRepo.nextOrder() });
+    void cacheService.del(["content:testimonials:all", "content:testimonials:expert", "content:testimonials:customer"]);
     void revalidateStorefront(["/"]);
     return testimonial;
   }
@@ -384,12 +392,14 @@ class ContentService {
   async updateTestimonial(id: string, dto: UpdateTestimonialDTO) {
     const updated = await testimonialRepo.update(id, dto);
     if (!updated) throw new NotFoundError("Testimonial");
+    void cacheService.del(["content:testimonials:all", "content:testimonials:expert", "content:testimonials:customer"]);
     void revalidateStorefront(["/"]);
     return updated;
   }
 
   async deleteTestimonial(id: string) {
     await testimonialRepo.delete(id);
+    void cacheService.del(["content:testimonials:all", "content:testimonials:expert", "content:testimonials:customer"]);
     void revalidateStorefront(["/"]);
   }
 
@@ -400,7 +410,11 @@ class ContentService {
   }
 
   async listTestimonials(type?: "expert" | "customer") {
-    return testimonialRepo.list({ isActive: true, ...(type ? { type } : {}) });
+    const key = `content:testimonials:${type ?? "all"}`;
+    try { const cached = await cacheService.get<any[]>(key); if (cached) return cached; } catch { /* optional cache */ }
+    const result = await testimonialRepo.list({ isActive: true, ...(type ? { type } : {}) });
+    try { await cacheService.set(key, result, 120); } catch { /* optional cache */ }
+    return result;
   }
 
   async listTestimonialsAdmin(page = 1, limit = 50) {
@@ -410,6 +424,7 @@ class ContentService {
   // ─── FAQs ───────────────────────────────────────────────────────
   async createFAQ(dto: CreateFAQDTO) {
     const faq = await faqRepo.create({ ...dto, order: dto.order ?? await faqRepo.nextOrder() });
+    void cacheService.del("content:faqs:active");
     void revalidateStorefront(["/"]);
     return faq;
   }
@@ -417,12 +432,14 @@ class ContentService {
   async updateFAQ(id: string, dto: UpdateFAQDTO) {
     const updated = await faqRepo.update(id, dto);
     if (!updated) throw new NotFoundError("FAQ");
+    void cacheService.del("content:faqs:active");
     void revalidateStorefront(["/"]);
     return updated;
   }
 
   async deleteFAQ(id: string) {
     await faqRepo.delete(id);
+    void cacheService.del("content:faqs:active");
     void revalidateStorefront(["/"]);
   }
 
@@ -433,7 +450,11 @@ class ContentService {
   }
 
   async listFAQs() {
-    return faqRepo.list({ isActive: true });
+    const key = "content:faqs:active";
+    try { const cached = await cacheService.get<any[]>(key); if (cached) return cached; } catch { /* optional cache */ }
+    const result = await faqRepo.list({ isActive: true });
+    try { await cacheService.set(key, result, 120); } catch { /* optional cache */ }
+    return result;
   }
 
   async listFAQsAdmin(page = 1, limit = 50) {

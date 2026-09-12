@@ -14,7 +14,7 @@ export class AdminController {
   listCustomers = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
       const search = req.query.search as string | undefined;
       const result = await adminCustomersService.list(page, limit, search);
       return paginate(res, result.items, result.total, result.page, result.limit);

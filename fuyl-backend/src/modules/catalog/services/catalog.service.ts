@@ -13,6 +13,7 @@ import {
   CreateAttributeDTO, CreateTagDTO, CreateCollectionDTO,
 } from '../validators';
 import { revalidateStorefront } from '../../../shared/services/revalidate.service';
+import { cacheService } from '../../../shared/services/cache.service';
 
 const productRepo = new ProductRepository();
 const variantRepo = new VariantRepository();
@@ -21,6 +22,16 @@ const attributeRepo = new AttributeRepository();
 const collectionRepo = new CollectionRepository();
 
 export class CatalogService {
+  private async invalidateProductCache(id: string, ...slugs: Array<string | undefined>) {
+    try {
+      await Promise.all([
+        cacheService.del(`catalog:product:id:${id}`),
+        ...slugs.filter(Boolean).map((slug) => cacheService.del(`catalog:product:slug:${slug}`)),
+        cacheService.delByPattern('catalog:published:*'),
+      ]);
+    } catch { /* cache is optional */ }
+  }
+
   // ─── Products ─────────────────────────────────────────────────
   async createProduct(dto: CreateProductDTO) {
     const product = await productRepo.create({
@@ -28,13 +39,17 @@ export class CatalogService {
       collectionIds: (dto.collectionIds ?? []).map((id) => new mongoose.Types.ObjectId(id)),
       tagIds: (dto.tagIds ?? []).map((id) => new mongoose.Types.ObjectId(id)),
     } as any);
+    void this.invalidateProductCache(product._id.toString(), product.seo?.slug);
     void revalidateStorefront(['/', '/collections/all', `/products/${dto.seo?.slug}`]);
     return product;
   }
 
   async getProduct(id: string) {
+    const cacheKey = `catalog:product:id:${id}`;
+    try { const cached = await cacheService.get<any>(cacheKey); if (cached) return cached; } catch { /* cache is optional */ }
     const p = await productRepo.findById(id);
     if (!p || p.isDeleted || !p.isPublished || p.status !== 'active') throw new NotFoundError('Product');
+    try { await cacheService.set(cacheKey, p.toObject(), 60); } catch { /* cache is optional */ }
     return p;
   }
 
@@ -45,14 +60,19 @@ export class CatalogService {
   }
 
   async getProductBySlug(slug: string) {
+    const cacheKey = `catalog:product:slug:${slug}`;
+    try { const cached = await cacheService.get<any>(cacheKey); if (cached) return cached; } catch { /* cache is optional */ }
     const p = await productRepo.findBySlug(slug);
     if (!p || p.isDeleted || !p.isPublished || p.status !== 'active') throw new NotFoundError('Product');
+    try { await cacheService.set(cacheKey, p.toObject(), 60); } catch { /* cache is optional */ }
     return p;
   }
 
   async updateProduct(id: string, dto: UpdateProductDTO) {
+    const existing = await productRepo.findById(id);
     const updated = await productRepo.update(id, dto as any);
     if (!updated) throw new NotFoundError('Product');
+    void this.invalidateProductCache(id, existing?.seo?.slug, updated.seo?.slug);
     void revalidateStorefront(['/', '/collections/all', `/products/${updated.seo?.slug}`]);
     return updated;
   }
@@ -61,6 +81,7 @@ export class CatalogService {
     const existing = await productRepo.findById(id);
     if (!existing) throw new NotFoundError('Product');
     const archived = await productRepo.archive(id);
+    void this.invalidateProductCache(id, existing.seo?.slug);
     void revalidateStorefront(['/', '/collections/all', ...(existing ? [`/products/${existing.seo?.slug}`] : [])]);
     return archived;
   }
@@ -68,6 +89,7 @@ export class CatalogService {
   async restoreProduct(id: string) {
     const restored = await productRepo.restore(id);
     if (!restored) throw new NotFoundError('Product');
+    void this.invalidateProductCache(id, restored.seo?.slug);
     // Restored products are drafts and therefore remain hidden on storefront.
     return restored;
   }
@@ -79,11 +101,13 @@ export class CatalogService {
 
   async publish(id: string) {
     const updated = await productRepo.publish(id);
+    if (updated) void this.invalidateProductCache(id, updated.seo?.slug);
     if (updated) void revalidateStorefront(['/', '/collections/all', `/products/${updated.seo?.slug}`]);
     return updated;
   }
   async unpublish(id: string) {
     const updated = await productRepo.unpublish(id);
+    if (updated) void this.invalidateProductCache(id, updated.seo?.slug);
     if (updated) void revalidateStorefront(['/', '/collections/all', `/products/${updated.seo?.slug}`]);
     return updated;
   }
@@ -94,6 +118,8 @@ export class CatalogService {
   // approved-only aggregate reviewService computes.
   async updateProductRating(productId: string, average: number, count: number) {
     await productRepo.updateRating(productId, average, count);
+    const product = await productRepo.findById(productId);
+    void this.invalidateProductCache(productId, product?.seo?.slug);
   }
 
   async listProducts(page = 1, limit = 20, filter: Record<string, unknown> = {}) {
@@ -102,7 +128,11 @@ export class CatalogService {
   }
 
   async listPublished(page = 1, limit = 20, filter: Record<string, unknown> = {}) {
-    return productRepo.listPublished(filter, page, limit);
+    const key = `catalog:published:${page}:${limit}:${JSON.stringify(filter)}`;
+    try { const cached = await cacheService.get<any>(key); if (cached) return cached; } catch { /* cache is optional */ }
+    const result = await productRepo.listPublished(filter, page, limit);
+    try { await cacheService.set(key, result, 60); } catch { /* cache is optional */ }
+    return result;
   }
 
   async search(query: string, page = 1, limit = 20, filter: Record<string, unknown> = {}) {

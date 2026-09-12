@@ -42,8 +42,11 @@ export class OrderController {
 
   listMine = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      const status = req.query.status as string | undefined;
-      return success(res, await orderService.listMine(req.user!.userId, status));
+      const status = typeof req.query.status === 'string' ? req.query.status : undefined;
+      const page = Math.max(parseInt(req.query.page as string) || 1, 1);
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
+      const result = await orderService.listMine(req.user!.userId, status, page, limit);
+      return paginate(res, result.items, result.total, result.page, result.limit);
     } catch (err) { next(err); }
   };
 
@@ -91,10 +94,10 @@ export class OrderController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
+        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
         const filter: Record<string, unknown> = {};
-        if (req.query.status) filter.status = req.query.status;
-        if (req.query.customerId) filter.customerId = req.query.customerId;
+        if (typeof req.query.status === 'string') filter.status = req.query.status;
+        if (typeof req.query.customerId === 'string') filter.customerId = req.query.customerId;
         const result = await orderService.listAll(page, limit, filter);
         return paginate(res, result.items, result.total, result.page, result.limit);
       } catch (err) { next(err); }
@@ -183,7 +186,7 @@ export class OrderController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
+        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
         const r = await orderService.listAllReturns(page, limit);
         return paginate(res, r.items, r.total, r.page, r.limit);
       } catch (err) { next(err); }

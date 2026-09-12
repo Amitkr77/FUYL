@@ -112,7 +112,7 @@ export interface IProduct extends Document {
 
 const ProductSchema = new Schema<IProduct>(
   {
-    name: { type: String, required: true, trim: true, index: 'text' },
+    name: { type: String, required: true, trim: true },
     shortDescription: { type: String, maxlength: 280 },
     description: { type: String },
     brand: { type: String, trim: true, index: true },
@@ -220,5 +220,6 @@ const ProductSchema = new Schema<IProduct>(
 
 ProductSchema.index({ name: 'text', shortDescription: 'text', brand: 'text' });
 ProductSchema.index({ isPublished: 1, isFeatured: 1, createdAt: -1 });
+ProductSchema.index({ isDeleted: 1, isPublished: 1, createdAt: -1 });
 
 export const ProductModel = mongoose.model<IProduct>('Product', ProductSchema, 'products');

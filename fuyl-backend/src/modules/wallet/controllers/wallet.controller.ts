@@ -15,7 +15,7 @@ export class WalletController {
 
   getMyTransactions = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 50;
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 100);
       return success(res, await walletService.getTransactions(req.user!.userId, limit));
     } catch (err) { next(err); }
   };
@@ -35,7 +35,7 @@ export class WalletController {
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
+        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
         const result = await walletService.getTransactionsPage(req.params.userId, page, limit);
         return paginate(res, result.items, result.total, result.page, result.limit);
       } catch (err) { next(err); }
