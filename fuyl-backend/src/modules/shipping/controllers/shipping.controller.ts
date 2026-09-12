@@ -6,7 +6,7 @@ import { success, paginate } from '../../../shared/responses';
 import { validate } from '../../../shared/middleware/validate.middleware';
 import { createShipmentSchema, updateShipmentStatusSchema } from '../validators';
 import { env } from '../../../config/env';
-import { ForbiddenError, UnauthorizedError } from '../../../shared/errors';
+import { BadRequestError, ForbiddenError, UnauthorizedError } from '../../../shared/errors';
 import { orderService } from '../../order/services';
 import { logger } from '../../../config/logger';
 
