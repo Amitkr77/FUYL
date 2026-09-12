@@ -40,7 +40,7 @@ export async function createAffiliateImpersonationAction(id:string):Promise<{err
 
 export async function saveAffiliateSettingsAction(input:AffiliateSettings):Promise<{error?:string}>{try{await updateAffiliateSettings(input);revalidatePath('/affiliates/settings');return{}}catch(err){return{error:getErrorMessage(err,'Could not save affiliate settings.')}}}
 export async function saveAffiliateReviewAction(id:string,input:{internalNote?:string;fraudStatus?:'clear'|'review'|'blocked';fraudNote?:string}):Promise<{error?:string}>{try{await updateAffiliateReview(id,input);revalidatePath(`/affiliates/members/${id}`);return{}}catch(err){return{error:getErrorMessage(err,'Could not save affiliate review.')}}}
-export async function createAffiliateLinkAction(id:string,input:{destination:string;label?:string}):Promise<{error?:string}>{try{await createAdminAffiliateLink(id,input);revalidatePath(`/affiliates/members/${id}`);return{}}catch(err){return{error:getErrorMessage(err,'Could not create tracking link.')}}}
+export async function createAffiliateLinkAction(id:string,input:{destination:string;label?:string;code?:string}):Promise<{error?:string}>{try{await createAdminAffiliateLink(id,input);revalidatePath(`/affiliates/members/${id}`);return{}}catch(err){return{error:getErrorMessage(err,'Could not create tracking link.')}}}
 export async function toggleAffiliateLinkAction(id:string,linkId:string,isActive:boolean):Promise<{error?:string}>{try{await updateAdminAffiliateLink(id,linkId,{isActive});revalidatePath(`/affiliates/members/${id}`);return{}}catch(err){return{error:getErrorMessage(err,'Could not update tracking link.')}}}
 
 export async function bulkApproveCommissionsAction(ids: string[]): Promise<{ error?: string; approved?: number; failed?: number }> { try { const result=await bulkApproveCommissions(ids); revalidatePath('/affiliates/commissions'); return result } catch(err){return{error:getErrorMessage(err,'Could not approve commissions.')}} }
@@ -70,7 +70,7 @@ export async function reactivateAffiliateAction(id: string): Promise<{ error: st
   return null
 }
 
-export async function updateAffiliateAction(id: string, input: { name?: string; phone?: string; channels?: string[]; paymentInfo?: { upi?: string; bankAccount?: string; ifsc?: string; accountName?: string } }): Promise<{ error: string } | null> {
+export async function updateAffiliateAction(id: string, input: { name?: string; phone?: string; channels?: string[]; couponCodes?: string[]; programId?: string; paymentInfo?: { upi?: string; bankAccount?: string; ifsc?: string; accountName?: string } }): Promise<{ error: string } | null> {
   try { await updateAffiliate(id, input) } catch (err) { return { error: getErrorMessage(err, 'Could not update affiliate.') } }
   revalidatePath(`/affiliates/members/${id}`)
   revalidatePath('/affiliates/members')

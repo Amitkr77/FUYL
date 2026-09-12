@@ -10,6 +10,10 @@ export class LinkRepository {
     return AffiliateLinkModel.findOne({ code: code.toUpperCase(), isActive: true });
   }
 
+  async codeExists(code: string): Promise<boolean> {
+    return Boolean(await AffiliateLinkModel.exists({ code: code.toUpperCase().trim() }));
+  }
+
   async findById(id: string | Types.ObjectId): Promise<IAffiliateLink | null> {
     return AffiliateLinkModel.findById(id);
   }

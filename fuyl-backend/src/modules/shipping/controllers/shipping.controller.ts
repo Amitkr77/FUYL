@@ -29,6 +29,19 @@ export class ShippingController {
     } catch (err) { next(err); }
   };
 
+  // Public — inventory-aware serviceability for the product page.
+  // GET /shipping/serviceability/:pincode/product?productId=xxx&variantId=yyy&weight=500
+  serviceabilityProduct = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { pincode } = req.params;
+      const productId  = req.query.productId  as string | undefined;
+      const variantId  = req.query.variantId  as string | undefined;
+      const weight     = req.query.weight ? Number(req.query.weight) : undefined;
+      if (!productId) return next(new BadRequestError('productId is required'));
+      return success(res, await shippingService.checkServiceabilityForProduct(pincode, productId, variantId, weight));
+    } catch (err) { next(err); }
+  };
+
   rate = async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
       const pincode = req.query.pincode as string;

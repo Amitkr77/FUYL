@@ -74,6 +74,13 @@ export class CommissionRepository {
     return CommissionModel.find({ affiliateId, status: CommissionStatus.PAYABLE });
   }
 
+  async eligibleForAutoApproval(limit = 200): Promise<ICommission[]> {
+    return CommissionModel.find({
+      status: CommissionStatus.PENDING,
+      eligibleForApprovalAt: { $lte: new Date() },
+    }).sort({ eligibleForApprovalAt: 1 }).limit(limit);
+  }
+
   // ─── Audit ledger ─────────────────────────────────────────────────────────
 
   async appendEvent(data: {

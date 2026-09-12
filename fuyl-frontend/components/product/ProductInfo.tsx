@@ -184,7 +184,11 @@ export function ProductInfo({ product, plans }: ProductInfoProps) {
           />
         </div>
         <BuyNowButton product={product} variant={variant} quantity={quantity} />
-        <PincodeCheck />
+        <PincodeCheck
+          productId={product.id}
+          variantId={variant.id || undefined}
+          weightGrams={variant.weight ?? product.weight}
+        />
       </div>
 
       {/* Subscribe & Save — shown inline here (not via a separate server component

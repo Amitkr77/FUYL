@@ -8,6 +8,8 @@ import { eventBus, Events } from '../../../shared/services/eventBus.service';
 import { logger } from '../../../config/logger';
 import { Types } from 'mongoose';
 import { CreateShipmentDTO, UpdateShipmentStatusDTO } from '../validators';
+import { InventoryStockModel } from '../../inventory/models/stock.model';
+import { WarehouseLocationModel } from '../../inventory/models/location.model';
 
 const shipmentRepo = new ShipmentRepository();
 
@@ -148,6 +150,89 @@ class ShippingService {
       return { serviceable: true, prepaid: true, cod: true, etdDays: null };
     }
     return shiprocketService.checkServiceability(pincode);
+  }
+
+  /**
+   * Inventory-aware serviceability check for the product page.
+   * Finds all warehouse locations that have available stock for the given
+   * product/variant, calls Shiprocket for each one (in parallel), and
+   * returns the fastest delivery estimate with the originating city.
+   * Falls back to the global pickup pincode when no warehouse has a
+   * postalCode configured, preserving existing behaviour.
+   */
+  async checkServiceabilityForProduct(
+    customerPincode: string,
+    productId: string,
+    variantId?: string,
+    weightGrams = 500,
+  ): Promise<{ serviceable: boolean; prepaid: boolean; cod: boolean; etdDays: number | null; warehouseCity: string | null }> {
+    if (!shiprocketService.isConfigured()) {
+      return { serviceable: true, prepaid: true, cod: true, etdDays: null, warehouseCity: null };
+    }
+
+    // 1. Find warehouses that carry this product with available stock.
+    const stockFilter: Record<string, unknown> = {
+      productId: new Types.ObjectId(productId),
+      available: { $gt: 0 },
+    };
+    if (variantId) stockFilter.variantId = new Types.ObjectId(variantId);
+
+    const stocks = await InventoryStockModel.find(stockFilter).select('warehouseId').lean();
+    const warehouseCodes = [...new Set(stocks.map((s) => s.warehouseId).filter(Boolean))] as string[];
+
+    // 2. Resolve warehouse postal codes.
+    let locations: Array<{ code: string; postalCode: string; city: string }> = [];
+    if (warehouseCodes.length) {
+      const docs = await WarehouseLocationModel.find({
+        code: { $in: warehouseCodes },
+        isActive: true,
+        'address.postalCode': { $exists: true, $ne: '' },
+      }).select('code address').lean();
+
+      locations = docs
+        .filter((d) => d.address?.postalCode)
+        .map((d) => ({
+          code: d.code,
+          postalCode: d.address!.postalCode!,
+          city: d.address?.city ?? d.code,
+        }));
+    }
+
+    // 3. If no warehouse has a postalCode, fall back to global behaviour.
+    if (!locations.length) {
+      const result = await shiprocketService.checkServiceability(customerPincode, weightGrams);
+      return { ...result, warehouseCity: null };
+    }
+
+    // 4. Query Shiprocket for each warehouse in parallel, pick fastest ETD.
+    const results = await Promise.allSettled(
+      locations.map(async (loc) => {
+        const r = await shiprocketService.checkServiceability(customerPincode, weightGrams, false, loc.postalCode);
+        return { ...r, city: loc.city };
+      }),
+    );
+
+    const fulfilled = results
+      .filter((r): r is PromiseFulfilledResult<{ serviceable: boolean; prepaid: boolean; cod: boolean; etdDays: number | null; city: string }> => r.status === 'fulfilled' && r.value.serviceable)
+      .map((r) => r.value)
+      .sort((a, b) => {
+        if (a.etdDays === null) return 1;
+        if (b.etdDays === null) return -1;
+        return a.etdDays - b.etdDays;
+      });
+
+    if (!fulfilled.length) {
+      return { serviceable: false, prepaid: false, cod: false, etdDays: null, warehouseCity: null };
+    }
+
+    const best = fulfilled[0];
+    return {
+      serviceable: true,
+      prepaid: best.prepaid,
+      cod: best.cod,
+      etdDays: best.etdDays,
+      warehouseCity: best.city,
+    };
   }
 
   /**

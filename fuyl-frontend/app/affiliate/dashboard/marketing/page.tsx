@@ -71,6 +71,7 @@ function CreateLinkForm({ onCreated, token }: CreateLinkFormProps) {
   const [dest,     setDest]     = useState('')
   const [label,    setLabel]    = useState('')
   const [source,   setSource]   = useState('')
+  const [customCode, setCustomCode] = useState('')
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
 
@@ -82,13 +83,14 @@ function CreateLinkForm({ onCreated, token }: CreateLinkFormProps) {
     try {
       // Append ?source= if provided
       const destination = source.trim()
-        ? `${dest.trim()}?source=${encodeURIComponent(source.trim())}`
+        ? `${dest.trim()}${dest.includes('?') ? '&' : '?'}source=${encodeURIComponent(source.trim())}`
         : dest.trim()
-      const link = await createAffiliateLink(token, { destination, label: label.trim() || undefined })
+      const link = await createAffiliateLink(token, { destination, label: label.trim() || undefined, code: customCode.trim() || undefined })
       onCreated(link)
       setDest('')
       setLabel('')
       setSource('')
+      setCustomCode('')
     } catch (err) {
       setError(getErrorMessage(err, 'Could not create link.'))
     } finally {
@@ -102,7 +104,7 @@ function CreateLinkForm({ onCreated, token }: CreateLinkFormProps) {
         <Plus size={13} /> Generate New Link
       </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Destination */}
         <div className="sm:col-span-1 flex flex-col gap-1">
           <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-muted">
@@ -130,6 +132,12 @@ function CreateLinkForm({ onCreated, token }: CreateLinkFormProps) {
             placeholder="instagram_bio"
             className="h-9 px-3 text-body-xs bg-brand-cream/40 border border-brand-border rounded-lg outline-none focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 transition-all"
           />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-muted">Custom link name (optional)</label>
+          <input value={customCode} onChange={(e) => setCustomCode(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))} minLength={3} maxLength={30} placeholder="AMIT" className="h-9 px-3 text-body-xs bg-brand-cream/40 border border-brand-border rounded-lg outline-none focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 transition-all" />
+          <span className="text-[10px] text-brand-muted">Your link will be fuyl.in/r/{customCode || 'AMIT'}</span>
         </div>
 
         {/* Label */}

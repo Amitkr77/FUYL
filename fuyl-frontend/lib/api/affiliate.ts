@@ -138,7 +138,7 @@ export async function getAffiliateLinks(token: string): Promise<AffiliateLink[]>
 
 export async function createAffiliateLink(
   token: string,
-  input: { destination: string; label?: string }
+  input: { destination: string; label?: string; code?: string }
 ): Promise<AffiliateLink> {
   return apiFetch('/affiliate/links', { method: 'POST', body: input, token })
 }

@@ -97,7 +97,7 @@ export class CommissionService {
   }
 
   /** Admin: approve a PENDING commission → APPROVED then immediately PAYABLE. */
-  async approve(commissionId: string, actorId: string): Promise<void> {
+  async approve(commissionId: string, actorId?: string): Promise<void> {
     const commission = await commissionRepo.findById(commissionId);
     if (!commission) throw new NotFoundError('Commission');
     if (commission.status !== CommissionStatus.PENDING) {
@@ -105,17 +105,18 @@ export class CommissionService {
     }
 
     const now = new Date();
-    await commissionRepo.claimTransition(commissionId, CommissionStatus.PENDING, CommissionStatus.APPROVED, {
+    const approved = await commissionRepo.claimTransition(commissionId, CommissionStatus.PENDING, CommissionStatus.APPROVED, {
       approvedAt: now,
-      actorId:    new mongoose.Types.ObjectId(actorId),
+      ...(actorId ? { actorId: new mongoose.Types.ObjectId(actorId) } : {}),
     });
+    if (!approved) throw new ConflictError('Commission was already updated by another request');
     await commissionRepo.appendEvent({
       commissionId: commission._id,
       affiliateId:  commission.affiliateId,
       eventType:    CommissionEventType.APPROVED,
       amountDelta:  0,
       actorId,
-      note:         'Approved by admin',
+      note:         actorId ? 'Approved by admin' : 'Automatically approved after holding period',
     });
 
     // Immediately mark payable
@@ -133,6 +134,16 @@ export class CommissionService {
     logger.info(`[affiliate] commission ${commissionId} approved → payable by ${actorId}`);
   }
 
+  async autoApproveEligible(): Promise<number> {
+    const eligible = await commissionRepo.eligibleForAutoApproval();
+    let approved = 0;
+    for (const commission of eligible) {
+      try { await this.approve(commission._id.toString()); approved += 1; }
+      catch (error) { logger.warn('[affiliate] automatic commission approval skipped', { commissionId: commission.id, error }); }
+    }
+    return approved;
+  }
+
   /**
    * Admin: trigger payout for all PAYABLE commissions for an affiliate.
    * For MVP: credits the affiliate's wallet (if they have a userId).
@@ -143,6 +154,26 @@ export class CommissionService {
 
     const payable = await commissionRepo.payableByAffiliate(affiliateId);
     if (payable.length === 0) throw new BadRequestError('No payable commissions for this affiliate');
+
+    const program = await programRepo.findById(affiliate.programId);
+    if (!program) throw new NotFoundError('Affiliate program');
+    const payableTotal = fromPaise(payable.reduce((sum, item) => sum + toPaise(item.amount), 0));
+    if (payableTotal < program.minPayoutAmount) throw new BadRequestError(`Minimum payout amount is ₹${program.minPayoutAmount}`);
+
+    // Bank/UPI payouts require external confirmation. Reserve the payable
+    // commissions in one open payout, but do not call them paid yet.
+    if (!affiliate.userId) {
+      if (await payoutRepo.findOpenByAffiliate(affiliateId)) throw new ConflictError('A payout is already pending for this affiliate');
+      const payout = await payoutRepo.create({
+        affiliateId: affiliate._id,
+        commissionIds: payable.map((item) => item._id),
+        amount: payableTotal,
+        status: 'processing',
+        paymentMethod: affiliate.paymentInfo?.upi ? 'upi' : 'bank_transfer',
+        initiatedBy: new mongoose.Types.ObjectId(actorId),
+      });
+      return { totalPaid: 0, commissionIds: payout.commissionIds.map((id) => id.toString()) };
+    }
 
     const now = new Date();
 
@@ -184,9 +215,9 @@ export class CommissionService {
       affiliateId: affiliate._id,
       commissionIds: transitioned.map((c) => c._id),
       amount: totalPaid,
-      status: affiliate.userId ? 'processing' : 'paid',
+      status: 'processing',
       paymentMethod: affiliate.userId ? 'wallet_credit' : affiliate.paymentInfo?.upi ? 'upi' : 'bank_transfer',
-      paidAt: affiliate.userId ? undefined : now,
+      paidAt: undefined,
       initiatedBy: new mongoose.Types.ObjectId(actorId),
     });
 
@@ -452,6 +483,18 @@ export class CommissionService {
     if (!allowed[payout.status]?.includes(input.status)) throw new ConflictError(`Payout cannot move from ${payout.status} to ${input.status}`);
     if (input.status === 'paid' && !input.providerRef?.trim()) throw new BadRequestError('providerRef is required when marking a payout paid');
     if (input.status === 'failed' && !input.failureReason?.trim()) throw new BadRequestError('failureReason is required when marking a payout failed');
+    if (input.status === 'paid') {
+      const now = new Date(); let paidTotalPaise = 0;
+      for (const commissionId of payout.commissionIds) {
+        const commission = await commissionRepo.findById(commissionId);
+        if (!commission) continue;
+        const paid = await commissionRepo.claimTransition(commissionId, CommissionStatus.PAYABLE, CommissionStatus.PAID, { paidAt: now, actorId: payout.initiatedBy });
+        if (!paid) continue;
+        paidTotalPaise += toPaise(commission.amount);
+        await commissionRepo.appendEvent({ commissionId, affiliateId: payout.affiliateId, eventType: CommissionEventType.PAID, amountDelta: -commission.amount, actorId: payout.initiatedBy });
+      }
+      if (paidTotalPaise) await affiliateRepo.incrementStats(payout.affiliateId, { totalCommissionPaid: fromPaise(paidTotalPaise) });
+    }
     return payoutRepo.update(id, { ...input, ...(input.status === 'paid' ? { paidAt: new Date() } : {}), ...(input.status === 'failed' ? { failedAt: new Date() } : {}) });
   }
 

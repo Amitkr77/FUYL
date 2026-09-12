@@ -11,6 +11,7 @@ export interface Affiliate {
   email: string
   phone?: string
   channels: string[]
+  couponCodes: string[]
   status: AffiliateStatus
   programId: string | { _id: string; name: string; defaultRate: number; commissionBase?: string }
   userId?: string
@@ -67,6 +68,7 @@ interface BackendAffiliate {
   email: string
   phone?: string
   channels: string[]
+  couponCodes?: string[]
   status: AffiliateStatus
   programId: Affiliate['programId']
   userId?: string
@@ -94,7 +96,7 @@ interface BackendCommission {
 }
 
 function mapAffiliate(a: BackendAffiliate): Affiliate {
-  return { ...a, id: a._id }
+  return { ...a, couponCodes: a.couponCodes ?? [], id: a._id }
 }
 
 function mapCommission(c: BackendCommission): Commission {
@@ -196,7 +198,7 @@ export async function createAffiliate(input: { name: string; email: string; phon
   return mapAffiliate(raw.affiliate)
 }
 
-export async function updateAffiliate(id: string, input: Partial<Pick<Affiliate, 'name' | 'phone' | 'channels' | 'paymentInfo'>> & { programId?: string }): Promise<Affiliate> {
+export async function updateAffiliate(id: string, input: Partial<Pick<Affiliate, 'name' | 'phone' | 'channels' | 'couponCodes' | 'paymentInfo'>> & { programId?: string }): Promise<Affiliate> {
   const raw = await adminApiFetch<{ affiliate: BackendAffiliate }>(`/admin/affiliates/${id}`, { method: 'PATCH', body: input })
   return mapAffiliate(raw.affiliate)
 }
@@ -277,7 +279,7 @@ export interface AffiliateSettings { registrationEnabled:boolean;autoApprove:boo
 export async function getAffiliateSettings():Promise<AffiliateSettings>{return(await adminApiFetch<{settings:AffiliateSettings}>('/admin/affiliate-settings')).settings}
 export async function updateAffiliateSettings(input:AffiliateSettings):Promise<void>{await adminApiFetch('/admin/affiliate-settings',{method:'PATCH',body:input})}
 export async function updateAffiliateReview(id:string,input:{internalNote?:string;fraudStatus?:'clear'|'review'|'blocked';fraudNote?:string}):Promise<void>{await adminApiFetch(`/admin/affiliates/${id}/review`,{method:'PATCH',body:input})}
-export async function createAdminAffiliateLink(id:string,input:{destination:string;label?:string}):Promise<void>{await adminApiFetch(`/admin/affiliates/${id}/links`,{method:'POST',body:input})}
+export async function createAdminAffiliateLink(id:string,input:{destination:string;label?:string;code?:string}):Promise<void>{await adminApiFetch(`/admin/affiliates/${id}/links`,{method:'POST',body:input})}
 export async function updateAdminAffiliateLink(id:string,linkId:string,input:{destination?:string;label?:string;isActive?:boolean}):Promise<void>{await adminApiFetch(`/admin/affiliates/${id}/links/${linkId}`,{method:'PATCH',body:input})}
 export async function createAffiliateImpersonation(id:string):Promise<{code:string;expiresInSeconds:number}>{return adminApiFetch(`/admin/affiliates/${id}/impersonate`,{method:'POST'})}
 

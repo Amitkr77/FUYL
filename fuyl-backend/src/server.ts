@@ -20,7 +20,7 @@ import { registerShippingSchedulers } from './modules/shipping';
 import { registerInventorySchedulers, registerInventoryEventSubscribers } from './modules/inventory';
 import { registerCashbackEventSubscribers, registerCashbackSchedulers } from './modules/cashback';
 import { registerLoyaltyEventSubscribers, registerLoyaltySchedulers } from './modules/loyalty';
-import { registerAffiliateEventSubscribers } from './modules/affiliate';
+import { registerAffiliateEventSubscribers, registerAffiliateSchedulers } from './modules/affiliate';
 import { registerDiscountEventSubscribers } from './modules/discount';
 import {
   registerAnalyticsEventSubscribers,
@@ -86,6 +86,7 @@ async function bootstrap() {
   registerInventorySchedulers();
   registerCashbackSchedulers();
   registerLoyaltySchedulers();
+  registerAffiliateSchedulers();
   registerAnalyticsSchedulers();
   startAll();
 

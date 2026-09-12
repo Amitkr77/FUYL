@@ -128,9 +128,9 @@ class ShiprocketService {
     return json;
   }
 
-  async checkServiceability(pincode: string, weightGrams = 500, cod = false): Promise<ShiprocketServiceability> {
+  async checkServiceability(pincode: string, weightGrams = 500, cod = false, pickupPincode?: string): Promise<ShiprocketServiceability> {
     const qs = new URLSearchParams({
-      pickup_postcode: env.shiprocket.pickupPincode,
+      pickup_postcode: pickupPincode ?? env.shiprocket.pickupPincode,
       delivery_postcode: pincode,
       weight: String(Math.max(0.1, weightGrams / 1000)),
       cod: cod ? '1' : '0',
@@ -157,9 +157,10 @@ class ShiprocketService {
     destPin: string;
     weightGrams: number;
     paymentMode: 'Prepaid' | 'COD';
+    pickupPincode?: string;
   }): Promise<number | null> {
     const qs = new URLSearchParams({
-      pickup_postcode: env.shiprocket.pickupPincode,
+      pickup_postcode: params.pickupPincode ?? env.shiprocket.pickupPincode,
       delivery_postcode: params.destPin,
       weight: String(Math.max(0.1, params.weightGrams / 1000)),
       cod: params.paymentMode === 'COD' ? '1' : '0',

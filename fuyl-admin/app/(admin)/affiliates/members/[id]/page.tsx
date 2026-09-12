@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { Banknote, ExternalLink, Mail, MousePointerClick, ShoppingBag, UserRound } from "lucide-react";
-import { getAffiliate } from "@/lib/affiliate";
+import { getAffiliate, listAffiliatePrograms } from "@/lib/affiliate";
 import { AdminApiError } from "@/lib/api";
 import { AffiliateProfileEditor } from "@/components/affiliates/AffiliateProfileEditor";
 import { AffiliateReviewCard } from "@/components/affiliates/AffiliateReviewCard";
@@ -13,14 +13,15 @@ function programName(program: Awaited<ReturnType<typeof getAffiliate>>["affiliat
 export default async function AffiliateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   let data: Awaited<ReturnType<typeof getAffiliate>>;
-  try { data = await getAffiliate(id); } catch (error) { if (error instanceof AdminApiError && error.status === 404) notFound(); throw error; }
+  let programs: Awaited<ReturnType<typeof listAffiliatePrograms>> = [];
+  try { [data, programs] = await Promise.all([getAffiliate(id), listAffiliatePrograms()]); } catch (error) { if (error instanceof AdminApiError && error.status === 404) notFound(); throw error; }
   const { affiliate, links, commissions, payouts } = data;
   const totals = commissions.reduce<Record<string, number>>((sum, item) => ({ ...sum, [item.status]: (sum[item.status] ?? 0) + item.amount }), {});
 
   return <div className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div><h2 className="text-xl font-bold text-slate-900">{affiliate.name}</h2><p className="text-sm text-slate-500">Joined {new Date(affiliate.createdAt).toLocaleDateString("en-IN")}</p></div>
-      <div className="flex items-center gap-3"><LoginAsAffiliateButton id={affiliate.id} disabled={affiliate.status !== "approved"} /><AffiliateProfileEditor affiliate={affiliate} /><span className="rounded-full bg-[#558476]/10 px-3 py-1.5 text-sm font-semibold capitalize text-[#315f52]">{affiliate.status}</span></div>
+      <div className="flex items-center gap-3"><LoginAsAffiliateButton id={affiliate.id} disabled={affiliate.status !== "approved"} /><AffiliateProfileEditor affiliate={affiliate} programs={programs} /><span className="rounded-full bg-[#558476]/10 px-3 py-1.5 text-sm font-semibold capitalize text-[#315f52]">{affiliate.status}</span></div>
     </div>
 
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

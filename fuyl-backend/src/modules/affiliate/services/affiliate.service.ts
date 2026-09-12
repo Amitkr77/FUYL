@@ -49,6 +49,7 @@ export class AffiliateService {
       userId:    input.userId ? new mongoose.Types.ObjectId(input.userId) : (await UserModel.findOne({ emailLower: input.email.toLowerCase().trim(), isActive: true, isDeleted: false }))?._id,
       programId: program._id,
       status:    settings.autoApprove ? AffiliateStatus.APPROVED : AffiliateStatus.PENDING,
+      metadata: input.message?.trim() ? { applicationMessage: input.message.trim() } : undefined,
       ...(settings.autoApprove ? { approvedAt: new Date() } : {}),
     });
 
@@ -121,7 +122,7 @@ export class AffiliateService {
   }
 
   /** Affiliate: create a new tracking link. */
-  async createLink(affiliateId: string, input: { destination: string; label?: string }) {
+  async createLink(affiliateId: string, input: { destination: string; label?: string; code?: string }) {
     const affiliate = await affiliateRepo.findById(affiliateId);
     if (!affiliate) throw new NotFoundError('Affiliate');
     if (affiliate.status !== AffiliateStatus.APPROVED) {
@@ -136,7 +137,10 @@ export class AffiliateService {
       throw new BadRequestError('destination must be a relative path starting with /');
     }
 
-    const code = await this.generateUniqueCode(affiliate.name);
+    const requestedCode = input.code?.trim().toUpperCase();
+    if (requestedCode && !/^[A-Z0-9_-]{3,30}$/.test(requestedCode)) throw new BadRequestError('Custom link must be 3-30 letters, numbers, dashes, or underscores');
+    if (requestedCode && await linkRepo.codeExists(requestedCode)) throw new ConflictError('This custom affiliate link is already in use');
+    const code = requestedCode ?? await this.generateUniqueCode(affiliate.name);
     return linkRepo.create({
       affiliateId: affiliate._id,
       code,
@@ -238,10 +242,10 @@ export class AffiliateService {
   }
 
   async resolvePortalAffiliate(user: { userId: string; email?: string; impersonatedAffiliateId?: string }) {
-    if (user.impersonatedAffiliateId) { const affiliate=await affiliateRepo.findById(user.impersonatedAffiliateId);if(!affiliate)throw new NotFoundError('Affiliate profile');return affiliate; }
+    if (user.impersonatedAffiliateId) { const affiliate=await affiliateRepo.findById(user.impersonatedAffiliateId);if(!affiliate)throw new NotFoundError('Affiliate profile');if(affiliate.status!==AffiliateStatus.APPROVED)throw new BadRequestError('Affiliate account is not approved');return affiliate; }
     const linked=await affiliateRepo.findByUserId(user.userId);
-    if(linked)return linked;
-    if(user.email){const byEmail=await affiliateRepo.findByEmail(user.email);if(byEmail&&!byEmail.userId){const claimed=await affiliateRepo.update(byEmail._id,{userId:new mongoose.Types.ObjectId(user.userId)});if(claimed)return claimed;}}
+    if(linked){if(linked.status!==AffiliateStatus.APPROVED)throw new BadRequestError(`Affiliate account is ${linked.status}`);return linked;}
+    if(user.email){const byEmail=await affiliateRepo.findByEmail(user.email);if(byEmail&&!byEmail.userId){const claimed=await affiliateRepo.update(byEmail._id,{userId:new mongoose.Types.ObjectId(user.userId)});if(claimed){if(claimed.status!==AffiliateStatus.APPROVED)throw new BadRequestError(`Affiliate account is ${claimed.status}`);return claimed;}}}
     throw new NotFoundError('Affiliate profile');
   }
 
@@ -306,10 +310,11 @@ export class AffiliateService {
     return affiliate;
   }
 
-  async adminUpdate(affiliateId: string, patch: { name?: string; phone?: string; channels?: string[]; programId?: string; paymentInfo?: IAffiliate['paymentInfo'] }) {
+  async adminUpdate(affiliateId: string, patch: { name?: string; phone?: string; channels?: string[]; couponCodes?: string[]; programId?: string; paymentInfo?: IAffiliate['paymentInfo'] }) {
     const affiliate = await affiliateRepo.findById(affiliateId);
     if (!affiliate) throw new NotFoundError('Affiliate');
-    if (patch.programId && !(await programRepo.findById(patch.programId))) throw new NotFoundError('Affiliate program');
+    if (patch.programId) { const program=await programRepo.findById(patch.programId);if(!program)throw new NotFoundError('Affiliate program');if(!program.isActive)throw new BadRequestError('Affiliate must be assigned to an active program'); }
+    if (patch.couponCodes) { patch.couponCodes=[...new Set(patch.couponCodes.map(code=>code.trim().toUpperCase()).filter(Boolean))];if(patch.couponCodes.some(code=>!/^[A-Z0-9_-]{3,30}$/.test(code)))throw new BadRequestError('Coupon codes must be 3-30 letters, numbers, dashes, or underscores'); }
     return affiliateRepo.update(affiliateId, patch as Partial<IAffiliate>);
   }
 
@@ -318,7 +323,7 @@ export class AffiliateService {
     return affiliateRepo.update(affiliateId,{metadata:{...(affiliate.metadata??{}),internalNote:input.internalNote??(affiliate.metadata as any)?.internalNote,fraudReview:{status:input.fraudStatus??(affiliate.metadata as any)?.fraudReview?.status??'clear',note:input.fraudNote??(affiliate.metadata as any)?.fraudReview?.note,reviewedAt:new Date(),reviewedBy:actorId}}});
   }
 
-  async adminCreateLink(affiliateId:string,input:{destination:string;label?:string}){return this.createLink(affiliateId,input)}
+  async adminCreateLink(affiliateId:string,input:{destination:string;label?:string;code?:string}){return this.createLink(affiliateId,input)}
   async adminUpdateLink(affiliateId:string,linkId:string,input:{destination?:string;label?:string;isActive?:boolean}){const link=await linkRepo.findById(linkId);if(!link||link.affiliateId.toString()!==affiliateId)throw new NotFoundError('Affiliate link');if(input.destination!==undefined){const d=input.destination.trim();if(!d.startsWith('/')||d.includes('://')||d.length>500)throw new BadRequestError('destination must be a relative path starting with /');}return linkRepo.update(linkId,input)}
 
   async affiliateSettings(publicOnly=false){const settings=await AffiliateSettingsModel.findOneAndUpdate({key:'default'},{$setOnInsert:{key:'default'}},{upsert:true,new:true}).populate('defaultProgramId','name defaultRate');if(publicOnly)return {registrationEnabled:settings.registrationEnabled,signupTitle:settings.signupTitle,signupIntroduction:settings.signupIntroduction,termsUrl:settings.termsUrl,requiredFields:settings.requiredFields,defaultProgram:settings.defaultProgramId};return settings}
@@ -397,7 +402,7 @@ export class AffiliateService {
     for (let attempt = 0; attempt < 10; attempt++) {
       const suffix = crypto.randomBytes(2).toString('hex').toUpperCase();
       const code   = `${base}${suffix}`;
-      const exists = await linkRepo.findByCode(code);
+      const exists = await linkRepo.codeExists(code);
       if (!exists) return code;
     }
     return `AFF${crypto.randomBytes(4).toString('hex').toUpperCase()}`;

@@ -3,17 +3,28 @@
 import { useState } from 'react'
 import { MapPin, Check, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { checkPincodeServiceability } from '@/lib/api/shipping'
+import { checkPincodeServiceability, checkPincodeServiceabilityForProduct } from '@/lib/api/shipping'
 import { getErrorMessage } from '@/lib/api/client'
 
 type Status = 'idle' | 'loading' | 'checked' | 'error'
 
 const PINCODE_RE = /^[1-9][0-9]{5}$/
 
-export function PincodeCheck() {
+interface PincodeCheckProps {
+  productId?: string
+  variantId?: string
+  weightGrams?: number
+}
+
+export function PincodeCheck({ productId, variantId, weightGrams }: PincodeCheckProps) {
   const [pincode, setPincode] = useState('')
   const [status, setStatus] = useState<Status>('idle')
-  const [result, setResult] = useState<{ serviceable: boolean; cod: boolean; etdDays: number | null } | null>(null)
+  const [result, setResult] = useState<{
+    serviceable: boolean
+    cod: boolean
+    etdDays: number | null
+    warehouseCity?: string | null
+  } | null>(null)
   const [error, setError] = useState('')
 
   const handleCheck = async () => {
@@ -25,7 +36,9 @@ export function PincodeCheck() {
     setStatus('loading')
     setError('')
     try {
-      const res = await checkPincodeServiceability(pincode)
+      const res = productId
+        ? await checkPincodeServiceabilityForProduct(pincode, productId, variantId, weightGrams)
+        : await checkPincodeServiceability(pincode)
       setResult(res)
       setStatus('checked')
     } catch (err) {
@@ -77,6 +90,7 @@ export function PincodeCheck() {
               {result.etdDays != null
                 ? ` · Arrives in ${result.etdDays}–${result.etdDays + 1} day${result.etdDays > 1 ? 's' : ''}`
                 : ''}
+              {result.warehouseCity ? ` · Ships from ${result.warehouseCity}` : ''}
               {result.cod ? ' · COD available' : ' · Prepaid only'}
             </>
           ) : (

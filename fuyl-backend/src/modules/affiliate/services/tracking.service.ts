@@ -106,6 +106,21 @@ export class TrackingService {
     // (Implemented when coupon-affiliate mapping is wired; skipped for MVP link-only flow)
     // TODO Phase 2: resolve coupon → affiliate via AffiliateCoupon model
 
+    if (input.couponCode) {
+      const affiliate = await affiliateRepo.findByCouponCode(input.couponCode);
+      if (affiliate?.status === AffiliateStatus.APPROVED) {
+        if (affiliate.userId?.toString() === input.userId) return null;
+        const attribution = await attributionRepo.create({
+          affiliateId: affiliate._id,
+          method: AttributionMethod.COUPON,
+          token: crypto.randomUUID(),
+          customerId: input.userId as any,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        });
+        return { affiliateId: affiliate._id.toString(), attributionId: attribution._id.toString(), method: 'coupon' };
+      }
+    }
+
     return null;
   }
 

@@ -19,6 +19,10 @@ export class AffiliateRepository {
     return AffiliateModel.findOne({ userId });
   }
 
+  async findByCouponCode(code: string): Promise<IAffiliate | null> {
+    return AffiliateModel.findOne({ couponCodes: code.toUpperCase().trim() });
+  }
+
   async update(id: string | Types.ObjectId, patch: Partial<IAffiliate>): Promise<IAffiliate | null> {
     return AffiliateModel.findByIdAndUpdate(id, { $set: patch }, { new: true });
   }

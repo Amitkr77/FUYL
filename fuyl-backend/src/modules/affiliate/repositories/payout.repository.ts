@@ -14,6 +14,10 @@ export class PayoutRepository {
     return AffiliatePayoutModel.find({ affiliateId }).sort({ createdAt: -1 });
   }
 
+  async findOpenByAffiliate(affiliateId: string | Types.ObjectId): Promise<IAffiliatePayout | null> {
+    return AffiliatePayoutModel.findOne({ affiliateId, status: { $in: ['pending', 'processing'] } });
+  }
+
   async update(id: string | Types.ObjectId, patch: Partial<IAffiliatePayout>): Promise<IAffiliatePayout | null> {
     return AffiliatePayoutModel.findByIdAndUpdate(id, { $set: patch }, { new: true });
   }

@@ -10,6 +10,7 @@ export interface IAffiliate extends Document {
   phone?: string;
   // How they promote: Instagram handle, YouTube channel, blog URL, etc.
   channels: string[];
+  couponCodes: string[];
   status: typeof AffiliateStatus[keyof typeof AffiliateStatus];
   rejectedReason?: string;
   approvedAt?: Date;
@@ -44,6 +45,7 @@ const AffiliateSchema = new Schema<IAffiliate>(
     email:     { type: String, required: true, trim: true, lowercase: true, index: true },
     phone:     { type: String, trim: true },
     channels:  [{ type: String, trim: true }],
+    couponCodes: [{ type: String, uppercase: true, trim: true }],
     status:    { type: String, enum: Object.values(AffiliateStatus), default: AffiliateStatus.PENDING, index: true },
     rejectedReason:   { type: String },
     approvedAt:       { type: Date },
@@ -69,6 +71,7 @@ const AffiliateSchema = new Schema<IAffiliate>(
 );
 
 AffiliateSchema.index({ email: 1 }, { unique: true });
+AffiliateSchema.index({ couponCodes: 1 }, { unique: true, sparse: true });
 
 export const AffiliateModel = mongoose.model<IAffiliate>(
   'Affiliate',

@@ -15,6 +15,9 @@ router.get('/shipping/health', (_req, res) => {
 // Public — pincode serviceability + shipping-rate quote for checkout.
 // Registered before the '/shipping/shipments/:id' routes so the literal
 // segments are matched first.
+// NOTE: the product-aware route must be registered BEFORE the generic
+// /:pincode route so Express doesn't treat "product" as a pincode value.
+router.get('/shipping/serviceability/:pincode/product', shippingController.serviceabilityProduct);
 router.get('/shipping/serviceability/:pincode', shippingController.serviceability);
 router.get('/shipping/rate', shippingController.rate);
 
