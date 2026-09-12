@@ -5,6 +5,7 @@ import { OrderStatusPanel } from '@/components/orders/OrderStatusPanel'
 import { BookShipmentPanel } from '@/components/shipping/BookShipmentPanel'
 import { OrderTimeline } from '@/components/orders/OrderTimeline'
 import { OrderJourneyPanel } from '@/components/orders/OrderJourneyPanel'
+import { getOrderJourney, type OrderJourney } from '@/lib/analytics'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
@@ -26,7 +27,10 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const order = await getAdminOrder(id)
+  const [order, journey] = await Promise.all([
+    getAdminOrder(id),
+    getOrderJourney(id).catch((): OrderJourney => ({ events: [], sessionId: null, deviceType: null, os: null })),
+  ])
 
   if (!order) {
     return (
@@ -141,7 +145,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             )}
           </div>
           {/* User journey — shows checkout funnel steps + where the user dropped off */}
-          <OrderJourneyPanel orderId={order.id} />
+          <OrderJourneyPanel journey={journey} />
         </div>
 
         {/* Right: Customer + Address + Timeline */}

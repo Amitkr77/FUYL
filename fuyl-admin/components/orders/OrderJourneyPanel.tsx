@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { ChevronDown, ChevronUp, Monitor, Smartphone, Globe, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-react'
-import { getOrderJourney, type OrderJourney, type OrderJourneyEvent } from '@/lib/analytics'
+import { useState } from 'react'
+import { ChevronDown, ChevronUp, Monitor, Smartphone, Globe, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import type { OrderJourney, OrderJourneyEvent } from '@/lib/analytics'
 import { formatDateTime } from '@/lib/utils'
 
 // ─── Funnel definition ────────────────────────────────────────────────────────
@@ -87,26 +87,16 @@ const EVENT_LABEL: Record<string, string> = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
-  orderId: string
+  journey: OrderJourney
 }
 
-export function OrderJourneyPanel({ orderId }: Props) {
-  const [journey, setJourney]     = useState<OrderJourney | null>(null)
-  const [loading, setLoading]     = useState(true)
+export function OrderJourneyPanel({ journey }: Props) {
   const [showRaw, setShowRaw]     = useState(false)
 
-  useEffect(() => {
-    setLoading(true)
-    getOrderJourney(orderId)
-      .then(setJourney)
-      .catch(() => setJourney({ events: [], sessionId: null, deviceType: null, os: null }))
-      .finally(() => setLoading(false))
-  }, [orderId])
-
-  const funnelSteps = journey ? buildFunnelState(journey.events) : []
+  const funnelSteps = buildFunnelState(journey.events)
   const stuckStep   = funnelSteps.find((s) => s.status === 'stuck')
   const orderPlaced = funnelSteps.find((s) => s.event === 'order.placed')?.status === 'done'
-  const noData      = !loading && journey?.events.length === 0
+  const noData      = journey.events.length === 0
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
@@ -115,13 +105,11 @@ export function OrderJourneyPanel({ orderId }: Props) {
         <div className="flex items-center gap-2">
           <Globe className="w-4 h-4 text-slate-400" />
           <h3 className="text-sm font-semibold text-slate-900">User Journey</h3>
-          {!loading && journey && (
-            <span className="text-xs text-slate-400 font-normal">
-              {journey.events.length} event{journey.events.length !== 1 ? 's' : ''} recorded
-            </span>
-          )}
+          <span className="text-xs text-slate-400 font-normal">
+            {journey.events.length} event{journey.events.length !== 1 ? 's' : ''} recorded
+          </span>
         </div>
-        {journey && (journey.deviceType || journey.os) && (
+        {(journey.deviceType || journey.os) && (
           <div className="flex items-center gap-1.5 text-xs text-slate-400">
             {journey.deviceType === 'Mobile' || journey.deviceType === 'Tablet'
               ? <Smartphone className="w-3.5 h-3.5" />
@@ -132,13 +120,6 @@ export function OrderJourneyPanel({ orderId }: Props) {
       </div>
 
       <div className="p-5 space-y-5">
-        {loading && (
-          <div className="flex items-center gap-2 text-sm text-slate-400 py-4">
-            <Clock className="w-4 h-4 animate-spin" />
-            Loading journey…
-          </div>
-        )}
-
         {noData && (
           <div className="text-sm text-slate-400 py-2">
             No pre-order events found for this customer. Events are captured from the storefront
@@ -147,7 +128,7 @@ export function OrderJourneyPanel({ orderId }: Props) {
         )}
 
         {/* ── Funnel steps ── */}
-        {!loading && !noData && (
+        {!noData && (
           <>
             {/* Outcome banner */}
             {orderPlaced ? (
@@ -229,13 +210,13 @@ export function OrderJourneyPanel({ orderId }: Props) {
                 onClick={() => setShowRaw((v) => !v)}
                 className="w-full flex items-center justify-between px-4 py-3 text-xs font-medium text-slate-500 hover:bg-slate-50 transition-colors"
               >
-                <span>Raw event log ({journey!.events.length} events)</span>
+                <span>Raw event log ({journey.events.length} events)</span>
                 {showRaw ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               </button>
 
               {showRaw && (
                 <div className="divide-y divide-slate-50 max-h-80 overflow-y-auto">
-                  {journey!.events.map((e, i) => (
+                  {journey.events.map((e, i) => (
                     <div key={i} className="flex items-start justify-between gap-3 px-4 py-2.5">
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-slate-700">
@@ -244,9 +225,9 @@ export function OrderJourneyPanel({ orderId }: Props) {
                         {e.page && (
                           <p className="text-xs text-slate-400 font-mono truncate">{e.page}</p>
                         )}
-                        {e.properties?.timeSpentMs && (
+                        {typeof e.properties?.timeSpentMs === 'number' && e.properties.timeSpentMs > 0 && (
                           <p className="text-xs text-slate-400">
-                            {Math.round((e.properties.timeSpentMs as number) / 1000)}s on page
+                            {Math.round(e.properties.timeSpentMs / 1000)}s on page
                           </p>
                         )}
                       </div>
