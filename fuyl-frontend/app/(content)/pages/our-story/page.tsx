@@ -167,7 +167,7 @@ export default async function OurStoryPage() {
         </div>
       </section>
 
-      {/* ── 3. Horizontal Timeline ─────────────────────── */}
+      {/* ── 3. Timeline — vertical on mobile, horizontal on sm+ ─────────── */}
       <section className="section-py bg-brand-white">
         <div className="container-brand">
           <ScrollReveal>
@@ -177,24 +177,27 @@ export default async function OurStoryPage() {
           </ScrollReveal>
 
           <ScrollReveal delay={80}>
-            {/* 5 items × ~200px ≈ 1000px — triggers scroll on narrower screens */}
-            <div className="overflow-x-auto pb-6">
-              <div className="relative flex min-w-250">
-                {/* Single track line behind all dots */}
-                <div className="absolute left-0 right-0 top-4 h-px bg-brand-border" />
+            {/* Mobile: vertical list. sm+: horizontal scrollable row. */}
+            <div className="sm:overflow-x-auto sm:pb-6">
+              <div className="relative flex flex-col gap-0 sm:flex-row sm:min-w-250">
+
+                {/* Vertical track line — mobile only, runs full height of the list */}
+                <div className="absolute left-4 top-4 bottom-4 w-px bg-brand-border sm:hidden" />
+                {/* Horizontal track line — sm+ only */}
+                <div className="absolute left-0 right-0 top-4 h-px bg-brand-border hidden sm:block" />
 
                 {milestones.map(({ title, body }) => (
                   <div
                     key={title}
-                    className="group relative flex flex-1 flex-col items-center"
+                    className="group relative flex items-start gap-5 pb-8 last:pb-0 sm:flex-col sm:items-center sm:flex-1 sm:pb-0 sm:gap-0"
                   >
                     {/* Dot */}
-                    <div className="relative z-10 h-8 w-8 shrink-0 rounded-full border-2 border-brand-border bg-brand-white transition-all duration-300 group-hover:border-brand-forest group-hover:bg-brand-forest">
+                    <div className="relative z-10 shrink-0 h-8 w-8 rounded-full border-2 border-brand-border bg-brand-white transition-all duration-300 group-hover:border-brand-forest group-hover:bg-brand-forest">
                       <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-border transition-all duration-300 group-hover:bg-brand-white" />
                     </div>
 
                     {/* Content */}
-                    <div className="mt-6 w-full rounded-sm border border-transparent px-3 py-5 text-center transition-all duration-300 group-hover:border-brand-border group-hover:bg-brand-cream">
+                    <div className="flex-1 rounded-sm border border-transparent px-3 py-2 text-left transition-all duration-300 group-hover:border-brand-border group-hover:bg-brand-cream sm:mt-6 sm:w-full sm:flex-none sm:text-center sm:py-5">
                       <p className="text-label mb-2 text-brand-muted transition-colors group-hover:text-brand-forest">
                         {title}
                       </p>
@@ -204,6 +207,7 @@ export default async function OurStoryPage() {
                     </div>
                   </div>
                 ))}
+
               </div>
             </div>
           </ScrollReveal>
