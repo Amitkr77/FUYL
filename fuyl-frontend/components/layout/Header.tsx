@@ -140,12 +140,26 @@ export function Header({ shopItems, contentPages = [] }: HeaderProps = {}) {
         className="sticky top-0 z-40 bg-white border-b border-brand-border"
         style={{ boxShadow: "0 1px 8px rgba(18,41,31,0.06)" }}
       >
+        {/* relative so the logo can be absolute-centered on mobile */}
         <div
-          className="container-brand flex items-center gap-6"
+          className="container-brand relative flex items-center gap-6"
           style={{ height: "64px" }}
         >
-          {/* Logo */}
-          <Link href="/" className="shrink-0 mr-auto lg:mr-0">
+          {/* Burger — left on mobile, hidden on desktop */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileOpen}
+            className="p-2.5 text-brand-olive transition-colors hover:text-brand-teal lg:hidden"
+          >
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+
+          {/* Logo — centered absolutely on mobile, normal flow on desktop */}
+          <Link
+            href="/"
+            className="absolute left-1/2 -translate-x-1/2 shrink-0 lg:static lg:translate-x-0"
+          >
             <Image
               src="/logo.webp"
               alt="FUYL"
@@ -180,7 +194,6 @@ export function Header({ shopItems, contentPages = [] }: HeaderProps = {}) {
                     activeMenu === item.label || isActive(item)
                       ? "text-brand-teal"
                       : "text-brand-forest hover:text-brand-teal",
-                    // Persistent underline marks the current section (not just color).
                     isActive(item) &&
                       "after:absolute after:left-4 after:right-4 after:-bottom-0.5 after:h-px after:bg-brand-teal after:rounded-full",
                   )}
@@ -197,8 +210,8 @@ export function Header({ shopItems, contentPages = [] }: HeaderProps = {}) {
             ))}
           </nav>
 
-          {/* Actions */}
-          <div className="flex items-center gap-1 ml-auto lg:ml-0">
+          {/* Right actions — desktop: search + account + cart; mobile: cart only */}
+          <div className="flex items-center gap-1 ml-auto">
             <button
               onClick={() => setSearchOpen(true)}
               aria-label="Search"
@@ -224,14 +237,6 @@ export function Header({ shopItems, contentPages = [] }: HeaderProps = {}) {
                   {itemCount > 9 ? "9+" : itemCount}
                 </span>
               )}
-            </button>
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label={mobileOpen ? "Close menu" : "Open menu"}
-              aria-expanded={mobileOpen}
-              className="p-2.5 text-brand-olive transition-colors hover:text-brand-teal lg:hidden"
-            >
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
         </div>
