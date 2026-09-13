@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { SiteChrome } from '@/components/layout/SiteChrome'
 import { generateSEO, orgSchema } from '@/lib/utils/seo'
 import { serializeJsonLd } from '@/lib/utils/jsonLd'
@@ -36,6 +37,7 @@ async function getShopNavItems(): Promise<NavItem[]> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined
   const [shopItems, contentNavigation, announcementBar, prebookingModal, popupBanner] = await Promise.all([
     getShopNavItems(),
     getNavigationPages().catch(() => []),
@@ -48,6 +50,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <head>
         <script
+          nonce={nonce}
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(orgSchema) }}
         />

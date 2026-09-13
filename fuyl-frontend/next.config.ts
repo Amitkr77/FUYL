@@ -1,20 +1,5 @@
 import type { NextConfig } from "next";
 
-// Enforced browser policy. Inline scripts/styles remain temporarily allowed for
-// Next's runtime and JSON-LD, while eval, framing and unsafe form targets are
-// blocked.
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  "img-src 'self' data: https:",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
-  "font-src 'self' data:",
-  "connect-src 'self' https:",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-].join("; ");
-
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -27,7 +12,6 @@ const securityHeaders = [
     key: "Strict-Transport-Security",
     value: "max-age=63072000; includeSubDomains; preload",
   },
-  { key: "Content-Security-Policy", value: contentSecurityPolicy },
 ];
 
 const nextConfig: NextConfig = {
