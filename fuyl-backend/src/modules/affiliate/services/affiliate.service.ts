@@ -374,6 +374,8 @@ export class AffiliateService {
     if (!['percent_of_sale', 'flat_per_item', 'flat_per_order'].includes(commissionType)) throw new BadRequestError('Invalid commission type');
     if (input.defaultRate === undefined || input.defaultRate < 0 || (commissionType === 'percent_of_sale' && input.defaultRate > 100)) throw new BadRequestError(commissionType === 'percent_of_sale' ? 'Commission percentage must be between 0 and 100' : 'Commission amount must be zero or greater');
     if (input.tiers?.some(t => t.minOrderAmount < 0 || t.rate < 0 || (commissionType === 'percent_of_sale' && t.rate > 100))) throw new BadRequestError('One or more commission levels are invalid');
+    if (input.tierBasis === 'order_count' && input.tiers?.some(t => !Number.isInteger(t.minOrderAmount) || t.minOrderAmount < 1)) throw new BadRequestError('Order-count level conditions must be whole numbers starting from 1');
+    if (input.tiers && new Set(input.tiers.map(t => t.minOrderAmount)).size !== input.tiers.length) throw new BadRequestError('Each commission level must have a unique condition');
     this.validateExtendedCommissionRules(input, commissionType);
     const program = await programRepo.create({
       name: input.name.trim(), description: input.description?.trim(), isActive: input.isActive ?? true,
@@ -401,6 +403,9 @@ export class AffiliateService {
     if (value < 0 || (commissionType === 'percent_of_sale' && value > 100)) throw new BadRequestError(commissionType === 'percent_of_sale' ? 'Commission percentage must be between 0 and 100' : 'Commission amount must be zero or greater');
     const tiers = input.tiers ?? existing.tiers;
     if (tiers.some(t => t.minOrderAmount < 0 || t.rate < 0 || (commissionType === 'percent_of_sale' && t.rate > 100))) throw new BadRequestError('One or more commission levels are invalid');
+    const tierBasis = input.tierBasis ?? existing.tierBasis ?? 'order_value';
+    if (tierBasis === 'order_count' && tiers.some(t => !Number.isInteger(t.minOrderAmount) || t.minOrderAmount < 1)) throw new BadRequestError('Order-count level conditions must be whole numbers starting from 1');
+    if (new Set(tiers.map(t => t.minOrderAmount)).size !== tiers.length) throw new BadRequestError('Each commission level must have a unique condition');
     this.validateExtendedCommissionRules(input, commissionType);
     const patch = { ...input };
     delete patch.isDefault;
