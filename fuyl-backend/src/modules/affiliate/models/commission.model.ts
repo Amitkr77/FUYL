@@ -7,6 +7,8 @@ export interface ICommission extends Document {
   attributionId?: mongoose.Types.ObjectId;
   // Snapshot of the program rule at calculation time — never recalculate from live settings
   snapshotRate:       number;   // e.g. 10 (percent)
+  snapshotType:       'percent_of_sale' | 'flat_per_item' | 'flat_per_order';
+  snapshotItemQuantity?: number;
   snapshotBase:       string;   // 'subtotal' | 'grand_total'
   baseAmount:         number;   // the amount rate was applied to
   amount:             number;   // baseAmount * snapshotRate / 100
@@ -32,6 +34,8 @@ const CommissionSchema = new Schema<ICommission>(
     orderId:       { type: Schema.Types.ObjectId, ref: 'Order',     required: true, index: true },
     attributionId: { type: Schema.Types.ObjectId, ref: 'AffiliateAttribution' },
     snapshotRate:  { type: Number, required: true },
+    snapshotType:  { type: String, enum: ['percent_of_sale', 'flat_per_item', 'flat_per_order'], default: 'percent_of_sale' },
+    snapshotItemQuantity: { type: Number, min: 0 },
     snapshotBase:  { type: String, required: true },
     baseAmount:    { type: Number, required: true, min: 0 },
     amount:        { type: Number, required: true, min: 0 },

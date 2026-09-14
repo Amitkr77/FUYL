@@ -40,7 +40,8 @@ export class AffiliateService {
     const existing = await affiliateRepo.findByEmail(input.email);
     if (existing) throw new ConflictError('An application with this email already exists');
 
-    const program = settings.defaultProgramId ? await programRepo.findById(settings.defaultProgramId) : await programRepo.findActive();
+    let program = settings.defaultProgramId ? await programRepo.findById(settings.defaultProgramId) : await programRepo.findActive();
+    if (!program?.isActive) program = await programRepo.findActive();
     if (!program) throw new BadRequestError('No active affiliate program at this time');
 
     const affiliate = await affiliateRepo.create({
@@ -337,7 +338,7 @@ export class AffiliateService {
   async adminUpdateLink(affiliateId:string,linkId:string,input:{destination?:string;label?:string;isActive?:boolean}){const link=await linkRepo.findById(linkId);if(!link||link.affiliateId.toString()!==affiliateId)throw new NotFoundError('Affiliate link');if(input.destination!==undefined){const d=input.destination.trim();if(!d.startsWith('/')||d.includes('://')||d.length>500)throw new BadRequestError('destination must be a relative path starting with /');}return linkRepo.update(linkId,input)}
 
   async affiliateSettings(publicOnly=false){const settings=await AffiliateSettingsModel.findOneAndUpdate({key:'default'},{$setOnInsert:{key:'default'}},{upsert:true,new:true}).populate('defaultProgramId','name defaultRate');if(publicOnly)return {registrationEnabled:settings.registrationEnabled,signupTitle:settings.signupTitle,signupIntroduction:settings.signupIntroduction,termsUrl:settings.termsUrl,requiredFields:settings.requiredFields,defaultProgram:settings.defaultProgramId};return settings}
-  async updateAffiliateSettings(input:Partial<IAffiliateSettings>){if(input.defaultProgramId&&!(await programRepo.findById(input.defaultProgramId)))throw new NotFoundError('Affiliate program');return AffiliateSettingsModel.findOneAndUpdate({key:'default'},{$set:{registrationEnabled:input.registrationEnabled,autoApprove:input.autoApprove,defaultProgramId:input.defaultProgramId,signupTitle:input.signupTitle,signupIntroduction:input.signupIntroduction,termsUrl:input.termsUrl,requiredFields:input.requiredFields,notificationEmail:input.notificationEmail}},{upsert:true,new:true,runValidators:true})}
+  async updateAffiliateSettings(input:Partial<IAffiliateSettings>){if(input.defaultProgramId){const program=await programRepo.findById(input.defaultProgramId);if(!program)throw new NotFoundError('Affiliate program');if(!program.isActive)throw new BadRequestError('The signup default program must be active');await programRepo.setDefault(program._id);}return AffiliateSettingsModel.findOneAndUpdate({key:'default'},{$set:{registrationEnabled:input.registrationEnabled,autoApprove:input.autoApprove,defaultProgramId:input.defaultProgramId,signupTitle:input.signupTitle,signupIntroduction:input.signupIntroduction,termsUrl:input.termsUrl,requiredFields:input.requiredFields,notificationEmail:input.notificationEmail}},{upsert:true,new:true,runValidators:true})}
 
   async reactivate(affiliateId: string, actorId: string) {
     const affiliate = await affiliateRepo.findById(affiliateId);
@@ -369,32 +370,50 @@ export class AffiliateService {
 
   async createProgram(input: Partial<IAffiliateProgram>) {
     if (!input.name?.trim()) throw new BadRequestError('Program name is required');
-    if (input.defaultRate === undefined || input.defaultRate < 0 || input.defaultRate > 100) throw new BadRequestError('Default rate must be between 0 and 100');
+    const commissionType = input.commissionType ?? 'percent_of_sale';
+    if (!['percent_of_sale', 'flat_per_item', 'flat_per_order'].includes(commissionType)) throw new BadRequestError('Invalid commission type');
+    if (input.defaultRate === undefined || input.defaultRate < 0 || (commissionType === 'percent_of_sale' && input.defaultRate > 100)) throw new BadRequestError(commissionType === 'percent_of_sale' ? 'Commission percentage must be between 0 and 100' : 'Commission amount must be zero or greater');
+    if (input.tiers?.some(t => t.minOrderAmount < 0 || t.rate < 0 || (commissionType === 'percent_of_sale' && t.rate > 100))) throw new BadRequestError('One or more commission levels are invalid');
+    this.validateExtendedCommissionRules(input, commissionType);
     const program = await programRepo.create({
       name: input.name.trim(), description: input.description?.trim(), isActive: input.isActive ?? true,
-      isDefault: false, defaultRate: input.defaultRate, commissionBase: input.commissionBase ?? 'subtotal',
+      isDefault: false, commissionType, defaultRate: input.defaultRate, commissionBase: input.commissionBase ?? 'subtotal',
       attributionWindowDays: input.attributionWindowDays ?? 30, tiers: input.tiers ?? [],
+      tierBasis: input.tierBasis ?? 'order_value', specialProductCommissions: input.specialProductCommissions ?? [],
+      excludedProductIds: input.excludedProductIds ?? [], excludeProductTax: input.excludeProductTax ?? true,
+      excludeShipping: input.excludeShipping ?? true, advancedCommissions: input.advancedCommissions ?? {
+        newCustomer:{enabled:false,rate:0}, lifetime:{enabled:false,rate:0}, specialCoupon:{enabled:false,rate:0},
+      },
       minPayoutAmount: input.minPayoutAmount ?? 500, autoApproveAfterDays: input.autoApproveAfterDays ?? 7,
     });
     const existing = await programRepo.listAll();
-    if (input.isDefault || existing.length === 1) return programRepo.setDefault(program._id);
+    if (input.isDefault || existing.length === 1) return this.setDefaultProgram(program._id.toString());
     return program;
   }
 
   async updateProgram(id: string, input: Partial<IAffiliateProgram>) {
     const existing = await programRepo.findById(id);
     if (!existing) throw new NotFoundError('Affiliate program');
-    if (input.defaultRate !== undefined && (input.defaultRate < 0 || input.defaultRate > 100)) throw new BadRequestError('Default rate must be between 0 and 100');
+    if (existing.isDefault && input.isActive === false) throw new BadRequestError('Choose another default program before deactivating this one');
+    const commissionType = input.commissionType ?? existing.commissionType ?? 'percent_of_sale';
+    if (!['percent_of_sale', 'flat_per_item', 'flat_per_order'].includes(commissionType)) throw new BadRequestError('Invalid commission type');
+    const value = input.defaultRate ?? existing.defaultRate;
+    if (value < 0 || (commissionType === 'percent_of_sale' && value > 100)) throw new BadRequestError(commissionType === 'percent_of_sale' ? 'Commission percentage must be between 0 and 100' : 'Commission amount must be zero or greater');
+    const tiers = input.tiers ?? existing.tiers;
+    if (tiers.some(t => t.minOrderAmount < 0 || t.rate < 0 || (commissionType === 'percent_of_sale' && t.rate > 100))) throw new BadRequestError('One or more commission levels are invalid');
+    this.validateExtendedCommissionRules(input, commissionType);
     const patch = { ...input };
     delete patch.isDefault;
     const updated = await programRepo.update(id, patch);
-    if (input.isDefault) return programRepo.setDefault(id);
+    if (input.isDefault) return this.setDefaultProgram(id);
     return updated;
   }
 
   async setDefaultProgram(id: string) {
     if (!(await programRepo.findById(id))) throw new NotFoundError('Affiliate program');
-    return programRepo.setDefault(id);
+    const program=await programRepo.setDefault(id);
+    await AffiliateSettingsModel.findOneAndUpdate({key:'default'},{$set:{defaultProgramId:id}},{upsert:true,new:true});
+    return program;
   }
 
   async deleteProgram(id: string) {
@@ -403,6 +422,23 @@ export class AffiliateService {
     if (program.isDefault) throw new ConflictError('The default program cannot be deleted');
     if (await affiliateRepo.countByProgram(id)) throw new ConflictError('Move affiliates to another program before deleting this program');
     await programRepo.delete(id);
+  }
+
+  private validateExtendedCommissionRules(input: Partial<IAffiliateProgram>, type: IAffiliateProgram['commissionType']) {
+    const values = [
+      ...(input.specialProductCommissions ?? []).map(rule => rule.rate),
+      ...Object.values(input.advancedCommissions ?? {}).map(rule => rule.rate),
+    ];
+    if (values.some(value => !Number.isFinite(value) || value < 0 || (type === 'percent_of_sale' && value > 100))) {
+      throw new BadRequestError(type === 'percent_of_sale' ? 'All commission percentages must be between 0 and 100' : 'All commission amounts must be zero or greater');
+    }
+    const productIds = (input.specialProductCommissions ?? []).map(rule => rule.productId.toString());
+    const excludedIds = (input.excludedProductIds ?? []).map(id => id.toString());
+    if ([...productIds, ...excludedIds].some(id => !mongoose.isValidObjectId(id))) throw new BadRequestError('A selected product is invalid');
+    if (new Set(productIds).size !== productIds.length) throw new BadRequestError('A product can only have one special commission rule');
+    if (productIds.some(id => excludedIds.includes(id))) throw new BadRequestError('A product cannot be both excluded and assigned a special commission');
+    const coupon = input.advancedCommissions?.specialCoupon;
+    if (coupon?.enabled && !coupon.couponCode?.trim()) throw new BadRequestError('Coupon code is required when special coupon commission is enabled');
   }
 
   // ─── Internals ────────────────────────────────────────────────────────────

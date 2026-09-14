@@ -28,6 +28,13 @@ export class CommissionService {
     attributionId: string;
     subtotal:      number;
     grandTotal:    number;
+    itemQuantity:  number;
+    items: Array<{ productId:string; quantity:number; totalPrice:number; discount:number; tax:number }>;
+    shippingTotal: number;
+    discountTotal: number;
+    couponCode?: string;
+    customerId: string;
+    attributionMethod?: 'link' | 'coupon' | 'lifetime';
     orderNumber?:  string;
   }): Promise<void> {
     const affiliate = await affiliateRepo.findById(input.affiliateId);
@@ -36,20 +43,58 @@ export class CommissionService {
     const program = await programRepo.findById(affiliate.programId);
     if (!program) throw new NotFoundError('AffiliateProgram');
 
-    // Determine rate — tiered rates win over defaultRate if thresholds are met
+    // Build the eligible basket first. Exclusions always win over every rule.
+    const excluded = new Set((program.excludedProductIds ?? []).map(id => id.toString()));
+    const eligibleItems = input.items.filter(item => !excluded.has(item.productId));
+    if (!eligibleItems.length) return;
+    const includeOrderCharges = program.commissionBase === 'grand_total';
+    const itemNet = (item: typeof input.items[number]) => Math.max(0, item.totalPrice - item.discount + (includeOrderCharges && !program.excludeProductTax ? item.tax : 0));
+    const itemsBase = eligibleItems.reduce((sum,item)=>sum+itemNet(item),0);
+    const eligibleQuantity = eligibleItems.reduce((sum,item)=>sum+item.quantity,0);
+
+    // Determine value — levels win over the default when their basis qualifies.
     let rate = program.defaultRate;
-    const base = program.commissionBase === 'grand_total' ? input.grandTotal : input.subtotal;
-    const baseAmount = fromPaise(toPaise(base));
+    const extraOrderDiscount = Math.max(0, input.discountTotal - input.items.reduce((sum,item)=>sum+item.discount,0));
+    const allEligibleBeforeExclusion = input.items.reduce((sum,item)=>sum+Math.max(0,item.totalPrice-item.discount),0);
+    const eligibleBeforeOrderDiscount = eligibleItems.reduce((sum,item)=>sum+Math.max(0,item.totalPrice-item.discount),0);
+    const allocatedOrderDiscount = allEligibleBeforeExclusion > 0 ? extraOrderDiscount * eligibleBeforeOrderDiscount / allEligibleBeforeExclusion : 0;
+    const baseAmount = fromPaise(toPaise(Math.max(0, itemsBase - allocatedOrderDiscount + (includeOrderCharges && !program.excludeShipping ? input.shippingTotal : 0))));
+    const qualificationValue = program.tierBasis === 'order_count' ? (affiliate.stats?.totalOrders ?? 0) + 1 : baseAmount;
 
     const sortedTiers = [...program.tiers].sort((a, b) => b.minOrderAmount - a.minOrderAmount);
     for (const tier of sortedTiers) {
-      if (baseAmount >= tier.minOrderAmount) {
+      if (qualificationValue >= tier.minOrderAmount) {
         rate = tier.rate;
         break;
       }
     }
 
-    const amount = fromPaise(Math.round((toPaise(baseAmount) * rate) / 100));
+    const commissionType = program.commissionType ?? 'percent_of_sale';
+    const calculate = (value:number, base:number, quantity:number) => commissionType === 'percent_of_sale'
+      ? Math.round((toPaise(base) * value) / 100)
+      : commissionType === 'flat_per_item' ? toPaise(value) * quantity : toPaise(value);
+
+    const { OrderModel } = await import('../../order/models/order.model');
+    const isNewCustomer = await OrderModel.countDocuments({ _id:{$ne:new mongoose.Types.ObjectId(input.orderId)},customerId:input.customerId,paymentStatus:'success' }) === 0;
+    const advanced = program.advancedCommissions;
+    let appliedRule = 'default';
+    let advancedRate:number|undefined;
+    if (advanced?.specialCoupon?.enabled && advanced.specialCoupon.couponCode && advanced.specialCoupon.couponCode === input.couponCode?.toUpperCase()) { advancedRate=advanced.specialCoupon.rate;appliedRule='special_coupon'; }
+    else if (advanced?.newCustomer?.enabled && isNewCustomer) { advancedRate=advanced.newCustomer.rate;appliedRule='new_customer'; }
+    else if (advanced?.lifetime?.enabled && input.attributionMethod === 'lifetime') { advancedRate=advanced.lifetime.rate;appliedRule='lifetime'; }
+
+    let amountPaise=0;
+    if (advancedRate !== undefined) {
+      rate=advancedRate;
+      amountPaise=calculate(rate,baseAmount,eligibleQuantity);
+    } else {
+      const productRules=new Map((program.specialProductCommissions??[]).map(rule=>[rule.productId.toString(),rule.rate]));
+      const regular=eligibleItems.filter(item=>!productRules.has(item.productId));
+      for(const item of eligibleItems){const productRate=productRules.get(item.productId);if(productRate!==undefined){amountPaise+=calculate(productRate,itemNet(item),item.quantity);appliedRule='special_product';}}
+      if(regular.length){const regularShare=eligibleBeforeOrderDiscount>0?regular.reduce((sum,item)=>sum+Math.max(0,item.totalPrice-item.discount),0)/eligibleBeforeOrderDiscount:0;const regularBase=Math.max(0,regular.reduce((sum,item)=>sum+itemNet(item),0)-allocatedOrderDiscount*regularShare)+(includeOrderCharges&&!program.excludeShipping?input.shippingTotal:0);amountPaise+=calculate(rate,regularBase,regular.reduce((sum,item)=>sum+item.quantity,0));}
+    }
+    const itemQuantity = eligibleQuantity;
+    const amount = fromPaise(amountPaise);
 
     const eligibleForApprovalAt = new Date(
       Date.now() + program.autoApproveAfterDays * 24 * 60 * 60 * 1000
@@ -62,11 +107,14 @@ export class CommissionService {
         orderId:       new mongoose.Types.ObjectId(input.orderId),
         attributionId: new mongoose.Types.ObjectId(input.attributionId),
         snapshotRate:  rate,
+        snapshotType:  commissionType,
+        snapshotItemQuantity: itemQuantity,
         snapshotBase:  program.commissionBase,
         baseAmount,
         amount,
         status:        CommissionStatus.PENDING,
         eligibleForApprovalAt,
+        metadata: { appliedRule, qualificationBasis:program.tierBasis??'order_value', qualificationValue },
       });
     } catch (err: any) {
       // E11000 = duplicate key — another concurrent handler already inserted this commission.
@@ -83,7 +131,11 @@ export class CommissionService {
       affiliateId:  commission.affiliateId,
       eventType:    CommissionEventType.CREATED,
       amountDelta:  amount,
-      note:         `Order ${input.orderNumber ?? 'commission'} at ${rate}% on ₹${baseAmount}`,
+      note:         commissionType === 'percent_of_sale'
+        ? `Order ${input.orderNumber ?? 'commission'} at ${rate}% on ₹${baseAmount}`
+        : commissionType === 'flat_per_item'
+          ? `Order ${input.orderNumber ?? 'commission'} at ₹${rate} × ${itemQuantity} item(s)`
+          : `Order ${input.orderNumber ?? 'commission'} at ₹${rate} per order`,
     });
 
     // Update affiliate stats
@@ -334,7 +386,11 @@ export class CommissionService {
       paymentPaise
     );
     const desiredBase = fromPaise(desiredBasePaise);
-    const desiredAmount = fromPaise(Math.round((desiredBasePaise * commission.snapshotRate) / 100));
+    const desiredAmount = fromPaise(proratePaise(
+      toPaise(commission.amount),
+      paymentPaise - refundedPaise,
+      paymentPaise
+    ));
     const delta = fromPaise(toPaise(desiredAmount) - toPaise(commission.amount));
     if (toPaise(delta) === 0) return;
 

@@ -80,7 +80,7 @@ export class TrackingService {
   }): Promise<{
     affiliateId:      string;
     attributionId:    string;
-    method:           'link' | 'coupon';
+    method:           'link' | 'coupon' | 'lifetime';
   } | null> {
     // 1. Token-based (link click)
     if (input.attributionToken) {
@@ -118,6 +118,23 @@ export class TrackingService {
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         });
         return { affiliateId: affiliate._id.toString(), attributionId: attribution._id.toString(), method: 'coupon' };
+      }
+    }
+
+    // Lifetime programs keep crediting the original affiliate on later orders,
+    // even when the click cookie has expired. Explicit link/coupon attribution
+    // above always takes priority.
+    const { OrderModel } = await import('../../order/models/order.model');
+    const previous = await OrderModel.findOne({ customerId:input.userId,affiliateId:{$exists:true},paymentStatus:'success' }).sort({createdAt:-1}).select('affiliateId').lean();
+    if(previous?.affiliateId){
+      const affiliate=await affiliateRepo.findById(previous.affiliateId);
+      if(affiliate?.status===AffiliateStatus.APPROVED){
+        const { AffiliateProgramModel } = await import('../models/program.model');
+        const program=await AffiliateProgramModel.findById(affiliate.programId).select('advancedCommissions.lifetime').lean();
+        if(program?.advancedCommissions?.lifetime?.enabled && affiliate.userId?.toString()!==input.userId){
+          const attribution=await attributionRepo.create({affiliateId:affiliate._id,method:AttributionMethod.LIFETIME,token:crypto.randomUUID(),customerId:input.userId as any,expiresAt:new Date(Date.now()+24*60*60*1000)});
+          return {affiliateId:affiliate._id.toString(),attributionId:attribution._id.toString(),method:'lifetime'};
+        }
       }
     }
 

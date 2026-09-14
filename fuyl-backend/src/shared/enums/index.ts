@@ -131,6 +131,7 @@ export const CommissionStatus = {
 export const AttributionMethod = {
   LINK:   'link',
   COUPON: 'coupon',
+  LIFETIME: 'lifetime',
 } as const;
 
 export const CommissionEventType = {

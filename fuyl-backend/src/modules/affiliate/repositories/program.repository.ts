@@ -19,12 +19,12 @@ export class ProgramRepository {
   }
 
   async update(id: string | Types.ObjectId, patch: Partial<IAffiliateProgram>): Promise<IAffiliateProgram | null> {
-    return AffiliateProgramModel.findByIdAndUpdate(id, { $set: patch }, { new: true });
+    return AffiliateProgramModel.findByIdAndUpdate(id, { $set: patch }, { new: true, runValidators: true });
   }
 
   async setDefault(id: string | Types.ObjectId): Promise<IAffiliateProgram | null> {
     await AffiliateProgramModel.updateMany({ _id: { $ne: id } }, { $set: { isDefault: false } });
-    return AffiliateProgramModel.findByIdAndUpdate(id, { $set: { isDefault: true, isActive: true } }, { new: true });
+    return AffiliateProgramModel.findByIdAndUpdate(id, { $set: { isDefault: true, isActive: true } }, { new: true, runValidators: true });
   }
 
   async delete(id: string | Types.ObjectId): Promise<void> {

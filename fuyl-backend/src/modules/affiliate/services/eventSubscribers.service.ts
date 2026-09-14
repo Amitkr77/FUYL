@@ -30,6 +30,13 @@ export function registerAffiliateEventSubscribers(): void {
         attributionId: order.affiliateAttributionId.toString(),
         subtotal:      order.subtotal,
         grandTotal:    order.grandTotal,
+        itemQuantity:  order.items.reduce((total, item) => total + item.quantity, 0),
+        items: order.items.map(item => ({ productId:item.productId.toString(), quantity:item.quantity, totalPrice:item.totalPrice, discount:item.discount, tax:item.tax })),
+        shippingTotal: order.shippingTotal,
+        discountTotal: order.discountTotal,
+        couponCode: order.metadata?.couponCode as string | undefined,
+        customerId: order.customerId.toString(),
+        attributionMethod: order.affiliateAttributionMethod,
         orderNumber:   order.orderNumber,
       });
     } catch (err) {
