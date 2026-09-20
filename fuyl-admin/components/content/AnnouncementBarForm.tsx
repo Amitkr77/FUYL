@@ -5,6 +5,7 @@ import { CheckCircle2, AlertCircle } from 'lucide-react'
 import { updateAnnouncementBarAction } from '@/app/(admin)/content/actions'
 import type { AnnouncementBarSection } from '@/lib/content'
 import { useContentDraftGuard } from './useContentDraftGuard'
+import { Input, Checkbox, Toggle } from '@/components/ui/form'
 
 interface Props {
   initial: AnnouncementBarSection
@@ -26,45 +27,41 @@ export function AnnouncementBarForm({ initial }: Props) {
     })
   }
 
-  const field = (label: string, key: keyof typeof data, type: 'text' | 'url' = 'text', placeholder?: string) => (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold text-slate-700">{label}</span>
-      <input
-        type={type}
-        value={String(data[key])}
-        placeholder={placeholder}
-        onChange={(e) => setData((d) => ({ ...d, [key]: e.target.value }))}
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#558476] focus:ring-2 focus:ring-[#558476]/20"
-      />
-    </label>
-  )
-
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-6">
       {/* Active toggle */}
-      <label className="flex items-center gap-3 cursor-pointer">
-        <div className="relative">
-          <input type="checkbox" className="sr-only peer" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-          <div className="h-5 w-9 rounded-full bg-slate-200 peer-checked:bg-[#558476] transition-colors" />
-          <div className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
-        </div>
-        <span className="text-sm font-medium text-slate-700">Show announcement bar on storefront</span>
-      </label>
+      <Toggle
+        checked={isActive}
+        onChange={setIsActive}
+        label="Show announcement bar on storefront"
+      />
 
       <div className={`space-y-4 ${!isActive ? 'opacity-50 pointer-events-none' : ''}`}>
-        {field('Bar text', 'text', 'text', 'e.g. FUYL COMPLETE+ LAUNCHING SOON')}
-        {field('Link URL', 'linkHref', 'url', 'e.g. /pages/contact')}
-        {field('Link label (optional — leave blank to use bar text)', 'linkText', 'text', 'e.g. Learn more')}
+        <Input
+          label="Bar text"
+          value={String(data.text)}
+          placeholder="e.g. FUYL COMPLETE+ LAUNCHING SOON"
+          onChange={(e) => setData((d) => ({ ...d, text: e.target.value }))}
+        />
+        <Input
+          label="Link URL"
+          type="url"
+          value={String(data.linkHref)}
+          placeholder="e.g. /pages/contact"
+          onChange={(e) => setData((d) => ({ ...d, linkHref: e.target.value }))}
+        />
+        <Input
+          label="Link label (optional — leave blank to use bar text)"
+          value={String(data.linkText)}
+          placeholder="e.g. Learn more"
+          onChange={(e) => setData((d) => ({ ...d, linkText: e.target.value }))}
+        />
 
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={data.dismissible}
-            onChange={(e) => setData((d) => ({ ...d, dismissible: e.target.checked }))}
-            className="h-4 w-4 accent-[#558476] rounded"
-          />
-          <span className="text-sm text-slate-700">Allow visitors to dismiss the bar</span>
-        </label>
+        <Checkbox
+          label="Allow visitors to dismiss the bar"
+          checked={data.dismissible}
+          onChange={(e) => setData((d) => ({ ...d, dismissible: e.target.checked }))}
+        />
       </div>
 
       {result?.error && (
@@ -84,7 +81,7 @@ export function AnnouncementBarForm({ initial }: Props) {
         disabled={pending}
         className="rounded-lg bg-[#558476] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#457366] disabled:opacity-60 transition-colors"
       >
-        {pending ? 'Saving…' : 'Save changes'}
+        {pending ? 'Saving...' : 'Save changes'}
       </button>
     </div>
   )

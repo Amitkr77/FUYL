@@ -6,9 +6,7 @@ import type { OurStorySection, OurStoryFounder, OurStoryMilestone } from '@/lib/
 import { updateOurStoryAction, getContentImageUploadSignature } from '@/app/(admin)/content/actions'
 import { uploadImage } from '@/lib/upload'
 import { useContentDraftGuard } from './useContentDraftGuard'
-
-const INPUT = 'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#558476] focus:ring-2 focus:ring-[#558476]/20'
-const LABEL = 'mb-1.5 block text-xs font-semibold text-slate-700'
+import { Input, Textarea, Toggle } from '@/components/ui/form'
 
 function FounderCard({
   founder,
@@ -53,14 +51,14 @@ function FounderCard({
       <div className="p-5 space-y-4">
         {/* Image */}
         <div>
-          <span className={LABEL}>Photo</span>
+          <span className="mb-1.5 block text-xs font-semibold text-slate-700">Photo</span>
           <input ref={imgRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleImageUpload} />
           {founder.image ? (
             <div className="group relative h-32 w-32 rounded-lg border border-slate-200 overflow-hidden bg-slate-100">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={founder.image} alt="" className="h-full w-full object-cover" />
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <button type="button" onClick={() => imgRef.current?.click()} disabled={uploading} className="rounded bg-white px-2.5 py-1 text-xs font-medium text-slate-700">{uploading ? 'Uploading…' : 'Replace'}</button>
+                <button type="button" onClick={() => imgRef.current?.click()} disabled={uploading} className="rounded bg-white px-2.5 py-1 text-xs font-medium text-slate-700">{uploading ? 'Uploading\u2026' : 'Replace'}</button>
                 <button type="button" onClick={() => onChange('image', '')} className="rounded bg-white px-2.5 py-1 text-xs font-medium text-red-500">Remove</button>
               </div>
             </div>
@@ -69,19 +67,12 @@ function FounderCard({
               <ImagePlus className="h-5 w-5" />
             </button>
           )}
-          <input value={founder.image} onChange={(e) => onChange('image', e.target.value)} placeholder="Or paste image URL…" className={`mt-1.5 ${INPUT} text-xs`} />
+          <Input value={founder.image} onChange={(e) => onChange('image', e.target.value)} placeholder="Or paste image URL\u2026" className="mt-1.5" />
           {uploadError && <p className="mt-1 flex items-center gap-1.5 text-xs text-red-600"><AlertCircle className="h-3.5 w-3.5" />{uploadError}</p>}
         </div>
 
-        <label className="block">
-          <span className={LABEL}>Name</span>
-          <input value={founder.name} onChange={(e) => onChange('name', e.target.value)} placeholder="e.g. SWEEKAR SAXENA" className={INPUT} />
-        </label>
-
-        <label className="block">
-          <span className={LABEL}>Bio <span className="font-normal text-slate-400">(HTML allowed — use &lt;strong&gt; for bold)</span></span>
-          <textarea rows={8} value={founder.bio} onChange={(e) => onChange('bio', e.target.value)} className={`${INPUT} resize-y`} />
-        </label>
+        <Input label="Name" value={founder.name} onChange={(e) => onChange('name', e.target.value)} placeholder="e.g. SWEEKAR SAXENA" />
+        <Textarea label="Bio" helperText="HTML allowed \u2014 use <strong> for bold" rows={8} value={founder.bio} onChange={(e) => onChange('bio', e.target.value)} />
       </div>
     </div>
   )
@@ -113,14 +104,8 @@ function MilestoneCard({
         </div>
       </div>
       <div className="p-5 space-y-4">
-        <label className="block">
-          <span className={LABEL}>Title</span>
-          <input value={milestone.title} onChange={(e) => onChange('title', e.target.value)} placeholder="e.g. THE IDEA" className={INPUT} />
-        </label>
-        <label className="block">
-          <span className={LABEL}>Body</span>
-          <textarea rows={3} value={milestone.body} onChange={(e) => onChange('body', e.target.value)} className={`${INPUT} resize-y`} />
-        </label>
+        <Input label="Title" value={milestone.title} onChange={(e) => onChange('title', e.target.value)} placeholder="e.g. THE IDEA" />
+        <Textarea label="Body" rows={3} value={milestone.body} onChange={(e) => onChange('body', e.target.value)} />
       </div>
     </div>
   )
@@ -181,29 +166,17 @@ export function OurStorySectionForm({ initial }: { initial: OurStorySection }) {
         <h3 className="text-sm font-semibold text-slate-900">Page settings</h3>
 
         {/* Active toggle */}
-        <label className="flex items-center gap-3 cursor-pointer">
-          <div className="relative">
-            <input type="checkbox" className="sr-only peer" checked={section.isActive} onChange={(e) => setSection((s) => ({ ...s, isActive: e.target.checked }))} />
-            <div className="h-5 w-9 rounded-full bg-slate-200 peer-checked:bg-[#558476] transition-colors" />
-            <div className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
-          </div>
-          <span className="text-sm font-medium text-slate-700">Show this page on the storefront</span>
-        </label>
+        <Toggle
+          checked={section.isActive}
+          onChange={(v) => setSection((s) => ({ ...s, isActive: v }))}
+          label="Show this page on the storefront"
+        />
 
-        <label className="block">
-          <span className={LABEL}>Hero quote</span>
-          <textarea rows={3} value={section.data.heroQuote} onChange={(e) => setData({ heroQuote: e.target.value })} className={`${INPUT} resize-y`} />
-        </label>
+        <Textarea label="Hero quote" rows={3} value={section.data.heroQuote} onChange={(e) => setData({ heroQuote: e.target.value })} />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className={LABEL}>CTA label</span>
-            <input value={section.data.ctaLabel} onChange={(e) => setData({ ctaLabel: e.target.value })} placeholder="e.g. Try FUYL Complete+" className={INPUT} />
-          </label>
-          <label className="block">
-            <span className={LABEL}>CTA link</span>
-            <input value={section.data.ctaHref} onChange={(e) => setData({ ctaHref: e.target.value })} placeholder="/products/fuyl-complete" className={INPUT} />
-          </label>
+          <Input label="CTA label" value={section.data.ctaLabel} onChange={(e) => setData({ ctaLabel: e.target.value })} placeholder="e.g. Try FUYL Complete+" />
+          <Input label="CTA link" value={section.data.ctaHref} onChange={(e) => setData({ ctaHref: e.target.value })} placeholder="/products/fuyl-complete" />
         </div>
       </div>
 
@@ -264,7 +237,7 @@ export function OurStorySectionForm({ initial }: { initial: OurStorySection }) {
           disabled={pending}
           className="rounded-lg bg-[#558476] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#457366] disabled:opacity-60 transition-colors"
         >
-          {pending ? 'Saving…' : 'Save changes'}
+          {pending ? 'Saving\u2026' : 'Save changes'}
         </button>
       </div>
     </div>

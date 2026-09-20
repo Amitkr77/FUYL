@@ -4,8 +4,7 @@ import { useState, useTransition } from 'react'
 import { Save, CheckCircle2, Trash2, AlertCircle } from 'lucide-react'
 import type { FAQRecord } from '@/lib/content'
 import { updateFAQAction, deleteFAQAction } from '@/app/(admin)/content/actions'
-
-const inputCls = 'w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent'
+import { Input, Textarea, Checkbox, FormSection } from '@/components/ui/form'
 
 export function EditFAQForm({ faq }: { faq: FAQRecord }) {
   const [isPending, startTransition] = useTransition()
@@ -57,21 +56,30 @@ export function EditFAQForm({ faq }: { faq: FAQRecord }) {
         </div>
       )}
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Question</label>
-          <input type="text" value={form.question} onChange={(e) => set({ question: e.target.value })} maxLength={300} className={inputCls} />
+      <FormSection className="p-6">
+        <Input
+          label="Question"
+          type="text"
+          value={form.question}
+          onChange={(e) => set({ question: e.target.value })}
+          maxLength={300}
+        />
+        <Textarea
+          label="Answer"
+          value={form.answer}
+          onChange={(e) => set({ answer: e.target.value })}
+          rows={6}
+          maxLength={2000}
+          helperText={`${form.answer.length}/2000`}
+        />
+        <div className="pt-2 border-t border-slate-100">
+          <Checkbox
+            label="Active (visible on storefront)"
+            checked={form.isActive}
+            onChange={(e) => set({ isActive: e.target.checked })}
+          />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Answer</label>
-          <textarea value={form.answer} onChange={(e) => set({ answer: e.target.value })} rows={6} maxLength={2000} className={`${inputCls} resize-none`} />
-          <p className="text-xs text-slate-400 mt-1.5">{form.answer.length}/2000</p>
-        </div>
-        <label className="flex items-center gap-2 text-sm text-slate-700 pt-2 border-t border-slate-100">
-          <input type="checkbox" checked={form.isActive} onChange={(e) => set({ isActive: e.target.checked })} className="rounded border-slate-300 text-[#558476] focus:ring-[#558476]" />
-          Active (visible on storefront)
-        </label>
-      </div>
+      </FormSection>
     </div>
   )
 }

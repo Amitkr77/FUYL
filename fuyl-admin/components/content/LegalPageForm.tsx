@@ -4,9 +4,7 @@ import { useState, useTransition } from 'react'
 import { Plus, Trash2, ChevronUp, ChevronDown, CheckCircle2, AlertCircle } from 'lucide-react'
 import type { LegalPageSection, LegalSection } from '@/lib/content'
 import { useContentDraftGuard } from './useContentDraftGuard'
-
-const INPUT = 'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#558476] focus:ring-2 focus:ring-[#558476]/20'
-const LABEL = 'mb-1.5 block text-xs font-semibold text-slate-700'
+import { Input, Textarea, Checkbox, Toggle } from '@/components/ui/form'
 
 interface Props {
   initial: LegalPageSection
@@ -40,30 +38,21 @@ function SectionCard({
       </div>
 
       <div className="p-5 space-y-4">
-        <label className="block">
-          <span className={LABEL}>Heading</span>
-          <input value={section.heading} onChange={(e) => onChange('heading', e.target.value)} placeholder="e.g. Information We Collect" className={INPUT} />
-        </label>
+        <Input label="Heading" value={section.heading} onChange={(e) => onChange('heading', e.target.value)} placeholder="e.g. Information We Collect" />
 
         <div>
-          <label className="flex items-center gap-3 cursor-pointer mb-2">
-            <input
-              type="checkbox"
-              checked={section.isList}
-              onChange={(e) => onChange('isList', e.target.checked)}
-              className="h-4 w-4 accent-[#558476] rounded"
-            />
-            <span className="text-xs font-semibold text-slate-700">Render as bulleted list</span>
-          </label>
-          <span className="block text-xs text-slate-400 mb-1.5">
-            {section.isList ? 'One bullet item per line' : 'Rendered as a paragraph'}
-          </span>
-          <textarea
+          <Checkbox
+            label="Render as bulleted list"
+            checked={section.isList}
+            onChange={(e) => onChange('isList', e.target.checked)}
+          />
+          <Textarea
+            helperText={section.isList ? 'One bullet item per line' : 'Rendered as a paragraph'}
             rows={section.isList ? 6 : 4}
             value={section.body}
             onChange={(e) => onChange('body', e.target.value)}
-            placeholder={section.isList ? 'First bullet item\nSecond bullet item\nThird bullet item' : 'Enter paragraph text…'}
-            className={`${INPUT} resize-y`}
+            placeholder={section.isList ? 'First bullet item\nSecond bullet item\nThird bullet item' : 'Enter paragraph text\u2026'}
+            className="mt-2"
           />
         </div>
       </div>
@@ -113,24 +102,15 @@ export function LegalPageForm({ initial, saveAction }: Props) {
         <h3 className="text-sm font-semibold text-slate-900">Page settings</h3>
 
         {/* Active toggle */}
-        <label className="flex items-center gap-3 cursor-pointer">
-          <div className="relative">
-            <input type="checkbox" className="sr-only peer" checked={page.isActive} onChange={(e) => setPage((p) => ({ ...p, isActive: e.target.checked }))} />
-            <div className="h-5 w-9 rounded-full bg-slate-200 peer-checked:bg-[#558476] transition-colors" />
-            <div className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
-          </div>
-          <span className="text-sm font-medium text-slate-700">Show this page on the storefront</span>
-        </label>
+        <Toggle
+          checked={page.isActive}
+          onChange={(v) => setPage((p) => ({ ...p, isActive: v }))}
+          label="Show this page on the storefront"
+        />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className={LABEL}>Last updated</span>
-            <input value={page.data.lastUpdated} onChange={(e) => setData({ lastUpdated: e.target.value })} placeholder="e.g. January 2025" className={INPUT} />
-          </label>
-          <label className="block sm:col-span-2">
-            <span className={LABEL}>Subtitle</span>
-            <input value={page.data.subtitle} onChange={(e) => setData({ subtitle: e.target.value })} placeholder="Brief description shown below the title" className={INPUT} />
-          </label>
+          <Input label="Last updated" value={page.data.lastUpdated} onChange={(e) => setData({ lastUpdated: e.target.value })} placeholder="e.g. January 2025" />
+          <Input label="Subtitle" value={page.data.subtitle} onChange={(e) => setData({ subtitle: e.target.value })} placeholder="Brief description shown below the title" className="sm:col-span-2" />
         </div>
       </div>
 
@@ -155,7 +135,7 @@ export function LegalPageForm({ initial, saveAction }: Props) {
         ))}
         {page.data.sections.length === 0 && (
           <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-slate-200 py-10 text-sm text-slate-400">
-            No sections yet — click &ldquo;Add section&rdquo; to start
+            No sections yet \u2014 click &ldquo;Add section&rdquo; to start
           </div>
         )}
       </div>
@@ -175,7 +155,7 @@ export function LegalPageForm({ initial, saveAction }: Props) {
           disabled={pending}
           className="rounded-lg bg-[#558476] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#457366] disabled:opacity-60 transition-colors"
         >
-          {pending ? 'Saving…' : 'Save changes'}
+          {pending ? 'Saving\u2026' : 'Save changes'}
         </button>
       </div>
     </div>

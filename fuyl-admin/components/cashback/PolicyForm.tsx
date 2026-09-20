@@ -9,6 +9,7 @@ import {
   updatePolicyAction,
   searchCustomersAction,
 } from "@/app/(admin)/discounts-cashback/cashback/actions";
+import { Input, Textarea, Select, Toggle, FormSection } from "@/components/ui/form";
 
 interface Props {
   policy?: CashbackPolicy;
@@ -133,10 +134,6 @@ export function PolicyForm({ policy }: Props) {
     });
   }
 
-  const inputCls =
-    "w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#558476]/30 focus:border-[#558476]";
-  const labelCls = "block text-xs font-medium text-slate-600 mb-1";
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
       {error && (
@@ -146,233 +143,175 @@ export function PolicyForm({ policy }: Props) {
       )}
 
       {/* Basic info */}
-      <div className="bg-white rounded-xl border border-slate-100 p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-slate-800">Basic Info</h3>
-        <div>
-          <label className={labelCls}>Name *</label>
-          <input
-            className={inputCls}
-            value={form.name}
-            onChange={(e) => set("name", e.target.value)}
-            required
-            placeholder="e.g. 5% Weekend Cashback"
-          />
-        </div>
-        <div>
-          <label className={labelCls}>Description</label>
-          <textarea
-            className={inputCls}
-            rows={2}
-            value={form.description ?? ""}
-            onChange={(e) => set("description", e.target.value)}
-            placeholder="Optional internal note"
-          />
-        </div>
+      <FormSection title="Basic Info">
+        <Input
+          label="Name *"
+          value={form.name}
+          onChange={(e) => set("name", e.target.value)}
+          required
+          placeholder="e.g. 5% Weekend Cashback"
+        />
+        <Textarea
+          label="Description"
+          rows={2}
+          value={form.description ?? ""}
+          onChange={(e) => set("description", e.target.value)}
+          placeholder="Optional internal note"
+        />
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Mode *</label>
-            <select
-              className={inputCls}
-              value={form.mode}
-              onChange={(e) => set("mode", e.target.value as CreatePolicyInput["mode"])}
-              disabled={!!policy}
-            >
-              <option value="standalone">Standalone</option>
-              <option value="attached">Attached to coupon</option>
-            </select>
-          </div>
+          <Select
+            label="Mode *"
+            value={form.mode}
+            onChange={(e) => set("mode", e.target.value as CreatePolicyInput["mode"])}
+            disabled={!!policy}
+            options={[
+              { value: "standalone", label: "Standalone" },
+              { value: "attached", label: "Attached to coupon" },
+            ]}
+          />
           {form.mode === "attached" && (
-            <div>
-              <label className={labelCls}>Coupon Code *</label>
-              <input
-                className={`${inputCls} uppercase`}
-                value={form.couponCode ?? ""}
-                onChange={(e) =>
-                  set("couponCode", e.target.value.toUpperCase())
-                }
-                required
-                placeholder="SAVE20"
-              />
-            </div>
+            <Input
+              label="Coupon Code *"
+              value={form.couponCode ?? ""}
+              onChange={(e) =>
+                set("couponCode", e.target.value.toUpperCase())
+              }
+              required
+              placeholder="SAVE20"
+              style={{ textTransform: 'uppercase' }}
+            />
           )}
         </div>
-      </div>
+      </FormSection>
 
       {/* Cashback value */}
-      <div className="bg-white rounded-xl border border-slate-100 p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-slate-800">Cashback Value</h3>
+      <FormSection title="Cashback Value">
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Type *</label>
-            <select
-              className={inputCls}
-              value={form.type}
-              onChange={(e) => set("type", e.target.value as CreatePolicyInput["type"])}
-            >
-              <option value="percentage">Percentage (%)</option>
-              <option value="flat">Flat amount (₹)</option>
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>
-              {form.type === "percentage" ? "Percentage *" : "Amount (₹) *"}
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              className={inputCls}
-              value={form.value}
-              onChange={(e) => set("value", Number(e.target.value))}
-              required
-            />
-          </div>
+          <Select
+            label="Type *"
+            value={form.type}
+            onChange={(e) => set("type", e.target.value as CreatePolicyInput["type"])}
+            options={[
+              { value: "percentage", label: "Percentage (%)" },
+              { value: "flat", label: "Flat amount (₹)" },
+            ]}
+          />
+          <Input
+            type="number"
+            label={form.type === "percentage" ? "Percentage *" : "Amount (₹) *"}
+            step={0.01}
+            min={0}
+            value={form.value}
+            onChange={(e) => set("value", Number(e.target.value))}
+            required
+          />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Max cap (₹)</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              className={inputCls}
-              value={form.maxCap ?? ""}
-              onChange={(e) =>
-                set(
-                  "maxCap",
-                  e.target.value ? Number(e.target.value) : undefined,
-                )
-              }
-              placeholder="No cap"
-            />
-          </div>
-          <div>
-            <label className={labelCls}>Min order amount (₹)</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              className={inputCls}
-              value={form.minOrderAmount ?? ""}
-              onChange={(e) =>
-                set(
-                  "minOrderAmount",
-                  e.target.value ? Number(e.target.value) : undefined,
-                )
-              }
-              placeholder="No minimum"
-            />
-          </div>
+          <Input
+            type="number"
+            label="Max cap (₹)"
+            step={0.01}
+            min={0}
+            value={form.maxCap ?? ""}
+            onChange={(e) =>
+              set(
+                "maxCap",
+                e.target.value ? Number(e.target.value) : undefined,
+              )
+            }
+            placeholder="No cap"
+          />
+          <Input
+            type="number"
+            label="Min order amount (₹)"
+            step={0.01}
+            min={0}
+            value={form.minOrderAmount ?? ""}
+            onChange={(e) =>
+              set(
+                "minOrderAmount",
+                e.target.value ? Number(e.target.value) : undefined,
+              )
+            }
+            placeholder="No minimum"
+          />
         </div>
-      </div>
+      </FormSection>
 
       {/* Credit timing */}
-      <div className="bg-white rounded-xl border border-slate-100 p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-slate-800">Credit Timing</h3>
+      <FormSection title="Credit Timing">
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Credit when *</label>
-            <select
-              className={inputCls}
-              value={form.creditTiming}
-              onChange={(e) => set("creditTiming", e.target.value as CreatePolicyInput["creditTiming"])}
-            >
-              <option value="on_order">Immediately on order</option>
-              <option value="on_delivery">On delivery</option>
-              <option value="after_days">After N days</option>
-            </select>
-          </div>
+          <Select
+            label="Credit when *"
+            value={form.creditTiming}
+            onChange={(e) => set("creditTiming", e.target.value as CreatePolicyInput["creditTiming"])}
+            options={[
+              { value: "on_order", label: "Immediately on order" },
+              { value: "on_delivery", label: "On delivery" },
+              { value: "after_days", label: "After N days" },
+            ]}
+          />
           {form.creditTiming === "after_days" && (
-            <div>
-              <label className={labelCls}>Days after order *</label>
-              <input
-                type="number"
-                min="1"
-                className={inputCls}
-                value={form.creditAfterDays ?? ""}
-                onChange={(e) => set("creditAfterDays", Number(e.target.value))}
-                required
-                placeholder="e.g. 7"
-              />
-            </div>
-          )}
-          <div>
-            <label className={labelCls}>Credit expires after (days) *</label>
-            <input
+            <Input
               type="number"
-              min="1"
-              className={inputCls}
-              value={form.expiryDays ?? 90}
-              onChange={(e) => set("expiryDays", Number(e.target.value))}
+              label="Days after order *"
+              min={1}
+              value={form.creditAfterDays ?? ""}
+              onChange={(e) => set("creditAfterDays", Number(e.target.value))}
               required
+              placeholder="e.g. 7"
             />
-          </div>
+          )}
+          <Input
+            type="number"
+            label="Credit expires after (days) *"
+            min={1}
+            value={form.expiryDays ?? 90}
+            onChange={(e) => set("expiryDays", Number(e.target.value))}
+            required
+          />
         </div>
-      </div>
+      </FormSection>
 
       {/* Limits */}
-      <div className="bg-white rounded-xl border border-slate-100 p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-slate-800">
-          Limits &amp; Schedule
-        </h3>
+      <FormSection title="Limits & Schedule">
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>
-              Max uses per user (0 = unlimited)
-            </label>
-            <input
-              type="number"
-              min="0"
-              className={inputCls}
-              value={form.maxUsesPerUser ?? 0}
-              onChange={(e) => set("maxUsesPerUser", Number(e.target.value))}
-            />
-          </div>
-          <div>
-            <label className={labelCls}>Total budget ₹ (0 = unlimited)</label>
-            <input
-              type="number"
-              min="0"
-              className={inputCls}
-              value={form.totalBudget ?? 0}
-              onChange={(e) => set("totalBudget", Number(e.target.value))}
-            />
-          </div>
-          <div>
-            <label className={labelCls}>Start date &amp; time</label>
-            <input
-              type="datetime-local"
-              className={inputCls}
-              value={form.startDate ?? ""}
-              onChange={(e) => set("startDate", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className={labelCls}>End date &amp; time</label>
-            <input
-              type="datetime-local"
-              className={inputCls}
-              value={form.endDate ?? ""}
-              onChange={(e) => set("endDate", e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="isActive"
-            checked={form.isActive ?? true}
-            onChange={(e) => set("isActive", e.target.checked)}
-            className="accent-[#558476]"
+          <Input
+            type="number"
+            label="Max uses per user (0 = unlimited)"
+            min={0}
+            value={form.maxUsesPerUser ?? 0}
+            onChange={(e) => set("maxUsesPerUser", Number(e.target.value))}
           />
-          <label htmlFor="isActive" className="text-sm text-slate-700">
-            Active
-          </label>
+          <Input
+            type="number"
+            label="Total budget ₹ (0 = unlimited)"
+            min={0}
+            value={form.totalBudget ?? 0}
+            onChange={(e) => set("totalBudget", Number(e.target.value))}
+          />
+          <Input
+            type="datetime-local"
+            label="Start date & time"
+            value={form.startDate ?? ""}
+            onChange={(e) => set("startDate", e.target.value)}
+          />
+          <Input
+            type="datetime-local"
+            label="End date & time"
+            value={form.endDate ?? ""}
+            onChange={(e) => set("endDate", e.target.value)}
+          />
         </div>
-      </div>
+        <Toggle
+          label="Active"
+          checked={form.isActive ?? true}
+          onChange={(checked) => set("isActive", checked)}
+        />
+      </FormSection>
 
       {/* Customer Targeting */}
-      <div className="bg-white rounded-xl border border-slate-100 p-5 space-y-4">
+      <FormSection>
         <div className="flex items-center gap-2">
           <UserCheck className="w-4 h-4 text-[#558476]" />
           <h3 className="text-sm font-semibold text-slate-800">
@@ -487,7 +426,7 @@ export function PolicyForm({ policy }: Props) {
             ))}
           </ul>
         )}
-      </div>
+      </FormSection>
 
       <div className="flex gap-3">
         <button

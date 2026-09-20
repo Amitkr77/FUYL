@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { AlertCircle, Plus, Trash2 } from 'lucide-react'
 import type { CreateDiscountInput, Discount, DiscountValueType } from '@/lib/discounts'
 import { createDiscountAction, updateDiscountAction } from '@/app/(admin)/discounts-cashback/actions'
+import { Input, Textarea, Select, Checkbox, FormSection } from '@/components/ui/form'
 
 type DiscountKind = 'product' | 'order' | 'free_shipping' | 'buy_x_get_y'
 type Target = { id: string; name: string }
@@ -79,37 +80,75 @@ export function DiscountForm({ products = [], initial }: { products?: Target[]; 
   }
 
   return <div className="max-w-3xl space-y-5">
-    <Card title="General information">
-      <div className="grid gap-4 sm:grid-cols-2"><Field label="Discount title"><input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Diwali Sale" /></Field><Field label="Discount type"><select value={kind} onChange={(e) => setKind(e.target.value as DiscountKind)} className={inputCls}><option value="product">Amount off products</option><option value="order">Amount off order</option><option value="free_shipping">Free shipping</option><option value="buy_x_get_y">Buy X Get Y</option></select></Field></div>
-      <Field label="Description (optional)"><textarea value={description} onChange={(e) => setDescription(e.target.value)} className={inputCls} rows={2} /></Field>
-    </Card>
+    <FormSection title="General information">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Input label="Discount title" value={name} onChange={(e) => setName(e.target.value)} placeholder="Diwali Sale" />
+        <Select label="Discount type" value={kind} onChange={(e) => setKind(e.target.value as DiscountKind)} options={[{ value: 'product', label: 'Amount off products' }, { value: 'order', label: 'Amount off order' }, { value: 'free_shipping', label: 'Free shipping' }, { value: 'buy_x_get_y', label: 'Buy X Get Y' }]} />
+      </div>
+      <Textarea label="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+    </FormSection>
 
-    <Card title="Discount rule" description="This rule is shared by every coupon code below.">
-      {(kind === 'product' || kind === 'order') && <div className="grid gap-4 sm:grid-cols-2"><Field label="Discount method"><select value={method} onChange={(e) => setMethod(e.target.value as typeof method)} className={inputCls}><option value="percent">Percentage</option><option value="flat">Fixed amount</option><option value="per_unit">Fixed amount per unit</option></select></Field><ValueField method={method} value={value} setValue={setValue} /></div>}
+    <FormSection title="Discount rule" description="This rule is shared by every coupon code below.">
+      {(kind === 'product' || kind === 'order') && <div className="grid gap-4 sm:grid-cols-2">
+        <Select label="Discount method" value={method} onChange={(e) => setMethod(e.target.value as typeof method)} options={[{ value: 'percent', label: 'Percentage' }, { value: 'flat', label: 'Fixed amount' }, { value: 'per_unit', label: 'Fixed amount per unit' }]} />
+        <ValueField method={method} value={value} setValue={setValue} />
+      </div>}
       {kind === 'product' && <ProductSelect label="Eligible products" products={products} value={targetIds} onChange={setTargetIds} />}
       {kind === 'free_shipping' && <Info>Complete eligible shipping charges will be removed. No value is required.</Info>}
-      {kind === 'buy_x_get_y' && <><div className="grid gap-4 sm:grid-cols-3"><Field label="Customer buys"><input type="number" min="1" value={buyQuantity} onChange={(e) => setBuyQuantity(e.target.value)} className={inputCls} /></Field><Field label="Customer gets"><input type="number" min="1" value={getQuantity} onChange={(e) => setGetQuantity(e.target.value)} className={inputCls} /></Field><Field label="Reward discount %"><input type="number" min="1" max="100" value={value} onChange={(e) => setValue(e.target.value)} className={inputCls} placeholder="100" /></Field></div><div className="grid gap-4 sm:grid-cols-2"><ProductSelect label="Qualifying products" products={products} value={buyTargetIds} onChange={setBuyTargetIds} /><ProductSelect label="Reward products" products={products} value={getTargetIds} onChange={setGetTargetIds} /></div><Info>Use 100% for a free reward. Customers must add both qualifying and reward items to the cart.</Info></>}
-    </Card>
+      {kind === 'buy_x_get_y' && <>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Input type="number" label="Customer buys" min={1} value={buyQuantity} onChange={(e) => setBuyQuantity(e.target.value)} />
+          <Input type="number" label="Customer gets" min={1} value={getQuantity} onChange={(e) => setGetQuantity(e.target.value)} />
+          <Input type="number" label="Reward discount %" min={1} max={100} value={value} onChange={(e) => setValue(e.target.value)} placeholder="100" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ProductSelect label="Qualifying products" products={products} value={buyTargetIds} onChange={setBuyTargetIds} />
+          <ProductSelect label="Reward products" products={products} value={getTargetIds} onChange={setGetTargetIds} />
+        </div>
+        <Info>Use 100% for a free reward. Customers must add both qualifying and reward items to the cart.</Info>
+      </>}
+    </FormSection>
 
-    <Card title="Coupon codes" description="All codes use the same discount rule.">
-      <div className="space-y-3">{codes.map((code, index) => <div key={index} className="flex gap-2"><input value={code} onChange={(e) => setCodes((items) => items.map((item, i) => i === index ? e.target.value.toUpperCase() : item))} className={`${inputCls} uppercase`} placeholder="SAVE20" />{codes.length > 1 && <button type="button" onClick={() => setCodes((items) => items.filter((_, i) => i !== index))} className="rounded-lg border px-3 text-red-500" aria-label="Remove code"><Trash2 className="h-4 w-4" /></button>}</div>)}</div>
+    <FormSection title="Coupon codes" description="All codes use the same discount rule.">
+      <div className="space-y-3">{codes.map((code, index) => <div key={index} className="flex gap-2"><Input value={code} onChange={(e) => setCodes((items) => items.map((item, i) => i === index ? e.target.value.toUpperCase() : item))} placeholder="SAVE20" className="flex-1" />{codes.length > 1 && <button type="button" onClick={() => setCodes((items) => items.filter((_, i) => i !== index))} className="rounded-lg border px-3 text-red-500" aria-label="Remove code"><Trash2 className="h-4 w-4" /></button>}</div>)}</div>
       <button type="button" onClick={() => setCodes((items) => [...items, ''])} className="inline-flex items-center gap-1 text-sm font-medium text-[#558476]"><Plus className="h-4 w-4" />Add another code</button>
-    </Card>
+    </FormSection>
 
-    <Card title="Requirements and limits">
-      <div className="grid gap-4 sm:grid-cols-2"><Field label="Minimum order amount ₹"><input type="number" min="0" value={minSubtotal} onChange={(e) => setMinSubtotal(e.target.value)} className={inputCls} placeholder="No minimum" /></Field><Field label="Maximum uses per customer"><input type="number" min="1" value={maxPerUser} onChange={(e) => setMaxPerUser(e.target.value)} className={inputCls} /></Field><Field label="Total usage limit"><input type="number" min="1" value={maxGlobal} onChange={(e) => setMaxGlobal(e.target.value)} className={inputCls} placeholder="Unlimited" /></Field>{(method === 'percent' || kind === 'buy_x_get_y') && kind !== 'free_shipping' && <Field label="Maximum discount ₹"><input type="number" min="0" value={maxDiscount} onChange={(e) => setMaxDiscount(e.target.value)} className={inputCls} placeholder="No cap" /></Field>}</div>
-      <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={firstOrderOnly} onChange={(e) => setFirstOrderOnly(e.target.checked)} />First order only</label>
-    </Card>
+    <FormSection title="Requirements and limits">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Input type="number" label="Minimum order amount" prefix="₹" min={0} value={minSubtotal} onChange={(e) => setMinSubtotal(e.target.value)} placeholder="No minimum" />
+        <Input type="number" label="Maximum uses per customer" min={1} value={maxPerUser} onChange={(e) => setMaxPerUser(e.target.value)} />
+        <Input type="number" label="Total usage limit" min={1} value={maxGlobal} onChange={(e) => setMaxGlobal(e.target.value)} placeholder="Unlimited" />
+        {(method === 'percent' || kind === 'buy_x_get_y') && kind !== 'free_shipping' && <Input type="number" label="Maximum discount" prefix="₹" min={0} value={maxDiscount} onChange={(e) => setMaxDiscount(e.target.value)} placeholder="No cap" />}
+      </div>
+      <Checkbox label="First order only" checked={firstOrderOnly} onChange={(e) => setFirstOrderOnly(e.target.checked)} />
+    </FormSection>
 
-    <Card title="Active dates"><div className="grid gap-4 sm:grid-cols-2"><Field label="Starts"><input type="datetime-local" required value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className={inputCls} /></Field><Field label="Ends (optional)"><input type="datetime-local" min={startsAt || undefined} value={endsAt} onChange={(e) => setEndsAt(e.target.value)} className={inputCls} /><span className="mt-1 block text-xs font-normal text-slate-400">Leave blank to keep the discount active without an end date.</span></Field></div></Card>
+    <FormSection title="Active dates">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Input type="datetime-local" label="Starts" required value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+        <div>
+          <Input type="datetime-local" label="Ends (optional)" min={startsAt || undefined} value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+          <span className="mt-1 block text-xs font-normal text-slate-400">Leave blank to keep the discount active without an end date.</span>
+        </div>
+      </div>
+    </FormSection>
+
     {error && <div className="flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-600"><AlertCircle className="h-4 w-4" />{error}</div>}
     <button onClick={submit} disabled={pending} className="rounded-lg bg-[#558476] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#457366] disabled:opacity-50">{pending ? 'Saving…' : initial ? 'Save discount' : 'Create discount'}</button>
   </div>
 }
 
-const inputCls = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476]'
-function Card({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) { return <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"><div><h3 className="text-sm font-semibold text-slate-900">{title}</h3>{description && <p className="mt-1 text-xs text-slate-500">{description}</p>}</div>{children}</section> }
-function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block text-sm font-medium text-slate-600">{label}<span className="mt-1 block">{children}</span></label> }
-function ValueField({ method, value, setValue }: { method: string; value: string; setValue: (value: string) => void }) { return <Field label={method === 'percent' ? 'Percentage' : 'Amount ₹'}><input type="number" min="0" max={method === 'percent' ? 100 : undefined} value={value} onChange={(e) => setValue(e.target.value)} className={inputCls} /></Field> }
-function ProductSelect({ label, products, value, onChange }: { label: string; products: Target[]; value: string[]; onChange: (value: string[]) => void }) { return <Field label={label}><select multiple value={value} onChange={(e) => onChange(Array.from(e.target.selectedOptions, (option) => option.value))} className={`${inputCls} min-h-28`}>{products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}</select><span className="mt-1 block text-xs font-normal text-slate-400">Hold Ctrl/Cmd to select multiple.</span></Field> }
+function ValueField({ method, value, setValue }: { method: string; value: string; setValue: (value: string) => void }) { return <Input type="number" label={method === 'percent' ? 'Percentage' : 'Amount ₹'} min={0} max={method === 'percent' ? 100 : undefined} value={value} onChange={(e) => setValue(e.target.value)} /> }
+function ProductSelect({ label, products, value, onChange }: { label: string; products: Target[]; value: string[]; onChange: (value: string[]) => void }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-slate-700 mb-1.5">{label}</label>
+      <select multiple value={value} onChange={(e) => onChange(Array.from(e.target.selectedOptions, (option) => option.value))} className="w-full appearance-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm min-h-28 focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent">
+        {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+      </select>
+      <span className="mt-1 block text-xs font-normal text-slate-400">Hold Ctrl/Cmd to select multiple.</span>
+    </div>
+  )
+}
 function Info({ children }: { children: React.ReactNode }) { return <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{children}</p> }

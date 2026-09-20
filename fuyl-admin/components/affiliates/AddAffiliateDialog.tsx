@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { createAffiliateAction } from "@/app/(admin)/affiliates/actions";
+import { Input, Select } from "@/components/ui/form";
 
 export function AddAffiliateDialog() {
   const router = useRouter();
@@ -32,13 +33,13 @@ export function AddAffiliateDialog() {
       <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between"><h3 className="text-lg font-semibold">Add affiliate</h3><button onClick={() => setOpen(false)}><X className="h-5 w-5 text-slate-400" /></button></div>
         <form action={submit} className="mt-5 space-y-4">
-          <label className="block text-sm font-medium text-slate-700">Full name<input required name="name" className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#558476]" /></label>
-          <label className="block text-sm font-medium text-slate-700">Email<input required type="email" name="email" className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#558476]" /></label>
-          <label className="block text-sm font-medium text-slate-700">Phone<input name="phone" className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#558476]" /></label>
-          <label className="block text-sm font-medium text-slate-700">Channels <span className="font-normal text-slate-400">(comma separated)</span><input name="channels" placeholder="Instagram, YouTube" className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#558476]" /></label>
-          <label className="block text-sm font-medium text-slate-700">Initial status<select name="status" className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2"><option value="pending">Pending review</option><option value="approved">Approved</option></select></label>
+          <Input label="Full name" required name="name" />
+          <Input label="Email" required type="email" name="email" />
+          <Input label="Phone" name="phone" />
+          <Input label="Channels" name="channels" placeholder="Instagram, YouTube" helperText="Comma separated" />
+          <Select label="Initial status" name="status" options={[{value:"pending",label:"Pending review"},{value:"approved",label:"Approved"}]} />
           {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
-          <div className="flex justify-end gap-2"><button type="button" onClick={() => setOpen(false)} className="rounded-lg border px-4 py-2 text-sm">Cancel</button><button disabled={saving} className="rounded-lg bg-[#558476] px-4 py-2 text-sm font-semibold text-white hover:bg-[#457366] disabled:opacity-50">{saving ? "Creating…" : "Create affiliate"}</button></div>
+          <div className="flex justify-end gap-2"><button type="button" onClick={() => setOpen(false)} className="rounded-lg border px-4 py-2 text-sm">Cancel</button><button disabled={saving} className="rounded-lg bg-[#558476] px-4 py-2 text-sm font-semibold text-white hover:bg-[#457366] disabled:opacity-50">{saving ? "Creating..." : "Create affiliate"}</button></div>
         </form>
       </div>
     </div>}

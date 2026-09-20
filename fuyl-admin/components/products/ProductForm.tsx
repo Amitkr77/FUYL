@@ -10,7 +10,7 @@ import type { AdminTag } from '@/lib/tags'
 import { createProductAction, updateProductAction, archiveProductAction, getProductImageUploadSignature } from '@/app/(admin)/products/actions'
 import { uploadImage } from '@/lib/upload'
 import { Collapsible } from '@/components/ui/Collapsible'
-import { Toggle } from '@/components/ui/Toggle'
+import { Input, Textarea, Select, Toggle, FormSection } from '@/components/ui/form'
 
 interface Props {
   product?: AdminProduct
@@ -19,11 +19,6 @@ interface Props {
   isNew?: boolean
 }
 
-const inputCls =
-  'w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent'
-const smallInputCls =
-  'w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent'
-const labelCls = 'block text-sm font-medium text-slate-700 mb-1.5'
 const helpCls = 'text-xs text-slate-400 mt-1.5'
 const cardCls = 'bg-white border border-slate-200 rounded-xl shadow-sm p-6'
 
@@ -33,6 +28,12 @@ const WEIGHT_UNITS: { value: WeightUnit; label: string }[] = [
   { value: 'kg', label: 'kg' },
   { value: 'lb', label: 'lb' },
   { value: 'oz', label: 'oz' },
+]
+
+const STATUS_OPTIONS = [
+  { value: 'active', label: 'Active' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'archived', label: 'Archived' },
 ]
 
 function emptyVariant(defaultPrice: number): AdminVariant {
@@ -333,7 +334,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
           <button type="button" onClick={handleSave} disabled={isPending}
             className="flex items-center gap-2 px-4 py-2 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
             {saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-            {saved ? 'Saved!' : isPending ? 'Saving…' : isNew ? 'Create Product' : 'Save Changes'}
+            {saved ? 'Saved!' : isPending ? 'Saving\u2026' : isNew ? 'Create Product' : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -348,33 +349,41 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
         {/* Main — 2/3 */}
         <div className="lg:col-span-2 space-y-5">
           {/* Basic info */}
-          <div className={`${cardCls} space-y-4`}>
-            <h3 className="text-sm font-semibold text-slate-900">Product Information</h3>
-            <div>
-              <label className={labelCls}>Product Name</label>
-              <input type="text" value={form.name} onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="e.g. FUYL COMPLETE+" className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Brand</label>
-              <input type="text" value={form.brand} onChange={(e) => set({ brand: e.target.value })}
-                placeholder="e.g. FUYL" className={inputCls} />
-            </div>
+          <FormSection title="Product Information">
+            <Input
+              label="Product Name"
+              value={form.name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="e.g. FUYL COMPLETE+"
+            />
+            <Input
+              label="Brand"
+              value={form.brand}
+              onChange={(e) => set({ brand: e.target.value })}
+              placeholder="e.g. FUYL"
+            />
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className={labelCls + ' mb-0'}>Short Description</label>
+                <label className="block text-sm font-medium text-slate-700 mb-0">Short Description</label>
                 <span className="text-xs text-slate-400">{form.shortDescription.length}/280</span>
               </div>
-              <textarea value={form.shortDescription} onChange={(e) => set({ shortDescription: e.target.value.slice(0, 280) })} rows={2}
-                placeholder="A short summary shown on product cards, listings, and previews..." maxLength={280} className={`${inputCls} resize-none`} />
+              <Textarea
+                value={form.shortDescription}
+                onChange={(e) => set({ shortDescription: e.target.value.slice(0, 280) })}
+                rows={2}
+                placeholder="A short summary shown on product cards, listings, and previews..."
+                maxLength={280}
+              />
             </div>
+            <Textarea
+              label="Description"
+              value={form.description}
+              onChange={(e) => set({ description: e.target.value })}
+              rows={4}
+              placeholder="Describe the product in full..."
+            />
             <div>
-              <label className={labelCls}>Description</label>
-              <textarea value={form.description} onChange={(e) => set({ description: e.target.value })} rows={4}
-                placeholder="Describe the product in full..." className={`${inputCls} resize-none`} />
-            </div>
-            <div>
-              <label className={labelCls}>Tags</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Tags</label>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {form.tags.map((tag) => (
                   <span key={tag} className="flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full bg-[#558476]/10 text-[#558476] text-xs font-medium">
@@ -393,7 +402,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                     if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag() }
                   }}
                   placeholder="e.g. vegetarian, free-shipping"
-                  className={smallInputCls}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent"
                 />
                 <datalist id="tag-suggestions">
                   {tags.map((t) => <option key={t.id} value={t.name} />)}
@@ -406,7 +415,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                 Press Enter to add. <span className="font-medium">vegetarian</span>, <span className="font-medium">free-shipping</span>, <span className="font-medium">made-in-india</span>, and <span className="font-medium">no-artificial-colour</span> show as badges on the product page.
               </p>
             </div>
-          </div>
+          </FormSection>
 
           {/* Product images */}
           <div className={cardCls}>
@@ -440,30 +449,28 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
               <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
                 className="aspect-square border-2 border-dashed border-slate-200 rounded-lg flex flex-col items-center justify-center gap-1.5 text-center hover:border-[#558476]/40 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-wait">
                 <ImagePlus className="w-6 h-6 text-slate-300" />
-                <span className="text-xs text-slate-500 font-medium px-2">{isUploading ? 'Uploading…' : 'Add images'}</span>
+                <span className="text-xs text-slate-500 font-medium px-2">{isUploading ? 'Uploading\u2026' : 'Add images'}</span>
               </button>
             </div>
-            <p className={helpCls}>PNG, JPG, WEBP · first image is the cover shown in listings</p>
+            <p className={helpCls}>PNG, JPG, WEBP \u00b7 first image is the cover shown in listings</p>
           </div>
 
           {/* Pricing */}
-          <div className={`${cardCls} space-y-4`}>
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">Pricing</h3>
-              <p className={helpCls + ' mt-0.5'}>
-                Used as the product&apos;s base price. If you add variants below, each variant can set its own price and stock instead.
-              </p>
-            </div>
+          <FormSection title="Pricing" description="Used as the product's base price. If you add variants below, each variant can set its own price and stock instead.">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>Price (₹)</label>
-                <input type="number" value={form.price} onChange={(e) => set({ price: Number(e.target.value) })} className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Compare-at Price (₹)</label>
-                <input type="number" value={form.compareAtPrice ?? ''} onChange={(e) => set({ compareAtPrice: e.target.value ? Number(e.target.value) : undefined })}
-                  placeholder="Optional" className={inputCls} />
-              </div>
+              <Input
+                label="Price (\u20B9)"
+                type="number"
+                value={form.price}
+                onChange={(e) => set({ price: Number(e.target.value) })}
+              />
+              <Input
+                label="Compare-at Price (\u20B9)"
+                type="number"
+                value={form.compareAtPrice ?? ''}
+                onChange={(e) => set({ compareAtPrice: e.target.value ? Number(e.target.value) : undefined })}
+                placeholder="Optional"
+              />
             </div>
 
             <div className="rounded-lg border border-slate-200 px-4 py-3">
@@ -484,15 +491,20 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                 <div className="space-y-4 pt-4">
             {variants.length === 0 && (
               <div>
-                <label className={labelCls}>Stock</label>
-                <input type="number" min={0} value={form.stock} onChange={(e) => set({ stock: Number(e.target.value) })} className={inputCls} />
-                <p className={helpCls}>How many units you have on hand. Once you add a variant below, stock is tracked per variant instead.</p>
+                <Input
+                  label="Stock"
+                  type="number"
+                  min={0}
+                  value={form.stock}
+                  onChange={(e) => set({ stock: Number(e.target.value) })}
+                  helperText="How many units you have on hand. Once you add a variant below, stock is tracked per variant instead."
+                />
               </div>
             )}
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className={labelCls + ' mb-0'}>Additional Display Prices</label>
+                <label className="block text-sm font-medium text-slate-700 mb-0">Additional Display Prices</label>
                 <button type="button" onClick={addPrice} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
                   <Plus className="w-3.5 h-3.5" /> Add price
                 </button>
@@ -503,8 +515,8 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                 <div className="space-y-2">
                   {form.additionalPrices.map((p, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <input type="text" value={p.label} onChange={(e) => updatePrice(i, { label: e.target.value })} placeholder="Label" className={smallInputCls} />
-                      <input type="number" value={p.price} onChange={(e) => updatePrice(i, { price: Number(e.target.value) })} placeholder="Price" className={`${smallInputCls} w-32`} />
+                      <Input value={p.label} onChange={(e) => updatePrice(i, { label: e.target.value })} placeholder="Label" className="flex-1" />
+                      <Input type="number" value={p.price} onChange={(e) => updatePrice(i, { price: Number(e.target.value) })} placeholder="Price" className="w-32" />
                       <button type="button" onClick={() => removePrice(i)} className="p-2 text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
                     </div>
                   ))}
@@ -513,23 +525,28 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>Unit Price Value</label>
-                <input type="number" value={form.unitPriceValue ?? ''} onChange={(e) => set({ unitPriceValue: e.target.value ? Number(e.target.value) : undefined })}
-                  placeholder="e.g. 99.93" className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Unit Price Label</label>
-                <input type="text" value={form.unitPriceUnit} onChange={(e) => set({ unitPriceUnit: e.target.value })}
-                  placeholder="e.g. per sachet" className={inputCls} />
-              </div>
+              <Input
+                label="Unit Price Value"
+                type="number"
+                value={form.unitPriceValue ?? ''}
+                onChange={(e) => set({ unitPriceValue: e.target.value ? Number(e.target.value) : undefined })}
+                placeholder="e.g. 99.93"
+              />
+              <Input
+                label="Unit Price Label"
+                value={form.unitPriceUnit}
+                onChange={(e) => set({ unitPriceUnit: e.target.value })}
+                placeholder="e.g. per sachet"
+              />
             </div>
 
-            <div>
-              <label className={labelCls}>Cost per Item (₹)</label>
-              <input type="number" value={form.costPerItem ?? ''} onChange={(e) => set({ costPerItem: e.target.value ? Number(e.target.value) : undefined })}
-                placeholder="Admin only" className={inputCls} />
-            </div>
+            <Input
+              label="Cost per Item (\u20B9)"
+              type="number"
+              value={form.costPerItem ?? ''}
+              onChange={(e) => set({ costPerItem: e.target.value ? Number(e.target.value) : undefined })}
+              placeholder="Admin only"
+            />
 
             <div className="rounded-lg border border-slate-200 px-4 py-3 space-y-3">
               <Toggle
@@ -541,26 +558,23 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
               {form.isTaxable && (
                 <div className="flex items-center gap-3 pl-1">
                   <div className="flex-1">
-                    <label className={labelCls}>GST Rate (%)</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step={0.5}
-                        value={form.taxRate ?? ''}
-                        onChange={(e) => set({ taxRate: e.target.value ? Number(e.target.value) : undefined })}
-                        placeholder="e.g. 18"
-                        className={inputCls}
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium pointer-events-none">%</span>
-                    </div>
-                    <p className={helpCls}>Applied when no global tax rules match. Leave blank to use global tax rules only.</p>
+                    <Input
+                      label="GST Rate (%)"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.5}
+                      value={form.taxRate ?? ''}
+                      onChange={(e) => set({ taxRate: e.target.value ? Number(e.target.value) : undefined })}
+                      placeholder="e.g. 18"
+                      suffix="%"
+                      helperText="Applied when no global tax rules match. Leave blank to use global tax rules only."
+                    />
                   </div>
                   {form.taxRate != null && form.taxRate > 0 && (
                     <div className="text-right text-xs text-slate-500 whitespace-nowrap">
-                      <span className="block text-slate-400">Tax on ₹{form.price}</span>
-                      <span className="font-semibold text-slate-700">+₹{((form.price * form.taxRate) / 100).toFixed(2)}</span>
+                      <span className="block text-slate-400">Tax on \u20B9{form.price}</span>
+                      <span className="font-semibold text-slate-700">+\u20B9{((form.price * form.taxRate) / 100).toFixed(2)}</span>
                     </div>
                   )}
                 </div>
@@ -571,7 +585,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
               <div className="flex items-center gap-6 pt-3 border-t border-slate-100">
                 <div>
                   <p className="text-xs text-slate-400">Profit</p>
-                  <p className="text-sm font-semibold text-slate-900">₹{profit.toFixed(2)}</p>
+                  <p className="text-sm font-semibold text-slate-900">\u20B9{profit.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-400">Margin</p>
@@ -582,13 +596,13 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                 </div>
               </Collapsible>
             </div>
-          </div>
+          </FormSection>
 
           {/* Variants — optional */}
           <div className={`${cardCls} space-y-4`}>
             <Collapsible
               title="Variants"
-              description="Optional — e.g. Size, Flavor, Pack Size, Color. Leave empty to sell this as a single item at the price above."
+              description="Optional \u2014 e.g. Size, Flavor, Pack Size, Color. Leave empty to sell this as a single item at the price above."
               defaultOpen={variants.length > 0}
               headerRight={
                 <button type="button" onClick={addVariant} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline whitespace-nowrap">
@@ -598,7 +612,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
             >
               {variants.length === 0 ? (
                 <p className="text-xs text-slate-400 border border-dashed border-slate-200 rounded-lg py-6 text-center">
-                  No variants — this product will be sold as a single item using the price above.
+                  No variants \u2014 this product will be sold as a single item using the price above.
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -629,7 +643,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
               <div className="space-y-5">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className={labelCls + ' mb-0'}>Ingredients</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-0">Ingredients</label>
                     <button type="button" onClick={addIngredient} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
                       <Plus className="w-3.5 h-3.5" /> Add
                     </button>
@@ -640,7 +654,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                   <div className="space-y-2">
                     {form.ingredients.map((ing, i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <input type="text" value={ing} onChange={(e) => updateIngredient(i, e.target.value)} placeholder="e.g. Ashwagandha (KSM-66)" className={smallInputCls} />
+                        <Input value={ing} onChange={(e) => updateIngredient(i, e.target.value)} placeholder="e.g. Ashwagandha (KSM-66)" className="flex-1" />
                         <button type="button" onClick={() => removeIngredient(i)} className="p-2 text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
                       </div>
                     ))}
@@ -649,7 +663,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
 
                 <div className="pt-4 border-t border-slate-100">
                   <div className="flex items-center justify-between mb-2">
-                    <label className={labelCls + ' mb-0'}>Benefits</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-0">Benefits</label>
                     <button type="button" onClick={addBenefit} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
                       <Plus className="w-3.5 h-3.5" /> Add
                     </button>
@@ -657,7 +671,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                   <div className="space-y-2">
                     {form.benefits.map((b, i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <input type="text" value={b} onChange={(e) => updateBenefit(i, e.target.value)} placeholder="e.g. Improves digestion" className={smallInputCls} />
+                        <Input value={b} onChange={(e) => updateBenefit(i, e.target.value)} placeholder="e.g. Improves digestion" className="flex-1" />
                         <button type="button" onClick={() => removeBenefit(i)} className="p-2 text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
                       </div>
                     ))}
@@ -666,7 +680,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className={labelCls + ' mb-0'}>FAQs</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-0">FAQs</label>
                     <button type="button" onClick={addFaq} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
                       <Plus className="w-3.5 h-3.5" /> Add
                     </button>
@@ -675,8 +689,8 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                     {form.faqs.map((f, i) => (
                       <div key={i} className="flex items-start gap-2">
                         <div className="flex-1 space-y-2">
-                          <input type="text" value={f.question} onChange={(e) => updateFaq(i, { question: e.target.value })} placeholder="Question" className={smallInputCls} />
-                          <textarea value={f.answer} onChange={(e) => updateFaq(i, { answer: e.target.value })} placeholder="Answer" rows={2} className={`${smallInputCls} resize-none`} />
+                          <Input value={f.question} onChange={(e) => updateFaq(i, { question: e.target.value })} placeholder="Question" />
+                          <Textarea value={f.answer} onChange={(e) => updateFaq(i, { answer: e.target.value })} placeholder="Answer" rows={2} />
                         </div>
                         <button type="button" onClick={() => removeFaq(i)} className="p-2 text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
                       </div>
@@ -686,7 +700,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className={labelCls + ' mb-0'}>Certifications</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-0">Certifications</label>
                     <button type="button" onClick={addCertification} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
                       <Plus className="w-3.5 h-3.5" /> Add
                     </button>
@@ -704,7 +718,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                               onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; if (file) uploadCertLogo(i, file) }} />
                           </label>
                         )}
-                        <input type="text" value={c.label} onChange={(e) => updateCertification(i, { label: e.target.value })} placeholder="e.g. FSSAI" className={smallInputCls} />
+                        <Input value={c.label} onChange={(e) => updateCertification(i, { label: e.target.value })} placeholder="e.g. FSSAI" className="flex-1" />
                         <button type="button" onClick={() => removeCertification(i)} className="p-2 text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
                       </div>
                     ))}
@@ -714,12 +728,12 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                 {/* Product Information — repeatable image + optional title + description blocks */}
                 <div className="pt-4 border-t border-slate-100">
                   <div className="flex items-center justify-between mb-1">
-                    <label className={labelCls + ' mb-0'}>Product Information</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-0">Product Information</label>
                     <button type="button" onClick={addInfoBlock} className="flex items-center gap-1 text-xs font-medium text-[#558476] hover:underline">
                       <Plus className="w-3.5 h-3.5" /> Add block
                     </button>
                   </div>
-                  <p className={helpCls + ' mb-2.5'}>Rich informational content blocks — an image, an optional title, and a description.</p>
+                  <p className={helpCls + ' mb-2.5'}>Rich informational content blocks \u2014 an image, an optional title, and a description.</p>
                   <div className="space-y-3">
                     {form.infoBlocks.map((b, i) => (
                       <div key={i} className="flex items-start gap-3 border border-slate-200 rounded-lg p-3">
@@ -740,10 +754,10 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                           </label>
                         )}
                         <div className="flex-1 space-y-2">
-                          <input type="text" value={b.title ?? ''} onChange={(e) => updateInfoBlock(i, { title: e.target.value })}
-                            placeholder="Title (optional)" className={smallInputCls} />
-                          <textarea value={b.description} onChange={(e) => updateInfoBlock(i, { description: e.target.value })}
-                            placeholder="Description" rows={2} className={`${smallInputCls} resize-none`} />
+                          <Input value={b.title ?? ''} onChange={(e) => updateInfoBlock(i, { title: e.target.value })}
+                            placeholder="Title (optional)" />
+                          <Textarea value={b.description} onChange={(e) => updateInfoBlock(i, { description: e.target.value })}
+                            placeholder="Description" rows={2} />
                         </div>
                         <button type="button" onClick={() => removeInfoBlock(i)} className="p-2 text-slate-400 hover:text-red-500 flex-shrink-0"><Trash2 className="w-4 h-4" /></button>
                       </div>
@@ -754,32 +768,36 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                 <div className="pt-3 border-t border-slate-100">
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Supplement Info</p>
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelCls}>Age Group</label>
-                      <input type="text" value={form.supplementInfo.ageGroup ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, ageGroup: e.target.value } })} className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Dietary Use</label>
-                      <input type="text" value={form.supplementInfo.dietaryUse ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, dietaryUse: e.target.value } })} className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Flavor</label>
-                      <input type="text" value={form.supplementInfo.flavor ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, flavor: e.target.value } })} className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Ingredient Category</label>
-                      <input type="text" value={form.supplementInfo.ingredientCategory ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, ingredientCategory: e.target.value } })} className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Route of Administration</label>
-                      <input type="text" value={form.supplementInfo.routeOfAdministration ?? ''} onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, routeOfAdministration: e.target.value } })} className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Health Focus (comma-separated)</label>
-                      <input type="text" value={(form.supplementInfo.healthFocus ?? []).join(', ')}
-                        onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, healthFocus: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) } })}
-                        className={inputCls} />
-                    </div>
+                    <Input
+                      label="Age Group"
+                      value={form.supplementInfo.ageGroup ?? ''}
+                      onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, ageGroup: e.target.value } })}
+                    />
+                    <Input
+                      label="Dietary Use"
+                      value={form.supplementInfo.dietaryUse ?? ''}
+                      onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, dietaryUse: e.target.value } })}
+                    />
+                    <Input
+                      label="Flavor"
+                      value={form.supplementInfo.flavor ?? ''}
+                      onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, flavor: e.target.value } })}
+                    />
+                    <Input
+                      label="Ingredient Category"
+                      value={form.supplementInfo.ingredientCategory ?? ''}
+                      onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, ingredientCategory: e.target.value } })}
+                    />
+                    <Input
+                      label="Route of Administration"
+                      value={form.supplementInfo.routeOfAdministration ?? ''}
+                      onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, routeOfAdministration: e.target.value } })}
+                    />
+                    <Input
+                      label="Health Focus (comma-separated)"
+                      value={(form.supplementInfo.healthFocus ?? []).join(', ')}
+                      onChange={(e) => set({ supplementInfo: { ...form.supplementInfo, healthFocus: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) } })}
+                    />
                   </div>
                 </div>
               </div>
@@ -813,7 +831,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                         {([
                           { value: 'calculated', label: 'Calculated', desc: 'Rate quoted by carrier (Shiprocket) based on weight and destination' },
                           { value: 'fixed',      label: 'Fixed rate',  desc: 'A flat charge set by you, regardless of weight' },
-                          { value: 'free',       label: 'Free / Inclusive', desc: 'No shipping charge — included in the product price' },
+                          { value: 'free',       label: 'Free / Inclusive', desc: 'No shipping charge \u2014 included in the product price' },
                         ] as const).map((opt) => (
                           <label key={opt.value} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${form.shipping.shippingMode === opt.value ? 'border-[#558476] bg-[#558476]/5' : 'border-slate-200 hover:border-slate-300'}`}>
                             <input
@@ -833,29 +851,28 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                       </div>
                       {form.shipping.shippingMode === 'fixed' && (
                         <div className="pt-1">
-                          <label className={labelCls}>Fixed shipping rate (₹)</label>
-                          <input
+                          <Input
+                            label="Fixed shipping rate (\u20B9)"
                             type="number"
                             min={0}
                             step={0.5}
                             value={form.shipping.fixedShippingRate ?? ''}
                             onChange={(e) => setShipping({ fixedShippingRate: e.target.value ? Number(e.target.value) : undefined })}
                             placeholder="e.g. 50"
-                            className={inputCls}
                           />
                         </div>
                       )}
                     </div>
 
                     <div>
-                      <label className={labelCls}>Package</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Package</label>
                       <input
                         type="text"
                         list="package-suggestions"
                         value={form.shipping.packageType ?? ''}
                         onChange={(e) => setShipping({ packageType: e.target.value })}
                         placeholder="e.g. Poly Mailer, Box, Custom Package"
-                        className={inputCls}
+                        className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent"
                       />
                       <datalist id="package-suggestions">
                         {PACKAGE_SUGGESTIONS.map((p) => <option key={p} value={p} />)}
@@ -863,41 +880,55 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className={labelCls}>Weight</label>
-                        <input type="number" min={0} value={form.shipping.weight ?? ''}
-                          onChange={(e) => setShipping({ weight: e.target.value ? Number(e.target.value) : undefined })}
-                          placeholder="e.g. 250" className={inputCls} />
-                      </div>
-                      <div>
-                        <label className={labelCls}>Unit</label>
-                        <select value={form.shipping.weightUnit} onChange={(e) => setShipping({ weightUnit: e.target.value as WeightUnit })} className={inputCls}>
-                          {WEIGHT_UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
-                        </select>
-                      </div>
+                      <Input
+                        label="Weight"
+                        type="number"
+                        min={0}
+                        value={form.shipping.weight ?? ''}
+                        onChange={(e) => setShipping({ weight: e.target.value ? Number(e.target.value) : undefined })}
+                        placeholder="e.g. 250"
+                      />
+                      <Select
+                        label="Unit"
+                        value={form.shipping.weightUnit}
+                        onChange={(e) => setShipping({ weightUnit: e.target.value as WeightUnit })}
+                        options={WEIGHT_UNITS}
+                      />
                     </div>
 
                     {/* Dimensions + volumetric weight */}
                     <div>
-                      <label className={labelCls}>Dimensions (cm) — for volumetric weight</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Dimensions (cm) \u2014 for volumetric weight</label>
                       <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <input type="number" min={0} value={form.shipping.length ?? ''}
+                          <Input
+                            type="number"
+                            min={0}
+                            value={form.shipping.length ?? ''}
                             onChange={(e) => setShipping({ length: e.target.value ? Number(e.target.value) : undefined })}
-                            placeholder="Length" className={inputCls} />
-                          <p className={helpCls}>L</p>
+                            placeholder="Length"
+                            helperText="L"
+                          />
                         </div>
                         <div>
-                          <input type="number" min={0} value={form.shipping.width ?? ''}
+                          <Input
+                            type="number"
+                            min={0}
+                            value={form.shipping.width ?? ''}
                             onChange={(e) => setShipping({ width: e.target.value ? Number(e.target.value) : undefined })}
-                            placeholder="Width" className={inputCls} />
-                          <p className={helpCls}>W</p>
+                            placeholder="Width"
+                            helperText="W"
+                          />
                         </div>
                         <div>
-                          <input type="number" min={0} value={form.shipping.height ?? ''}
+                          <Input
+                            type="number"
+                            min={0}
+                            value={form.shipping.height ?? ''}
                             onChange={(e) => setShipping({ height: e.target.value ? Number(e.target.value) : undefined })}
-                            placeholder="Height" className={inputCls} />
-                          <p className={helpCls}>H</p>
+                            placeholder="Height"
+                            helperText="H"
+                          />
                         </div>
                       </div>
                       {form.shipping.length && form.shipping.width && form.shipping.height && (
@@ -906,7 +937,7 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                           <strong>
                             {Math.round((form.shipping.length * form.shipping.width * form.shipping.height) / 5000)} g
                           </strong>{' '}
-                          (L × W × H ÷ 5000). Carrier bills the higher of actual vs. volumetric.
+                          (L \u00d7 W \u00d7 H \u00f7 5000). Carrier bills the higher of actual vs. volumetric.
                         </p>
                       )}
                     </div>
@@ -914,16 +945,18 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                     <div className="pt-2 border-t border-slate-100">
                       <Collapsible title="Customs Information" defaultOpen={false}>
                         <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className={labelCls}>Country/Region of Origin</label>
-                            <input type="text" value={form.shipping.countryOfOrigin ?? ''} onChange={(e) => setShipping({ countryOfOrigin: e.target.value })}
-                              placeholder="e.g. India" className={inputCls} />
-                          </div>
-                          <div>
-                            <label className={labelCls}>Harmonized System (HS) Code</label>
-                            <input type="text" value={form.shipping.hsCode ?? ''} onChange={(e) => setShipping({ hsCode: e.target.value })}
-                              placeholder="e.g. 2106.90" className={inputCls} />
-                          </div>
+                          <Input
+                            label="Country/Region of Origin"
+                            value={form.shipping.countryOfOrigin ?? ''}
+                            onChange={(e) => setShipping({ countryOfOrigin: e.target.value })}
+                            placeholder="e.g. India"
+                          />
+                          <Input
+                            label="Harmonized System (HS) Code"
+                            value={form.shipping.hsCode ?? ''}
+                            onChange={(e) => setShipping({ hsCode: e.target.value })}
+                            placeholder="e.g. 2106.90"
+                          />
                         </div>
                       </Collapsible>
                     </div>
@@ -936,18 +969,13 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
 
         {/* Sidebar — 1/3 */}
         <div className="space-y-5">
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900 mb-3">Status</h3>
-              <select value={form.status} onChange={(e) => { const status = e.target.value as ProductStatus; set({ status, isPublished: status === 'active' }) }} className={inputCls}>
-                <option value="active">Active</option>
-                <option value="draft">Draft</option>
-                <option value="archived">Archived</option>
-              </select>
-              <p className={helpCls}>
-                {form.status === 'active' ? 'Available for sale' : form.status === 'draft' ? 'Work in progress' : 'Removed from store'}
-              </p>
-            </div>
+          <FormSection title="Status">
+            <Select
+              value={form.status}
+              onChange={(e) => { const status = e.target.value as ProductStatus; set({ status, isPublished: status === 'active' }) }}
+              options={STATUS_OPTIONS}
+              helperText={form.status === 'active' ? 'Available for sale' : form.status === 'draft' ? 'Work in progress' : 'Removed from store'}
+            />
             <div className="pt-3 border-t border-slate-100">
               <Toggle
                 checked={form.isSubscribable}
@@ -956,13 +984,12 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                 description="Shows the Subscribe & Save purchase option on the product page"
               />
             </div>
-          </div>
+          </FormSection>
 
           {/* SEO / URL */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900">Search Engine Listing</h3>
+          <FormSection title="Search Engine Listing">
             <div>
-              <label className={labelCls}>Slug</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Slug</label>
               <div className="flex items-center gap-1 px-3 rounded-lg border border-slate-200 bg-slate-50 focus-within:ring-2 focus-within:ring-[#558476]">
                 <span className="text-sm text-slate-400 whitespace-nowrap">/products/</span>
                 <input
@@ -977,26 +1004,35 @@ export function ProductForm({ product, attributes, tags, isNew = false }: Props)
                 />
               </div>
               <p className={helpCls}>
-                {isNew ? 'Auto-filled from the name — edit to customize.' : "Changing this changes the product's live URL."}
+                {isNew ? 'Auto-filled from the name \u2014 edit to customize.' : "Changing this changes the product's live URL."}
               </p>
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className={labelCls + ' mb-0'}>Meta Title</label>
+                <label className="block text-sm font-medium text-slate-700 mb-0">Meta Title</label>
                 <span className="text-xs text-slate-400">{(form.seo.metaTitle ?? '').length}/200</span>
               </div>
-              <input type="text" value={form.seo.metaTitle ?? ''} onChange={(e) => setSeo({ metaTitle: e.target.value.slice(0, 200) })}
-                placeholder="Defaults to the product name" maxLength={200} className={inputCls} />
+              <Input
+                value={form.seo.metaTitle ?? ''}
+                onChange={(e) => setSeo({ metaTitle: e.target.value.slice(0, 200) })}
+                placeholder="Defaults to the product name"
+                maxLength={200}
+              />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className={labelCls + ' mb-0'}>Meta Description</label>
+                <label className="block text-sm font-medium text-slate-700 mb-0">Meta Description</label>
                 <span className="text-xs text-slate-400">{(form.seo.metaDescription ?? '').length}/500</span>
               </div>
-              <textarea value={form.seo.metaDescription ?? ''} onChange={(e) => setSeo({ metaDescription: e.target.value.slice(0, 500) })} rows={3}
-                placeholder="Shown in search engine results" maxLength={500} className={`${inputCls} resize-none`} />
+              <Textarea
+                value={form.seo.metaDescription ?? ''}
+                onChange={(e) => setSeo({ metaDescription: e.target.value.slice(0, 500) })}
+                rows={3}
+                placeholder="Shown in search engine results"
+                maxLength={500}
+              />
             </div>
-          </div>
+          </FormSection>
         </div>
       </div>
     </div>
@@ -1032,38 +1068,20 @@ function VariantRow({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelCls}>Name</label>
-          <input type="text" value={variant.name} onChange={(e) => onUpdate({ name: e.target.value })} placeholder="e.g. 500g Berry" className={smallInputCls} />
-        </div>
-        <div>
-          <label className={labelCls}>SKU</label>
-          <input type="text" value={variant.sku} onChange={(e) => onUpdate({ sku: e.target.value })} placeholder="e.g. FC-500-BRY" className={`${smallInputCls} font-mono`} />
-        </div>
+        <Input label="Name" value={variant.name} onChange={(e) => onUpdate({ name: e.target.value })} placeholder="e.g. 500g Berry" />
+        <Input label="SKU" value={variant.sku} onChange={(e) => onUpdate({ sku: e.target.value })} placeholder="e.g. FC-500-BRY" />
       </div>
 
       <div className="grid grid-cols-4 gap-3">
-        <div>
-          <label className={labelCls}>Price (₹)</label>
-          <input type="number" min={0.01} step="0.01" value={variant.price} onChange={(e) => onUpdate({ price: Number(e.target.value) })} className={smallInputCls} />
-        </div>
-        <div>
-          <label className={labelCls}>Compare-at (₹)</label>
-          <input type="number" min={0} step="0.01" value={variant.compareAtPrice ?? ''} onChange={(e) => onUpdate({ compareAtPrice: e.target.value ? Number(e.target.value) : undefined })} className={smallInputCls} />
-        </div>
-        <div>
-          <label className={labelCls}>Stock</label>
-          <input type="number" min={0} step={1} value={variant.stock} onChange={(e) => onUpdate({ stock: Number(e.target.value) })} className={smallInputCls} />
-        </div>
-        <div>
-          <label className={labelCls}>Weight (g)</label>
-          <input type="number" min={0} value={variant.weight ?? ''} onChange={(e) => onUpdate({ weight: e.target.value ? Number(e.target.value) : undefined })} className={smallInputCls} />
-        </div>
+        <Input label="Price (\u20B9)" type="number" min={0.01} step="0.01" value={variant.price} onChange={(e) => onUpdate({ price: Number(e.target.value) })} />
+        <Input label="Compare-at (\u20B9)" type="number" min={0} step="0.01" value={variant.compareAtPrice ?? ''} onChange={(e) => onUpdate({ compareAtPrice: e.target.value ? Number(e.target.value) : undefined })} />
+        <Input label="Stock" type="number" min={0} step={1} value={variant.stock} onChange={(e) => onUpdate({ stock: Number(e.target.value) })} />
+        <Input label="Weight (g)" type="number" min={0} value={variant.weight ?? ''} onChange={(e) => onUpdate({ weight: e.target.value ? Number(e.target.value) : undefined })} />
       </div>
 
       {/* Attributes */}
       <div>
-        <label className={labelCls}>Attributes</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">Attributes</label>
         <div className="flex flex-wrap gap-2 mb-2">
           {Object.entries(variant.attributes).map(([key, value]) => (
             <div key={key} className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg pl-2.5 pr-1 py-1">
@@ -1076,7 +1094,7 @@ function VariantRow({
         </div>
         <div className="flex items-center gap-2">
           <input type="text" list={`attr-suggestions-${index}`} value={newAttrKey} onChange={(e) => setNewAttrKey(e.target.value)}
-            placeholder="e.g. size, flavor, color" className={`${smallInputCls} max-w-48`} />
+            placeholder="e.g. size, flavor, color" className="w-full max-w-48 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent" />
           <datalist id={`attr-suggestions-${index}`}>
             {attributes.map((a) => <option key={a.slug} value={a.slug} />)}
           </datalist>
@@ -1089,7 +1107,7 @@ function VariantRow({
 
       {/* Variant images */}
       <div>
-        <label className={labelCls}>Images</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">Images</label>
         <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" multiple className="hidden" onChange={onFileChange} />
         <div className="flex flex-wrap gap-2">
           {variant.images.map((url, i) => (

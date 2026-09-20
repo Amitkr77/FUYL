@@ -5,8 +5,7 @@ import { Save, CheckCircle2, Trash2, AlertCircle, ImagePlus, Star } from 'lucide
 import type { TestimonialRecord } from '@/lib/content'
 import { updateTestimonialAction, deleteTestimonialAction, getContentImageUploadSignature } from '@/app/(admin)/content/actions'
 import { uploadImage } from '@/lib/upload'
-
-const inputCls = 'w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent'
+import { Input, Textarea, Checkbox, FormSection } from '@/components/ui/form'
 
 export function EditTestimonialForm({ testimonial }: { testimonial: TestimonialRecord }) {
   const [isPending, startTransition] = useTransition()
@@ -63,7 +62,7 @@ export function EditTestimonialForm({ testimonial }: { testimonial: TestimonialR
           </button>
           <button onClick={handleSave} disabled={isPending} className="flex items-center gap-2 px-4 py-2 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
             {saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-            {saved ? 'Saved!' : isPending ? 'Saving…' : 'Save'}
+            {saved ? 'Saved!' : isPending ? 'Saving\u2026' : 'Save'}
           </button>
         </div>
       </div>
@@ -75,7 +74,7 @@ export function EditTestimonialForm({ testimonial }: { testimonial: TestimonialR
         </div>
       )}
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+      <FormSection>
         {/* Type toggle */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">Type</label>
@@ -103,22 +102,13 @@ export function EditTestimonialForm({ testimonial }: { testimonial: TestimonialR
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Name</label>
-            <input type="text" value={form.name} onChange={(e) => set({ name: e.target.value })} className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              {form.type === 'expert' ? 'Credentials / Role' : 'Title (optional)'}
-            </label>
-            <input
-              type="text"
-              value={form.title}
-              onChange={(e) => set({ title: e.target.value })}
-              placeholder={form.type === 'expert' ? 'e.g. MD, Internal Medicine · Mumbai' : 'e.g. Marketing Manager · Pune'}
-              className={inputCls}
-            />
-          </div>
+          <Input label="Name" value={form.name} onChange={(e) => set({ name: e.target.value })} />
+          <Input
+            label={form.type === 'expert' ? 'Credentials / Role' : 'Title (optional)'}
+            value={form.title}
+            onChange={(e) => set({ title: e.target.value })}
+            placeholder={form.type === 'expert' ? 'e.g. MD, Internal Medicine \u00b7 Mumbai' : 'e.g. Marketing Manager \u00b7 Pune'}
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">Rating (optional)</label>
@@ -131,8 +121,7 @@ export function EditTestimonialForm({ testimonial }: { testimonial: TestimonialR
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Testimonial</label>
-          <textarea value={form.body} onChange={(e) => set({ body: e.target.value })} rows={5} maxLength={1000} className={`${inputCls} resize-none`} />
+          <Textarea label="Testimonial" value={form.body} onChange={(e) => set({ body: e.target.value })} rows={5} maxLength={1000} />
           <p className="text-xs text-slate-400 mt-1.5">{form.body.length}/1000</p>
         </div>
 
@@ -155,11 +144,14 @@ export function EditTestimonialForm({ testimonial }: { testimonial: TestimonialR
           )}
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-slate-700 pt-2 border-t border-slate-100">
-          <input type="checkbox" checked={form.isActive} onChange={(e) => set({ isActive: e.target.checked })} className="rounded border-slate-300 text-[#558476] focus:ring-[#558476]" />
-          Active (visible on storefront)
-        </label>
-      </div>
+        <div className="pt-2 border-t border-slate-100">
+          <Checkbox
+            label="Active (visible on storefront)"
+            checked={form.isActive}
+            onChange={(e) => set({ isActive: e.target.checked })}
+          />
+        </div>
+      </FormSection>
     </div>
   )
 }

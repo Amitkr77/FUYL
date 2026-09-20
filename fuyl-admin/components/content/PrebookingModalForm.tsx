@@ -6,6 +6,7 @@ import { updatePrebookingModalAction, getContentImageUploadSignature } from '@/a
 import { uploadImage } from '@/lib/upload'
 import type { PrebookingModalSection } from '@/lib/content'
 import { useContentDraftGuard } from './useContentDraftGuard'
+import { Input, Checkbox, Toggle } from '@/components/ui/form'
 
 interface Props { initial: PrebookingModalSection }
 
@@ -43,48 +44,6 @@ export function PrebookingModalForm({ initial }: Props) {
   const set = <K extends keyof typeof data>(key: K, value: typeof data[K]) =>
     setData((d) => ({ ...d, [key]: value }))
 
-  const text = (label: string, key: keyof typeof data, placeholder?: string) => (
-    <label className="block">
-      <span className="mb-1 block text-xs font-semibold text-slate-700">{label}</span>
-      <input
-        type="text"
-        value={String(data[key])}
-        placeholder={placeholder}
-        onChange={(e) => set(key as never, e.target.value as never)}
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#558476] focus:ring-2 focus:ring-[#558476]/20"
-      />
-    </label>
-  )
-
-  const num = (label: string, key: 'delayMs' | 'capacity', min: number, hint?: string) => (
-    <label className="block">
-      <span className="mb-1 block text-xs font-semibold text-slate-700">{label}</span>
-      {hint && <span className="mb-1 block text-xs text-slate-400">{hint}</span>}
-      <input
-        type="number"
-        min={min}
-        value={data[key]}
-        onChange={(e) => set(key, Number(e.target.value))}
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#558476] focus:ring-2 focus:ring-[#558476]/20"
-      />
-    </label>
-  )
-
-  const toggle = (label: string, key: 'showDonation', hint?: string) => (
-    <label className="flex items-start gap-3 cursor-pointer">
-      <input
-        type="checkbox"
-        checked={data[key]}
-        onChange={(e) => set(key, e.target.checked)}
-        className="mt-0.5 h-4 w-4 accent-[#558476] rounded"
-      />
-      <span>
-        <span className="block text-sm text-slate-700">{label}</span>
-        {hint && <span className="block text-xs text-slate-400 mt-0.5">{hint}</span>}
-      </span>
-    </label>
-  )
-
   const SectionTitle = ({ children }: { children: string }) => (
     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 pt-2">{children}</h3>
   )
@@ -93,45 +52,46 @@ export function PrebookingModalForm({ initial }: Props) {
     <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-6">
 
       {/* Global active toggle */}
-      <label className="flex items-center gap-3 cursor-pointer">
-        <div className="relative">
-          <input type="checkbox" className="sr-only peer" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-          <div className="h-5 w-9 rounded-full bg-slate-200 peer-checked:bg-[#558476] transition-colors" />
-          <div className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
-        </div>
-        <span className="text-sm font-medium text-slate-700">Show pre-booking popup on storefront</span>
-      </label>
+      <Toggle
+        checked={isActive}
+        onChange={setIsActive}
+        label="Show pre-booking popup on storefront"
+      />
 
       <div className={`space-y-5 ${!isActive ? 'opacity-50 pointer-events-none' : ''}`}>
 
-        {/* ── Trigger / timing ──────────────────────────── */}
+        {/* -- Trigger / timing -- */}
         <SectionTitle>Trigger &amp; timing</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {text('Floating button label', 'floatingButtonLabel', 'e.g. Pre-book now')}
-          {num('Delay before popup (ms)', 'delayMs', 0, '900 = 0.9 s after page load')}
-          {num('Total capacity (spots)', 'capacity', 1)}
+          <Input label="Floating button label" value={String(data.floatingButtonLabel)} placeholder="e.g. Pre-book now" onChange={(e) => set('floatingButtonLabel' as never, e.target.value as never)} />
+          <Input label="Delay before popup (ms)" helperText="900 = 0.9 s after page load" type="number" min={0} value={data.delayMs} onChange={(e) => set('delayMs', Number(e.target.value))} />
+          <Input label="Total capacity (spots)" type="number" min={1} value={data.capacity} onChange={(e) => set('capacity', Number(e.target.value))} />
         </div>
 
-        {/* ── Form copy ─────────────────────────────────── */}
+        {/* -- Form copy -- */}
         <SectionTitle>Form copy</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {text('Badge (small label above headline)', 'badge', 'e.g. Launching soon')}
-          {text('Headline', 'headline', 'e.g. BE FIRST IN LINE')}
+          <Input label="Badge (small label above headline)" value={String(data.badge)} placeholder="e.g. Launching soon" onChange={(e) => set('badge' as never, e.target.value as never)} />
+          <Input label="Headline" value={String(data.headline)} placeholder="e.g. BE FIRST IN LINE" onChange={(e) => set('headline' as never, e.target.value as never)} />
         </div>
-        {text('Description', 'description', 'e.g. Join the FUYL pre-booking list for early access…')}
+        <Input label="Description" value={String(data.description)} placeholder="e.g. Join the FUYL pre-booking list for early access\u2026" onChange={(e) => set('description' as never, e.target.value as never)} />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {text('Submit button label', 'submitButtonLabel', 'e.g. Join pre-booking list')}
-          {text('Privacy note (below form)', 'privacyNote', "e.g. We'll only use your details…")}
+          <Input label="Submit button label" value={String(data.submitButtonLabel)} placeholder="e.g. Join pre-booking list" onChange={(e) => set('submitButtonLabel' as never, e.target.value as never)} />
+          <Input label="Privacy note (below form)" value={String(data.privacyNote)} placeholder="e.g. We'll only use your details\u2026" onChange={(e) => set('privacyNote' as never, e.target.value as never)} />
         </div>
 
-        {/* ── Donation section ──────────────────────────── */}
+        {/* -- Donation section -- */}
         <SectionTitle>Donation section</SectionTitle>
-        {toggle('Show optional donation checkbox in the form', 'showDonation')}
+        <Checkbox
+          label="Show optional donation checkbox in the form"
+          checked={data.showDonation}
+          onChange={(e) => set('showDonation', e.target.checked)}
+        />
         {data.showDonation && (
           <div className="pl-7 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {text('Checkbox label', 'donationLabel', 'e.g. I would like to make an optional donation')}
-              {text('Checkbox sub-label', 'donationSublabel', 'e.g. You can still join without donating.')}
+              <Input label="Checkbox label" value={String(data.donationLabel)} placeholder="e.g. I would like to make an optional donation" onChange={(e) => set('donationLabel' as never, e.target.value as never)} />
+              <Input label="Checkbox sub-label" value={String(data.donationSublabel)} placeholder="e.g. You can still join without donating." onChange={(e) => set('donationSublabel' as never, e.target.value as never)} />
             </div>
 
             {/* QR image upload */}
@@ -145,7 +105,7 @@ export function PrebookingModalForm({ initial }: Props) {
                     <img src={data.donationQrUrl} alt="Donation QR" className="h-32 w-32 rounded-lg border border-slate-200 object-contain bg-white" />
                     <div className="absolute inset-0 rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
                       <button type="button" onClick={() => qrFileRef.current?.click()} disabled={uploading} className="px-2.5 py-1 rounded bg-white text-xs font-medium text-slate-700 hover:text-[#558476]">
-                        {uploading ? 'Uploading…' : 'Replace'}
+                        {uploading ? 'Uploading\u2026' : 'Replace'}
                       </button>
                       <button type="button" onClick={() => set('donationQrUrl', '')} className="px-2.5 py-1 rounded bg-white text-xs font-medium text-red-500">
                         Remove
@@ -162,7 +122,7 @@ export function PrebookingModalForm({ initial }: Props) {
                   className="flex items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-500 hover:border-[#558476] hover:text-[#558476] transition-colors disabled:opacity-60"
                 >
                   <ImagePlus className="h-4 w-4" />
-                  {uploading ? 'Uploading…' : 'Upload QR code image'}
+                  {uploading ? 'Uploading\u2026' : 'Upload QR code image'}
                 </button>
               )}
               {uploadError && (
@@ -174,13 +134,13 @@ export function PrebookingModalForm({ initial }: Props) {
           </div>
         )}
 
-        {/* ── Success screen ────────────────────────────── */}
+        {/* -- Success screen -- */}
         <SectionTitle>Success screen (shown after form submitted)</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {text('Success headline', 'successHeadline', "e.g. YOU'RE ON THE LIST!")}
-          {text('Success description', 'successDescription', "e.g. We've emailed your confirmation…")}
-          {text('WhatsApp button label', 'whatsappButtonLabel', 'e.g. Join our WhatsApp community')}
-          {text('"Continue" button label', 'continueShoppingLabel', 'e.g. Continue shopping')}
+          <Input label="Success headline" value={String(data.successHeadline)} placeholder="e.g. YOU'RE ON THE LIST!" onChange={(e) => set('successHeadline' as never, e.target.value as never)} />
+          <Input label="Success description" value={String(data.successDescription)} placeholder="e.g. We've emailed your confirmation\u2026" onChange={(e) => set('successDescription' as never, e.target.value as never)} />
+          <Input label="WhatsApp button label" value={String(data.whatsappButtonLabel)} placeholder="e.g. Join our WhatsApp community" onChange={(e) => set('whatsappButtonLabel' as never, e.target.value as never)} />
+          <Input label="Continue button label" value={String(data.continueShoppingLabel)} placeholder="e.g. Continue shopping" onChange={(e) => set('continueShoppingLabel' as never, e.target.value as never)} />
         </div>
 
       </div>
@@ -201,7 +161,7 @@ export function PrebookingModalForm({ initial }: Props) {
         disabled={pending}
         className="rounded-lg bg-[#558476] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#457366] disabled:opacity-60 transition-colors"
       >
-        {pending ? 'Saving…' : 'Save changes'}
+        {pending ? 'Saving\u2026' : 'Save changes'}
       </button>
     </div>
   )

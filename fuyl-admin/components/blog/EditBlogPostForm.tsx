@@ -5,11 +5,10 @@ import { Save, CheckCircle2, Eye, Trash2, AlertCircle, ImagePlus, X, Code, Plus 
 import type { BlogPostDetail } from '@/lib/blog'
 import { updatePostAction, deletePostAction, getBlogImageUploadSignature } from '@/app/(admin)/blog/actions'
 import { uploadImage } from '@/lib/upload'
+import { Input, Textarea, Select, FormSection } from '@/components/ui/form'
 
 const CATEGORIES = ['Nutrition Science', 'Ingredients', 'Industry Insights', 'Lifestyle', 'Research']
 const AUTHORS = ['FUYL Team', 'Dr. Rima Khanna', 'Anjali Mehta', 'Vikram Rao']
-
-const inputCls = 'w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent'
 
 export function EditBlogPostForm({ post }: { post: BlogPostDetail }) {
   const [isPending, startTransition] = useTransition()
@@ -109,20 +108,21 @@ export function EditBlogPostForm({ post }: { post: BlogPostDetail }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 space-y-5">
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Post Title</label>
-              <input type="text" value={form.title} onChange={(e) => set({ title: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Excerpt</label>
-              <textarea value={form.excerpt} onChange={(e) => set({ excerpt: e.target.value })} rows={2}
-                placeholder="A short summary shown in post listings..."
-                maxLength={300}
-                className={`${inputCls} resize-none`} />
-              <p className="text-xs text-slate-400 mt-1.5">{form.excerpt.length}/300</p>
-            </div>
+          <FormSection className="p-6">
+            <Input
+              label="Post Title"
+              value={form.title}
+              onChange={(e) => set({ title: e.target.value })}
+            />
+            <Textarea
+              label="Excerpt"
+              value={form.excerpt}
+              onChange={(e) => set({ excerpt: e.target.value })}
+              rows={2}
+              placeholder="A short summary shown in post listings..."
+              maxLength={300}
+              helperText={`${form.excerpt.length}/300`}
+            />
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-sm font-medium text-slate-700">Content</label>
@@ -138,39 +138,43 @@ export function EditBlogPostForm({ post }: { post: BlogPostDetail }) {
                   dangerouslySetInnerHTML={{ __html: form.content || '<p class="text-slate-400">Nothing to preview yet.</p>' }}
                 />
               ) : (
-                <textarea value={form.content} onChange={(e) => set({ content: e.target.value })} rows={18}
+                <Textarea
+                  value={form.content}
+                  onChange={(e) => set({ content: e.target.value })}
+                  rows={18}
                   placeholder="Write your article content here — plain text or HTML (<p>, <h2>, <strong>, <a>, <ul>...) both work."
-                  className={`${inputCls} resize-none font-mono text-sm leading-relaxed`} />
+                />
               )}
               <p className="text-xs text-slate-400 mt-1.5">
                 {form.content.split(/\s+/).filter(Boolean).length} words · {post.views.toLocaleString('en-IN')} views · HTML is rendered as-is on the storefront
               </p>
             </div>
-          </div>
+          </FormSection>
         </div>
 
         <div className="space-y-5">
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900">Post Settings</h3>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
-              <select value={form.status} onChange={(e) => set({ status: e.target.value as 'draft' | 'published' })} className={inputCls}>
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Category</label>
-              <select value={form.category} onChange={(e) => set({ category: e.target.value })} className={inputCls}>
-                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Author</label>
-              <select value={form.author} onChange={(e) => set({ author: e.target.value })} className={inputCls}>
-                {AUTHORS.map((a) => <option key={a}>{a}</option>)}
-              </select>
-            </div>
+          <FormSection title="Post Settings">
+            <Select
+              label="Status"
+              value={form.status}
+              onChange={(e) => set({ status: e.target.value as 'draft' | 'published' })}
+              options={[
+                { value: 'draft', label: 'Draft' },
+                { value: 'published', label: 'Published' },
+              ]}
+            />
+            <Select
+              label="Category"
+              value={form.category}
+              onChange={(e) => set({ category: e.target.value })}
+              options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+            />
+            <Select
+              label="Author"
+              value={form.author}
+              onChange={(e) => set({ author: e.target.value })}
+              options={AUTHORS.map((a) => ({ value: a, label: a }))}
+            />
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Tags</label>
               <div className="flex flex-wrap gap-1.5 mb-2">
@@ -182,23 +186,22 @@ export function EditBlogPostForm({ post }: { post: BlogPostDetail }) {
                 ))}
               </div>
               <div className="flex items-center gap-2">
-                <input
+                <Input
                   type="text"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }}
                   placeholder="Add a tag…"
-                  className={inputCls}
+                  className="flex-1"
                 />
                 <button type="button" onClick={addTag} className="p-2.5 rounded-lg border border-slate-200 text-slate-500 hover:text-[#558476] hover:border-[#558476]/40">
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
             </div>
-          </div>
+          </FormSection>
 
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
-            <h3 className="text-sm font-semibold text-slate-900 mb-3">Cover Image</h3>
+          <FormSection title="Cover Image">
             <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleImageChange} />
             {form.image ? (
               <div className="relative group">
@@ -222,7 +225,7 @@ export function EditBlogPostForm({ post }: { post: BlogPostDetail }) {
                 <span className="text-xs text-slate-500 font-medium">{isUploading ? 'Uploading…' : 'Click to upload cover image'}</span>
               </button>
             )}
-          </div>
+          </FormSection>
         </div>
       </div>
     </div>

@@ -8,8 +8,7 @@ import { PageBodyEditor } from './PageBodyEditor'
 import { SeoPreview } from './SeoPreview'
 import { PageRevisionHistory } from './PageRevisionHistory'
 import { useRouter } from 'next/navigation'
-
-const inputCls = 'w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent'
+import { Input, Textarea, Select, FormSection } from '@/components/ui/form'
 
 export function EditPageForm({ page, storefrontUrl, revisions }: { page: CMSPageDetail; storefrontUrl: string; revisions: CMSPageRevision[] }) {
   const router = useRouter()
@@ -41,7 +40,7 @@ export function EditPageForm({ page, storefrontUrl, revisions }: { page: CMSPage
   }
 
   const handleDelete = () => {
-    if (!window.confirm(`Delete “${page.title}”? This cannot be undone and its storefront URL will stop working.`)) return
+    if (!window.confirm(`Delete "${page.title}"? This cannot be undone and its storefront URL will stop working.`)) return
     startTransition(() => deletePageAction(page.id))
   }
   const openStorefrontPreview = () => {
@@ -94,51 +93,75 @@ export function EditPageForm({ page, storefrontUrl, revisions }: { page: CMSPage
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 space-y-5">
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Page Title</label>
-              <input type="text" value={form.title} onChange={(e) => set({ title: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-[#558476] focus:border-transparent" />
-            </div>
+          <FormSection className="p-6">
+            <Input
+              label="Page Title"
+              value={form.title}
+              onChange={(e) => set({ title: e.target.value })}
+            />
             <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Page content</label><PageBodyEditor value={form.body} onChange={(body) => set({ body })} /></div>
-          </div>
+          </FormSection>
         </div>
 
         <div className="space-y-5">
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900">Page Settings</h3>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
-              <select value={form.status} onChange={(e) => set({ status: e.target.value as 'draft' | 'published' })} className={inputCls}>
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Show page in</label>
-              <select value={form.navigationPlacement} onChange={(e) => set({ navigationPlacement: e.target.value as typeof form.navigationPlacement })} className={inputCls}>
-                <option value="none">Nowhere — direct URL only</option><option value="header">Website header</option><option value="footer">Website footer</option><option value="both">Header and footer</option>
-              </select>
-              <p className="text-xs text-slate-400 mt-1.5">Only published pages appear in storefront navigation.</p>
-            </div>
-            {form.navigationPlacement !== 'none' && <><div><label className="block text-sm font-medium text-slate-700 mb-1.5">Navigation label</label><input value={form.navigationLabel} onChange={(e) => set({ navigationLabel: e.target.value })} placeholder={form.title} className={inputCls} /></div><div><label className="block text-sm font-medium text-slate-700 mb-1.5">Navigation order</label><input type="number" min={0} value={form.navigationOrder} onChange={(e) => set({ navigationOrder: Number(e.target.value) })} className={inputCls} /></div></>}
+          <FormSection title="Page Settings">
+            <Select
+              label="Status"
+              value={form.status}
+              onChange={(e) => set({ status: e.target.value as 'draft' | 'published' })}
+              options={[
+                { value: 'draft', label: 'Draft' },
+                { value: 'published', label: 'Published' },
+              ]}
+            />
+            <Select
+              label="Show page in"
+              value={form.navigationPlacement}
+              onChange={(e) => set({ navigationPlacement: e.target.value as typeof form.navigationPlacement })}
+              options={[
+                { value: 'none', label: 'Nowhere — direct URL only' },
+                { value: 'header', label: 'Website header' },
+                { value: 'footer', label: 'Website footer' },
+                { value: 'both', label: 'Header and footer' },
+              ]}
+              helperText="Only published pages appear in storefront navigation."
+            />
+            {form.navigationPlacement !== 'none' && <>
+              <Input
+                label="Navigation label"
+                value={form.navigationLabel}
+                onChange={(e) => set({ navigationLabel: e.target.value })}
+                placeholder={form.title}
+              />
+              <Input
+                type="number"
+                label="Navigation order"
+                min={0}
+                value={form.navigationOrder}
+                onChange={(e) => set({ navigationOrder: Number(e.target.value) })}
+              />
+            </>}
             {form.status === 'published' && form.navigationPlacement === 'none' && <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-700">This page is published but not linked in the website navigation. Customers can reach it only through its direct URL or another link.</p>}
             {form.status === 'published' && <a href={`${storefrontUrl}/pages/${page.slug}`} target="_blank" rel="noreferrer" className="inline-flex text-sm font-medium text-[#558476] hover:underline">View storefront page ↗</a>}
-          </div>
+          </FormSection>
 
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900">SEO</h3>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">SEO Title</label>
-              <input type="text" value={form.seoTitle} onChange={(e) => set({ seoTitle: e.target.value })} className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">SEO Description</label>
-              <textarea value={form.seoDescription} onChange={(e) => set({ seoDescription: e.target.value })} rows={3} maxLength={300} className={`${inputCls} resize-none`} />
-              <p className="text-xs text-slate-400 mt-1.5">{form.seoDescription.length}/300</p>
-            </div>
+          <FormSection title="SEO">
+            <Input
+              label="SEO Title"
+              type="text"
+              value={form.seoTitle}
+              onChange={(e) => set({ seoTitle: e.target.value })}
+            />
+            <Textarea
+              label="SEO Description"
+              value={form.seoDescription}
+              onChange={(e) => set({ seoDescription: e.target.value })}
+              rows={3}
+              maxLength={300}
+              helperText={`${form.seoDescription.length}/300`}
+            />
             <SeoPreview title={form.seoTitle || form.title} description={form.seoDescription} slug={page.slug} />
-          </div>
+          </FormSection>
           <PageRevisionHistory pageId={page.id} revisions={revisions} hasUnsavedChanges={dirty} />
         </div>
       </div>

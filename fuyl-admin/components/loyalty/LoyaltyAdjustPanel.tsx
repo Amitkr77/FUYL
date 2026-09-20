@@ -5,6 +5,7 @@ import Badge from '@/components/ui/Badge'
 import { formatDate } from '@/lib/utils'
 import type { LoyaltyAccount, LoyaltyTransaction, LoyaltyTxType } from '@/lib/loyalty'
 import { adjustLoyaltyPointsAction } from '@/app/(admin)/loyalty/actions'
+import { Input, FormSection } from '@/components/ui/form'
 
 const TX_VARIANT: Record<LoyaltyTxType, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
   earn:    'success',
@@ -55,45 +56,33 @@ export function LoyaltyAdjustPanel({
       </div>
 
       {/* Manual adjust form */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900">Adjust Points</h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Use a positive number to add points, negative to deduct (e.g. +500 or -200).
-            Every adjustment is recorded in the transaction history below.
-          </p>
-        </div>
+      <FormSection title="Adjust Points" description="Use a positive number to add points, negative to deduct (e.g. +500 or -200). Every adjustment is recorded in the transaction history below.">
         <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Points</label>
-            <input
-              type="number"
-              value={points}
-              onChange={(e) => setPoints(e.target.value)}
-              placeholder="+500 or -200"
-              className="w-36 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#558476]"
-            />
-          </div>
-          <div className="flex-1 min-w-[240px]">
-            <label className="block text-xs font-medium text-slate-500 mb-1">Reason (required)</label>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Reason for this manual adjustment"
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#558476]"
-            />
-          </div>
+          <Input
+            label="Points"
+            type="number"
+            value={points}
+            onChange={(e) => setPoints(e.target.value)}
+            placeholder="+500 or -200"
+            className="w-36"
+          />
+          <Input
+            label="Reason (required)"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Reason for this manual adjustment"
+            className="flex-1 min-w-[240px]"
+          />
           <button
             onClick={handleAdjust}
             disabled={isPending}
             className="px-4 py-2 bg-[#558476] hover:bg-[#457366] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
           >
-            {saved ? 'Applied!' : isPending ? 'Saving…' : 'Apply'}
+            {saved ? 'Applied!' : isPending ? 'Saving...' : 'Apply'}
           </button>
         </div>
         {error && <p className="text-xs text-red-600">{error}</p>}
-      </div>
+      </FormSection>
 
       {/* Transaction history */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
