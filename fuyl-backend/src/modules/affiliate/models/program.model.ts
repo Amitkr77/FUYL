@@ -55,7 +55,7 @@ const AffiliateProgramSchema = new Schema<IAffiliateProgram>(
     name:                  { type: String, required: true, trim: true },
     description:           { type: String, trim: true },
     isActive:              { type: Boolean, default: true, index: true },
-    isDefault:             { type: Boolean, default: false, index: true },
+    isDefault:             { type: Boolean, default: false },
     commissionType:        { type: String, enum: ['percent_of_sale', 'flat_per_item', 'flat_per_order'], default: 'percent_of_sale' },
     tierBasis:             { type: String, enum: ['order_value', 'order_count'], default: 'order_value' },
     defaultRate:           { type: Number, required: true, min: 0 },
@@ -74,7 +74,7 @@ const AffiliateProgramSchema = new Schema<IAffiliateProgram>(
   { timestamps: true }
 );
 
-AffiliateProgramSchema.index({ isDefault: 1 }, { unique: true, partialFilterExpression: { isDefault: true } });
+AffiliateProgramSchema.index({ isDefault: 1 }, { name: 'affiliate_program_default_unique', unique: true, partialFilterExpression: { isDefault: true } });
 
 export const AffiliateProgramModel = mongoose.model<IAffiliateProgram>(
   'AffiliateProgram',

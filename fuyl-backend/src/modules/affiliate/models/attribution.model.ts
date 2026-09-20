@@ -26,13 +26,13 @@ const AffiliateAttributionSchema = new Schema<IAffiliateAttribution>(
     customerId:  { type: Schema.Types.ObjectId, ref: 'User', index: true, sparse: true },
     orderId:     { type: Schema.Types.ObjectId, ref: 'Order', index: true, sparse: true },
     converted:   { type: Boolean, default: false },
-    expiresAt:   { type: Date, required: true, index: true },
+    expiresAt:   { type: Date, required: true },
   },
   { timestamps: true }
 );
 
 // TTL index — Mongo auto-deletes expired, unconverted attributions
-AffiliateAttributionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+AffiliateAttributionSchema.index({ expiresAt: 1 }, { name: 'affiliate_attribution_expiry_ttl', expireAfterSeconds: 0 });
 
 export const AffiliateAttributionModel = mongoose.model<IAffiliateAttribution>(
   'AffiliateAttribution',

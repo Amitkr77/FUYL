@@ -81,10 +81,23 @@ export interface AffiliateProfile {
 export interface AffiliateProgram {
   name:                  string
   description?:          string
+  commissionType:        'percent_of_sale' | 'flat_per_item' | 'flat_per_order'
+  tierBasis:              'order_value' | 'order_count'
   defaultRate:           number
   commissionBase:        'subtotal' | 'grand_total'
+  tiers:                 { minOrderAmount: number; rate: number }[]
+  excludeProductTax:     boolean
+  excludeShipping:       boolean
+  excludedProductCount:  number
+  specialProductRuleCount: number
+  advancedCommissions: {
+    newCustomer: { enabled: boolean; rate: number }
+    lifetime: { enabled: boolean; rate: number }
+    specialCoupon: { enabled: boolean; rate: number; couponCode?: string }
+  }
   attributionWindowDays: number
   minPayoutAmount:       number
+  autoApproveAfterDays:  number
 }
 
 export interface PerformanceDataPoint {

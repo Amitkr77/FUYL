@@ -31,7 +31,7 @@ export interface ICommission extends Document {
 const CommissionSchema = new Schema<ICommission>(
   {
     affiliateId:   { type: Schema.Types.ObjectId, ref: 'Affiliate', required: true, index: true },
-    orderId:       { type: Schema.Types.ObjectId, ref: 'Order',     required: true, index: true },
+    orderId:       { type: Schema.Types.ObjectId, ref: 'Order',     required: true },
     attributionId: { type: Schema.Types.ObjectId, ref: 'AffiliateAttribution' },
     snapshotRate:  { type: Number, required: true },
     snapshotType:  { type: String, enum: ['percent_of_sale', 'flat_per_item', 'flat_per_order'], default: 'percent_of_sale' },
@@ -54,7 +54,7 @@ const CommissionSchema = new Schema<ICommission>(
 );
 
 // One commission per order — idempotency guard
-CommissionSchema.index({ orderId: 1 }, { unique: true });
+CommissionSchema.index({ orderId: 1 }, { name: 'affiliate_commission_order_unique', unique: true });
 CommissionSchema.index({ affiliateId: 1, status: 1, createdAt: -1 });
 
 export const CommissionModel = mongoose.model<ICommission>(

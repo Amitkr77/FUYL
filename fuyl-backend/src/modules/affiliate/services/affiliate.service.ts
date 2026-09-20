@@ -191,10 +191,19 @@ export class AffiliateService {
     return {
       name:                  program.name,
       description:           program.description,
+      commissionType:        program.commissionType,
+      tierBasis:              program.tierBasis,
       defaultRate:           program.defaultRate,
       commissionBase:        program.commissionBase,
+      tiers:                 program.tiers,
+      excludeProductTax:     program.excludeProductTax,
+      excludeShipping:       program.excludeShipping,
+      excludedProductCount:  program.excludedProductIds.length,
+      specialProductRuleCount: program.specialProductCommissions.length,
+      advancedCommissions:   program.advancedCommissions,
       attributionWindowDays: program.attributionWindowDays,
       minPayoutAmount:       program.minPayoutAmount,
+      autoApproveAfterDays:  program.autoApproveAfterDays,
     };
   }
 

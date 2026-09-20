@@ -42,7 +42,7 @@ const AffiliateSchema = new Schema<IAffiliate>(
     userId:    { type: Schema.Types.ObjectId, ref: 'User', index: true, sparse: true },
     programId: { type: Schema.Types.ObjectId, ref: 'AffiliateProgram', required: true, index: true },
     name:      { type: String, required: true, trim: true },
-    email:     { type: String, required: true, trim: true, lowercase: true, index: true },
+    email:     { type: String, required: true, trim: true, lowercase: true },
     phone:     { type: String, trim: true },
     channels:  [{ type: String, trim: true }],
     couponCodes: [{ type: String, uppercase: true, trim: true }],
@@ -70,7 +70,7 @@ const AffiliateSchema = new Schema<IAffiliate>(
   { timestamps: true }
 );
 
-AffiliateSchema.index({ email: 1 }, { unique: true });
+AffiliateSchema.index({ email: 1 }, { name: 'affiliate_email_unique', unique: true });
 AffiliateSchema.index({ couponCodes: 1 }, { unique: true, sparse: true });
 
 export const AffiliateModel = mongoose.model<IAffiliate>(

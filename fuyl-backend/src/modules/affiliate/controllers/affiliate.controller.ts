@@ -68,10 +68,10 @@ export class AffiliateController {
   /** POST /affiliate/links — requires auth + approved affiliate */
   async createLink(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
-      const { destination, label } = req.body;
+      const { destination, label, code } = req.body;
       if (!destination) throw new BadRequestError('destination is required');
       const affiliate = await affiliateService.resolvePortalAffiliate(req.user!);
-      const link = await affiliateService.createLink(affiliate._id.toString(), { destination, label });
+      const link = await affiliateService.createLink(affiliate._id.toString(), { destination, label, code });
       res.status(201).json({ success: true, data: link });
     } catch (err) { next(err); }
   }

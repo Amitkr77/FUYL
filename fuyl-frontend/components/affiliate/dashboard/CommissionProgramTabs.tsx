@@ -94,6 +94,17 @@ function ProgramDetails({ program, loading }: { program: AffiliateProgram | null
     )
   }
 
+  const commissionValue = (rate: number) => {
+    if (program.commissionType === 'flat_per_item') return `${formatPrice(rate)} per item`
+    if (program.commissionType === 'flat_per_order') return `${formatPrice(rate)} per order`
+    return `${rate}% of eligible sales`
+  }
+  const advancedRules = [
+    program.advancedCommissions?.newCustomer.enabled && 'New customer',
+    program.advancedCommissions?.lifetime.enabled && 'Lifetime',
+    program.advancedCommissions?.specialCoupon.enabled && 'Special coupon',
+  ].filter(Boolean)
+
   return (
     <div className="p-4 space-y-4">
       <div>
@@ -105,7 +116,7 @@ function ProgramDetails({ program, loading }: { program: AffiliateProgram | null
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
-          { label: 'Default Commission', value: `${program.defaultRate}%` },
+          { label: 'Default Commission', value: commissionValue(program.defaultRate) },
           { label: 'Commission Base',    value: program.commissionBase === 'subtotal' ? 'Order Subtotal' : 'Grand Total' },
           { label: 'Attribution Window', value: `${program.attributionWindowDays} days` },
           { label: 'Min. Payout',        value: formatPrice(program.minPayoutAmount) },
@@ -115,6 +126,33 @@ function ProgramDetails({ program, loading }: { program: AffiliateProgram | null
             <p className="text-body-sm font-semibold text-brand-forest mt-1">{value}</p>
           </div>
         ))}
+      </div>
+
+      {program.tiers.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-muted mb-2">Commission levels</p>
+          <div className="space-y-2">
+            {program.tiers.map((tier, index) => (
+              <div key={`${tier.minOrderAmount}-${index}`} className="flex items-center justify-between rounded-lg border border-brand-border px-3 py-2 text-body-sm">
+                <span className="text-brand-muted">
+                  {program.tierBasis === 'order_count'
+                    ? `From referral order #${tier.minOrderAmount}`
+                    : `From ${formatPrice(tier.minOrderAmount)} eligible value`}
+                </span>
+                <strong className="text-brand-forest">{commissionValue(tier.rate)}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-lg bg-brand-cream/60 border border-brand-border p-3 text-body-sm text-brand-muted space-y-1">
+        <p>Shipping: {program.excludeShipping ? 'not included in commission' : 'included in commission'}</p>
+        <p>Product tax: {program.excludeProductTax ? 'not included in commission' : 'included in commission'}</p>
+        {program.excludedProductCount > 0 && <p>{program.excludedProductCount} product(s) are excluded from commission.</p>}
+        {program.specialProductRuleCount > 0 && <p>{program.specialProductRuleCount} product-specific commission rule(s) apply.</p>}
+        {advancedRules.length > 0 && <p>Additional rules: {advancedRules.join(', ')}.</p>}
+        <p>Eligible commissions are reviewed after {program.autoApproveAfterDays} day(s).</p>
       </div>
     </div>
   )
