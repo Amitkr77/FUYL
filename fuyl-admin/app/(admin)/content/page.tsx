@@ -91,16 +91,16 @@ export default async function ContentPage({
       <section className="space-y-3">
         <div><h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Homepage & marketing</h2><p className="text-xs text-slate-400">Manage globally visible sections and promotional overlays.</p></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-        <Link href="/content/hero" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+        <Link href="/content/hero" className="block rounded-xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-[#558476]/10 p-3 text-[#558476]"><ImageIcon className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Homepage Hero</h3><p className="text-sm text-slate-500">Slides, headings, images &amp; CTAs</p></div></div>
         </Link>
-        <Link href="/content/announcement" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+        <Link href="/content/announcement" className="block rounded-xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-amber-50 p-3 text-amber-600"><Megaphone className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Announcement Bar</h3><p className="text-sm text-slate-500">Top-of-page banner &amp; link</p></div></div>
         </Link>
-        <Link href="/content/prebooking-modal" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+        <Link href="/content/prebooking-modal" className="block rounded-xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-teal-50 p-3 text-teal-600"><Sparkles className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Pre-booking Popup</h3><p className="text-sm text-slate-500">Waitlist modal copy &amp; timing</p></div></div>
         </Link>
-        <Link href="/content/popup-banner" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+        <Link href="/content/popup-banner" className="block rounded-xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-purple-50 p-3 text-purple-600"><Layers className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Popup Banner</h3><p className="text-sm text-slate-500">Generic promotional popup</p></div></div>
         </Link>
         </div>
@@ -108,25 +108,25 @@ export default async function ContentPage({
       <section className="space-y-3">
         <div><h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Built-in storefront pages</h2><p className="text-xs text-slate-400">Structured editors for core brand and legal pages.</p></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-        <Link href="/content/our-story" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+        <Link href="/content/our-story" className="block rounded-xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-green-50 p-3 text-green-600"><BookOpen className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Our Story</h3><p className="text-sm text-slate-500">Founder bios, milestones &amp; CTA</p></div></div>
         </Link>
-        <Link href="/content/why-fuyl" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+        <Link href="/content/why-fuyl" className="block rounded-xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-yellow-50 p-3 text-yellow-600"><Zap className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Why FUYL</h3><p className="text-sm text-slate-500">Hero, description &amp; pillars headings</p></div></div>
         </Link>
-        <Link href="/content/ingredients" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+        <Link href="/content/ingredients" className="block rounded-xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-emerald-50 p-3 text-emerald-600"><Leaf className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Ingredients</h3><p className="text-sm text-slate-500">Add, edit, reorder &amp; publish ingredients</p></div></div>
         </Link>
-        <Link href="/content/privacy-policy" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+        <Link href="/content/privacy-policy" className="block rounded-xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-blue-50 p-3 text-blue-600"><Shield className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Privacy Policy</h3><p className="text-sm text-slate-500">Data collection &amp; privacy sections</p></div></div>
         </Link>
-        <Link href="/content/shipping-policy" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+        <Link href="/content/shipping-policy" className="block rounded-xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-orange-50 p-3 text-orange-600"><Truck className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Shipping Policy</h3><p className="text-sm text-slate-500">Rates, delivery times &amp; tracking</p></div></div>
         </Link>
-        <Link href="/content/cancellation-returns" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+        <Link href="/content/cancellation-returns" className="block rounded-xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-red-50 p-3 text-red-600"><RotateCcw className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Cancellation &amp; Returns</h3><p className="text-sm text-slate-500">Money-back guarantee &amp; returns</p></div></div>
         </Link>
-        <Link href="/content/terms-conditions" className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
+        <Link href="/content/terms-conditions" className="block rounded-xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#558476]">
           <div className="flex items-center gap-4"><div className="rounded-xl bg-slate-100 p-3 text-slate-600"><FileText className="h-6 w-6" /></div><div><h3 className="font-semibold text-slate-900">Terms &amp; Conditions</h3><p className="text-sm text-slate-500">Usage terms &amp; legal notices</p></div></div>
         </Link>
         </div>

@@ -98,7 +98,7 @@ export default async function AffiliateOverviewPage() {
           <p className="mt-1 text-sm leading-6 text-slate-500">
             Configure commission rules, attribution windows, and payout requirements for your partners.
           </p>
-          <Link href="/affiliates/programs" className="mt-5 inline-flex items-center gap-1 rounded-lg bg-[#12291F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1c3b2e]">
+          <Link href="/affiliates/programs" className="mt-5 inline-flex items-center gap-1 rounded-lg bg-[#558476] px-4 py-2 text-sm font-semibold text-white hover:bg-[#457366]">
             Manage programs <ChevronRight className="h-4 w-4" />
           </Link>
         </section>

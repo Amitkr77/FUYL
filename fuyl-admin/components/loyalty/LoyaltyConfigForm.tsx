@@ -218,7 +218,7 @@ export function LoyaltyConfigForm({ config }: { config: LoyaltyConfig | null }) 
         <button
           onClick={handleSave}
           disabled={isPending}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#12291F] hover:bg-[#1a3d2e] text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#558476] hover:bg-[#457366] text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
         >
           {saved && <CheckCircle2 className="w-4 h-4" />}
           {saved ? 'Saved!' : isPending ? 'Saving…' : config ? 'Update config' : 'Create config'}

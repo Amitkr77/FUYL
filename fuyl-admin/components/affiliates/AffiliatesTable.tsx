@@ -45,7 +45,7 @@ export function AffiliatesTable({ affiliates, total }: Props) {
 
   if (affiliates.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-400 text-sm bg-white rounded-xl border border-slate-100">
+      <div className="text-center py-12 text-slate-400 text-sm bg-white rounded-xl border border-slate-200">
         No affiliates found.
       </div>
     );
@@ -56,7 +56,7 @@ export function AffiliatesTable({ affiliates, total }: Props) {
       {error && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>
       )}
-      <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/60">
@@ -163,7 +163,7 @@ export function AffiliatesTable({ affiliates, total }: Props) {
             />
             <div className="mt-4 flex justify-end gap-2">
               <button type="button" onClick={() => setReasonDialog(null)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
-              <button type="button" disabled={!reasonDialog.reason.trim()} onClick={submitReason} className="rounded-lg bg-[#12291F] px-3 py-2 text-sm font-semibold text-white hover:bg-[#1c3b2e] disabled:cursor-not-allowed disabled:opacity-40">Confirm</button>
+              <button type="button" disabled={!reasonDialog.reason.trim()} onClick={submitReason} className="rounded-lg bg-[#558476] px-3 py-2 text-sm font-semibold text-white hover:bg-[#457366] disabled:cursor-not-allowed disabled:opacity-40">Confirm</button>
             </div>
           </div>
         </div>

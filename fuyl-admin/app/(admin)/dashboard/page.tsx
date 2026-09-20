@@ -147,7 +147,7 @@ export default async function DashboardPage() {
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5 max-w-[1400px]">
+    <div className="space-y-6 max-w-[1400px]">
 
       {/* ── Error ────────────────────────────────────────────────────────── */}
       {overviewError && (

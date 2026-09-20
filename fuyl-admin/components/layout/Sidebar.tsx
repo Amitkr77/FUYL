@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -27,9 +28,20 @@ import {
   CreditCard,
   Award,
   Users2,
+  ChevronDown,
+  Workflow,
+  ListChecks,
+  Banknote,
 } from "lucide-react";
 import { logout } from "@/app/(admin)/actions";
 import type { SessionInfo } from "@/components/layout/AdminShell";
+
+interface NavChild {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
+}
 
 interface NavItem {
   label: string;
@@ -39,6 +51,8 @@ interface NavItem {
   permission?: string;
   /** If true, all authenticated staff can see this regardless of permissions. */
   staffPublic?: boolean;
+  /** Collapsible sub-items shown nested beneath this item in the sidebar. */
+  children?: NavChild[];
 }
 
 interface NavSection {
@@ -60,7 +74,7 @@ const navSections: NavSection[] = [
       { label: "Inventory",  href: "/inventory",  icon: Boxes,      permission: "inventory:manage" },
       { label: "Payments",   href: "/payments",   icon: CreditCard },
       { label: "Shipping",   href: "/shipping",   icon: Truck,      permission: "shipping:manage" },
-      { label: "Returns",    href: "/returns",    icon: Undo2,      permission: "returns:manage" },
+      { label: "Returns",    href: "/returns",     icon: Undo2,      permission: "returns:manage" },
       { label: "Reviews",    href: "/reviews",    icon: Star },
     ],
   },
@@ -69,7 +83,20 @@ const navSections: NavSection[] = [
     items: [
       { label: "Subscriptions",     href: "/subscriptions",     icon: Repeat,  permission: "subscriptions:manage" },
       { label: "Discount & Cashback", href: "/discounts-cashback", icon: Tag,  permission: "discounts:manage" },
-      { label: "Affiliates",        href: "/affiliates",        icon: Link2 },
+      {
+        label: "Affiliates",
+        href: "/affiliates",
+        icon: Link2,
+        children: [
+          { label: "Overview",     href: "/affiliates",             icon: LayoutDashboard, exact: true },
+          { label: "Programs",     href: "/affiliates/programs",    icon: Workflow },
+          { label: "Members",      href: "/affiliates/members",     icon: Users },
+          { label: "Commissions",  href: "/affiliates/commissions", icon: ListChecks },
+          { label: "Payouts",      href: "/affiliates/payouts",     icon: Banknote },
+          { label: "Analytics",    href: "/affiliates/analytics",   icon: BarChart3 },
+          { label: "Settings",     href: "/affiliates/settings",    icon: Settings },
+        ],
+      },
       { label: "Referrals",         href: "/referrals",         icon: Gift,    permission: "referrals:manage" },
       { label: "Wallet",            href: "/wallet",            icon: Wallet,  permission: "wallet:manage" },
       { label: "Loyalty Points",    href: "/loyalty",           icon: Award,   permission: "loyalty:manage" },
@@ -104,10 +131,9 @@ interface SidebarProps {
 
 function isItemVisible(item: NavItem, role: string, permissions: string[]): boolean {
   if (role === "admin" || role === "super_admin") return true;
-  // Staff
   if (item.staffPublic) return true;
   if (item.permission) return permissions.includes(item.permission);
-  return false; // admin-only route — hidden for staff
+  return false;
 }
 
 function getRoleLabel(role: string): string {
@@ -115,6 +141,85 @@ function getRoleLabel(role: string): string {
   if (role === "admin") return "Administrator";
   return "Staff";
 }
+
+// ─── Collapsible sidebar item with children ─────────────────────────────────
+
+function SidebarGroup({
+  item,
+  pathname,
+  onClose,
+}: {
+  item: NavItem;
+  pathname: string;
+  onClose?: () => void;
+}) {
+  const children = item.children!;
+  const anyChildActive = children.some((c) =>
+    c.exact ? pathname === c.href : pathname.startsWith(c.href + "/") || pathname === c.href,
+  );
+  // Keep the group expanded whenever a child route is active
+  const [open, setOpen] = useState(anyChildActive);
+
+  const Icon = item.icon;
+
+  return (
+    <li>
+      {/* Parent toggle */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+          anyChildActive
+            ? "bg-white/10 text-white"
+            : "text-white/60 hover:bg-white/5 hover:text-white"
+        }`}
+      >
+        <Icon className={`w-4 h-4 flex-shrink-0 ${anyChildActive ? "text-[#558476]" : ""}`} />
+        <span className="flex-1 text-left">{item.label}</span>
+        <ChevronDown
+          className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""} ${
+            anyChildActive ? "text-[#558476]" : "text-white/30"
+          }`}
+        />
+      </button>
+
+      {/* Children — animated expand/collapse */}
+      <div
+        className={`grid transition-all duration-200 ease-in-out ${
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <ul className="mt-1 ml-4 border-l border-white/10 space-y-0.5 pl-3">
+            {children.map((child) => {
+              const ChildIcon = child.icon;
+              const active = child.exact
+                ? pathname === child.href
+                : pathname === child.href || pathname.startsWith(child.href + "/");
+              return (
+                <li key={child.href}>
+                  <Link
+                    href={child.href}
+                    onClick={onClose}
+                    className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-all duration-150 ${
+                      active
+                        ? "bg-white/10 text-white"
+                        : "text-white/50 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <ChildIcon className={`w-3.5 h-3.5 flex-shrink-0 ${active ? "text-[#558476]" : ""}`} />
+                    {child.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+// ─── Main sidebar ────────────────────────────────────────────────────────────
 
 export default function Sidebar({ onClose, sessionInfo }: SidebarProps) {
   const pathname = usePathname();
@@ -150,7 +255,6 @@ export default function Sidebar({ onClose, sessionInfo }: SidebarProps) {
             </div>
           </div>
         </div>
-        {/* Mobile close */}
         <button
           onClick={onClose}
           className="lg:hidden text-white/50 hover:text-white transition-colors"
@@ -174,6 +278,18 @@ export default function Sidebar({ onClose, sessionInfo }: SidebarProps) {
               </p>
               <ul className="space-y-0.5">
                 {visibleItems.map((item) => {
+                  // Collapsible group
+                  if (item.children?.length) {
+                    return (
+                      <SidebarGroup
+                        key={item.href}
+                        item={item}
+                        pathname={pathname}
+                        onClose={onClose}
+                      />
+                    );
+                  }
+                  // Normal flat link
                   const active = isActive(item.href);
                   const Icon = item.icon;
                   return (

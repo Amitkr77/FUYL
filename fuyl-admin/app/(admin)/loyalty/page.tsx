@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Search, AlertCircle, Info, Users, X } from 'lucide-react'
+import { TabNav } from '@/components/ui/TabNav'
 import { LoyaltyConfigForm } from '@/components/loyalty/LoyaltyConfigForm'
 import { LoyaltyAdjustPanel } from '@/components/loyalty/LoyaltyAdjustPanel'
 import { getActiveLoyaltyConfig, getLoyaltyTransactions, getLoyaltyAccount } from '@/lib/loyalty'
@@ -45,7 +46,7 @@ export default async function LoyaltyPage({
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Loyalty Points</h1>
+          <h1 className="text-xl font-bold text-slate-900">Loyalty Points</h1>
           <p className="mt-1 text-sm text-slate-500">
             Configure the earn / redeem programme and manage customer point balances.
           </p>
@@ -76,21 +77,7 @@ export default async function LoyaltyPage({
       )}
 
       {/* Tab bar */}
-      <nav className="flex gap-1 border-b border-slate-200">
-        {TABS.map((t) => (
-          <Link
-            key={t.id}
-            href={`/loyalty?tab=${t.id}`}
-            className={`border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
-              tab === t.id
-                ? 'border-[#558476] text-[#315f52]'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            {t.label}
-          </Link>
-        ))}
-      </nav>
+      <TabNav tabs={TABS.map((t) => ({ ...t, href: `/loyalty?tab=${t.id}` }))} activeId={tab} />
 
       {configError && (
         <div className="flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-600">

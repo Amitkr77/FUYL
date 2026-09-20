@@ -103,7 +103,7 @@ export function DiscountForm({ products = [], initial }: { products?: Target[]; 
 
     <Card title="Active dates"><div className="grid gap-4 sm:grid-cols-2"><Field label="Starts"><input type="datetime-local" required value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className={inputCls} /></Field><Field label="Ends (optional)"><input type="datetime-local" min={startsAt || undefined} value={endsAt} onChange={(e) => setEndsAt(e.target.value)} className={inputCls} /><span className="mt-1 block text-xs font-normal text-slate-400">Leave blank to keep the discount active without an end date.</span></Field></div></Card>
     {error && <div className="flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-600"><AlertCircle className="h-4 w-4" />{error}</div>}
-    <button onClick={submit} disabled={pending} className="rounded-lg bg-[#12291F] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{pending ? 'Saving…' : initial ? 'Save discount' : 'Create discount'}</button>
+    <button onClick={submit} disabled={pending} className="rounded-lg bg-[#558476] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#457366] disabled:opacity-50">{pending ? 'Saving…' : initial ? 'Save discount' : 'Create discount'}</button>
   </div>
 }
 
