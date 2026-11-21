@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Check, Lock, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { api, ApiError } from "@/lib/client";
+import { suggestEmail } from "@/lib/emailTypo";
 
 /**
  * Email gate: the result unlocks as soon as a valid email is entered, then a
@@ -28,20 +29,31 @@ export function EmailGate({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // "Did you mean …?" for obvious domain typos — asked once per typed address.
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [confirmed, setConfirmed] = useState<string | null>(null);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+  async function submit(e?: React.FormEvent, override?: string, accept = false) {
+    e?.preventDefault();
+    const address = (override ?? email).trim();
+    if (!/^\S+@\S+\.\S+$/.test(address)) {
       setError("Please enter a valid email address.");
       return;
     }
+    const fix = suggestEmail(address);
+    if (fix && !accept && confirmed !== address.toLowerCase()) {
+      setSuggestion(fix);
+      setError(null);
+      return;
+    }
+    setSuggestion(null);
     setBusy(true);
     setError(null);
     setLoading(true);
     const minimum = new Promise((r) => setTimeout(r, 4200));
     try {
       const [{ token }] = await Promise.all([
-        api<{ token: string }>("/api/unlock", { method: "POST", body: JSON.stringify({ email: email.trim(), newsletter }) }),
+        api<{ token: string }>("/api/unlock", { method: "POST", body: JSON.stringify({ email: address, newsletter }) }),
         minimum,
       ]);
       router.push(`/result/${token}`);
@@ -94,11 +106,44 @@ export function EmailGate({
               autoComplete="email"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setSuggestion(null);
+              }}
               placeholder="you@example.com"
-              className="h-14 w-full bg-transparent text-[15px] text-forest outline-none placeholder:text-muted/50"
+              // 16px+ so iPhones don't zoom into the page when the field is tapped.
+              className="h-14 w-full bg-transparent text-base text-forest outline-none placeholder:text-muted/50"
             />
           </div>
+          {suggestion && (
+            <div role="status" className="mt-3 rounded-2xl bg-[#fdf0e3] p-3 text-sm text-[#7a4a12]">
+              Did you mean <strong>{suggestion}</strong>?
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="rounded-full bg-forest px-3 py-1.5 text-xs font-medium text-white"
+                  onClick={() => {
+                    setEmail(suggestion);
+                    setConfirmed(suggestion.toLowerCase());
+                    void submit(undefined, suggestion, true);
+                  }}
+                >
+                  Yes, use {suggestion}
+                </button>
+                <button
+                  type="button"
+                  className="rounded-full border border-[#e8c9a3] px-3 py-1.5 text-xs text-[#7a4a12]"
+                  onClick={() => {
+                    const typed = email.trim();
+                    setConfirmed(typed.toLowerCase());
+                    void submit(undefined, typed, true);
+                  }}
+                >
+                  No, keep {email.trim()}
+                </button>
+              </div>
+            </div>
+          )}
 
           <label htmlFor={optId} className="mt-4 flex cursor-pointer items-start gap-3 text-[13px] leading-relaxed text-muted">
             <span className="relative mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">

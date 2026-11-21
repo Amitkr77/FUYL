@@ -9,7 +9,7 @@ import { loadSession, sessionAnswers } from "@/lib/session";
 export const dynamic = "force-dynamic";
 
 const AnswerBody = z.object({
-  key: z.string().min(1).max(60),
+  key: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,59}$/),
   input: z.object({
     values: z.array(z.string().max(60)).max(20).optional(),
     number: z.union([z.number(), z.string().max(10)]).optional(),
@@ -46,6 +46,12 @@ export async function POST(req: Request) {
     await session.save();
     return json({ state: r.state });
   } catch (err) {
+    // Two answers raced (double-submit, or two tabs): the database's version
+    // check rejected the later write, so nothing is corrupted. Tell the client
+    // to reload the current state instead of reporting a server error.
+    if (err instanceof Error && err.name === "VersionError") {
+      return fail("Your answers were just updated in another tab or window. Loading the latest…", 409, { code: "STALE" });
+    }
     return serverError("answer", err);
   }
 }

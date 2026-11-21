@@ -9,6 +9,7 @@ import { MatchBar, ParallaxImage, Stagger, StaggerItem, WordReveal } from "@/com
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { connectDB } from "@/lib/db";
 import { sha256 } from "@/lib/crypto";
+import { maskEmail } from "@/lib/email";
 import { getProduct, type ProductInfo } from "@/lib/kb";
 import { Submission } from "@/models/assessment";
 import { DISCLAIMER, HOW_TO_USE, TIMELINE } from "@/kb/copy";
@@ -21,7 +22,7 @@ const LEVEL_LABEL = { high: "High match", moderate: "Moderate match", mild: "Mil
 async function loadResult(token: string) {
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null;
   await connectDB();
-  return Submission.findOne({ tokenHash: sha256(token) }, { result: 1, product: 1, email: 1, createdAt: 1 }).lean();
+  return Submission.findOne({ tokenHash: sha256(token) }, { result: 1, product: 1, email: 1, email_status: 1, createdAt: 1 }).lean();
 }
 
 export default async function ResultPage({ params }: { params: Promise<{ token: string }> }) {
@@ -160,7 +161,11 @@ export default async function ResultPage({ params }: { params: Promise<{ token: 
         </section>
 
         <Reveal className="mt-12 text-center">
-          <p className="text-sm text-muted">A copy of this report has been sent to your email.</p>
+          <p className="text-sm text-muted">
+            {doc.email_status === "sent"
+              ? `A copy of this report has been sent to ${maskEmail(doc.email)}.`
+              : "We couldn’t email you a copy this time — bookmark this page to come back to your report."}
+          </p>
           <p className="mx-auto mt-8 max-w-xl text-[11px] leading-relaxed text-muted/80">{DISCLAIMER}</p>
         </Reveal>
       </main>

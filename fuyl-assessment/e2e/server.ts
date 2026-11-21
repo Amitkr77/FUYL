@@ -128,7 +128,8 @@ async function main() {
       SMTP_ALLOW_INSECURE: "true", // the local fake has no TLS — never set in production
       EMAIL_FROM: "FUYL <hello@fuyl.in>",
       DEMO_LOGIN: "",
-      ALLOW_UNPUBLISHED_KB: "", // the suite checks the assessment is closed until publish
+      // The suite checks the assessment is closed until publish; manual probing may override.
+      ALLOW_UNPUBLISHED_KB: process.env.E2E_ALLOW_UNPUBLISHED === "true" ? "true" : "",
     },
   });
 

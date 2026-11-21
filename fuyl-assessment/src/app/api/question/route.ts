@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 /** An answered question (for Back / Edit), pre-filled with the saved answer. */
 export async function GET(req: Request) {
   const key = new URL(req.url).searchParams.get("key");
-  if (!key || key.length > 60) return fail("Missing question.", 400);
+  if (!key || !/^[a-z0-9][a-z0-9_-]{0,59}$/.test(key)) return fail("Missing question.", 400);
   try {
     const session = await loadSession();
     if (!session) return fail("Your session has expired. Please start again.", 401, { code: "NO_SESSION" });

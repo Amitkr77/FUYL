@@ -76,6 +76,14 @@ export function toClientQuestion(q: RenderedQuestion): ClientQuestion {
   };
 }
 
+/**
+ * Own-property check. A plain `answers[key]` lookup would find inherited
+ * members for keys like "__proto__", "constructor" or "toString" and treat
+ * them as answered — so user-supplied keys are always checked this way.
+ */
+const has = (answers: Answers, key: string) => Object.prototype.hasOwnProperty.call(answers, key);
+const isQuestion = (kb: KnowledgeBase, key: string) => kb.questions.some((q) => q.key === key);
+
 /** Keep only answered keys, in answered order. */
 const cleanPath = (path: string[], answers: Answers) => path.filter((k, i) => answers[k] && path.indexOf(k) === i);
 
@@ -93,7 +101,8 @@ export function questionView(kb: KnowledgeBase, answers: Answers, path: string[]
   const kept = prune(kb, answers);
   const frontier = nextStep(kb, kept);
   const isFrontier = frontier.kind === "question" && frontier.question.key === key;
-  if (!kept[key] && !isFrontier) return null;
+  if (!isQuestion(kb, key)) return null;
+  if (!has(kept, key) && !isFrontier) return null;
   if (isFrontier) return frontierView(kb, kept, path);
 
   const q = renderQuestionByKey(kb, kept, key);
@@ -125,13 +134,14 @@ export function applyAnswer(
   key: string,
   input: AnswerInput,
 ): ApplyResult {
+  const question = kb.questions.find((q) => q.key === key);
+  if (!question) return { ok: false, error: "This question isn't available right now.", status: 409 };
   const kept = prune(kb, answers);
   const frontier = nextStep(kb, kept);
   const isFrontier = frontier.kind === "question" && frontier.question.key === key;
-  const isEdit = Boolean(kept[key]);
+  const isEdit = has(kept, key);
   if (!isFrontier && !isEdit) return { ok: false, error: "This question isn't available right now.", status: 409 };
 
-  const question = kb.questions.find((q) => q.key === key)!;
   const v = validateAnswer(question, input);
   if (!v.ok) return { ok: false, error: v.error, status: 422 };
 

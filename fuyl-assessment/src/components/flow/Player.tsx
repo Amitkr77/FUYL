@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, HeartPulse } from "lucide-react";
 import type { AnswerInput } from "@/engine";
@@ -27,10 +27,36 @@ export function Player() {
   const [direction, setDirection] = useState<1 | -1>(1);
   const [fatal, setFatal] = useState<string | null>(null);
 
+  // Browser history: each question gets its own entry (/q?q=<key>), so the
+  // browser / Android Back button steps to the previous question instead of
+  // leaving the assessment. `depth` counts entries we pushed in this visit.
+  const qParam = params.get("q");
+  const depth = useRef(0);
+  const syncUrl = useCallback((s: FlowState | null, mode: "push" | "replace") => {
+    if (!s || s.view.kind !== "question") return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("q", s.view.question.key);
+    if (url.href === window.location.href) return;
+    if (mode === "push") {
+      window.history.pushState(null, "", url);
+      depth.current++;
+    } else {
+      window.history.replaceState(null, "", url);
+    }
+  }, []);
+
   const handleError = useCallback(
     (e: unknown) => {
       if (e instanceof ApiError && (e.code === "NO_SESSION" || e.code === "SUBMITTED")) {
         router.replace("/");
+        return;
+      }
+      if (e instanceof ApiError && e.code === "STALE") {
+        // Another tab changed the answers: show where things really stand.
+        api<StateResponse>("/api/session")
+          .then((r) => (r.state ? setState(r.state) : router.replace("/")))
+          .catch(() => {});
+        setError(null);
         return;
       }
       setError(e instanceof ApiError ? e.message : "Something went wrong. Please try again.");
@@ -38,15 +64,21 @@ export function Player() {
     [router],
   );
 
-  // Initial load: resume the frontier, or open a specific question to edit.
+  // Initial load: the question in the URL (refresh), a question to edit, or the frontier.
   useEffect(() => {
     let cancelled = false;
-    const load = editKey ? api<StateResponse>(`/api/question?key=${encodeURIComponent(editKey)}`) : api<StateResponse>("/api/session");
+    const wanted = editKey ?? new URLSearchParams(window.location.search).get("q");
+    const load = wanted
+      ? api<StateResponse>(`/api/question?key=${encodeURIComponent(wanted)}`).catch(() => api<StateResponse>("/api/session"))
+      : api<StateResponse>("/api/session");
     load
       .then((r) => {
         if (cancelled) return;
         if (!r.state) router.replace("/");
-        else setState(r.state);
+        else {
+          setState(r.state);
+          syncUrl(r.state, "replace");
+        }
       })
       .catch((e) => {
         if (cancelled) return;
@@ -56,7 +88,39 @@ export function Player() {
     return () => {
       cancelled = true;
     };
-  }, [editKey, router]);
+    // syncUrl is stable; load once per edit target.
+  }, [editKey, router, syncUrl]);
+
+  // Browser Back / Forward changed ?q= → show that question.
+  useEffect(() => {
+    if (!state || !qParam) return;
+    const v = state.view;
+    if (v.kind === "question" && v.question.key === qParam) return;
+    const from = v.kind === "question" ? state.path.indexOf(v.question.key) : state.path.length;
+    const to = state.path.indexOf(qParam);
+    const goingBack = to !== -1 && (from === -1 || to < from);
+    if (goingBack) depth.current = Math.max(0, depth.current - 1);
+    let cancelled = false;
+    api<StateResponse>(`/api/question?key=${encodeURIComponent(qParam)}`)
+      .then((r) => {
+        if (cancelled || !r.state) return;
+        setDirection(goingBack ? -1 : 1);
+        setState(r.state);
+      })
+      .catch(() =>
+        api<StateResponse>("/api/session").then((r) => {
+          if (cancelled || !r.state) return;
+          setState(r.state);
+          syncUrl(r.state, "replace");
+        }),
+      )
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // Only react to URL changes; `state` is read as of that change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qParam]);
 
   // Finished → summary.
   useEffect(() => {
@@ -75,7 +139,10 @@ export function Player() {
       setDirection(1);
       // Editing from the summary returns there once the branch is settled.
       if (editKey && r.state?.view.kind !== "stopped" && isAnsweredQuestion(r.state)) router.replace("/summary");
-      else setState(r.state);
+      else {
+        setState(r.state);
+        syncUrl(r.state, "push");
+      }
     } catch (e) {
       handleError(e);
     } finally {
@@ -86,12 +153,19 @@ export function Player() {
   async function back() {
     const key = state && "backKey" in state.view ? state.view.backKey : undefined;
     if (!key || busy) return;
+    // Keep the in-app arrow and the browser's Back button in step: if we
+    // pushed the entry we're on, go back through history (the ?q= effect loads it).
+    if (depth.current > 0 && state?.view.kind === "question") {
+      window.history.back();
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       const r = await api<StateResponse>(`/api/question?key=${encodeURIComponent(key)}`);
       setDirection(-1);
       setState(r.state);
+      syncUrl(r.state, "replace");
     } catch (e) {
       handleError(e);
     } finally {

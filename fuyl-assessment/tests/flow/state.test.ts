@@ -97,3 +97,12 @@ describe("questionView", () => {
     expect(questionView(kb, {}, [], "medications")).toBeNull();
   });
 });
+
+describe("hardening", () => {
+  it("rejects built-in property names as question keys instead of crashing", () => {
+    for (const key of ["__proto__", "constructor", "toString", "hasOwnProperty", "valueOf"]) {
+      expect(applyAnswer(kb, {}, [], key, { values: ["x"] })).toMatchObject({ ok: false, status: 409 });
+      expect(questionView(kb, {}, [], key)).toBeNull();
+    }
+  });
+});

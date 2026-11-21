@@ -94,3 +94,30 @@ test.describe("mobile", () => {
     expect(overflow).toBeLessThanOrEqual(1);
   });
 });
+
+test("the browser Back button returns to the previous question, and Forward goes ahead again", async ({ page }) => {
+  await startAssessment(page);
+  await page.locator("main form input").fill("Tara");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("radio", { name: "Female", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "How old are you?" })).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/q\?q=sex$/);
+  await expect(page.getByRole("radio", { name: "Female", exact: true })).toHaveAttribute("aria-checked", "true");
+
+  await page.goForward();
+  await expect(page.getByRole("heading", { name: "How old are you?" })).toBeVisible();
+});
+
+test("an email typo gets a 'Did you mean…?' prompt before the report is sent", async ({ page }) => {
+  const tracker = trackView(page);
+  await startAssessment(page);
+  await runAssessment(page, tracker, { sex: "Male" });
+  await page.getByLabel("Email address").fill("typo.e2e@gmial.com");
+  await page.getByRole("button", { name: "See my report" }).click();
+  await expect(page.getByText("Did you mean")).toBeVisible();
+  await page.getByRole("button", { name: "Yes, use typo.e2e@gmail.com" }).click();
+  await page.waitForURL("**/result/**", { timeout: 20_000 });
+  await expect(page.getByText(/sent to ty\*\*\*@gmail\.com/)).toBeVisible();
+});

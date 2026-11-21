@@ -8,9 +8,12 @@ import { getKnowledgeBase, getProduct, productLink } from "@/lib/kb";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { buildReportEmail } from "@/lib/reportEmail";
 import { loadSession, sessionAnswers } from "@/lib/session";
-import { SUBMISSION_TTL_DAYS, Submission, daysFromNow } from "@/models/assessment";
+import { AssessmentSession, SUBMISSION_TTL_DAYS, Submission, daysFromNow } from "@/models/assessment";
 
 export const dynamic = "force-dynamic";
+
+/** Report emails to one address per 24 hours (protects strangers' inboxes and the SMTP quota). */
+const MAX_REPORT_EMAILS_PER_DAY = 3;
 
 const UnlockBody = z.object({
   email: z.string().trim().toLowerCase().email("Please enter a valid email address.").max(200),
@@ -30,16 +33,28 @@ export async function POST(req: Request) {
   try {
     const session = await loadSession();
     if (!session) return fail("Your session has expired. Please start again.", 401, { code: "NO_SESSION" });
-    if (session.status === "submitted" && session.resultToken) return json({ token: session.resultToken });
+    if (session.resultToken) return json({ token: session.resultToken });
 
     const kb = await getKnowledgeBase();
     const answers = sessionAnswers(session);
     if (nextStep(kb, answers).kind !== "complete") return fail("Please finish the assessment first.", 409);
 
-    const [result, product] = [buildResult(kb, answers), await getProduct()];
+    // Claim the session atomically BEFORE creating anything, so a double-click
+    // (or parallel requests) yields exactly one report and one email — the
+    // other request just gets the same link.
     const token = randomToken(24);
-    const { APP_URL } = env();
-    const resultUrl = `${APP_URL.replace(/\/$/, "")}/result/${token}`;
+    const claimed = await AssessmentSession.findOneAndUpdate(
+      { _id: session._id, resultToken: { $exists: false } },
+      { $set: { status: "submitted", submittedAt: new Date(), resultToken: token } },
+      { new: true },
+    );
+    if (!claimed) {
+      const current = await AssessmentSession.findById(session._id, { resultToken: 1 }).lean();
+      return current?.resultToken ? json({ token: current.resultToken }) : fail("Please try again.", 409);
+    }
+
+    const [result, product] = [buildResult(kb, answers), await getProduct()];
+    const resultUrl = `${env().APP_URL.replace(/\/$/, "")}/result/${token}`;
 
     const submission = await Submission.create({
       tokenHash: sha256(token),
@@ -57,10 +72,17 @@ export async function POST(req: Request) {
       expiresAt: daysFromNow(SUBMISSION_TTL_DAYS),
     });
 
-    session.status = "submitted";
-    session.submittedAt = new Date();
-    session.resultToken = token;
-    await session.save();
+    // Over the per-recipient cap the report is still shown — just not emailed.
+    const recentForAddress = await Submission.countDocuments({
+      email: body.data.email,
+      _id: { $ne: submission._id },
+      createdAt: { $gte: new Date(Date.now() - 86_400_000) },
+      email_status: { $in: ["sent", "pending", "failed"] },
+    });
+    if (recentForAddress >= MAX_REPORT_EMAILS_PER_DAY) {
+      await Submission.updateOne({ _id: submission._id }, { $set: { email_status: "limited" } });
+      return json({ token }, 201);
+    }
 
     // Email failures never block the result page; the outcome is recorded.
     const email = buildReportEmail({

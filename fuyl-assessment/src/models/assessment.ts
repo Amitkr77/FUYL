@@ -46,7 +46,8 @@ const SubmissionSchema = new Schema(
     product: { type: Schema.Types.Mixed },
     kbVersion: Number,
     utm: { source: String, medium: String, campaign: String, content: String, term: String },
-    email_status: { type: String, enum: ["pending", "sent", "logged", "failed"], default: "pending" },
+    /** pending → sent | logged (no SMTP) | failed | limited (per-recipient cap reached) */
+    email_status: { type: String, enum: ["pending", "sent", "logged", "failed", "limited"], default: "pending" },
     email_error: String,
     ctaClickedAt: Date,
     expiresAt: { type: Date, required: true },

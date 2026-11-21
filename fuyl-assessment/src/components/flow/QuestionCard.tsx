@@ -26,9 +26,24 @@ export function QuestionCard({
   onSubmit: (input: AnswerInput) => void;
 }) {
   const headingId = useId();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  // After a question changes, move focus to its heading (choice questions) so
+  // keyboard and screen-reader users land on the new question instead of the
+  // page body. Text/number questions focus their input instead.
+  useEffect(() => {
+    if (question.type !== "single" && question.type !== "multi") return;
+    const t = setTimeout(() => headingRef.current?.focus({ preventScroll: true }), 50);
+    return () => clearTimeout(t);
+  }, [question.key, question.type]);
+
   return (
     <div>
-      <h1 id={headingId} className="text-balance text-center font-display text-[2rem] leading-[1.12] text-forest sm:text-[2.6rem]">
+      <h1
+        id={headingId}
+        ref={headingRef}
+        tabIndex={-1}
+        className="text-balance text-center font-display text-[2rem] leading-[1.12] text-forest outline-none sm:text-[2.6rem]"
+      >
         {question.prompt}
       </h1>
       {question.helper && <p className="mt-3 text-center text-sm text-muted">{question.helper}</p>}

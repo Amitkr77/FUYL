@@ -134,3 +134,21 @@ test("pregnancy → stop screen, no product", async ({ page }) => {
   await expect(page.getByText(/aren’t recommended during pregnancy|aren't recommended during pregnancy/)).toBeVisible();
   await expect(page.getByRole("link", { name: /View COMPLETE\+/ })).toHaveCount(0);
 });
+
+test("nobody can flood a stranger's inbox: at most 3 report emails per address per day", async ({ browser }) => {
+  const victim = "flood.e2e@example.com";
+  for (let i = 0; i < 4; i++) {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    const tracker = trackView(page);
+    await startAssessment(page);
+    await runAssessment(page, tracker, { sex: "Male" });
+    await unlock(page, victim);
+    if (i === 3) await expect(page.getByText(/couldn’t email you a copy this time/)).toBeVisible();
+    await ctx.close();
+  }
+  const ctx = await browser.newContext();
+  const mails = (await readMail(await ctx.newPage(), victim)).filter((m) => /wellness report is ready/.test(m.raw));
+  expect(mails).toHaveLength(3);
+  await ctx.close();
+});
