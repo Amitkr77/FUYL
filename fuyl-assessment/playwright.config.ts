@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 import { E2E } from "./e2e/constants";
 
@@ -5,11 +6,15 @@ import { E2E } from "./e2e/constants";
  * End-to-end suite. Run with `npm run test:e2e` (builds first).
  *
  * Projects run in order:
- *   setup  → assessment closed before publish; reviewer approves; admin publishes v1
+ *   setup  → assessment closed before publish; admins sign in with emailed codes
+ *            (sessions saved); reviewer approves; admin publishes v1
  *   user   → personas and flow behaviour against the published version
  *   admin  → roles, editing, simulator, submissions, sync
  * One worker keeps the shared database deterministic.
  */
+// Saved admin sessions (signed in once per role in the setup project).
+mkdirSync("e2e/.auth", { recursive: true });
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,

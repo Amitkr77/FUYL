@@ -118,11 +118,41 @@ export async function unlock(page: Page, email: string) {
   await page.waitForURL("**/result/**", { timeout: 20_000 });
 }
 
+type Mail = { to: string[]; raw: string; at: number };
+
+/** Emails the fake SMTP server received for an address, newest first. */
+export async function readMail(page: Page, to: string): Promise<Mail[]> {
+  const res = await page.request.get(`http://127.0.0.1:${E2E.storePort}/__mail?to=${encodeURIComponent(to)}`);
+  return (await res.json()) as Mail[];
+}
+
+/** Wait for the newest sign-in code email sent after `since`, and return the code. */
+export async function readOtp(page: Page, to: string, since: number): Promise<string> {
+  let code: string | null = null;
+  await expect
+    .poll(
+      async () => {
+        const mail = (await readMail(page, to)).find((m) => m.at >= since && /sign-in code/i.test(m.raw));
+        const match = mail?.raw.match(/^Subject: (\d{3}) (\d{3}) is your FUYL admin sign-in code/m);
+        code = match ? match[1] + match[2] : null;
+        return code;
+      },
+      { timeout: 15_000 },
+    )
+    .not.toBeNull();
+  return code!;
+}
+
+/** Sign in the way a real admin does: email → one-time code from the inbox. */
 export async function adminLogin(page: Page, who: "admin" | "reviewer") {
   const user = E2E[who];
   await page.goto("/admin/login");
-  await page.getByLabel("Email").fill(user.email);
-  await page.getByLabel("Password").fill(user.password);
+  const since = Date.now() - 1000;
+  await page.getByLabel("Work email").fill(user.email);
+  await page.getByRole("button", { name: "Email me a sign-in code" }).click();
+  await expect(page.getByLabel("6-digit code")).toBeVisible();
+  const code = await readOtp(page, user.email, since);
+  await page.getByLabel("6-digit code").fill(code);
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.waitForURL(/\/admin$/);
 }

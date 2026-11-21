@@ -41,15 +41,26 @@ npm run dev                  # http://localhost:3002
 | `npm test` | Unit tests (Vitest) |
 | `npm run dev:db` | Throwaway in-memory MongoDB on `127.0.0.1:27019` (no install or Docker) — point `MONGODB_URI` at it for local testing |
 | `npm run sync:preview` | Dry-run the fuyl.in sync without a database |
+| `npm run check:env` | Show which settings are present (never values) and test MongoDB + SMTP login |
+| `npm run test:e2e` | Build, then run the Playwright suite (in-memory MongoDB, fake fuyl.in, fake SMTP inbox) |
 
 ## Admin (`/admin`)
 
-Create the first admin from the command line (prints a one-time password, or
-uses `ADMIN_PASSWORD` if set):
+**Sign-in is passwordless:** an admin enters their email and receives a
+6-digit one-time code over SMTP (valid 10 minutes, single use, resend after
+60 s, voided after 5 wrong guesses; only an HMAC of the code is stored, and
+the form answers the same for unknown emails). Create accounts from the
+command line or from Admin → Users:
 
 ```bash
 npm run admin:create -- you@fuyl.in "Your Name" admin      # or: reviewer
 ```
+
+**Demo mode (local only).** With `DEMO_LOGIN=true` and `DEMO_*` credentials
+set, the login page shows "Demo Admin" / "Demo Reviewer" buttons that fill in a
+password for demo accounts (create them with `ADMIN_PASSWORD=… npm run
+admin:create`). Password sign-in is refused whenever `DEMO_LOGIN` is off —
+turn it off before going live.
 
 | Area | What it does |
 |---|---|
@@ -69,11 +80,11 @@ is blocked while the checker reports errors or any item lacks reviewer
 approval. Until the first publish, the public assessment stays closed
 (`ALLOW_UNPUBLISHED_KB=true` overrides this for local testing only).
 
-**Security.** bcrypt passwords; 8-hour signed session cookie (httpOnly,
-SameSite=Strict); role, active status and session version re-checked from the
-database on every request (deactivating a user or resetting a password signs
-them out everywhere); 5 failed sign-ins lock an account for 15 minutes; failed
-attempts are also limited per IP.
+**Security.** Emailed one-time codes (no passwords for real accounts); 8-hour
+signed session cookie (httpOnly, SameSite=Strict); role, active status and
+session version re-checked from the database on every request (deactivating
+a user or "Sign out everywhere" ends their sessions instantly); code requests
+and failed attempts are limited per IP.
 
 ## User flow
 

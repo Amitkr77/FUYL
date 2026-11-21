@@ -4,7 +4,9 @@ import { adminLogin } from "./helpers";
 
 /**
  * Mirrors launch: the assessment is closed until a reviewed version is
- * published. The reviewer approves the seed, the admin publishes v1.
+ * published. Admins sign in with emailed one-time codes (each role once; the
+ * sessions are saved for the admin suite). The reviewer approves the seed and
+ * the admin publishes v1.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -26,8 +28,9 @@ test("fuyl.in data syncs from the store (fake fuyl.in in tests)", async ({ reque
   expect(body.labels.map((l: { status: string }) => l.status)).toEqual(["baseline", "baseline"]);
 });
 
-test("reviewer approves everything; reviewer cannot publish", async ({ page }) => {
+test("reviewer signs in with an emailed code, approves everything, cannot publish", async ({ page }) => {
   await adminLogin(page, "reviewer");
+  await page.context().storageState({ path: E2E.authFile("reviewer") });
   await page.goto("/admin/review");
   await expect(page.getByRole("button", { name: /Publish v/ })).toHaveCount(0);
   page.once("dialog", (d) => d.accept());
@@ -35,8 +38,9 @@ test("reviewer approves everything; reviewer cannot publish", async ({ page }) =
   await expect(page.getByText("Everything is approved")).toBeVisible();
 });
 
-test("admin publishes v1 and the assessment opens", async ({ page, request }) => {
+test("admin signs in with an emailed code, publishes v1, and the assessment opens", async ({ page, request }) => {
   await adminLogin(page, "admin");
+  await page.context().storageState({ path: E2E.authFile("admin") });
   await page.goto("/admin/review");
   await expect(page.getByText("No errors")).toBeVisible();
   await page.getByPlaceholder(/e\.g\. Reviewed/).fill("E2E initial release");

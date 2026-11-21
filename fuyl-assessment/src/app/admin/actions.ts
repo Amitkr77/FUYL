@@ -1,12 +1,12 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { AdminAuthError, audit, login, logout, requireAdmin, type AdminRole } from "@/lib/admin/auth";
+import { AdminAuthError, audit, login, loginWithOtp, logout, requireAdmin, type AdminRole } from "@/lib/admin/auth";
+import { requestOtp } from "@/lib/admin/otp";
+import { normaliseCode } from "@/lib/admin/otpCode";
 import { getDraft, publishDraft, restoreVersionToDraft, saveDraft } from "@/lib/admin/kbStore";
-import { hashPassword } from "@/lib/admin/password";
 import { connectDB } from "@/lib/db";
 import { clientIpFromHeaders, isRateLimited, rateLimit } from "@/lib/rateLimit";
 import { deleteEntity, markDraft, reviewKey, upsertEntity } from "@/kb/draft";
@@ -49,6 +49,35 @@ export async function loginAction(_prev: { error?: string } | undefined, form: F
     return { error: r.error };
   }
   redirect("/admin");
+}
+
+/** Step 1 of code sign-in: email a one-time code (same answer for unknown emails). */
+export async function requestOtpAction(emailInput: string): Promise<{ ok: true } | { ok: false; error: string; retryAfter?: number }> {
+  const ip = await clientIpFromHeaders();
+  if (!rateLimit(`admin-otp-request:${ip}`, 10, 10 * 60_000).ok) return { ok: false, error: "Too many requests. Please wait a few minutes." };
+  const email = z.string().trim().toLowerCase().email().safeParse(emailInput);
+  if (!email.success) return { ok: false, error: "Please enter a valid email address." };
+  try {
+    return await requestOtp(email.data);
+  } catch (err) {
+    console.error("[otp] request failed", err);
+    return { ok: false, error: "Something went wrong. Please try again." };
+  }
+}
+
+/** Step 2 of code sign-in: check the code and start the session. */
+export async function verifyOtpAction(emailInput: string, codeInput: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const ip = await clientIpFromHeaders();
+  const key = `admin-login-fail:${ip}`;
+  if (isRateLimited(key, 10)) return { ok: false, error: "Too many failed attempts. Please wait a few minutes." };
+  const code = normaliseCode(String(codeInput ?? ""));
+  if (!code) return { ok: false, error: "Enter the 6-digit code from the email." };
+  const r = await loginWithOtp(String(emailInput ?? ""), code);
+  if (!r.ok) {
+    rateLimit(key, 10, 10 * 60_000);
+    return r;
+  }
+  return { ok: true };
 }
 
 export async function logoutAction(): Promise<void> {
@@ -171,26 +200,24 @@ export async function deleteSubmissionAction(id: string) {
 
 // ─── Users ──────────────────────────────────────────────────────────────────
 
-const tempPassword = () => randomBytes(12).toString("base64url");
-
+/** New users sign in with emailed one-time codes — no password is created or shared. */
 export async function createUserAction(input: { email: string; name: string; role: AdminRole }) {
-  return guarded<{ password: string }>(["admin"], async (actor) => {
+  return guarded<object>(["admin"], async (actor) => {
     const parsed = z
       .object({ email: z.string().trim().toLowerCase().email(), name: z.string().trim().min(1).max(80), role: z.enum(["admin", "reviewer"]) })
       .safeParse(input);
     if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
     await connectDB();
     if (await AdminUser.exists({ email: parsed.data.email })) return { ok: false, error: "A user with that email already exists." };
-    const password = tempPassword();
-    await AdminUser.create({ ...parsed.data, passwordHash: await hashPassword(password) });
+    await AdminUser.create(parsed.data);
     await audit(actor.email, "user.create", parsed.data.email, { role: parsed.data.role });
     revalidatePath("/admin/users");
-    return { ok: true, password };
+    return { ok: true };
   });
 }
 
-export async function updateUserAction(id: string, change: { role?: AdminRole; active?: boolean; resetPassword?: boolean }) {
-  return guarded<{ password?: string }>(["admin"], async (actor) => {
+export async function updateUserAction(id: string, change: { role?: AdminRole; active?: boolean; signOutEverywhere?: boolean }) {
+  return guarded<object>(["admin"], async (actor) => {
     if (!/^[a-f0-9]{24}$/.test(id)) return { ok: false, error: "Invalid id." };
     if (id === actor.id && (change.active === false || change.role === "reviewer")) {
       return { ok: false, error: "You can't deactivate or demote your own account." };
@@ -198,18 +225,13 @@ export async function updateUserAction(id: string, change: { role?: AdminRole; a
     await connectDB();
     const user = await AdminUser.findById(id);
     if (!user) return { ok: false, error: "User not found." };
-    let password: string | undefined;
     if (change.role) user.role = z.enum(["admin", "reviewer"]).parse(change.role);
     if (typeof change.active === "boolean") user.active = change.active;
-    if (change.resetPassword) {
-      password = tempPassword();
-      user.passwordHash = await hashPassword(password);
-    }
     // Any of these changes signs the user out everywhere.
     user.sessionVersion = (user.sessionVersion ?? 1) + 1;
     await user.save();
-    await audit(actor.email, "user.update", user.email, { role: change.role, active: change.active, resetPassword: Boolean(change.resetPassword) });
+    await audit(actor.email, "user.update", user.email, { role: change.role, active: change.active, signOutEverywhere: Boolean(change.signOutEverywhere) });
     revalidatePath("/admin/users");
-    return { ok: true, password };
+    return { ok: true };
   });
 }

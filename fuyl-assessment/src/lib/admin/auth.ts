@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/db";
 import { env } from "@/lib/env";
 import { AdminUser, AuditLog } from "@/models/admin";
+import { verifyOtp } from "./otp";
 import { hashPassword, verifyPassword } from "./password";
 import { ADMIN_COOKIE, ADMIN_SESSION_HOURS, signAdminToken, verifyAdminToken } from "./token";
 
@@ -25,7 +26,37 @@ const getDummyHash = () => (dummyHash ??= hashPassword(randomBytes(16).toString(
 
 export type LoginResult = { ok: true } | { ok: false; error: string };
 
+/**
+ * Password sign-in exists ONLY for demo accounts and only while
+ * DEMO_LOGIN=true. Real accounts sign in with an emailed one-time code.
+ */
+export const passwordLoginEnabled = () => env().DEMO_LOGIN === "true";
+
+async function startSession(userId: string, sessionVersion: number, email: string, method: "password" | "otp"): Promise<void> {
+  const token = await signAdminToken({ sub: userId, sv: sessionVersion }, env().SESSION_SECRET);
+  (await cookies()).set(ADMIN_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: ADMIN_SESSION_HOURS * 3600,
+  });
+  await audit(email, "login", undefined, { method });
+}
+
+/** Sign in with an emailed one-time code. */
+export async function loginWithOtp(emailInput: string, code: string): Promise<LoginResult> {
+  const r = await verifyOtp(emailInput, code);
+  if (!r.ok) {
+    await audit(emailInput.trim().toLowerCase(), "login.failed", undefined, { method: "otp" });
+    return r;
+  }
+  await startSession(r.userId, r.sessionVersion, r.email, "otp");
+  return { ok: true };
+}
+
 export async function login(emailInput: string, password: string): Promise<LoginResult> {
+  if (!passwordLoginEnabled()) return { ok: false, error: "Password sign-in is disabled. Use an email code." };
   await connectDB();
   const email = emailInput.trim().toLowerCase();
   const user = await AdminUser.findOne({ email });
@@ -51,16 +82,7 @@ export async function login(emailInput: string, password: string): Promise<Login
   user.lockedUntil = undefined;
   user.lastLoginAt = new Date();
   await user.save();
-
-  const token = await signAdminToken({ sub: user.id, sv: user.sessionVersion ?? 1 }, env().SESSION_SECRET);
-  (await cookies()).set(ADMIN_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: ADMIN_SESSION_HOURS * 3600,
-  });
-  await audit(email, "login");
+  await startSession(user.id, user.sessionVersion ?? 1, email, "password");
   return { ok: true };
 }
 

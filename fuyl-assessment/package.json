@@ -13,7 +13,8 @@
     "sync:preview": "tsx scripts/sync-preview.ts",
     "dev:db": "tsx scripts/dev-db.ts",
     "admin:create": "tsx --conditions=react-server --env-file=.env.local scripts/create-admin.ts",
-    "test:e2e": "next build && playwright test"
+    "test:e2e": "next build && playwright test",
+    "check:env": "tsx --conditions=react-server --env-file=.env.local scripts/check-env.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -39,9 +40,11 @@
     "@types/nodemailer": "^6.4.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/smtp-server": "^3.5.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "mongodb-memory-server": "^10.1.2",
+    "smtp-server": "^3.13.6",
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
     "typescript": "^5",

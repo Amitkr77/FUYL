@@ -22,8 +22,16 @@ const schema = z.object({
   SMTP_SECURE: optional(z.enum(["true", "false"])),
   SMTP_USER: optional(z.string()),
   SMTP_PASS: optional(z.string()),
+  /** TEST ONLY: allow an SMTP server without TLS (the e2e suite's local fake). Never set in production. */
+  SMTP_ALLOW_INSECURE: optional(z.enum(["true", "false"])),
   EMAIL_FROM: z.string().default("FUYL <hello@fuyl.in>"),
   CRON_SECRET: z.string().optional(),
+  // Demo sign-in buttons on /admin/login (fill in these credentials). Never enable in production.
+  DEMO_LOGIN: optional(z.enum(["true", "false"])),
+  DEMO_ADMIN_EMAIL: optional(z.string().email()),
+  DEMO_ADMIN_PASSWORD: optional(z.string()),
+  DEMO_REVIEWER_EMAIL: optional(z.string().email()),
+  DEMO_REVIEWER_PASSWORD: optional(z.string()),
 });
 
 export type Env = z.infer<typeof schema>;

@@ -1,13 +1,16 @@
 /**
- * Create an admin user, or reset an existing user's password.
+ * Create (or update) an admin user.
  *
  *   npm run admin:create -- <email> "<name>" [admin|reviewer]
  *
- * The password comes from ADMIN_PASSWORD if set (min 12 chars); otherwise a
- * strong random one is generated and printed ONCE. Resetting a password signs
- * the user out everywhere.
+ * Real accounts have NO password: they sign in with a one-time code emailed
+ * to their address (SMTP must be configured).
+ *
+ * Demo accounts only: set ADMIN_PASSWORD (min 12 chars) to give the account a
+ * password for the demo sign-in buttons, which work only while DEMO_LOGIN=true.
+ *
+ * Updating an existing user signs them out everywhere.
  */
-import { randomBytes } from "node:crypto";
 import mongoose from "mongoose";
 import { connectDB } from "../src/lib/db";
 import { hashPassword } from "../src/lib/admin/password";
@@ -24,33 +27,32 @@ async function main() {
     console.error('Role must be "admin" or "reviewer".');
     process.exit(1);
   }
-  const fromEnv = process.env.ADMIN_PASSWORD;
-  if (fromEnv && fromEnv.length < 12) {
+  const password = process.env.ADMIN_PASSWORD;
+  if (password !== undefined && password.length < 12) {
     console.error("ADMIN_PASSWORD must be at least 12 characters.");
     process.exit(1);
   }
-  const password = fromEnv ?? randomBytes(12).toString("base64url");
 
   await connectDB();
-  const passwordHash = await hashPassword(password);
+  const passwordHash = password ? await hashPassword(password) : undefined;
   const existing = await AdminUser.findOne({ email });
   if (existing) {
-    existing.passwordHash = passwordHash;
     existing.name = nameArg;
     existing.role = roleArg;
     existing.active = true;
+    existing.passwordHash = passwordHash;
     existing.sessionVersion = (existing.sessionVersion ?? 1) + 1;
     existing.failedLogins = 0;
     existing.lockedUntil = undefined;
     await existing.save();
-    await AuditLog.create({ actor: "cli", action: "user.reset", target: email });
+    await AuditLog.create({ actor: "cli", action: "user.update", target: email, details: { role: roleArg } });
     console.log(`Updated ${email} (${roleArg}).`);
   } else {
-    await AdminUser.create({ email, name: nameArg, role: roleArg, passwordHash });
+    await AdminUser.create({ email, name: nameArg, role: roleArg, ...(passwordHash ? { passwordHash } : {}) });
     await AuditLog.create({ actor: "cli", action: "user.create", target: email, details: { role: roleArg } });
     console.log(`Created ${email} (${roleArg}).`);
   }
-  if (!fromEnv) console.log(`Password (shown once — store it safely): ${password}`);
+  console.log(passwordHash ? "Sign-in: demo password (only while DEMO_LOGIN=true)." : "Sign-in: one-time code emailed to this address.");
   await mongoose.disconnect();
 }
 

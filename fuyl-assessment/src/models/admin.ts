@@ -10,7 +10,8 @@ const AdminUserSchema = new Schema(
   {
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     name: { type: String, required: true, trim: true },
-    passwordHash: { type: String, required: true },
+    /** Only demo accounts have a password; real accounts sign in with an emailed one-time code. */
+    passwordHash: { type: String },
     role: { type: String, enum: ["admin", "reviewer"], required: true },
     active: { type: Boolean, default: true },
     /** Bumped on password change / deactivation to invalidate existing sessions. */
@@ -48,6 +49,39 @@ const KbVersionSchema = new Schema(
   { collection: "kb_versions", minimize: false },
 );
 
+// ─── One-time sign-in codes ────────────────────────────────────────────────
+
+const AdminOtpSchema = new Schema(
+  {
+    email: { type: String, required: true, lowercase: true, index: true },
+    /** HMAC of the code — the code itself is never stored. */
+    codeHash: { type: String, required: true },
+    attempts: { type: Number, default: 0 },
+    createdAt: { type: Date, default: () => new Date() },
+    expiresAt: { type: Date, required: true },
+  },
+  { collection: "admin_otps" },
+);
+// MongoDB deletes codes automatically once they expire.
+AdminOtpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+/**
+ * Code-request throttle per email address — kept separately from the codes so
+ * using or voiding a code never resets it, and recorded for unknown emails too
+ * so the throttle can't reveal which addresses have accounts.
+ */
+const AdminOtpRequestSchema = new Schema(
+  {
+    email: { type: String, required: true, unique: true, lowercase: true },
+    lastAt: { type: Date, required: true },
+    windowStart: { type: Date, required: true },
+    count: { type: Number, default: 0 },
+    expiresAt: { type: Date, required: true },
+  },
+  { collection: "admin_otp_requests" },
+);
+AdminOtpRequestSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
 // ─── Audit log ──────────────────────────────────────────────────────────────
 
 const AuditLogSchema = new Schema(
@@ -65,8 +99,11 @@ export type AdminUserDoc = InferSchemaType<typeof AdminUserSchema>;
 export type KbDraftDoc = InferSchemaType<typeof KbDraftSchema>;
 export type KbVersionDoc = InferSchemaType<typeof KbVersionSchema>;
 export type AuditLogDoc = InferSchemaType<typeof AuditLogSchema>;
+export type AdminOtpDoc = InferSchemaType<typeof AdminOtpSchema>;
 
 export const AdminUser = model<AdminUserDoc>("AdminUser", AdminUserSchema);
 export const KbDraft = model<KbDraftDoc>("KbDraft", KbDraftSchema);
 export const KbVersion = model<KbVersionDoc>("KbVersion", KbVersionSchema);
 export const AuditLog = model<AuditLogDoc>("AuditLog", AuditLogSchema);
+export const AdminOtp = model<AdminOtpDoc>("AdminOtp", AdminOtpSchema);
+export const AdminOtpRequest = model<InferSchemaType<typeof AdminOtpRequestSchema>>("AdminOtpRequest", AdminOtpRequestSchema);

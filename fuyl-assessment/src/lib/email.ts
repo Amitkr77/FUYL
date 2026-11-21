@@ -21,14 +21,16 @@ export type EmailOutcome = { status: "sent"; id?: string } | { status: "logged" 
  */
 const g = globalThis as unknown as { __fuylSmtp?: { key: string; transport: Transporter } };
 
-export function smtpOptions(e: Pick<Env, "SMTP_HOST" | "SMTP_PORT" | "SMTP_SECURE" | "SMTP_USER" | "SMTP_PASS">) {
+export function smtpOptions(e: Pick<Env, "SMTP_HOST" | "SMTP_PORT" | "SMTP_SECURE" | "SMTP_USER" | "SMTP_PASS"> & { SMTP_ALLOW_INSECURE?: "true" | "false" }) {
   const secure = e.SMTP_SECURE ? e.SMTP_SECURE === "true" : e.SMTP_PORT === 465;
+  const insecure = e.SMTP_ALLOW_INSECURE === "true"; // e2e fake server only
   return {
     host: e.SMTP_HOST,
     port: e.SMTP_PORT,
     secure,
     // On non-implicit-TLS ports, refuse to send credentials or health data in plain text.
-    requireTLS: !secure,
+    requireTLS: !secure && !insecure,
+    ignoreTLS: insecure,
     auth: e.SMTP_USER ? { user: e.SMTP_USER, pass: e.SMTP_PASS ?? "" } : undefined,
     pool: true,
     maxConnections: 3,

@@ -13,10 +13,10 @@ export function UsersManager({ users, meId }: { users: U[]; meId: string }) {
   const [form, setForm] = useState({ email: "", name: "", role: "reviewer" as U["role"] });
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const run = (fn: () => Promise<{ ok: boolean; error?: string; password?: string }>, success: (p?: string) => string) =>
+  const run = (fn: () => Promise<{ ok: boolean; error?: string }>, success: string) =>
     start(async () => {
       const r = await fn();
-      setMsg(r.ok ? { ok: true, text: success(r.password) } : { ok: false, text: r.error ?? "Failed." });
+      setMsg(r.ok ? { ok: true, text: success } : { ok: false, text: r.error ?? "Failed." });
       router.refresh();
     });
 
@@ -40,7 +40,7 @@ export function UsersManager({ users, meId }: { users: U[]; meId: string }) {
               <select
                 value={u.role}
                 disabled={pending || u.id === meId}
-                onChange={(e) => run(() => updateUserAction(u.id, { role: e.target.value as U["role"] }), () => `${u.email} is now ${e.target.value}.`)}
+                onChange={(e) => run(() => updateUserAction(u.id, { role: e.target.value as U["role"] }), `${u.email} is now ${e.target.value}.`)}
                 className={`${inputCls} w-auto`}
                 aria-label={`Role for ${u.email}`}
               >
@@ -52,7 +52,7 @@ export function UsersManager({ users, meId }: { users: U[]; meId: string }) {
                 type="button"
                 disabled={pending || u.id === meId}
                 className={btn("secondary", "sm")}
-                onClick={() => run(() => updateUserAction(u.id, { active: !u.active }), () => `${u.email} ${u.active ? "deactivated" : "reactivated"}.`)}
+                onClick={() => run(() => updateUserAction(u.id, { active: !u.active }), `${u.email} ${u.active ? "deactivated" : "reactivated"}.`)}
               >
                 {u.active ? "Deactivate" : "Reactivate"}
               </button>
@@ -61,11 +61,11 @@ export function UsersManager({ users, meId }: { users: U[]; meId: string }) {
                 disabled={pending}
                 className={btn("ghost", "sm")}
                 onClick={() =>
-                  confirm(`Reset the password for ${u.email}? They'll be signed out everywhere.`) &&
-                  run(() => updateUserAction(u.id, { resetPassword: true }), (p) => `New temporary password for ${u.email}: ${p} — share it securely; it won't be shown again.`)
+                  confirm(`Sign ${u.email} out of every device?`) &&
+                  run(() => updateUserAction(u.id, { signOutEverywhere: true }), `${u.email} has been signed out everywhere.`)
                 }
               >
-                Reset password
+                Sign out everywhere
               </button>
             </li>
           ))}
@@ -77,10 +77,7 @@ export function UsersManager({ users, meId }: { users: U[]; meId: string }) {
           className="grid gap-4 sm:grid-cols-[1fr_1fr_160px_auto] sm:items-end"
           onSubmit={(e) => {
             e.preventDefault();
-            run(
-              () => createUserAction(form),
-              (p) => `Created ${form.email}. Temporary password: ${p} — share it securely; it won't be shown again.`,
-            );
+            run(() => createUserAction(form), `Added ${form.email}. They sign in with a one-time code sent to that email — no password needed.`);
             setForm({ email: "", name: "", role: "reviewer" });
           }}
         >

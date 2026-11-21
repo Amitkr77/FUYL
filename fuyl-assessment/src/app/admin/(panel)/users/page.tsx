@@ -12,7 +12,7 @@ export default async function UsersPage() {
   const users = await AdminUser.find({}, { email: 1, name: 1, role: 1, active: 1, lastLoginAt: 1 }).sort({ createdAt: 1 }).lean();
   return (
     <>
-      <PageHeader title="Users" description="Admins can do everything. Reviewers can edit and approve content, run the simulator and view submissions — but can't publish, delete or export." />
+      <PageHeader title="Users" description="Everyone signs in with a one-time code emailed to their address. Admins can do everything; reviewers can edit and approve content, run the simulator and view submissions — but can’t publish, delete or export." />
       <UsersManager
         meId={admin.id}
         users={users.map((u) => ({ id: String(u._id), email: u.email, name: u.name, role: u.role as "admin" | "reviewer", active: u.active ?? true, lastLoginAt: u.lastLoginAt?.toISOString() }))}

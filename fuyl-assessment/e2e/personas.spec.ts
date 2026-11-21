@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { runAssessment, startAssessment, trackView, unlock } from "./helpers";
+import { readMail, runAssessment, startAssessment, trackView, unlock } from "./helpers";
 
 /**
  * Real people, start to finish, through the UI. Each checks the adaptive path
@@ -37,6 +37,9 @@ test("stressed desk worker on anxiety medicine → stress & sleep lead, consult 
   await unlock(page, "riya.e2e@example.com");
 
   await expect(page.getByRole("heading", { name: "Made for Riya" })).toBeVisible();
+
+  // The report email went out over SMTP (captured by the test mail server).
+  await expect.poll(async () => (await readMail(page, "riya.e2e@example.com")).some((m) => /Subject: Riya, your FUYL wellness report is ready/.test(m.raw))).toBe(true);
   await expect(page.getByText("Before you start")).toBeVisible();
   await expect(page.getByText("Sleep, anxiety or antidepressant medicine", { exact: true })).toBeVisible();
   const areas = await page.locator("article h3").allInnerTexts();
