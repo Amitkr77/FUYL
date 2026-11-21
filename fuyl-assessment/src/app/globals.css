@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   FUYL Assessment — design tokens
+   Palette mirrors the FUYL storefront (forest / teal / sage / cream).
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  --color-forest: #12291f;
+  --color-forest-soft: #1d3b2e;
+  --color-olive: #3a4a2e;
+  --color-teal: #558476;
+  --color-teal-deep: #3f6b5e;
+  --color-sage: #dde8c8;
+  --color-cream: #eef4e4;
+  --color-mist: #f6f9f1;
+  --color-line: #c8d8b0;
+  --color-muted: #4a5a3a;
+  --color-ember: #e07a3f; /* accent pulled from the COMPLETE+ sachet */
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-serif), ui-serif, Georgia, serif;
+
+  --radius-glass: 1.75rem;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --animate-drift-a: drift-a 26s ease-in-out infinite alternate;
+  --animate-drift-b: drift-b 32s ease-in-out infinite alternate;
+  --animate-drift-c: drift-c 38s ease-in-out infinite alternate;
+
+  @keyframes drift-a {
+    0% { transform: translate3d(-8%, -6%, 0) scale(1); }
+    100% { transform: translate3d(10%, 8%, 0) scale(1.15); }
+  }
+  @keyframes drift-b {
+    0% { transform: translate3d(6%, 10%, 0) scale(1.1); }
+    100% { transform: translate3d(-12%, -4%, 0) scale(0.95); }
+  }
+  @keyframes drift-c {
+    0% { transform: translate3d(0, 0, 0) scale(0.9); }
+    100% { transform: translate3d(-6%, 12%, 0) scale(1.2); }
+  }
+}
+
+:root {
+  color-scheme: light;
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-bg-strong: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 20px 50px -20px rgba(18, 41, 31, 0.25);
+}
+
+html {
+  background: var(--color-mist);
+}
+
+/* Body stays transparent so the fixed ambient layer (z-index -10 inside the
+   isolated body stacking context) shows through behind glass surfaces. */
+body {
+  background: transparent;
+  color: var(--color-forest);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-sage);
+  color: var(--color-forest);
+}
+
+/* ── Glass surfaces ─────────────────────────────────────────── */
+@utility glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+}
+
+@utility glass-strong {
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+}
+
+/* Browsers without backdrop-filter get a solid, readable fallback. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.92);
+    --glass-bg-strong: rgba(255, 255, 255, 0.96);
+  }
+}
+
+/* Film grain to keep large gradients from banding. */
+@utility grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+/* Lenis smooth-scroll recommended base styles */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-teal);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

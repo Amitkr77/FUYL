@@ -1,0 +1,242 @@
+import type { FocusArea } from "@/engine";
+
+/**
+ * The 11 focus areas and the COMPLETE+ ingredients that support each.
+ *
+ * Wording rules (draft — for nutritionist review):
+ *  - Vitamins/minerals use established nutrient-function language
+ *    ("contributes to normal …").
+ *  - Botanicals use "studied for" / "traditionally used for" — never
+ *    "treats", "cures", "prevents", "relieves" or disease names.
+ *  - `weight` orders ingredients within an area (higher = listed first).
+ */
+export const AREAS: FocusArea[] = [
+  {
+    key: "energy",
+    name: "Energy",
+    order: 1,
+    copy: "Steady, all-day energy depends on your body turning food into fuel — a process that relies on B vitamins, iron and magnesium.",
+    ingredients: [
+      { key: "vitamin-b12", weight: 6, why: "100% of your daily B12 — contributes to normal energy-yielding metabolism and the reduction of tiredness." },
+      { key: "iron", weight: 5, why: "Contributes to normal oxygen transport and the reduction of tiredness." },
+      { key: "vitamin-b3", weight: 4, why: "Contributes to normal energy-yielding metabolism and the reduction of tiredness." },
+      { key: "vitamin-b1", weight: 4, why: "Contributes to normal energy-yielding metabolism." },
+      { key: "vitamin-b2", weight: 3, why: "Contributes to normal energy-yielding metabolism." },
+      { key: "vitamin-b5", weight: 3, why: "Contributes to normal energy-yielding metabolism." },
+      { key: "magnesium", weight: 3, why: "Contributes to the reduction of tiredness and fatigue." },
+      { key: "beetroot", weight: 2, why: "A natural source of dietary nitrates, studied for stamina." },
+      { key: "moringa", weight: 2, why: "A nutrient-dense leaf traditionally valued for vitality." },
+      { key: "ashwagandha", weight: 2, why: "KSM-66® has been studied in human trials for energy and vitality." },
+    ],
+    tips: [
+      "Eat a protein-rich breakfast within an hour of waking.",
+      "Take a 10-minute walk after lunch to soften the afternoon dip.",
+      "Keep a water bottle at your desk — even mild dehydration can feel like tiredness.",
+    ],
+  },
+  {
+    key: "gut",
+    name: "Gut Health",
+    order: 2,
+    copy: "A comfortable gut needs three things working together: fibre that feeds good bacteria, the bacteria themselves, and enzymes that help break food down.",
+    ingredients: [
+      { key: "bacillus-coagulans", weight: 6, why: "2 billion CFU of a spore-forming probiotic that survives stomach acid." },
+      { key: "phgg", weight: 5, why: "A gentle, Low-FODMAP-certified prebiotic fibre that feeds beneficial bacteria." },
+      { key: "inulin", weight: 4, why: "A prebiotic fibre that feeds beneficial gut bacteria." },
+      { key: "fos", weight: 4, why: "A prebiotic fibre that feeds beneficial gut bacteria." },
+      { key: "lactase", weight: 3, why: "A digestive enzyme that helps break down lactose." },
+      { key: "protease", weight: 3, why: "A digestive enzyme that helps break down proteins." },
+      { key: "amylase", weight: 2, why: "A digestive enzyme that helps break down carbohydrates." },
+      { key: "lipase", weight: 2, why: "A digestive enzyme that helps break down fats." },
+      { key: "cellulase", weight: 2, why: "A digestive enzyme that helps break down plant fibre." },
+      { key: "mint", weight: 2, why: "Long used in Indian kitchens to settle digestion." },
+      { key: "pineapple", weight: 1, why: "A natural source of bromelain, a protein-digesting enzyme." },
+    ],
+    tips: [
+      "Eat slowly and chew well — digestion starts in the mouth.",
+      "Add a fermented food like curd or buttermilk to one meal a day.",
+      "Give it time: most people notice digestive changes in the first two weeks.",
+    ],
+  },
+  {
+    key: "immunity",
+    name: "Immunity",
+    order: 3,
+    copy: "Your immune system relies on a steady supply of a few key nutrients — vitamin C, zinc, vitamin D and selenium among them.",
+    ingredients: [
+      { key: "vitamin-c", weight: 6, why: "75% of your daily vitamin C — contributes to the normal function of the immune system." },
+      { key: "zinc", weight: 5, why: "Contributes to the normal function of the immune system." },
+      { key: "vitamin-d3", weight: 5, why: "100% of your daily vitamin D — contributes to normal immune function." },
+      { key: "amla", weight: 4, why: "Indian gooseberry, a traditional whole-food source of vitamin C." },
+      { key: "selenium", weight: 3, why: "Contributes to the normal function of the immune system." },
+      { key: "vitamin-a", weight: 3, why: "Contributes to the normal function of the immune system." },
+      { key: "giloy", weight: 2, why: "An Ayurvedic herb traditionally used to support immunity." },
+    ],
+    tips: [
+      "Aim for 7–8 hours of sleep — immunity and sleep are closely linked.",
+      "Get 15–20 minutes of morning sunlight for natural vitamin D.",
+      "Fill half your plate with colourful vegetables.",
+    ],
+  },
+  {
+    key: "stress",
+    name: "Stress",
+    order: 4,
+    copy: "Everyday stress drains energy, focus and sleep. Adaptogens and a few key nutrients can support how your body responds to it.",
+    ingredients: [
+      { key: "ashwagandha", weight: 6, why: "KSM-66® — the most clinically studied ashwagandha, with human trials on stress and cortisol." },
+      { key: "tulsi", weight: 4, why: "Holy basil, a traditional adaptogen used in India for centuries." },
+      { key: "brahmi", weight: 3, why: "A classical Ayurvedic herb traditionally used for a calm, clear mind." },
+      { key: "vitamin-b6", weight: 3, why: "Contributes to normal psychological function." },
+      { key: "magnesium", weight: 3, why: "Contributes to normal psychological function." },
+      { key: "vitamin-b5", weight: 2, why: "Contributes to normal mental performance." },
+    ],
+    tips: [
+      "Try 5 minutes of slow breathing (4 seconds in, 6 out) when stress builds.",
+      "Step away from screens for a short break every 90 minutes.",
+      "Move your body daily — even a brisk walk helps.",
+    ],
+  },
+  {
+    key: "sleep",
+    name: "Sleep",
+    order: 5,
+    copy: "Good sleep is built on a calm evening and a steady routine. A few ingredients have been studied for supporting restful sleep.",
+    ingredients: [
+      { key: "ashwagandha", weight: 6, why: "KSM-66® has been studied in human trials for sleep quality." },
+      { key: "tart-cherry", weight: 5, why: "Studied for sleep quality; naturally contains melatonin precursors." },
+      { key: "magnesium", weight: 4, why: "Contributes to normal functioning of the nervous system." },
+      { key: "vitamin-b6", weight: 2, why: "Contributes to normal functioning of the nervous system." },
+    ],
+    tips: [
+      "Keep the same wake-up time every day, even at weekends.",
+      "Stop caffeine after 2 pm.",
+      "Dim screens an hour before bed.",
+    ],
+  },
+  {
+    key: "focus",
+    name: "Focus",
+    order: 6,
+    copy: "Clear thinking depends on a well-nourished brain — B vitamins, iodine and plant polyphenols all play a part.",
+    ingredients: [
+      { key: "brahmi", weight: 6, why: "One of Ayurveda's classical brain tonics, traditionally used for memory and focus." },
+      { key: "blueberry", weight: 4, why: "Rich in anthocyanins, studied for brain health." },
+      { key: "vitamin-b12", weight: 3, why: "Contributes to normal psychological function." },
+      { key: "iodine", weight: 3, why: "Contributes to normal cognitive function." },
+      { key: "vitamin-b5", weight: 3, why: "Contributes to normal mental performance." },
+      { key: "vitamin-b6", weight: 2, why: "Contributes to normal psychological function." },
+      { key: "ashwagandha", weight: 2, why: "KSM-66® has been studied for memory and attention." },
+    ],
+    tips: [
+      "Work in focused 25–45 minute blocks with short breaks.",
+      "Keep your phone out of reach during deep work.",
+      "Don't skip breakfast — your brain runs on steady fuel.",
+    ],
+  },
+  {
+    key: "skin",
+    name: "Skin, Hair & Nails",
+    order: 7,
+    copy: "Healthy skin, hair and nails start from within — they need biotin, zinc, vitamin C for collagen, and antioxidant protection.",
+    ingredients: [
+      { key: "biotin", weight: 6, why: "87.5% of your daily biotin — contributes to the maintenance of normal hair and skin." },
+      { key: "vitamin-c", weight: 5, why: "Contributes to normal collagen formation for the normal function of skin." },
+      { key: "zinc", weight: 4, why: "Contributes to the maintenance of normal skin, hair and nails." },
+      { key: "selenium", weight: 4, why: "Contributes to the maintenance of normal hair and nails." },
+      { key: "astaxanthin", weight: 4, why: "A carotenoid antioxidant studied for skin health." },
+      { key: "vitamin-a", weight: 3, why: "Contributes to the maintenance of normal skin." },
+      { key: "vitamin-e", weight: 3, why: "Contributes to the protection of cells from oxidative stress." },
+      { key: "grape-seed", weight: 2, why: "Rich in OPCs, antioxidants studied for skin." },
+      { key: "vitamin-b2", weight: 2, why: "Contributes to the maintenance of normal skin." },
+    ],
+    tips: [
+      "Drink water steadily through the day.",
+      "Use sunscreen daily, even indoors near windows.",
+      "Include a source of protein at every meal — hair is made of protein.",
+    ],
+  },
+  {
+    key: "fitness",
+    name: "Fitness & Recovery",
+    order: 8,
+    copy: "Training hard means recovering well. Nitrate-rich beetroot, tart cherry and magnesium support performance and recovery.",
+    ingredients: [
+      { key: "beetroot", weight: 6, why: "A natural source of dietary nitrates, studied for exercise performance." },
+      { key: "tart-cherry", weight: 5, why: "One of the most researched fruits for exercise recovery." },
+      { key: "magnesium", weight: 4, why: "Contributes to normal muscle function." },
+      { key: "ashwagandha", weight: 3, why: "KSM-66® has been studied for strength and recovery." },
+      { key: "pineapple", weight: 2, why: "A natural source of bromelain." },
+      { key: "vitamin-b2", weight: 2, why: "Contributes to normal energy-yielding metabolism." },
+    ],
+    tips: [
+      "Have protein within two hours after training.",
+      "Schedule at least one full rest day each week.",
+      "Rehydrate well — add a pinch of salt after long, sweaty sessions.",
+    ],
+  },
+  {
+    key: "ageing",
+    name: "Healthy Ageing",
+    order: 9,
+    copy: "Ageing well is about strong bones, a healthy heart and protecting your cells — vitamins D3 and K2 plus a wide range of plant antioxidants.",
+    ingredients: [
+      { key: "vitamin-d3", weight: 6, why: "100% of your daily vitamin D — contributes to the maintenance of normal bones." },
+      { key: "vitamin-k2", weight: 5, why: "Contributes to the maintenance of normal bones." },
+      { key: "vitamin-e", weight: 4, why: "Contributes to the protection of cells from oxidative stress." },
+      { key: "pomegranate", weight: 3, why: "A source of punicalagins, prized in Ayurveda." },
+      { key: "grape-seed", weight: 3, why: "Rich in OPC antioxidants." },
+      { key: "flaxseed", weight: 3, why: "A plant source of omega-3 (ALA)." },
+      { key: "broccoli-sprout", weight: 3, why: "A source of sulforaphane, studied in longevity research." },
+      { key: "acai", weight: 2, why: "A polyphenol-rich berry." },
+      { key: "ala", weight: 2, why: "An antioxidant active in both water and fat." },
+      { key: "manganese", weight: 2, why: "Contributes to the maintenance of normal bones." },
+    ],
+    tips: [
+      "Add strength training twice a week — muscle and bone both respond to load.",
+      "Get your vitamin D and B12 levels checked once a year.",
+      "Eat a handful of nuts or seeds daily.",
+    ],
+  },
+  {
+    key: "liver",
+    name: "Liver Support",
+    order: 10,
+    copy: "Your liver works around the clock. Milk thistle and broccoli sprout are among the most studied botanicals for liver health.",
+    ingredients: [
+      { key: "milk-thistle", weight: 6, why: "A source of silymarin, one of the most studied botanicals for liver health." },
+      { key: "broccoli-sprout", weight: 5, why: "A source of sulforaphane, studied for supporting the body's own protective enzymes." },
+      { key: "ala", weight: 3, why: "An antioxidant active in both water and fat." },
+      { key: "wheatgrass", weight: 2, why: "A chlorophyll-rich young grass." },
+      { key: "amla", weight: 2, why: "A traditional Ayurvedic fruit, rich in vitamin C." },
+    ],
+    tips: [
+      "Keep alcohol to a minimum and have alcohol-free days each week.",
+      "Cut back on fried and ultra-processed foods.",
+      "Stay active — regular movement helps keep liver fat in check.",
+    ],
+  },
+  {
+    key: "nutrients",
+    name: "Everyday Nutrient Gaps",
+    order: 11,
+    copy: "Busy routines, limited sunlight and some diets make it hard to get every nutrient from food alone. COMPLETE+ helps fill the common gaps.",
+    ingredients: [
+      { key: "vitamin-b12", weight: 6, why: "100% of your daily B12 — hard to get from vegetarian and vegan diets." },
+      { key: "vitamin-d3", weight: 6, why: "100% of your daily vitamin D — many people in India don't get enough." },
+      { key: "folate", weight: 4, why: "Contributes to normal blood formation." },
+      { key: "iron", weight: 4, why: "Contributes to normal formation of red blood cells and haemoglobin." },
+      { key: "iodine", weight: 3, why: "Contributes to normal thyroid function." },
+      { key: "vitamin-a", weight: 3, why: "50% of your daily vitamin A." },
+      { key: "zinc", weight: 3, why: "35% of your daily zinc." },
+      { key: "flaxseed", weight: 2, why: "A plant source of omega-3 (ALA) — useful if you eat little fish." },
+      { key: "spinach", weight: 2, why: "A whole-food source of folate and iron." },
+      { key: "moringa", weight: 2, why: "One of the most nutrient-dense plants." },
+    ],
+    tips: [
+      "Build meals around a mix of colours, grains and pulses.",
+      "If you're vegetarian, include dairy, pulses and nuts daily.",
+      "Get 15–20 minutes of sunlight on bare skin most days.",
+    ],
+  },
+];

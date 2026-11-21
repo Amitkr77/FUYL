@@ -1,0 +1,249 @@
+/**
+ * Assessment engine — shared types.
+ *
+ * The engine is a set of PURE functions over a KnowledgeBase and the user's
+ * answers. No I/O, no randomness, no clock: the same KB + answers always
+ * produce the same next question and the same result. That makes it fully
+ * unit-testable and lets every result be traced back to reviewed KB entries.
+ */
+
+export type BlockKey = "about" | "lifestyle" | "feel" | "safety";
+
+export const BLOCK_ORDER: BlockKey[] = ["about", "lifestyle", "feel", "safety"];
+
+// ─── Conditions (admin-editable, JSON-serialisable) ─────────────────────────
+
+export type Condition =
+  | { all: Condition[] }
+  | { any: Condition[] }
+  | { not: Condition }
+  /** True if the question has an answer containing ANY of these option values. */
+  | { answer: string; in: string[] }
+  /** True if the question is answered and contains NONE of these values. */
+  | { answer: string; notIn: string[] }
+  /** True if the question has been answered (not skipped / not hidden). */
+  | { answered: string }
+  /** Numeric comparison on a `number` question. All given bounds must hold. */
+  | { number: string; gte?: number; gt?: number; lte?: number; lt?: number }
+  /** Running focus-area score comparison. */
+  | { score: string; gte: number }
+  /** True if any answer so far has raised this flag. */
+  | { flag: string };
+
+// ─── Knowledge base ─────────────────────────────────────────────────────────
+
+export interface Effect {
+  /** Focus-area key, e.g. "energy". */
+  area: string;
+  weight: number;
+}
+
+export interface Option {
+  value: string;
+  label: string;
+  /** Short explainer shown behind an ⓘ on the option tile. */
+  info?: string;
+  /** Phrase used in the profile summary. `null` = leave this answer out of the summary. */
+  summary?: string | null;
+  /** Personal reason shown under a focus area ("You said you hit an afternoon slump"). */
+  reason?: string;
+  effects?: Effect[];
+  flags?: string[];
+  /** Selecting this clears every other selection (e.g. "None of these"). */
+  exclusive?: boolean;
+}
+
+/** For `number` questions: effects/flags keyed by value range (inclusive bounds). */
+export interface NumberBand {
+  min?: number;
+  max?: number;
+  summary?: string | null;
+  reason?: string;
+  effects?: Effect[];
+  flags?: string[];
+}
+
+export type QuestionType = "single" | "multi" | "number" | "text";
+
+export interface Question {
+  key: string;
+  block: BlockKey;
+  /** Order within the block. */
+  order: number;
+  type: QuestionType;
+  /** Supports {name} templating. */
+  prompt: string;
+  /** "Why we ask?" copy. */
+  why?: string;
+  helper?: string;
+  placeholder?: string;
+  options?: Option[];
+  /** multi only: maximum selections. */
+  maxSelect?: number;
+  /** number only */
+  min?: number;
+  max?: number;
+  unit?: string;
+  bands?: NumberBand[];
+  /** text only */
+  maxLength?: number;
+  showIf?: Condition;
+  /**
+   * Follow-up questions count toward the question cap and are dropped once it
+   * is reached. Core questions (basics, gates, safety) are always asked.
+   */
+  tier: "core" | "followup";
+  /** Profile-summary line, e.g. "You usually sleep {answer}." Omit to exclude. */
+  summaryTemplate?: string;
+  /** Marks the "top priorities" question — its picks are guaranteed a place in the result. */
+  isPriorityQuestion?: boolean;
+  /** Marks the name question — its text answer personalises copy. */
+  isNameQuestion?: boolean;
+}
+
+export interface AreaIngredient {
+  /** Ingredient key (see Ingredient.key). */
+  key: string;
+  weight: number;
+  /** Claim-safe, reviewed line: why this ingredient is relevant to the area. */
+  why: string;
+}
+
+export interface FocusArea {
+  key: string;
+  name: string;
+  /** Short, claim-safe description shown on the result card. */
+  copy: string;
+  ingredients: AreaIngredient[];
+  tips: string[];
+  order: number;
+}
+
+export interface Ingredient {
+  key: string;
+  name: string;
+  /** Blend it belongs to, e.g. "Adaptogen & Cognitive Blend". */
+  blend?: string;
+  /** Dose for this ingredient (vitamins/minerals) e.g. "2.2 mcg". */
+  dose?: string;
+  /** Blend total for botanicals, e.g. "400 mg". */
+  blendDose?: string;
+  /** % of daily RDA per serve, e.g. 100. */
+  rda?: number;
+  category?: string;
+  image?: string;
+  description?: string;
+}
+
+export type SafetyLevel = "info" | "caution" | "consult" | "stop";
+
+export const SAFETY_RANK: Record<SafetyLevel | "none", number> = {
+  none: 0,
+  info: 1,
+  caution: 2,
+  consult: 3,
+  stop: 4,
+};
+
+export interface SafetyRule {
+  key: string;
+  level: SafetyLevel;
+  when: Condition;
+  title: string;
+  message: string;
+  ingredientKeys: string[];
+}
+
+export interface EngineSettings {
+  /** Max number of answered questions before follow-ups stop being asked. */
+  questionCap: number;
+  /** How many focus areas to show on the result. */
+  topAreas: number;
+  /** Max ingredients listed per focus area. */
+  ingredientsPerArea: number;
+  /** Fraction-of-max thresholds for High / Moderate (anything > 0 below that is Mild). */
+  bands: { high: number; moderate: number };
+}
+
+export interface KnowledgeBase {
+  version: number;
+  settings: EngineSettings;
+  questions: Question[];
+  areas: FocusArea[];
+  ingredients: Ingredient[];
+  safetyRules: SafetyRule[];
+}
+
+// ─── Answers & state ────────────────────────────────────────────────────────
+
+export interface Answer {
+  values?: string[]; // single / multi
+  number?: number; // number
+  text?: string; // text
+}
+
+export type Answers = Record<string, Answer>;
+
+export interface EvalContext {
+  answers: Answers;
+  scores: Record<string, number>;
+  flags: Set<string>;
+}
+
+// ─── Engine outputs ─────────────────────────────────────────────────────────
+
+export interface RenderedQuestion extends Omit<Question, "prompt" | "why" | "bands"> {
+  prompt: string;
+  why?: string;
+}
+
+export type NextStep =
+  | { kind: "question"; question: RenderedQuestion; progress: number; answeredCount: number }
+  | { kind: "stopped"; rule: Pick<SafetyRule, "key" | "title" | "message"> }
+  | { kind: "complete" };
+
+export interface SummaryLine {
+  block: BlockKey;
+  questionKey: string;
+  text: string;
+}
+
+export type AreaLevel = "high" | "moderate" | "mild";
+
+export interface ResultIngredient extends Ingredient {
+  why: string;
+  /** Set when this ingredient was already listed under a higher-ranked area (its name). */
+  sharedWith?: string;
+}
+
+export interface ResultArea {
+  key: string;
+  name: string;
+  copy: string;
+  level: AreaLevel;
+  /** 0–100, share of the maximum reachable score. */
+  match: number;
+  reasons: string[];
+  ingredients: ResultIngredient[];
+  tips: string[];
+  isPriority: boolean;
+}
+
+export interface SafetyNote {
+  key: string;
+  level: SafetyLevel;
+  title: string;
+  message: string;
+  ingredients: string[];
+}
+
+export interface AssessmentResult {
+  kbVersion: number;
+  name?: string;
+  summary: SummaryLine[];
+  areas: ResultArea[];
+  safety: { level: SafetyLevel | "none"; notes: SafetyNote[] };
+  /** False when a stop rule fired — no product CTA. */
+  showProduct: boolean;
+  coverage: { areaCount: number; ingredientCount: number };
+}

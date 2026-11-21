@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [fuyl-backend, fuyl-frontend, fuyl-admin]
+        app: [fuyl-backend, fuyl-frontend, fuyl-admin, fuyl-assessment]
     defaults:
       run:
         working-directory: ${{ matrix.app }}
@@ -61,3 +61,24 @@ jobs:
   # builds in an environment with backend access (or with fixture data) before
   # deploying. Backend integration/e2e tests also need live Mongo + Redis —
   # add them here with service containers when ready.
+
+  assessment-test-build:
+    name: assessment tests + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fuyl-assessment
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: fuyl-assessment/package-lock.json
+      - run: npm ci
+      - name: Unit tests
+        run: npm test
+      # The assessment app has no build-time dependency on a live backend or
+      # database (env is validated lazily at request time), so it builds in CI.
+      - name: Build
+        run: npm run build
