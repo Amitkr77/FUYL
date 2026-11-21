@@ -1,0 +1,74 @@
+{
+ "product": {
+  "id": 8780467175614,
+  "title": "FUYL COMPLETE+",
+  "handle": "fuyl-complete",
+  "body_html": "<p>Daily Nutrition Powder · Mixed Berry Flavour · 15 Sachets</p>",
+  "variants": [
+   {
+    "id": 49639275626686,
+    "title": "Pack of 1",
+    "price": "1499.00",
+    "compare_at_price": ""
+   },
+   {
+    "id": 49639275659454,
+    "title": "Pack of 2",
+    "price": "2799.00",
+    "compare_at_price": ""
+   }
+  ],
+  "images": [
+   {
+    "src": "https://cdn.shopify.com/s/files/1/0762/6470/2142/files/ShopPic-1.png?v=1792626611",
+    "alt": null,
+    "position": 1
+   },
+   {
+    "src": "https://cdn.shopify.com/s/files/1/0762/6470/2142/files/ShopPic-2.png?v=1792626612",
+    "alt": null,
+    "position": 2
+   },
+   {
+    "src": "https://cdn.shopify.com/s/files/1/0762/6470/2142/files/ShopPic-3.png?v=1792626611",
+    "alt": null,
+    "position": 3
+   },
+   {
+    "src": "https://cdn.shopify.com/s/files/1/0762/6470/2142/files/ShopPic-4.png?v=1792626611",
+    "alt": null,
+    "position": 4
+   },
+   {
+    "src": "https://cdn.shopify.com/s/files/1/0762/6470/2142/files/ShopPic-5.png?v=1792626611",
+    "alt": null,
+    "position": 5
+   },
+   {
+    "src": "https://cdn.shopify.com/s/files/1/0762/6470/2142/files/ShopPic-6.png?v=1792626612",
+    "alt": null,
+    "position": 6
+   },
+   {
+    "src": "https://cdn.shopify.com/s/files/1/0762/6470/2142/files/ShopPic-7.png?v=1792626612",
+    "alt": null,
+    "position": 7
+   },
+   {
+    "src": "https://cdn.shopify.com/s/files/1/0762/6470/2142/files/ShopPic-8.png?v=1792626612",
+    "alt": null,
+    "position": 8
+   },
+   {
+    "src": "https://cdn.shopify.com/s/files/1/0762/6470/2142/files/BoxOFTwoPic.png?v=1792712181",
+    "alt": "Two dark green cylindrical containers of FUYL Complete+ Daily Nutrition Powder, side by side on a reflective surface with a warm, sunlit background.",
+    "position": 9
+   },
+   {
+    "src": "https://cdn.shopify.com/s/files/1/0762/6470/2142/files/ShopPic-9.png?v=1792626612",
+    "alt": null,
+    "position": 10
+   }
+  ]
+ }
+}
