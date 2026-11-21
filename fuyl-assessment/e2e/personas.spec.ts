@@ -136,6 +136,7 @@ test("pregnancy → stop screen, no product", async ({ page }) => {
 });
 
 test("nobody can flood a stranger's inbox: at most 3 report emails per address per day", async ({ browser }) => {
+  test.setTimeout(240_000); // four full assessments back to back
   const victim = "flood.e2e@example.com";
   for (let i = 0; i < 4; i++) {
     const ctx = await browser.newContext();
