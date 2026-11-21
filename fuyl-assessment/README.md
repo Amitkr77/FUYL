@@ -17,7 +17,7 @@ on fuyl.in.
 ## Stack
 
 Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, Motion,
-Lenis, Mongoose, Zod, Resend, Vitest.
+Lenis, Mongoose, Zod, Nodemailer (SMTP), Vitest, Playwright.
 
 > Next.js 16 has breaking changes from earlier versions (`proxy.ts` replaces
 > middleware, `cookies()` / `params` are async-only, Turbopack by default). Read
@@ -86,8 +86,10 @@ with UTM tags.
   (only its hash is stored); the browser never receives scoring weights,
   flags or branching rules.
 - Unfinished sessions expire after 30 days; submissions after 12 months.
-- Without `RESEND_API_KEY` the report email is skipped and a one-line notice
-  is logged (never the email body — it contains health information).
+- The report email is sent over **SMTP** (nodemailer; TLS required). Without
+  `SMTP_HOST` it is skipped and a one-line notice is logged (never the email
+  body — it contains health information). Each submission records whether its
+  email was sent, skipped or failed (visible in the admin).
 
 Health check: `GET /api/health` returns `{ ok, checks: { db } }`.
 

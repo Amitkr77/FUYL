@@ -91,7 +91,7 @@ async function main() {
       FUYL_PRODUCT_HANDLE: E2E.productHandle,
       CRON_SECRET: E2E.cronSecret,
       RATE_LIMIT_MULTIPLIER: "50",
-      RESEND_API_KEY: "",
+      SMTP_HOST: "", // report emails are skipped in tests
       ALLOW_UNPUBLISHED_KB: "", // the suite checks the assessment is closed until publish
     },
   });

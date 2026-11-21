@@ -5,6 +5,9 @@ import { z } from "zod";
  * Server-side environment, validated lazily on first use so `next build`
  * doesn't fail on machines that haven't been given secrets yet.
  */
+/** Treat blank values (e.g. `SMTP_HOST=`) as "not set". */
+const optional = <T extends z.ZodTypeAny>(s: T) => z.preprocess((v) => (v === "" ? undefined : v), s.optional());
+
 const schema = z.object({
   MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
   MONGODB_DB: z.string().min(1).default("fuyl_assessment"),
@@ -12,7 +15,13 @@ const schema = z.object({
   APP_URL: z.string().url().default("http://localhost:3002"),
   FUYL_STORE_URL: z.string().url().default("https://fuyl.in"),
   FUYL_PRODUCT_HANDLE: z.string().min(1).default("fuyl-complete"),
-  RESEND_API_KEY: z.string().optional(),
+  // SMTP for the report email. Without SMTP_HOST, emails are skipped (logged).
+  SMTP_HOST: optional(z.string()),
+  SMTP_PORT: z.preprocess((v) => (v === "" || v === undefined ? 587 : Number(v)), z.number().int().min(1).max(65535)),
+  /** "true" for implicit TLS (usually port 465); otherwise STARTTLS is required. Defaults by port. */
+  SMTP_SECURE: optional(z.enum(["true", "false"])),
+  SMTP_USER: optional(z.string()),
+  SMTP_PASS: optional(z.string()),
   EMAIL_FROM: z.string().default("FUYL <hello@fuyl.in>"),
   CRON_SECRET: z.string().optional(),
 });

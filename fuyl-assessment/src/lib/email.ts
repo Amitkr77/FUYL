@@ -1,5 +1,6 @@
 import "server-only";
-import { env } from "@/lib/env";
+import nodemailer, { type Transporter } from "nodemailer";
+import { env, type Env } from "@/lib/env";
 
 export interface EmailMessage {
   to: string;
@@ -11,29 +12,56 @@ export interface EmailMessage {
 export type EmailOutcome = { status: "sent"; id?: string } | { status: "logged" } | { status: "failed"; error: string };
 
 /**
- * Send via Resend when RESEND_API_KEY is set; otherwise log a short notice
- * (never the email body — it contains health information) so local
- * development works without credentials.
+ * Report email over SMTP (nodemailer). Without SMTP_HOST the email is skipped
+ * and a one-line notice is logged — never the body, which contains health
+ * information — so local development works without credentials.
+ *
+ * The transport is pooled and cached on globalThis (shared across Next's
+ * separately bundled route handlers), and rebuilt if the settings change.
  */
+const g = globalThis as unknown as { __fuylSmtp?: { key: string; transport: Transporter } };
+
+export function smtpOptions(e: Pick<Env, "SMTP_HOST" | "SMTP_PORT" | "SMTP_SECURE" | "SMTP_USER" | "SMTP_PASS">) {
+  const secure = e.SMTP_SECURE ? e.SMTP_SECURE === "true" : e.SMTP_PORT === 465;
+  return {
+    host: e.SMTP_HOST,
+    port: e.SMTP_PORT,
+    secure,
+    // On non-implicit-TLS ports, refuse to send credentials or health data in plain text.
+    requireTLS: !secure,
+    auth: e.SMTP_USER ? { user: e.SMTP_USER, pass: e.SMTP_PASS ?? "" } : undefined,
+    pool: true,
+    maxConnections: 3,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
+  };
+}
+
+function transport(e: Env): Transporter {
+  const opts = smtpOptions(e);
+  const key = JSON.stringify({ ...opts, auth: opts.auth ? { user: opts.auth.user, pass: "•" + opts.auth.pass.length } : undefined });
+  if (!g.__fuylSmtp || g.__fuylSmtp.key !== key) {
+    g.__fuylSmtp?.transport.close();
+    g.__fuylSmtp = { key, transport: nodemailer.createTransport(opts) };
+  }
+  return g.__fuylSmtp.transport;
+}
+
 export async function sendEmail(msg: EmailMessage): Promise<EmailOutcome> {
-  const { RESEND_API_KEY, EMAIL_FROM } = env();
-  if (!RESEND_API_KEY) {
-    console.info(`[email] RESEND_API_KEY not set — report email to ${maskEmail(msg.to)} not sent (subject: "${msg.subject}")`);
+  const e = env();
+  if (!e.SMTP_HOST) {
+    console.info(`[email] SMTP_HOST not set — report email to ${maskEmail(msg.to)} not sent (subject: "${msg.subject}")`);
     return { status: "logged" };
   }
   try {
-    const { Resend } = await import("resend");
-    const { data, error } = await new Resend(RESEND_API_KEY).emails.send({
-      from: EMAIL_FROM,
-      to: msg.to,
-      subject: msg.subject,
-      html: msg.html,
-      text: msg.text,
-    });
-    if (error) return { status: "failed", error: error.message };
-    return { status: "sent", id: data?.id };
+    const info = await transport(e).sendMail({ from: e.EMAIL_FROM, to: msg.to, subject: msg.subject, html: msg.html, text: msg.text });
+    return { status: "sent", id: info.messageId };
   } catch (err) {
-    return { status: "failed", error: err instanceof Error ? err.message : String(err) };
+    // Log a safe summary; SMTP errors never include the message body.
+    const error = err instanceof Error ? err.message : String(err);
+    console.error(`[email] SMTP send to ${maskEmail(msg.to)} failed: ${error}`);
+    return { status: "failed", error };
   }
 }
 
