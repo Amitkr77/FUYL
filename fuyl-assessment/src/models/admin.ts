@@ -64,6 +64,8 @@ const AdminOtpSchema = new Schema(
 );
 // MongoDB deletes codes automatically once they expire.
 AdminOtpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+// "Newest code for this email" lookups.
+AdminOtpSchema.index({ email: 1, createdAt: -1 });
 
 /**
  * Code-request throttle per email address — kept separately from the codes so
@@ -107,3 +109,34 @@ export const KbVersion = model<KbVersionDoc>("KbVersion", KbVersionSchema);
 export const AuditLog = model<AuditLogDoc>("AuditLog", AuditLogSchema);
 export const AdminOtp = model<AdminOtpDoc>("AdminOtp", AdminOtpSchema);
 export const AdminOtpRequest = model<InferSchemaType<typeof AdminOtpRequestSchema>>("AdminOtpRequest", AdminOtpRequestSchema);
+
+// ─── App settings (key → value) ────────────────────────────────────────────
+
+/** Small runtime settings edited in /admin that apply without a KB publish (e.g. the Assisted assessment). */
+const AppSettingSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    value: { type: Schema.Types.Mixed, required: true },
+    updatedBy: String,
+  },
+  { timestamps: true, collection: "app_settings", minimize: false },
+);
+
+/** AI usage per UTC day — enforces the daily AI request cap and feeds the admin dashboard. */
+const AiUsageSchema = new Schema(
+  {
+    _id: { type: String, required: true }, // YYYY-MM-DD
+    calls: { type: Number, default: 0 },
+    failures: { type: Number, default: 0 },
+    /** Turns answered by the built-in understanding because AI was unavailable / over the cap. */
+    fallbacks: { type: Number, default: 0 },
+    promptTokens: { type: Number, default: 0 },
+    completionTokens: { type: Number, default: 0 },
+    expiresAt: { type: Date, required: true },
+  },
+  { collection: "ai_usage" },
+);
+AiUsageSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+export const AppSetting = model<InferSchemaType<typeof AppSettingSchema>>("AppSetting", AppSettingSchema);
+export const AiUsage = model<InferSchemaType<typeof AiUsageSchema>>("AiUsage", AiUsageSchema);

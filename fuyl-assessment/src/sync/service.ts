@@ -1,6 +1,7 @@
 import "server-only";
 import { connectDB } from "@/lib/db";
 import { env } from "@/lib/env";
+import { invalidateKnowledgeBaseCache, invalidateProductCache } from "@/lib/kb";
 import { INGREDIENTS } from "@/kb";
 import { StoreIngredient, StoreProduct, SyncRun, SyncState } from "@/models/store";
 import { fetchJson, fetchText } from "./fetch";
@@ -114,6 +115,9 @@ export async function runSync(trigger: SyncTrigger): Promise<SyncSummary> {
     summary.product.ok && summary.ingredients.ok ? "success" : summary.product.ok || summary.ingredients.ok ? "partial" : "failed";
 
   await SyncRun.create({ trigger, startedAt, finishedAt: new Date(), ...summary });
+  // Fresh data from fuyl.in: drop cached product + ingredient images.
+  invalidateProductCache();
+  invalidateKnowledgeBaseCache();
   return summary;
 }
 

@@ -22,7 +22,7 @@ export async function GET() {
     const kb = await getKnowledgeBase();
     const answers = sessionAnswers(session);
     const state: FlowState = { view: frontierView(kb, answers, session.path), path: session.path };
-    return json({ state });
+    return json({ state, mode: session.mode ?? "standard" });
   } catch (err) {
     return serverError("session:get", err);
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, type HTMLMotionProps } from "motion/react";
+import { m, type HTMLMotionProps } from "motion/react";
 import clsx from "clsx";
 
 type Props = HTMLMotionProps<"button"> & {
@@ -12,7 +12,7 @@ type Props = HTMLMotionProps<"button"> & {
 /** Pill button with a soft press. Primary = forest; glass = frosted. */
 export function Button({ variant = "primary", loading, size = "md", className, children, disabled, ...rest }: Props) {
   return (
-    <motion.button
+    <m.button
       whileHover={disabled || loading ? undefined : { y: -1 }}
       whileTap={disabled || loading ? undefined : { scale: 0.97 }}
       transition={{ type: "spring", stiffness: 500, damping: 30 }}
@@ -35,6 +35,6 @@ export function Button({ variant = "primary", loading, size = "md", className, c
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
         </span>
       )}
-    </motion.button>
+    </m.button>
   );
 }

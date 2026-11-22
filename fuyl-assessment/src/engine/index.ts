@@ -1,7 +1,7 @@
 export * from "./types";
 export { evaluate } from "./conditions";
 export { validateAnswer, type AnswerInput } from "./answers";
-export { nextStep, prune, orderedQuestions, triggeredStop, renderQuestionByKey } from "./flow";
+export { nextStep, prune, orderedQuestions, triggeredStop, renderQuestionByKey, remainingQuestions, renderForUser } from "./flow";
 export { buildContext, maxScores } from "./scoring";
 export { evaluateSafety } from "./safety";
 export { buildSummary } from "./summary";

@@ -39,6 +39,7 @@ async function main() {
   console.log(`  SMTP_PASS        ${e.SMTP_PASS ? "set" : "—"}`);
   console.log(`  EMAIL_FROM       ${e.EMAIL_FROM}`);
   console.log(`  CRON_SECRET      ${e.CRON_SECRET ? "set" : "— (scheduled sync disabled)"}`);
+  console.log(`  GROQ_API_KEY     ${e.GROQ_API_KEY ? "set" : "— (assisted chat uses built-in understanding)"}`);
   console.log(`  ALLOW_UNPUBLISHED_KB ${process.env.ALLOW_UNPUBLISHED_KB === "true" ? "true  ⚠ local testing only — remove for production" : "off"}`);
 
   let ok = true;

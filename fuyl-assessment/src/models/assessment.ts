@@ -22,11 +22,27 @@ const SessionSchema = new Schema(
     submittedAt: Date,
     /** Result link token (raw). Server-side only; as secret as the session itself. */
     resultToken: String,
+    /** "standard" = the one-question-per-screen quiz; "assisted" = the chat. */
+    mode: { type: String, enum: ["standard", "assisted"], default: "standard" },
+    /** Assisted only: email asked up front (the report goes here at the end). */
+    email: { type: String, lowercase: true, trim: true },
+    /** Assisted only: settings snapshot, transcript and the question the chat is waiting on. */
+    chat: {
+      settings: Schema.Types.Mixed,
+      messages: { type: [Schema.Types.Mixed], default: undefined },
+      askKey: String,
+      userTurns: { type: Number, default: 0 },
+      aiTurns: { type: Number, default: 0 },
+      fallbackTurns: { type: Number, default: 0 },
+    },
     expiresAt: { type: Date, required: true },
   },
   { timestamps: true, collection: "sessions", minimize: false },
 );
 SessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+// Admin transcript list and per-email start limit.
+SessionSchema.index({ mode: 1, createdAt: -1 });
+SessionSchema.index({ email: 1, createdAt: -1 });
 
 /**
  * A finished assessment, unlocked with an email. The result link token is
@@ -46,6 +62,7 @@ const SubmissionSchema = new Schema(
     product: { type: Schema.Types.Mixed },
     kbVersion: Number,
     utm: { source: String, medium: String, campaign: String, content: String, term: String },
+    mode: { type: String, enum: ["standard", "assisted"], default: "standard" },
     /** pending → sent | logged (no SMTP) | failed | limited (per-recipient cap reached) */
     email_status: { type: String, enum: ["pending", "sent", "logged", "failed", "limited"], default: "pending" },
     email_error: String,
@@ -56,6 +73,8 @@ const SubmissionSchema = new Schema(
 );
 SubmissionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 SubmissionSchema.index({ createdAt: -1 });
+// Per-address email cap ("reports to this address in the last 24h").
+SubmissionSchema.index({ email: 1, createdAt: -1 });
 
 export type SessionDoc = InferSchemaType<typeof SessionSchema>;
 export type SubmissionDoc = InferSchemaType<typeof SubmissionSchema>;

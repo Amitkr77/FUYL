@@ -27,4 +27,4 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
-export type StateResponse = { state: FlowState | null };
+export type StateResponse = { state: FlowState | null; mode?: "standard" | "assisted" };

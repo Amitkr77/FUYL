@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRef } from "react";
-import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { m, useReducedMotion, useScroll, useTransform } from "motion/react";
 
 /** Match bar that fills when scrolled into view. */
 export function MatchBar({ value, label }: { value: number; label: string }) {
@@ -17,7 +17,7 @@ export function MatchBar({ value, label }: { value: number; label: string }) {
         aria-valuemax={100}
         aria-valuenow={value}
       >
-        <motion.div
+        <m.div
           className="h-full rounded-full bg-gradient-to-r from-teal to-forest"
           initial={{ width: reduce ? `${value}%` : "0%" }}
           whileInView={{ width: `${value}%` }}
@@ -30,22 +30,23 @@ export function MatchBar({ value, label }: { value: number; label: string }) {
   );
 }
 
-/** Headline that reveals word by word. */
+/**
+ * Headline that reveals word by word — pure CSS (see `.word-in`), so it starts
+ * with the first paint instead of waiting for JavaScript. Reduced-motion users
+ * get no animation via the global media query.
+ */
 export function WordReveal({ text, className, accent }: { text: string; className?: string; accent?: string }) {
-  const reduce = useReducedMotion();
   return (
     <h1 className={className} aria-label={text}>
       {text.split(" ").map((w, i) => (
-        <motion.span
+        <span
           key={i}
           aria-hidden
-          initial={reduce ? false : { opacity: 0, y: 22, filter: "blur(10px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          transition={{ duration: 0.8, delay: 0.15 + i * 0.09, ease: [0.22, 1, 0.36, 1] }}
-          className={`inline-block ${accent && w.replace(/[^\p{L}]/gu, "") === accent ? "italic text-teal" : ""}`}
+          style={{ animationDelay: `${0.15 + i * 0.09}s` }}
+          className={`word-in inline-block ${accent && w.replace(/[^\p{L}]/gu, "") === accent ? "italic text-teal" : ""}`}
         >
           {w}&nbsp;
-        </motion.span>
+        </span>
       ))}
     </h1>
   );
@@ -60,9 +61,9 @@ export function ParallaxImage({ src, alt }: { src: string; alt: string }) {
   const rotate = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [-3, 3]);
   return (
     <div ref={ref} className="relative aspect-square w-full overflow-hidden rounded-3xl bg-gradient-to-br from-sage/70 to-cream">
-      <motion.div style={{ y, rotate }} className="absolute inset-6">
+      <m.div style={{ y, rotate }} className="absolute inset-6">
         <Image src={src} alt={alt} fill sizes="(min-width: 768px) 360px, 80vw" className="object-contain drop-shadow-2xl" />
-      </motion.div>
+      </m.div>
     </div>
   );
 }
@@ -70,7 +71,7 @@ export function ParallaxImage({ src, alt }: { src: string; alt: string }) {
 /** Staggered list that reveals children as it enters the viewport. */
 export function Stagger({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <motion.ul
+    <m.ul
       className={className}
       initial="hidden"
       whileInView="show"
@@ -78,17 +79,17 @@ export function Stagger({ children, className }: { children: React.ReactNode; cl
       variants={{ show: { transition: { staggerChildren: 0.06 } } }}
     >
       {children}
-    </motion.ul>
+    </m.ul>
   );
 }
 
 export function StaggerItem({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <motion.li
+    <m.li
       className={className}
       variants={{ hidden: { opacity: 0, y: 14, scale: 0.98 }, show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } } }}
     >
       {children}
-    </motion.li>
+    </m.li>
   );
 }

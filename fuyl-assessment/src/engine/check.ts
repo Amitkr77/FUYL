@@ -118,7 +118,8 @@ export function simulateReachable(kb: KnowledgeBase): { seen: Set<string>; maxLe
   const walk = (base: "first" | "last", forced?: { key: string; answer: Answer }) => {
     const answers: Answers = {};
     for (let i = 0; i < kb.questions.length + 1; i++) {
-      const step = nextStep(kb, answers);
+      // Walks only ever answer the currently visible question, so answers are already pruned.
+      const step = nextStep(kb, answers, { alreadyPruned: true });
       if (step.kind !== "question") break;
       const key = step.question.key;
       seen.add(key);

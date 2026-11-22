@@ -52,6 +52,23 @@ export function triggeredStop(kb: KnowledgeBase, answers: Answers) {
 }
 
 /**
+ * Visible, unanswered questions still to ask, in order (answers must already
+ * be pruned). Once `questionCap` answers are reached, follow-ups drop out.
+ */
+export function remainingQuestions(kb: KnowledgeBase, answers: Answers): Question[] {
+  const ctx = buildContext(kb, answers);
+  const capReached = Object.keys(answers).length >= kb.settings.questionCap;
+  return orderedQuestions(kb).filter(
+    (q) => !Object.prototype.hasOwnProperty.call(answers, q.key) && evaluate(q.showIf, ctx) && !(capReached && q.tier === "followup"),
+  );
+}
+
+/** Render a question for display (fills in {name}). */
+export function renderForUser(kb: KnowledgeBase, answers: Answers, q: Question): RenderedQuestion {
+  return renderQuestion(q, firstName(kb, answers));
+}
+
+/**
  * Decide what comes next.
  *  1. A triggered `stop` rule ends the assessment immediately.
  *  2. Otherwise the first unanswered, visible question wins — except that once
@@ -62,19 +79,16 @@ export function triggeredStop(kb: KnowledgeBase, answers: Answers) {
  * `progress` (0–1) is an estimate: answered / (answered + remaining visible),
  * so the bar never jumps backwards when a branch opens.
  */
-export function nextStep(kb: KnowledgeBase, rawAnswers: Answers): NextStep {
-  const answers = prune(kb, rawAnswers);
+export function nextStep(kb: KnowledgeBase, rawAnswers: Answers, opts: { alreadyPruned?: boolean } = {}): NextStep {
+  // Pruning is O(questions²). Callers that only ever add answers to visible
+  // questions in order (e.g. the KB checker's simulated walks) can skip it.
+  const answers = opts.alreadyPruned ? rawAnswers : prune(kb, rawAnswers);
 
   const stop = triggeredStop(kb, answers);
   if (stop) return { kind: "stopped", rule: { key: stop.key, title: stop.title, message: stop.message } };
 
-  const ctx = buildContext(kb, answers);
   const answeredCount = Object.keys(answers).length;
-  const capReached = answeredCount >= kb.settings.questionCap;
-
-  const remaining = orderedQuestions(kb).filter(
-    (q) => !answers[q.key] && evaluate(q.showIf, ctx) && !(capReached && q.tier === "followup"),
-  );
+  const remaining = remainingQuestions(kb, answers);
 
   const next = remaining[0];
   if (!next) return { kind: "complete" };
@@ -85,5 +99,6 @@ export function nextStep(kb: KnowledgeBase, rawAnswers: Answers): NextStep {
     question: renderQuestion(next, firstName(kb, answers)),
     progress: Math.round(progress * 100) / 100,
     answeredCount,
+    remaining: remaining.length - 1,
   };
 }

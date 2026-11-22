@@ -8,6 +8,15 @@ export const CONSENT_VERSION = "2026-11-21";
 export const CONSENT_TEXT =
   "I agree to FUYL using my answers, including health information, to personalise my recommendation. My answers are stored securely and deleted after 12 months.";
 
+export const CHAT_CONSENT_TEXT =
+  "I agree to FUYL using my answers, including health information, to personalise my recommendation. To understand my replies, chat messages may be processed by FUYL's AI provider; my email is never shared with it. Answers are stored securely and deleted after 12 months.";
+
+export const ASSISTED = {
+  title: "Meet your FUYL advisor",
+  body: "Enter your email to get a plan tailored just for you. We'll chat for about 4 minutes, then send your personalised report to this address.",
+  facts: ["Reply in your own words", "About 4 minutes", "Report to your inbox"],
+};
+
 export const DISCLAIMER =
   "This assessment is for general wellness information only and is not medical advice. FUYL COMPLETE+ is a nutritional supplement for healthy adults and is not intended to diagnose, treat, cure or prevent any disease. If you are pregnant, nursing, on medication or managing a health condition, consult your doctor before starting.";
 
@@ -36,3 +45,13 @@ export const TIMELINE = [
   { when: "Weeks 2–3", body: "Most people notice changes in digestion and energy." },
   { when: "Week 4", body: "Stress and sleep benefits begin to emerge." },
 ];
+
+/** FUYL customer support, as published on fuyl.in. */
+export const SUPPORT = {
+  email: "support@fuyl.in",
+  phone: "+91 92747 87827",
+  whatsapp: "https://wa.me/919274787827?text=" + encodeURIComponent("Hi FUYL, I just took the wellness assessment and have a question about COMPLETE+."),
+};
+
+/** Trust badges shown on the COMPLETE+ listing on fuyl.in. */
+export const TRUST = ["FSSAI approved", "cGMP certified facility", "Third-party tested", "100% vegetarian"];
