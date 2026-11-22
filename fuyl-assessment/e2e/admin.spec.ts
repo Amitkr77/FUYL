@@ -188,9 +188,11 @@ test.describe("admin", () => {
     await u2.getByLabel("Your email").fill("chat.full@example.com");
     await u2.getByRole("checkbox").check();
     await u2.getByRole("button", { name: "Start my assessment" }).click();
+    // Replying straight away, while the greeting is still being "typed", must work too.
+    await expect(u2.getByLabel("Your reply")).toBeVisible();
     await u2.getByLabel("Your reply").fill("I'm Dev");
     await u2.getByLabel("Your reply").press("Enter");
-    await expect(u2.getByText(/^Thanks! .*Which best describes you\?/)).toBeVisible({ timeout: 15_000 });
+    await expect(u2.getByText(/Thanks! .*Which best describes you\?/)).toBeVisible({ timeout: 15_000 });
     await u2.getByRole("group", { name: "Suggested answers" }).getByRole("button", { name: "Male", exact: true }).click();
     await expect(u2.getByText("Thanks! How old are you?")).toBeVisible({ timeout: 15_000 });
     await ctx2.close();

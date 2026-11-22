@@ -66,7 +66,9 @@ export function ChatApp({ initial }: { initial: ChatView }) {
   }, []);
 
   async function send(body: { text: string } | { choice: { key: string; values?: string[]; number?: number } }, echo: string) {
-    if (sending || revealing || !chat.canSend) return;
+    if (sending || !chat.canSend) return;
+    // Replying while the advisor is still "typing": show everything at once and carry on.
+    if (revealing) setShown(chat.messages.length);
     setError(null);
     setPendingUser(echo);
     setSending(true);
@@ -212,7 +214,7 @@ export function ChatApp({ initial }: { initial: ChatView }) {
               />
               <button
                 type="submit"
-                disabled={!text.trim() || sending || revealing || !chat.canSend}
+                disabled={!text.trim() || sending || !chat.canSend}
                 aria-label="Send"
                 className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-forest text-white transition-opacity hover:bg-forest-soft disabled:opacity-35"
               >
