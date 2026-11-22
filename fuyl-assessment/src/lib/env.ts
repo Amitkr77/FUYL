@@ -26,6 +26,9 @@ const schema = z.object({
   SMTP_ALLOW_INSECURE: optional(z.enum(["true", "false"])),
   EMAIL_FROM: z.string().default("FUYL <hello@fuyl.in>"),
   CRON_SECRET: z.string().optional(),
+  // Assisted assessment AI (Groq, OpenAI-compatible). Without a key the chat uses its built-in understanding.
+  GROQ_API_KEY: optional(z.string()),
+  GROQ_BASE_URL: z.preprocess((v) => (v === "" || v === undefined ? "https://api.groq.com/openai/v1" : v), z.string().url()),
   // Demo sign-in buttons on /admin/login (fill in these credentials). Never enable in production.
   DEMO_LOGIN: optional(z.enum(["true", "false"])),
   DEMO_ADMIN_EMAIL: optional(z.string().email()),

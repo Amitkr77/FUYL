@@ -198,7 +198,8 @@ export interface RenderedQuestion extends Omit<Question, "prompt" | "why" | "ban
 }
 
 export type NextStep =
-  | { kind: "question"; question: RenderedQuestion; progress: number; answeredCount: number }
+  /** `remaining`: visible questions still to come after this one (an estimate — branches can open). */
+  | { kind: "question"; question: RenderedQuestion; progress: number; answeredCount: number; remaining: number }
   | { kind: "stopped"; rule: Pick<SafetyRule, "key" | "title" | "message"> }
   | { kind: "complete" };
 

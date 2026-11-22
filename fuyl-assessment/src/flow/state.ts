@@ -45,6 +45,9 @@ export type View =
       kind: "question";
       question: ClientQuestion;
       answer?: Answer;
+      /** Frontier only: questions answered so far and (estimated) still to come. */
+      answered?: number;
+      remaining?: number;
       /** 0–1 overall progress estimate. */
       progress: number;
       /** Key to show when the user presses Back (undefined on the first question). */
@@ -93,7 +96,14 @@ export function frontierView(kb: KnowledgeBase, answers: Answers, path: string[]
   const backKey = path.at(-1);
   if (step.kind === "complete") return { kind: "complete" };
   if (step.kind === "stopped") return { kind: "stopped", title: step.rule.title, message: step.rule.message, backKey };
-  return { kind: "question", question: toClientQuestion(step.question), progress: step.progress, backKey };
+  return {
+    kind: "question",
+    question: toClientQuestion(step.question),
+    progress: step.progress,
+    backKey,
+    answered: step.answeredCount,
+    remaining: step.remaining,
+  };
 }
 
 /** View of an already-answered question (Back / Edit), pre-filled with its answer. */

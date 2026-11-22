@@ -143,4 +143,65 @@ test.describe("admin", () => {
       await expect(page.getByText(action, { exact: true }).first()).toBeVisible();
     }
   });
+
+  test("assisted chat: transcripts are visible, and settings switch new chats to built-in, text only", async ({ page, browser }) => {
+    await page.goto("/admin/assisted");
+    await expect(page.getByRole("heading", { name: "Assisted assessment" })).toBeVisible();
+    // Chats from the user project are listed, with a readable transcript.
+    await page.getByRole("link").filter({ hasText: /\d{4}/ }).first().click();
+    await expect(page.getByRole("heading", { name: "Chat transcript" })).toBeVisible();
+    await expect(page.getByText("What should we call you?").first()).toBeVisible();
+
+    await page.goto("/admin/assisted");
+    await page.getByRole("radio", { name: /Built-in \(no AI\)/ }).check();
+    await page.getByRole("radio", { name: /Text only/ }).check();
+    await expect(page.getByRole("radio", { name: /Full AI/ })).toBeDisabled();
+    await page.getByRole("button", { name: "Save settings" }).click();
+    await expect(page.getByText("Saved.")).toBeVisible();
+
+    // A new chat now has no suggestion chips and doesn't call the AI.
+    const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const user = await ctx.newPage();
+    const calls = async () => ((await (await user.request.get(`http://127.0.0.1:${E2E.storePort}/__ai`)).json()) as { calls: number }).calls;
+    const before = await calls();
+    await user.goto("/chat");
+    await user.getByLabel("Your email").fill("chat.builtin@example.com");
+    await user.getByRole("checkbox").check();
+    await user.getByRole("button", { name: "Start my assessment" }).click();
+    await expect(user.getByText("What should we call you?")).toBeVisible();
+    await user.getByLabel("Your reply").fill("Dev");
+    await user.getByLabel("Your reply").press("Enter");
+    await expect(user.getByText("Nice to meet you, Dev.")).toBeVisible({ timeout: 15_000 });
+    await expect(user.getByRole("group", { name: "Suggested answers" })).toHaveCount(0);
+    expect(await calls()).toBe(before);
+    await ctx.close();
+
+    // Full AI: the advisor leads; even a tapped chip gets an AI-written next question.
+    await page.getByRole("radio", { name: /Groq/ }).check();
+    await page.getByRole("radio", { name: /Text \+ suggestion chips/ }).check();
+    await page.getByRole("radio", { name: /Full AI/ }).check();
+    await page.getByRole("button", { name: "Save settings" }).click();
+    await expect(page.getByText("Saved.")).toBeVisible();
+    const ctx2 = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const u2 = await ctx2.newPage();
+    await u2.goto("/chat");
+    await u2.getByLabel("Your email").fill("chat.full@example.com");
+    await u2.getByRole("checkbox").check();
+    await u2.getByRole("button", { name: "Start my assessment" }).click();
+    // Replying straight away, while the greeting is still being "typed", must work too.
+    await expect(u2.getByLabel("Your reply")).toBeVisible();
+    await u2.getByLabel("Your reply").fill("I'm Dev");
+    await u2.getByLabel("Your reply").press("Enter");
+    await expect(u2.getByText(/Thanks! .*Which best describes you\?/)).toBeVisible({ timeout: 15_000 });
+    await u2.getByRole("group", { name: "Suggested answers" }).getByRole("button", { name: "Male", exact: true }).click();
+    await expect(u2.getByText("Thanks! How old are you?")).toBeVisible({ timeout: 15_000 });
+    await ctx2.close();
+
+    // Restore the defaults.
+    await page.getByRole("radio", { name: /Hybrid/ }).check();
+    await page.getByRole("button", { name: "Save settings" }).click();
+    await expect(page.getByText("Saved.")).toBeVisible();
+    await page.goto("/admin/activity");
+    await expect(page.getByText("assisted.settings", { exact: true }).first()).toBeVisible();
+  });
 });

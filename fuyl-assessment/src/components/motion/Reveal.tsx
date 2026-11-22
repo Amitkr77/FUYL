@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion, type HTMLMotionProps } from "motion/react";
+import { m, useReducedMotion, type HTMLMotionProps } from "motion/react";
 
 type RevealProps = HTMLMotionProps<"div"> & {
   /** Seconds to wait after the element enters the viewport. */
@@ -15,10 +15,10 @@ type RevealProps = HTMLMotionProps<"div"> & {
  */
 export function Reveal({ delay = 0, y = 28, children, ...rest }: RevealProps) {
   const reduce = useReducedMotion();
-  if (reduce) return <motion.div {...rest}>{children}</motion.div>;
+  if (reduce) return <m.div {...rest}>{children}</m.div>;
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y, filter: "blur(6px)" }}
       whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       viewport={{ once: true, amount: 0.2 }}
@@ -26,6 +26,6 @@ export function Reveal({ delay = 0, y = 28, children, ...rest }: RevealProps) {
       {...rest}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }

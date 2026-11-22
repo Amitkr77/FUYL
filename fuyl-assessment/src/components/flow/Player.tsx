@@ -2,8 +2,8 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowLeft, HeartPulse } from "lucide-react";
+import { AnimatePresence, m, useReducedMotion } from "motion/react";
+import { ArrowLeft, HeartPulse, ShieldCheck } from "lucide-react";
 import type { AnswerInput } from "@/engine";
 import type { FlowState, View } from "@/flow/state";
 import { api, ApiError, type StateResponse } from "@/lib/client";
@@ -15,13 +15,15 @@ import { QuestionCard } from "./QuestionCard";
  * renders it with direction-aware transitions, handles Back (re-shows earlier
  * answers pre-filled) and Edit-from-summary (`/q?edit=<key>`).
  */
-export function Player() {
+export function Player({ initialState }: { initialState?: FlowState }) {
   const router = useRouter();
   const params = useSearchParams();
   const editKey = params.get("edit");
   const reduce = useReducedMotion();
 
-  const [state, setState] = useState<FlowState | null>(null);
+  // Server-rendered first view (no skeleton, no extra round-trip).
+  const [state, setState] = useState<FlowState | null>(initialState ?? null);
+  const usedInitial = useRef(Boolean(initialState));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -66,6 +68,12 @@ export function Player() {
 
   // Initial load: the question in the URL (refresh), a question to edit, or the frontier.
   useEffect(() => {
+    if (usedInitial.current && initialState) {
+      // The server already rendered the right question; just record it in the URL.
+      usedInitial.current = false;
+      syncUrl(initialState, "replace");
+      return;
+    }
     let cancelled = false;
     const wanted = editKey ?? new URLSearchParams(window.location.search).get("q");
     const load = wanted
@@ -88,7 +96,8 @@ export function Player() {
     return () => {
       cancelled = true;
     };
-    // syncUrl is stable; load once per edit target.
+    // syncUrl is stable; load once per edit target. initialState is read once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editKey, router, syncUrl]);
 
   // Browser Back / Forward changed ?q= → show that question.
@@ -212,7 +221,7 @@ export function Player() {
           aria-valuemax={100}
           aria-valuenow={Math.round(progress * 100)}
         >
-          <motion.div
+          <m.div
             className="h-full rounded-full bg-gradient-to-r from-teal to-forest"
             initial={false}
             animate={{ width: `${Math.max(4, progress * 100)}%` }}
@@ -221,12 +230,25 @@ export function Player() {
         </div>
       </div>
 
+      {view?.kind === "question" && (
+        <div className="-mt-4 mb-4 flex items-center justify-between gap-3 px-1 text-xs text-muted" aria-live="polite">
+          <span className="rounded-full bg-white/60 px-2.5 py-1 font-medium uppercase tracking-[0.14em] text-teal-deep">
+            {BLOCK_LABEL[view.question.block] ?? ""}
+          </span>
+          <span className="tabular-nums">
+            {typeof view.answered === "number" && typeof view.remaining === "number"
+              ? `Question ${view.answered + 1}${view.remaining > 0 ? ` · about ${view.remaining} to go` : " · last one"}`
+              : "Changing an earlier answer"}
+          </span>
+        </div>
+      )}
+
       <div className="glass-strong relative overflow-hidden rounded-[var(--radius-glass)] px-5 py-10 sm:px-12 sm:py-12">
         {!view ? (
           <Skeleton />
         ) : (
           <AnimatePresence mode="wait" initial={false} custom={direction}>
-            <motion.div
+            <m.div
               key={viewKey(view)}
               custom={direction}
               initial={{ opacity: 0, y: offset * direction * 0.5, filter: reduce ? "none" : "blur(6px)" }}
@@ -239,13 +261,20 @@ export function Player() {
               )}
               {view.kind === "stopped" && <StopScreen title={view.title} message={view.message} />}
               {view.kind === "complete" && <Skeleton />}
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         )}
       </div>
+      {view?.kind === "question" && (
+        <p className="mt-5 flex items-center justify-center gap-1.5 text-center text-xs text-muted">
+          <ShieldCheck className="h-3.5 w-3.5 text-teal-deep" aria-hidden /> Your answers save automatically — you can leave and pick up where you left off.
+        </p>
+      )}
     </Shell>
   );
 }
+
+const BLOCK_LABEL: Record<string, string> = { about: "About you", lifestyle: "Your lifestyle", feel: "How you feel", safety: "Your health" };
 
 const viewKey = (v: View) => (v.kind === "question" ? `q:${v.question.key}` : v.kind);
 
@@ -277,17 +306,17 @@ function Skeleton() {
 function StopScreen({ title, message }: { title: string; message: string }) {
   return (
     <div className="text-center">
-      <motion.div
+      <m.div
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
         className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-sage"
       >
         <HeartPulse className="h-6 w-6 text-forest" aria-hidden />
-      </motion.div>
+      </m.div>
       <h1 className="mt-6 text-balance font-display text-[2rem] leading-tight text-forest sm:text-4xl">{title}</h1>
       <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-muted">{message}</p>
-      <p className="mx-auto mt-6 max-w-md text-[13px] text-muted/80">
+      <p className="mx-auto mt-6 max-w-md text-[13px] text-muted">
         Made a mistake? Use the back arrow above to change your answer.
       </p>
       <a href="https://fuyl.in" className="mt-8 inline-block text-sm font-medium text-teal-deep underline-offset-4 hover:underline">

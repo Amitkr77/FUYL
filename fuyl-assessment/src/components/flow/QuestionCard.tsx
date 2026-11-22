@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { Check, ChevronDown, Info } from "lucide-react";
 import clsx from "clsx";
 import { useEffect, useId, useRef, useState } from "react";
@@ -61,7 +61,7 @@ export function QuestionCard({
         )}
       </div>
 
-      <p role="alert" aria-live="polite" className="mt-4 min-h-5 text-center text-sm text-ember">
+      <p role="alert" aria-live="polite" className="mt-4 min-h-5 text-center text-sm text-ember-deep">
         {error}
       </p>
     </div>
@@ -78,14 +78,14 @@ function WhyWeAsk({ text }: { text: string }) {
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-1 text-[13px] font-medium text-ember/90 hover:text-ember"
+        className="inline-flex items-center gap-1 text-[13px] font-medium text-ember-deep hover:text-ember-deep"
       >
         Why we ask?
         <ChevronDown className={clsx("h-3.5 w-3.5 transition-transform duration-300", open && "rotate-180")} aria-hidden />
       </button>
       <AnimatePresence initial={false}>
         {open && (
-          <motion.p
+          <m.p
             id={id}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -94,7 +94,7 @@ function WhyWeAsk({ text }: { text: string }) {
             className="max-w-md overflow-hidden text-center text-[13px] leading-relaxed text-muted"
           >
             <span className="block pt-2">{text}</span>
-          </motion.p>
+          </m.p>
         )}
       </AnimatePresence>
     </div>
@@ -121,13 +121,13 @@ function OptionTile({
 }) {
   const [showInfo, setShowInfo] = useState(false);
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: 0.05 + index * 0.04, ease: [0.22, 1, 0.36, 1] }}
       className={clsx("relative", option.exclusive && "sm:col-span-2")}
     >
-      <motion.button
+      <m.button
         type="button"
         role={multi ? "checkbox" : "radio"}
         aria-checked={selected}
@@ -153,14 +153,14 @@ function OptionTile({
         >
           <AnimatePresence>
             {selected && (
-              <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: "spring", stiffness: 600, damping: 25 }}>
+              <m.span initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: "spring", stiffness: 600, damping: 25 }}>
                 <Check className="h-3.5 w-3.5" />
-              </motion.span>
+              </m.span>
             )}
           </AnimatePresence>
         </span>
         <span className={clsx("flex-1", option.info && "pr-8")}>{option.label}</span>
-      </motion.button>
+      </m.button>
       {option.info && (
         <button
           type="button"
@@ -177,17 +177,17 @@ function OptionTile({
       )}
       <AnimatePresence initial={false}>
         {showInfo && option.info && (
-          <motion.p
+          <m.p
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden px-5 text-[13px] text-muted"
           >
             <span className="block pt-2">{option.info}</span>
-          </motion.p>
+          </m.p>
         )}
       </AnimatePresence>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -209,25 +209,67 @@ function SingleChoice({
   useEffect(() => () => clearTimeout(timer.current), []);
   const options = question.options ?? [];
 
+  const choose = (value: string) => {
+    if (busy) return;
+    tapFeedback();
+    setPicked(value);
+    clearTimeout(timer.current);
+    // A short beat so the selection registers visually before moving on.
+    timer.current = setTimeout(() => onSubmit({ values: [value] }), 260);
+  };
+  useNumberKeys(options.length, (i) => choose(options[i].value));
+
   return (
-    <div role="radiogroup" aria-labelledby={labelledBy} className={grid(options.length)}>
-      {options.map((o, i) => (
-        <OptionTile
-          key={o.value}
-          option={o}
-          index={i}
-          multi={false}
-          selected={picked === o.value}
-          disabled={busy}
-          onClick={() => {
-            setPicked(o.value);
-            clearTimeout(timer.current);
-            // A short beat so the selection registers visually before moving on.
-            timer.current = setTimeout(() => onSubmit({ values: [o.value] }), 260);
-          }}
-        />
-      ))}
-    </div>
+    <>
+      <div role="radiogroup" aria-labelledby={labelledBy} className={grid(options.length)}>
+        {options.map((o, i) => (
+          <OptionTile key={o.value} option={o} index={i} multi={false} selected={picked === o.value} disabled={busy} onClick={() => choose(o.value)} />
+        ))}
+      </div>
+      <KeyHint count={options.length} />
+    </>
+  );
+}
+
+/** A tiny vibration on Android when an answer is tapped (no-op elsewhere). */
+function tapFeedback() {
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate?.(8);
+}
+
+/** Desktop shortcut: number keys 1–9 pick the matching option (ignored while typing). */
+function useNumberKeys(count: number, onPick: (index: number) => void) {
+  const handler = useRef(onPick);
+  useEffect(() => {
+    handler.current = onPick;
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      const n = Number(e.key);
+      if (Number.isInteger(n) && n >= 1 && n <= Math.min(9, count)) {
+        e.preventDefault();
+        handler.current(n - 1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [count]);
+}
+
+function KeyHint({ count, enter }: { count: number; enter?: boolean }) {
+  if (count < 2) return null;
+  return (
+    // Only on devices with a real pointer + keyboard.
+    <p className="mt-4 hidden text-center text-xs text-muted [@media(hover:hover)_and_(pointer:fine)]:block">
+      Tip: press <kbd className="rounded border border-line bg-white/70 px-1">1</kbd>–<kbd className="rounded border border-line bg-white/70 px-1">{Math.min(9, count)}</kbd> to choose
+      {enter ? (
+        <>
+          , <kbd className="rounded border border-line bg-white/70 px-1">Enter</kbd> to continue
+        </>
+      ) : null}
+    </p>
   );
 }
 
@@ -250,6 +292,8 @@ function MultiChoice({
   const exclusive = new Set(options.filter((o) => o.exclusive).map((o) => o.value));
 
   function toggle(value: string) {
+    if (busy) return;
+    tapFeedback();
     setHint(null);
     setPicked((cur) => {
       if (cur.includes(value)) return cur.filter((v) => v !== value);
@@ -262,6 +306,20 @@ function MultiChoice({
       return next;
     });
   }
+  useNumberKeys(options.length, (i) => toggle(options[i].value));
+  // Enter continues once something is picked (unless focus is on a button/input).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.key !== "Enter" || (t && ["INPUT", "TEXTAREA", "BUTTON", "A"].includes(t.tagName))) return;
+      if (picked.length > 0 && !busy) {
+        e.preventDefault();
+        onSubmit({ values: picked });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [picked, busy, onSubmit]);
 
   return (
     <>
@@ -278,6 +336,7 @@ function MultiChoice({
           Continue
         </Button>
       </div>
+      <KeyHint count={options.length} enter />
     </>
   );
 }

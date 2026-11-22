@@ -235,3 +235,25 @@ export async function updateUserAction(id: string, change: { role?: AdminRole; a
     return { ok: true };
   });
 }
+
+// ─── Assisted assessment settings ──────────────────────────────────────────
+
+export async function saveAssistedSettingsAction(input: unknown): Promise<ActionResult> {
+  return guarded(["admin"], async (actor): Promise<ActionResult> => {
+    const { AssistedSettingsSchema } = await import("@/chat/settings");
+    const parsed = AssistedSettingsSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: "Please fix the highlighted fields.",
+        issues: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+      };
+    }
+    const { saveAssistedSettings } = await import("@/lib/assisted");
+    await saveAssistedSettings(parsed.data, actor.email);
+    await audit(actor.email, "assisted.settings", "assisted", parsed.data);
+    revalidatePath("/admin/assisted");
+    revalidatePath("/");
+    return { ok: true };
+  });
+}

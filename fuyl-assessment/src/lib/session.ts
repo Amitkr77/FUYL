@@ -24,7 +24,14 @@ export async function loadSession() {
 }
 
 /** Start a fresh session (replacing any previous one in this browser). */
-export async function createSession(input: { consentVersion: string; kbVersion: number; utm?: Utm }) {
+export async function createSession(input: {
+  consentVersion: string;
+  kbVersion: number;
+  utm?: Utm;
+  mode?: "standard" | "assisted";
+  email?: string;
+  chat?: Record<string, unknown>;
+}) {
   await connectDB();
   const sid = randomToken(32);
   const doc = await AssessmentSession.create({
@@ -35,6 +42,9 @@ export async function createSession(input: { consentVersion: string; kbVersion: 
     kbVersion: input.kbVersion,
     consent: { at: new Date(), version: input.consentVersion },
     utm: input.utm,
+    mode: input.mode ?? "standard",
+    ...(input.email ? { email: input.email } : {}),
+    ...(input.chat ? { chat: input.chat } : {}),
     expiresAt: daysFromNow(SESSION_TTL_DAYS),
   });
   (await cookies()).set(SESSION_COOKIE, sid, {

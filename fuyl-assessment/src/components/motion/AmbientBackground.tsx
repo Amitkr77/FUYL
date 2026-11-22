@@ -6,7 +6,7 @@
  */
 export function AmbientBackground() {
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden print:hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-mist via-cream to-mist" />
       <div className="absolute -left-[15%] -top-[20%] h-[65vmax] w-[65vmax] rounded-full bg-sage/80 blur-[110px] animate-drift-a" />
       <div className="absolute -right-[20%] top-[10%] h-[55vmax] w-[55vmax] rounded-full bg-teal/30 blur-[120px] animate-drift-b" />

@@ -31,7 +31,7 @@ export default defineConfig({
   },
   projects: [
     { name: "setup", testMatch: /setup\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
-    { name: "user", testMatch: /(personas|flow)\.spec\.ts/, dependencies: ["setup"], use: { ...devices["Desktop Chrome"] } },
+    { name: "user", testMatch: /(personas|flow|chat)\.spec\.ts/, dependencies: ["setup"], use: { ...devices["Desktop Chrome"] } },
     { name: "admin", testMatch: /admin\.spec\.ts/, dependencies: ["user"], use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {

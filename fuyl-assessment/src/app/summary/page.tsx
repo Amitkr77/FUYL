@@ -6,6 +6,7 @@ import { buildResult, nextStep, type BlockKey } from "@/engine";
 import { EmailGate } from "@/components/flow/EmailGate";
 import { Reveal } from "@/components/motion/Reveal";
 import { SiteHeader } from "@/components/ui/SiteHeader";
+import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { getKnowledgeBase } from "@/lib/kb";
 import { loadSession, sessionAnswers } from "@/lib/session";
 import { LOADER_STEPS } from "@/kb/copy";
@@ -36,10 +37,11 @@ export default async function SummaryPage() {
 
   return (
     <>
+      <SmoothScroll />
       <SiteHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:py-16">
         <Reveal className="text-center">
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-teal">Step 2 of 3 · Summary</p>
+          <p className="text-xs font-medium uppercase tracking-[0.22em] text-teal-deep">Step 2 of 3 · Summary</p>
           <h1 className="mt-4 text-balance font-display text-4xl leading-tight text-forest sm:text-5xl">
             Here&rsquo;s what you told us{result.name ? `, ${result.name}` : ""}
           </h1>
@@ -49,7 +51,7 @@ export default async function SummaryPage() {
         <div className="mt-10 space-y-4">
           {groups.map((g, gi) => (
             <Reveal key={g.block} delay={gi * 0.05} className="glass rounded-[var(--radius-glass)] p-6 sm:p-8">
-              <h2 className="text-[11px] font-medium uppercase tracking-[0.2em] text-teal">{BLOCK_TITLE[g.block]}</h2>
+              <h2 className="text-xs font-medium uppercase tracking-[0.2em] text-teal-deep">{BLOCK_TITLE[g.block]}</h2>
               <ul className="mt-4 divide-y divide-line/50">
                 {g.lines.map((l) => (
                   <li key={l.questionKey}>

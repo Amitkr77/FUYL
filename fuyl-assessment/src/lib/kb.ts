@@ -84,7 +84,25 @@ const FALLBACK: ProductInfo = {
   description: "Daily Nutrition Powder · Mixed Berry Flavour · 15 Sachets",
 };
 
+// The product changes at most once a day (sync), so cache it briefly instead
+// of reading it on every result page and unlock. Shared across bundles.
+const PRODUCT_TTL_MS = 60_000;
+const pg = globalThis as unknown as { __fuylProduct?: { at: number; product: ProductInfo } };
+
 export async function getProduct(): Promise<ProductInfo> {
+  const cached = pg.__fuylProduct;
+  if (cached && Date.now() - cached.at < PRODUCT_TTL_MS) return cached.product;
+  const product = await loadProduct();
+  pg.__fuylProduct = { at: Date.now(), product };
+  return product;
+}
+
+/** Clear the product cache (after a sync). */
+export function invalidateProductCache(): void {
+  pg.__fuylProduct = undefined;
+}
+
+async function loadProduct(): Promise<ProductInfo> {
   try {
     await connectDB();
     const p = await StoreProduct.findOne({ handle: env().FUYL_PRODUCT_HANDLE }).lean();

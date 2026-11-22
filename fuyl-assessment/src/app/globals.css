@@ -16,6 +16,7 @@
   --color-line: #c8d8b0;
   --color-muted: #4a5a3a;
   --color-ember: #e07a3f; /* accent pulled from the COMPLETE+ sachet */
+  --color-ember-deep: #a3481a; /* ember for text on light backgrounds (WCAG AA) */
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-serif), ui-serif, Georgia, serif;
@@ -120,6 +121,60 @@ html.lenis body {
   outline: 2px solid var(--color-teal);
   outline-offset: 3px;
   border-radius: 10px;
+}
+
+/* ── Headline word reveal (CSS-only, so it runs before JavaScript loads) ── */
+@keyframes word-in {
+  from {
+    transform: translateY(18px);
+    filter: blur(6px);
+  }
+  to {
+    transform: none;
+    filter: none;
+  }
+}
+.word-in {
+  animation: word-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Print / "Save as PDF" ───────────────────────────────────── */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  /* Scroll-revealed sections start hidden on screen; always show them on paper. */
+  * {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+  .glass,
+  .glass-strong {
+    background: #fff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: 1px solid #dde8c8 !important;
+  }
+  article,
+  section,
+  li {
+    break-inside: avoid;
+  }
+  header a,
+  details > summary span {
+    display: none !important;
+  }
+  details > ul {
+    display: block !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

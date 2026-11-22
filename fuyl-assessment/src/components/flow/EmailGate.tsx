@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { Check, Lock, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { api, ApiError } from "@/lib/client";
@@ -76,7 +76,7 @@ export function EmailGate({
         </h2>
         <ul className="mt-5 flex flex-wrap justify-center gap-2" aria-label="Your focus areas">
           {teaser.names.map((n, i) => (
-            <motion.li
+            <m.li
               key={n}
               initial={{ opacity: 0, y: 6, filter: "blur(6px)" }}
               whileInView={{ opacity: 1, y: 0, filter: "blur(3px)" }}
@@ -86,7 +86,7 @@ export function EmailGate({
               aria-hidden
             >
               {n}
-            </motion.li>
+            </m.li>
           ))}
         </ul>
         <p className="mx-auto mt-5 max-w-sm text-[15px] text-muted">
@@ -162,10 +162,10 @@ export function EmailGate({
           <Button type="submit" size="lg" loading={busy} className="mt-6 w-full">
             See my report
           </Button>
-          <p role="alert" aria-live="polite" className="mt-3 min-h-5 text-center text-sm text-ember">
+          <p role="alert" aria-live="polite" className="mt-3 min-h-5 text-center text-sm text-ember-deep">
             {error}
           </p>
-          <p className="flex items-center justify-center gap-1.5 text-center text-[12px] text-muted/80">
+          <p className="flex items-center justify-center gap-1.5 text-center text-[12px] text-muted">
             <Lock className="h-3 w-3" aria-hidden /> Your answers are private and never sold.
           </p>
         </form>
@@ -187,7 +187,7 @@ function Loader({ steps }: { steps: { title: string; body: string }[] }) {
   }, [steps.length]);
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -197,12 +197,12 @@ function Loader({ steps }: { steps: { title: string; body: string }[] }) {
     >
       <div className="w-full max-w-md text-center">
         <div className="relative mx-auto h-28 w-28">
-          <motion.span
+          <m.span
             className="absolute inset-0 rounded-full border-2 border-teal/30"
             animate={{ scale: [1, 1.25, 1], opacity: [0.6, 0, 0.6] }}
             transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
           />
-          <motion.span
+          <m.span
             className="absolute inset-3 rounded-full border-2 border-transparent border-t-forest border-r-teal"
             animate={{ rotate: 360 }}
             transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
@@ -211,7 +211,7 @@ function Loader({ steps }: { steps: { title: string; body: string }[] }) {
         </div>
         <div className="relative mt-10 h-24">
           <AnimatePresence mode="wait">
-            <motion.div
+            <m.div
               key={i}
               initial={{ opacity: 0, y: 12, filter: "blur(6px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -221,7 +221,7 @@ function Loader({ steps }: { steps: { title: string; body: string }[] }) {
             >
               <p className="font-display text-3xl text-forest">{steps[i].title}</p>
               <p className="mt-2 text-sm text-muted">{steps[i].body}</p>
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </div>
         <div className="mt-4 flex justify-center gap-1.5" aria-hidden>
@@ -230,6 +230,6 @@ function Loader({ steps }: { steps: { title: string; body: string }[] }) {
           ))}
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }

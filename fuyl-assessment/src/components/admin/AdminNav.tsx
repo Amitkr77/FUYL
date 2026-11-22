@@ -11,6 +11,7 @@ import {
   Inbox,
   LayoutDashboard,
   Leaf,
+  MessagesSquare,
   RefreshCw,
   Settings2,
   ShieldAlert,
@@ -28,6 +29,7 @@ const SECTIONS = [
       { href: "/admin/content/ingredient", label: "Ingredients", icon: Leaf },
       { href: "/admin/content/safety", label: "Safety rules", icon: ShieldAlert },
       { href: "/admin/settings", label: "Engine settings", icon: Settings2 },
+      { href: "/admin/assisted", label: "Assisted (AI chat)", icon: MessagesSquare },
     ],
   },
   {
