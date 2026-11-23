@@ -64,9 +64,10 @@ describe("understand (built-in)", () => {
     expect(vals("pregnancy", "none of these")).toEqual(["no"]);
   });
 
-  it("multi choice: several picks, 'none', and the selection limit", () => {
+  it("multi choice: several picks (no limit) and 'none'", () => {
     expect(vals("priorities", "energy and sleep")).toEqual(["energy", "sleep"]);
-    expect(vals("priorities", "energy, sleep, gut, skin")).toBe("too-many");
+    // No selection limit any more: all four are taken.
+    expect(vals("priorities", "energy, sleep, gut, skin")).toEqual(["energy", "gut", "sleep", "skin"]);
     expect(vals("energy_signs", "none")).toEqual(["none"]);
     expect(vals("gut_issues", "bloating and acidity after meals")).toEqual(expect.arrayContaining(["bloating", "acidity"]));
   });

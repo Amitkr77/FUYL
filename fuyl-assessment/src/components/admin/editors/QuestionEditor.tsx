@@ -93,9 +93,14 @@ export function QuestionEditor({
               </select>
             </Field>
             {q.type === "multi" && (
-              <Field label="Max selections" error={issues.maxSelect}>
-                <input type="number" value={q.maxSelect ?? ""} onChange={(e) => set("maxSelect", num(e.target.value))} className={inputCls} />
-              </Field>
+              <>
+                <Field label="Max selections" hint="Leave empty to let people pick as many as they like." error={issues.maxSelect}>
+                  <input type="number" value={q.maxSelect ?? ""} onChange={(e) => set("maxSelect", num(e.target.value))} className={inputCls} />
+                </Field>
+                <Field label="Picks counted for scoring" hint="Only the strongest N picks count toward an area's maximum, so picking many doesn't lower everyone's match %." error={issues.scoreTop}>
+                  <input type="number" value={q.scoreTop ?? ""} onChange={(e) => set("scoreTop", num(e.target.value))} className={inputCls} />
+                </Field>
+              </>
             )}
             {q.type === "number" && (
               <>

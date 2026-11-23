@@ -19,7 +19,8 @@
   --color-ember-deep: #a3481a; /* ember for text on light backgrounds (WCAG AA) */
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-serif), ui-serif, Georgia, serif;
+  /* One typeface everywhere: Inter. Headings use it at a heavier weight with tighter tracking. */
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
   --radius-glass: 1.75rem;
 
@@ -65,6 +66,14 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Headings ("font-display") — Inter, semibold, tight tracking. Unlayered, so it
+   sets the default; a utility like font-medium on the element still wins only
+   if written as a more specific rule. */
+.font-display {
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 
 ::selection {

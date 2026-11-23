@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
-import { ArrowLeft, HeartPulse, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, HeartPulse, ShieldCheck, Sparkles } from "lucide-react";
 import type { AnswerInput } from "@/engine";
 import type { FlowState, View } from "@/flow/state";
 import { api, ApiError, type StateResponse } from "@/lib/client";
@@ -15,7 +15,7 @@ import { QuestionCard } from "./QuestionCard";
  * renders it with direction-aware transitions, handles Back (re-shows earlier
  * answers pre-filled) and Edit-from-summary (`/q?edit=<key>`).
  */
-export function Player({ initialState }: { initialState?: FlowState }) {
+export function Player({ initialState, assisted }: { initialState?: FlowState; assisted?: { input: "text" | "chips" } }) {
   const router = useRouter();
   const params = useSearchParams();
   const editKey = params.get("edit");
@@ -28,6 +28,9 @@ export function Player({ initialState }: { initialState?: FlowState }) {
   const [error, setError] = useState<string | null>(null);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [fatal, setFatal] = useState<string | null>(null);
+  // Assisted mode: what the assistant understood from the last typed answer, or a follow-up question.
+  const [ack, setAck] = useState<{ text: string; understood: string[] } | null>(null);
+  const [clarify, setClarify] = useState<string | null>(null);
 
   // Browser history: each question gets its own entry (/q?q=<key>), so the
   // browser / Android Back button steps to the previous question instead of
@@ -140,6 +143,8 @@ export function Player({ initialState }: { initialState?: FlowState }) {
     if (!state || state.view.kind !== "question" || busy) return;
     setBusy(true);
     setError(null);
+    setAck(null);
+    setClarify(null);
     try {
       const r = await api<StateResponse>("/api/answer", {
         method: "POST",
@@ -148,6 +153,35 @@ export function Player({ initialState }: { initialState?: FlowState }) {
       setDirection(1);
       // Editing from the summary returns there once the branch is settled.
       if (editKey && r.state?.view.kind !== "stopped" && isAnsweredQuestion(r.state)) router.replace("/summary");
+      else {
+        setState(r.state);
+        syncUrl(r.state, "push");
+      }
+    } catch (e) {
+      handleError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Assisted mode: the user answered in their own words. */
+  async function freeText(text: string) {
+    if (!state || state.view.kind !== "question" || busy) return;
+    setBusy(true);
+    setError(null);
+    setClarify(null);
+    try {
+      const r = await api<{ state?: FlowState; ack?: string; understood?: string[]; clarify?: string }>("/api/assist", {
+        method: "POST",
+        body: JSON.stringify({ key: state.view.question.key, text }),
+      });
+      if (r.clarify || !r.state) {
+        setClarify(r.clarify ?? "Could you say that a little differently?");
+        return;
+      }
+      setDirection(1);
+      setAck({ text: r.ack ?? "", understood: r.understood ?? [] });
+      if (editKey && r.state.view.kind !== "stopped" && isAnsweredQuestion(r.state)) router.replace("/summary");
       else {
         setState(r.state);
         syncUrl(r.state, "push");
@@ -170,6 +204,8 @@ export function Player({ initialState }: { initialState?: FlowState }) {
     }
     setBusy(true);
     setError(null);
+    setAck(null);
+    setClarify(null);
     try {
       const r = await api<StateResponse>(`/api/question?key=${encodeURIComponent(key)}`);
       setDirection(-1);
@@ -243,6 +279,25 @@ export function Player({ initialState }: { initialState?: FlowState }) {
         </div>
       )}
 
+      <AnimatePresence>
+        {assisted && ack && view?.kind === "question" && (ack.text || ack.understood.length > 0) && (
+          <m.div
+            key={ack.understood.join("|") + ack.text}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            role="status"
+            className="glass mb-3 flex items-start gap-2 rounded-2xl px-4 py-3 text-sm text-forest"
+          >
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-deep" aria-hidden />
+            <span>
+              {ack.text && <span className="mr-1">{ack.text}</span>}
+              {ack.understood.length > 0 && <span className="text-muted">Noted: {ack.understood.join(" · ")}</span>}
+            </span>
+          </m.div>
+        )}
+      </AnimatePresence>
+
       <div className="glass-strong relative overflow-hidden rounded-[var(--radius-glass)] px-5 py-10 sm:px-12 sm:py-12">
         {!view ? (
           <Skeleton />
@@ -257,7 +312,14 @@ export function Player({ initialState }: { initialState?: FlowState }) {
               transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
             >
               {view.kind === "question" && (
-                <QuestionCard question={view.question} answer={view.answer} busy={busy} error={error} onSubmit={submit} />
+                <QuestionCard
+                  question={view.question}
+                  answer={view.answer}
+                  busy={busy}
+                  error={error}
+                  onSubmit={submit}
+                  assist={assisted ? { showOptions: assisted.input === "chips", clarify, onText: freeText } : undefined}
+                />
               )}
               {view.kind === "stopped" && <StopScreen title={view.title} message={view.message} />}
               {view.kind === "complete" && <Skeleton />}
@@ -267,7 +329,15 @@ export function Player({ initialState }: { initialState?: FlowState }) {
       </div>
       {view?.kind === "question" && (
         <p className="mt-5 flex items-center justify-center gap-1.5 text-center text-xs text-muted">
-          <ShieldCheck className="h-3.5 w-3.5 text-teal-deep" aria-hidden /> Your answers save automatically — you can leave and pick up where you left off.
+          {assisted ? (
+            <>
+              <Sparkles className="h-3.5 w-3.5 text-teal-deep" aria-hidden /> Tap an answer or type it in your own words. Your answers save automatically.
+            </>
+          ) : (
+            <>
+              <ShieldCheck className="h-3.5 w-3.5 text-teal-deep" aria-hidden /> Your answers save automatically — you can leave and pick up where you left off.
+            </>
+          )}
         </p>
       )}
     </Shell>

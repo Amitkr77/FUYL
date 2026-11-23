@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, m } from "motion/react";
-import { Check, ChevronDown, Info } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, Info, Sparkles } from "lucide-react";
 import clsx from "clsx";
 import { useEffect, useId, useRef, useState } from "react";
 import type { Answer, AnswerInput } from "@/engine";
@@ -11,19 +11,32 @@ import { Button } from "@/components/ui/Button";
 /**
  * One question, one screen. Single-choice answers advance automatically after
  * a short "pressed" beat; multi-choice, number and text questions use Continue.
+ *
+ * Assisted assessment (`assist`): the same card, plus a box to answer in your
+ * own words, which the assistant turns into the matching option. With
+ * `showOptions: false` (admin "free text only") the options are hidden.
  */
+export interface AssistProps {
+  showOptions: boolean;
+  /** Follow-up from the assistant when a typed answer wasn't clear. */
+  clarify: string | null;
+  onText: (text: string) => void;
+}
+
 export function QuestionCard({
   question,
   answer,
   busy,
   error,
   onSubmit,
+  assist,
 }: {
   question: ClientQuestion;
   answer?: Answer;
   busy: boolean;
   error: string | null;
   onSubmit: (input: AnswerInput) => void;
+  assist?: AssistProps;
 }) {
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -50,14 +63,22 @@ export function QuestionCard({
       {question.why && <WhyWeAsk text={question.why} />}
 
       <div className="mt-8">
-        {question.type === "single" && (
+        {question.type === "single" && (!assist || assist.showOptions) && (
           <SingleChoice question={question} answer={answer} busy={busy} labelledBy={headingId} onSubmit={onSubmit} />
         )}
-        {question.type === "multi" && (
+        {question.type === "multi" && (!assist || assist.showOptions) && (
           <MultiChoice question={question} answer={answer} busy={busy} labelledBy={headingId} onSubmit={onSubmit} />
         )}
         {(question.type === "number" || question.type === "text") && (
-          <FreeInput question={question} answer={answer} busy={busy} labelledBy={headingId} onSubmit={onSubmit} />
+          <FreeInput question={question} answer={answer} busy={busy} labelledBy={headingId} onSubmit={onSubmit} onText={assist?.onText} />
+        )}
+        {assist && (question.type === "single" || question.type === "multi") && (
+          <AssistBox key={question.key} question={question} busy={busy} prominent={!assist.showOptions} onText={assist.onText} labelledBy={headingId} />
+        )}
+        {assist?.clarify && (
+          <p role="status" className="mx-auto mt-4 flex max-w-md items-start justify-center gap-2 text-center text-sm text-teal-deep">
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {assist.clarify}
+          </p>
         )}
       </div>
 
@@ -347,14 +368,17 @@ function FreeInput({
   busy,
   labelledBy,
   onSubmit,
+  onText,
 }: {
   question: ClientQuestion;
   answer?: Answer;
   busy: boolean;
   labelledBy: string;
   onSubmit: (input: AnswerInput) => void;
+  /** Assisted: send whatever was typed ("I'm thirty-one") to the assistant instead. */
+  onText?: (text: string) => void;
 }) {
-  const isNumber = question.type === "number";
+  const isNumber = question.type === "number" && !onText;
   const initial = isNumber ? (answer?.number?.toString() ?? "") : (answer?.text ?? "");
   const [value, setValue] = useState(initial);
   const ref = useRef<HTMLInputElement>(null);
@@ -365,6 +389,7 @@ function FreeInput({
 
   const submit = () => {
     if (!value.trim()) return;
+    if (onText) return onText(value.trim());
     onSubmit(isNumber ? { number: value.trim() } : { text: value });
   };
 
@@ -383,9 +408,9 @@ function FreeInput({
           value={value}
           onChange={(e) => setValue(isNumber ? e.target.value.replace(/\D/g, "").slice(0, 3) : e.target.value)}
           inputMode={isNumber ? "numeric" : "text"}
-          autoComplete={isNumber ? "off" : "given-name"}
-          maxLength={isNumber ? 3 : question.maxLength}
-          placeholder={question.placeholder}
+          autoComplete={question.type === "number" ? "off" : "given-name"}
+          maxLength={isNumber ? 3 : onText ? 200 : question.maxLength}
+          placeholder={onText && question.type === "number" ? "e.g. 31, or “I'm thirty-one”" : question.placeholder}
           className="h-16 w-full bg-transparent text-center text-xl text-forest outline-none placeholder:text-muted/50"
         />
         {isNumber && question.unit && <span className="text-sm text-muted">{question.unit}</span>}
@@ -393,6 +418,80 @@ function FreeInput({
       <Button type="submit" size="lg" className="mt-6" disabled={!value.trim()} loading={busy}>
         Continue
       </Button>
+    </form>
+  );
+}
+
+/** Assisted: answer a choice question in your own words. */
+function AssistBox({
+  question,
+  busy,
+  prominent,
+  onText,
+  labelledBy,
+}: {
+  question: ClientQuestion;
+  busy: boolean;
+  prominent: boolean;
+  onText: (text: string) => void;
+  labelledBy: string;
+}) {
+  const [value, setValue] = useState("");
+  const id = useId();
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!prominent) return;
+    const t = setTimeout(() => ref.current?.focus({ preventScroll: true }), 350);
+    return () => clearTimeout(t);
+  }, [prominent]);
+  const examples = (question.options ?? [])
+    .filter((o) => !o.exclusive)
+    .slice(0, 2)
+    .map((o) => o.label.toLowerCase());
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (value.trim()) onText(value.trim());
+      }}
+      className={clsx("mx-auto max-w-xl", prominent ? "" : "mt-6")}
+    >
+      {!prominent && (
+        <div className="mb-3 flex items-center gap-3 text-xs uppercase tracking-[0.16em] text-muted" aria-hidden>
+          <span className="h-px flex-1 bg-line/70" /> or answer in your own words <span className="h-px flex-1 bg-line/70" />
+        </div>
+      )}
+      <label htmlFor={id} className="sr-only">
+        Answer in your own words
+      </label>
+      <div className="glass flex items-center gap-2 rounded-2xl py-1.5 pl-4 pr-1.5 focus-within:ring-2 focus-within:ring-teal/30">
+        <Sparkles className="h-4 w-4 shrink-0 text-teal-deep" aria-hidden />
+        <input
+          ref={ref}
+          id={id}
+          aria-describedby={labelledBy}
+          value={value}
+          onChange={(e) => setValue(e.target.value.slice(0, 500))}
+          disabled={busy}
+          autoComplete="off"
+          enterKeyHint="send"
+          placeholder={examples.length ? `e.g. “${examples.join("” or “")}”` : "Type your answer…"}
+          className={clsx("w-full bg-transparent text-forest outline-none placeholder:text-muted/60", prominent ? "h-14 text-lg" : "h-11 text-base")}
+        />
+        <button
+          type="submit"
+          disabled={busy || !value.trim()}
+          aria-label="Send answer"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-forest text-white transition-opacity disabled:opacity-35"
+        >
+          {busy ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" aria-hidden />
+          ) : (
+            <ArrowUp className="h-4 w-4" aria-hidden />
+          )}
+        </button>
+      </div>
     </form>
   );
 }

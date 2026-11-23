@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowUpRight, CheckCircle2, Info, Leaf, Mail, MessageCir
 import type { AssessmentResult, ResultArea, SafetyNote } from "@/engine";
 import { Reveal } from "@/components/motion/Reveal";
 import { MatchBar, ParallaxImage, Stagger, StaggerItem, WordReveal } from "@/components/result/Motion";
+import { FindingsCard, NutrientComparison, nutrientNote } from "@/components/result/ReportSections";
 import { ResultActions, StickyCta } from "@/components/result/ResultActions";
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
@@ -75,9 +76,16 @@ export default async function ResultPage({ params }: { params: Promise<{ token: 
           </Reveal>
         </section>
 
-        {/* ── Safety (shown first when it matters) ── */}
-        {result.safety.notes.length > 0 && (
+        {/* ── Summary of findings (first thing after the title) ── */}
+        {result.findings && (
           <Reveal className="mt-14">
+            <FindingsCard findings={result.findings} />
+          </Reveal>
+        )}
+
+        {/* ── Safety (shown early when it matters) ── */}
+        {result.safety.notes.length > 0 && (
+          <Reveal className={result.findings ? "mt-6" : "mt-14"}>
             <SafetyCard level={result.safety.level} notes={result.safety.notes} />
           </Reveal>
         )}
@@ -86,7 +94,7 @@ export default async function ResultPage({ params }: { params: Promise<{ token: 
         <section className="mt-16" aria-labelledby="areas-heading">
           <Reveal>
             <h2 id="areas-heading" className="text-center font-display text-3xl text-forest sm:text-4xl">
-              Your top focus areas
+              Your focus areas
             </h2>
             <p className="mx-auto mt-3 max-w-md text-center text-[15px] text-muted">
               Based on your answers — and the COMPLETE+ ingredients that support each one.
@@ -95,7 +103,7 @@ export default async function ResultPage({ params }: { params: Promise<{ token: 
           <div className="mt-10 space-y-6">
             {result.areas.map((area, i) => (
               <Reveal key={area.key} delay={0.05}>
-                <AreaCard area={area} index={i} />
+                <AreaCard area={area} index={i} nutrients={result.nutrients?.rows} />
               </Reveal>
             ))}
           </div>
@@ -114,6 +122,13 @@ export default async function ResultPage({ params }: { params: Promise<{ token: 
             </Reveal>
           )}
         </section>
+
+        {/* ── Vitamins & minerals: India vs global ── */}
+        {result.showProduct && result.nutrients && (
+          <Reveal className="mt-20">
+            <NutrientComparison nutrients={result.nutrients} />
+          </Reveal>
+        )}
 
         {/* ── How to start ── */}
         {result.showProduct && (
@@ -200,7 +215,7 @@ export default async function ResultPage({ params }: { params: Promise<{ token: 
   );
 }
 
-function AreaCard({ area, index }: { area: ResultArea; index: number }) {
+function AreaCard({ area, index, nutrients }: { area: ResultArea; index: number; nutrients?: NonNullable<AssessmentResult["nutrients"]>["rows"] }) {
   return (
     <article className="glass-strong rounded-[var(--radius-glass)] p-6 sm:p-9">
       <div className="flex items-start justify-between gap-4">
@@ -254,7 +269,11 @@ function AreaCard({ area, index }: { area: ResultArea; index: number }) {
                 </span>
               )}
               <p className="text-xs text-teal-deep">
-                {ing.dose ? `${ing.dose}${ing.rda ? ` · ${ing.rda}% RDA` : ""}` : ing.blendDose ? `In ${ing.blend} · ${ing.blendDose}` : ing.blend}
+                {ing.dose
+                  ? `${ing.dose} · ${nutrientNote(nutrients, ing.key) ?? (ing.rda ? `${ing.rda}% RDA` : "")}`.replace(/ · $/, "")
+                  : ing.blendDose
+                    ? `In ${ing.blend} · ${ing.blendDose}`
+                    : ing.blend}
               </p>
               <p className="mt-1 text-xs leading-relaxed text-muted">{ing.why}</p>
             </div>

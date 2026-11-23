@@ -165,7 +165,58 @@ export function IngredientEditor({ initial, ...common }: Common & { initial: Ing
           </Field>
         </div>
       </Card>
+      <NutrientCard value={ing.nutrient} onChange={(n) => set("nutrient", n)} error={issues.nutrient} />
     </EditorShell>
+  );
+}
+
+/** Daily reference values for the India-vs-global comparison on the report (vitamins & minerals only). */
+function NutrientCard({ value, onChange, error }: { value: Ingredient["nutrient"]; onChange: (v: Ingredient["nutrient"]) => void; error?: string }) {
+  if (!value) {
+    return (
+      <Card title="Daily reference values (India vs global)" className="mt-4">
+        <p className="text-sm text-muted">Only for vitamins and minerals.</p>
+        <button
+          type="button"
+          className="mt-3 text-sm font-medium text-teal-deep hover:underline"
+          onClick={() => onChange({ amount: 1, unit: "mg", india: { male: 1, female: 1 }, global: { male: 1, female: 1 } })}
+        >
+          + Add reference values
+        </button>
+      </Card>
+    );
+  }
+  const n = value;
+  const numIn = (v: number, set: (x: number) => void) => (
+    <input type="number" step="any" value={Number.isFinite(v) ? v : ""} onChange={(e) => set(Number(e.target.value))} className={inputCls} />
+  );
+  return (
+    <Card
+      title="Daily reference values (India vs global)"
+      className="mt-4"
+      actions={
+        <button type="button" className="text-xs text-[#a3301e] hover:underline" onClick={() => onChange(undefined)}>
+          Remove
+        </button>
+      }
+    >
+      <p className="mb-4 text-xs text-muted">
+        Shown on the report as “per serve vs what you need a day”. India: ICMR-NIN 2020 (adults, sedentary). Global: US NIH RDA/AI (adults 19–50).
+      </p>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Field label="Amount per serve">{numIn(n.amount, (x) => onChange({ ...n, amount: x }))}</Field>
+        <Field label="Unit" hint="mg, mcg or IU">
+          <input value={n.unit} onChange={(e) => onChange({ ...n, unit: e.target.value })} className={inputCls} />
+        </Field>
+        <div />
+        <Field label="India — men">{numIn(n.india.male, (x) => onChange({ ...n, india: { ...n.india, male: x } }))}</Field>
+        <Field label="India — women">{numIn(n.india.female, (x) => onChange({ ...n, india: { ...n.india, female: x } }))}</Field>
+        <div />
+        <Field label="Global — men">{numIn(n.global.male, (x) => onChange({ ...n, global: { ...n.global, male: x } }))}</Field>
+        <Field label="Global — women">{numIn(n.global.female, (x) => onChange({ ...n, global: { ...n.global, female: x } }))}</Field>
+      </div>
+      {error && <p className="mt-2 text-xs text-[#a3301e]">{error}</p>}
+    </Card>
   );
 }
 

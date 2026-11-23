@@ -58,8 +58,8 @@ export function AssistedSettingsForm({ initial, canEdit, hasKey }: { initial: As
         <label className="flex items-center gap-3 text-sm text-forest">
           <input type="checkbox" checked={s.enabled} onChange={(e) => setS({ ...s, enabled: e.target.checked })} className="h-4 w-4 accent-forest" />
           <span>
-            <span className="font-medium">Show “Chat with an advisor” on the welcome screen</span>
-            <span className="block text-xs text-muted">Turning this off hides the option; chats already in progress can still finish.</span>
+            <span className="font-medium">Show “Assisted assessment” on the welcome screen</span>
+            <span className="block text-xs text-muted">Turning this off hides the option; assessments already in progress can still finish.</span>
           </span>
         </label>
 
@@ -81,8 +81,8 @@ export function AssistedSettingsForm({ initial, canEdit, hasKey }: { initial: As
             value={builtin ? "hybrid" : s.mode}
             onChange={(mode) => setS({ ...s, mode })}
             options={[
-              { value: "hybrid", label: "Hybrid", hint: "The rules engine picks each question; AI only understands replies. Most predictable." },
-              { value: "full", label: "Full AI", hint: builtin ? "Needs an AI provider." : "AI leads the conversation and can combine questions. The engine still validates answers and decides safety.", disabled: builtin },
+              { value: "hybrid", label: "Hybrid", hint: "One question at a time, in the usual order. AI only turns a typed answer into the matching option. Most predictable." },
+              { value: "full", label: "Full AI", hint: builtin ? "Needs an AI provider." : "AI can pick up several answers from one reply (e.g. “vegetarian, not pregnant”), so people skip questions they’ve already answered. The engine still validates every answer and decides safety.", disabled: builtin },
             ]}
           />
         </Group>
@@ -93,8 +93,8 @@ export function AssistedSettingsForm({ initial, canEdit, hasKey }: { initial: As
             value={s.input}
             onChange={(input) => setS({ ...s, input })}
             options={[
-              { value: "chips", label: "Text + suggestion chips", hint: "Tap an answer or type. Faster on phones, and taps don't use AI requests." },
-              { value: "text", label: "Text only", hint: "A pure chat: people type every reply." },
+              { value: "chips", label: "Answer options + own words", hint: "The usual answer tiles, plus a box to type in your own words. Taps don't use AI requests." },
+              { value: "text", label: "Own words only", hint: "Choice questions show only the typing box, no tiles." },
             ]}
           />
         </Group>

@@ -88,24 +88,22 @@ function fakeGroq(raw: string): { status: number; body: unknown } {
   const req = JSON.parse(raw) as { messages: { role: string; content: string }[]; response_format?: { json_schema?: { name?: string } } };
   const lastUser = [...req.messages].reverse().find((m) => m.role === "user")?.content ?? "";
   if (lastUser.includes("__ai_down")) return { status: 503, body: { error: { message: "fake outage" } } };
-  let out: unknown;
-  if (req.response_format?.json_schema?.name === "questionnaire_answer") {
-    const { question, reply } = JSON.parse(lastUser) as { question: FakeQ; reply: string };
-    const a = fakeUnderstand(question, reply);
-    out = a
-      ? { action: "answer", ...a, ack: "Lovely, thanks for sharing.", message: "" }
-      : { action: "clarify", values: [], number: null, text: null, ack: "", message: "Hmm, could you say that another way?" };
-  } else {
-    const state = JSON.parse(req.messages[0].content.split("Current state:\n")[1]) as { needed: FakeQ[] };
-    const [first, second] = state.needed;
-    const a = first ? fakeUnderstand(first, lastUser) : null;
-    const next = a ? second : first;
-    out = {
-      answers: a ? [{ key: first.key, ...a }] : [],
-      reply: next ? `Thanks! ${next.question}` : "Thanks!",
-      ask_key: next?.key ?? null,
-    };
-  }
+  // One question on screen (+ "upcoming" in Full-AI mode). A reply like
+  // "no; vegetarian" answers the screen question with the first part and
+  // tries each further part against the upcoming questions.
+  const { question, upcoming = [], reply } = JSON.parse(lastUser) as { question: FakeQ; upcoming?: FakeQ[]; reply: string };
+  const [head, ...rest] = reply.split(";").map((p) => p.trim());
+  const a = fakeUnderstand(question, head);
+  const others = rest.flatMap((part) => {
+    for (const u of upcoming) {
+      const o = fakeUnderstand(u, part);
+      if (o) return [{ key: u.key, ...o }];
+    }
+    return [];
+  });
+  const out = a
+    ? { action: "answer", ...a, ack: "Lovely, thanks for sharing.", message: "", others }
+    : { action: "clarify", values: [], number: null, text: null, ack: "", message: "Hmm, could you say that another way?", others: [] };
   return { status: 200, body: { choices: [{ message: { content: JSON.stringify(out) } }], usage: { prompt_tokens: 120, completion_tokens: 30 } } };
 }
 

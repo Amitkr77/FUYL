@@ -12,7 +12,7 @@ export type Script = Record<string, string | string[]>;
 export function trackView(page: Page) {
   let view: View | null = null;
   page.on("response", async (res) => {
-    if (!/\/api\/(session|answer|question)/.test(res.url())) return;
+    if (!/\/api\/(session|answer|question|assist)/.test(res.url())) return;
     try {
       const body = await res.json();
       if (body?.state?.view) view = body.state.view as View;

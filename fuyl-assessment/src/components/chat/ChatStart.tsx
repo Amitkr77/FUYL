@@ -1,27 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useId, useState } from "react";
 import { m } from "motion/react";
 import { Check, Clock, Mail, MessageCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import type { ChatView } from "@/chat/types";
 import { api, ApiError } from "@/lib/client";
 import { suggestEmail } from "@/lib/emailTypo";
 
 const ICONS = [MessageCircle, Clock, Mail];
 
-/** Assisted assessment, step 1: email first (the report goes here), then the chat opens. */
-export function ChatStart({
-  copy,
-  consentText,
-  onStarted,
-}: {
-  copy: { title: string; body: string; facts: string[] };
-  consentText: string;
-  onStarted: (chat: ChatView) => void;
-}) {
+/** Assisted assessment, step 1: email first (the report goes here), then the question cards. */
+export function ChatStart({ copy, consentText }: { copy: { title: string; body: string; facts: string[] }; consentText: string }) {
+  const router = useRouter();
   const params = useSearchParams();
   const emailId = useId();
   const consentId = useId();
@@ -50,11 +42,8 @@ export function ChatStart({
       ["source", "medium", "campaign", "content", "term"].map((k) => [k, params.get(`utm_${k}`) ?? undefined]).filter(([, v]) => v),
     );
     try {
-      const { chat } = await api<{ chat: ChatView }>("/api/chat/start", {
-        method: "POST",
-        body: JSON.stringify({ consent: true, email: address, utm }),
-      });
-      onStarted(chat);
+      await api("/api/chat/start", { method: "POST", body: JSON.stringify({ consent: true, email: address, utm }) });
+      router.push("/q");
     } catch (err) {
       setBusy(false);
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
