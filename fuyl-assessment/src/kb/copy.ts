@@ -9,12 +9,12 @@ export const CONSENT_TEXT =
   "I agree to FUYL using my answers, including health information, to personalise my recommendation. My answers are stored securely and deleted after 12 months.";
 
 export const CHAT_CONSENT_TEXT =
-  "I agree to FUYL using my answers, including health information, to personalise my recommendation. To understand my replies, chat messages may be processed by FUYL's AI provider; my email is never shared with it. Answers are stored securely and deleted after 12 months.";
+  "I agree to FUYL using my answers, including health information, to personalise my recommendation. Answers I type in my own words may be processed by FUYL's AI provider to understand them; my email is never shared with it. Answers are stored securely and deleted after 12 months.";
 
 export const ASSISTED = {
-  title: "Meet your FUYL advisor",
-  body: "Enter your email to get a plan tailored just for you. We'll chat for about 4 minutes, then send your personalised report to this address.",
-  facts: ["Reply in your own words", "About 4 minutes", "Report to your inbox"],
+  title: "Assisted assessment",
+  body: "Enter your email to get a plan tailored just for you. Then answer each question by tapping an option or in your own words — our AI assistant understands everyday language. We'll send your report to this address.",
+  facts: ["Answer in your own words", "About 4 minutes", "Report to your inbox"],
 };
 
 export const DISCLAIMER =

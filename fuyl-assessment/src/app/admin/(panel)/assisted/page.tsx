@@ -38,21 +38,21 @@ export default async function AssistedPage() {
     <>
       <PageHeader
         title="Assisted assessment"
-        description="The AI chat version of the assessment. Answers still go through the rules engine: safety stops, scoring and the result are the same as the standard assessment."
+        description="The standard assessment plus answering in your own words, understood by AI. Answers still go through the rules engine: safety stops, scoring and the result are the same as the standard assessment."
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-4">
         <Stat label="AI requests today" value={today?.calls ?? 0} hint={`Cap ${settings.dailyAiCap}`} />
         <Stat label="Fallbacks today" value={today?.fallbacks ?? 0} hint="Turns answered without AI" />
-        <Stat label="Chats (7 days)" value={started} />
+        <Stat label="Started (7 days)" value={started} />
         <Stat label="Finished (7 days)" value={finished} hint={started ? `${Math.round((finished / started) * 100)}% completion` : undefined} />
       </div>
 
       <AssistedSettingsForm initial={settings} canEdit={admin.role === "admin"} hasKey={hasKey} />
 
-      <Card title="Recent chats" className="mt-6">
+      <Card title="Recent assisted assessments" className="mt-6">
         {chats.length === 0 ? (
-          <Empty>No chats yet.</Empty>
+          <Empty>No assisted assessments yet.</Empty>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] text-left text-sm">
@@ -62,7 +62,7 @@ export default async function AssistedPage() {
                   <th className="py-2 pr-3 font-medium">Email</th>
                   <th className="py-2 pr-3 font-medium">Status</th>
                   <th className="py-2 pr-3 font-medium">Mode</th>
-                  <th className="py-2 pr-3 font-medium">Messages</th>
+                  <th className="py-2 pr-3 font-medium">Typed answers</th>
                   <th className="py-2 font-medium">AI / fallback turns</th>
                 </tr>
               </thead>

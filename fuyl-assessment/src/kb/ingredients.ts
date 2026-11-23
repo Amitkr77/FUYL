@@ -1,4 +1,4 @@
-import type { Ingredient } from "@/engine";
+import type { Ingredient, NutrientRef } from "@/engine";
 
 /**
  * All 60 FUYL COMPLETE+ ingredients, per 10 g sachet.
@@ -119,3 +119,45 @@ export const INGREDIENTS: Ingredient[] = [
   { key: "piperine", name: "Piperine", ...OTHER, description: "Black-pepper extract used to support absorption." },
   { key: "xanthan-gum", name: "Xanthan Gum", ...OTHER, description: "Keeps the drink evenly mixed." },
 ];
+
+// ─── Daily reference values: India vs global ───────────────────────────────
+//
+// India  — ICMR-NIN 2020, "Nutrient Requirements for Indians", adults
+//          (sedentary). Men's values are exactly the ones behind the label's
+//          %RDA (e.g. 60 mg vitamin C = 75% → 80 mg). Women's values for
+//          magnesium, iron, zinc, folate, B12, vitamin C, A and D are from the
+//          NIN brief note (Table 4, nin.res.in/rdabook/brief_note.pdf); the
+//          remaining women's values are DRAFT and must be confirmed by the
+//          nutritionist in /admin before publishing.
+// Global — US National Institutes of Health (Office of Dietary Supplements)
+//          RDA/AI for adults 19–50 (magnesium: 31–50).
+const ref = (amount: number, unit: string, india: [number, number], global: [number, number]): NutrientRef => ({
+  amount,
+  unit,
+  india: { male: india[0], female: india[1] },
+  global: { male: global[0], female: global[1] },
+});
+
+const NUTRIENT_REFS: Record<string, NutrientRef> = {
+  "vitamin-c": ref(60, "mg", [80, 65], [90, 75]),
+  "vitamin-b1": ref(1.2, "mg", [1.4, 1.4], [1.2, 1.1]),
+  "vitamin-b2": ref(1.6, "mg", [2.0, 1.9], [1.3, 1.1]),
+  "vitamin-b3": ref(11, "mg", [14, 11], [16, 14]),
+  "vitamin-b5": ref(4, "mg", [5, 5], [5, 5]),
+  "vitamin-b6": ref(1.5, "mg", [1.9, 1.9], [1.3, 1.3]),
+  folate: ref(150, "mcg", [300, 220], [400, 400]),
+  "vitamin-b12": ref(2.2, "mcg", [2.2, 2.2], [2.4, 2.4]),
+  "vitamin-a": ref(500, "mcg", [1000, 840], [900, 700]),
+  "vitamin-d3": ref(600, "IU", [600, 600], [600, 600]),
+  "vitamin-e": ref(4, "mg", [10, 7.5], [15, 15]),
+  "vitamin-k2": ref(30, "mcg", [55, 55], [120, 90]),
+  biotin: ref(35, "mcg", [40, 40], [30, 30]),
+  magnesium: ref(50, "mg", [440, 370], [420, 320]),
+  zinc: ref(6, "mg", [17, 13], [11, 8]),
+  iron: ref(3, "mg", [19, 29], [8, 18]),
+  selenium: ref(20, "mcg", [40, 40], [55, 55]),
+  iodine: ref(50, "mcg", [140, 140], [150, 150]),
+  manganese: ref(0.7, "mg", [4, 4], [2.3, 1.8]),
+};
+
+for (const i of INGREDIENTS) if (NUTRIENT_REFS[i.key]) i.nutrient = NUTRIENT_REFS[i.key];

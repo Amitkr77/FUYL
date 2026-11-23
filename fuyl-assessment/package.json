@@ -14,7 +14,8 @@
     "dev:db": "tsx scripts/dev-db.ts",
     "admin:create": "tsx --conditions=react-server --env-file=.env.local scripts/create-admin.ts",
     "test:e2e": "next build && playwright test",
-    "check:env": "tsx --conditions=react-server --env-file=.env.local scripts/check-env.ts"
+    "check:env": "tsx --conditions=react-server --env-file=.env.local scripts/check-env.ts",
+    "kb:upgrade": "tsx --conditions=react-server --env-file=.env.local scripts/kb-upgrade.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

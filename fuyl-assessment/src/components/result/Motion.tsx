@@ -43,7 +43,7 @@ export function WordReveal({ text, className, accent }: { text: string; classNam
           key={i}
           aria-hidden
           style={{ animationDelay: `${0.15 + i * 0.09}s` }}
-          className={`word-in inline-block ${accent && w.replace(/[^\p{L}]/gu, "") === accent ? "italic text-teal" : ""}`}
+          className={`word-in inline-block ${accent && w.replace(/[^\p{L}]/gu, "") === accent ? "text-teal" : ""}`}
         >
           {w}&nbsp;
         </span>

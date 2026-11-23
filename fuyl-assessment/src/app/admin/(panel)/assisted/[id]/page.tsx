@@ -25,14 +25,14 @@ export default async function Transcript({ params }: { params: Promise<{ id: str
   return (
     <>
       <Link href="/admin/assisted" className="mb-4 inline-flex items-center gap-1.5 text-sm text-teal-deep hover:underline">
-        <ArrowLeft className="h-4 w-4" aria-hidden /> All chats
+        <ArrowLeft className="h-4 w-4" aria-hidden /> All assisted assessments
       </Link>
       <PageHeader
-        title="Chat transcript"
+        title="Typed answers"
         description={`${s.email ?? "No email"} · started ${fmtDate(s.createdAt)} · ${String(settings.mode ?? "?")} mode, ${String(settings.provider ?? "?")}${settings.provider === "groq" ? ` (${String(settings.model)})` : ""}`}
       />
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        <Card title={`${messages.length} messages`}>
+        <Card title={messages.length ? `${messages.length / 2} typed answers` : "No typed answers — every question was answered by tapping"}>
           <ol className="space-y-3">
             {messages.map((m) => (
               <li key={m.id} className={m.role === "user" ? "flex justify-end" : "flex"}>

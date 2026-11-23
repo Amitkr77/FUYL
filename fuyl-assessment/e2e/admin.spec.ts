@@ -144,58 +144,66 @@ test.describe("admin", () => {
     }
   });
 
-  test("assisted chat: transcripts are visible, and settings switch new chats to built-in, text only", async ({ page, browser }) => {
+  test("assisted: typed answers are visible to admins; settings switch to built-in / own-words-only and to Full AI", async ({ page, browser }) => {
     await page.goto("/admin/assisted");
-    await expect(page.getByRole("heading", { name: "Assisted assessment" })).toBeVisible();
-    // Chats from the user project are listed, with a readable transcript.
-    await page.getByRole("link").filter({ hasText: /\d{4}/ }).first().click();
-    await expect(page.getByRole("heading", { name: "Chat transcript" })).toBeVisible();
-    await expect(page.getByText("What should we call you?").first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Assisted assessment", exact: true })).toBeVisible();
+    // The user project's assisted assessment is listed, with its typed answers.
+    await page.getByRole("row", { name: /assisted\.riya@example\.com/ }).getByRole("link").click();
+    await expect(page.getByRole("heading", { name: "Typed answers", exact: true })).toBeVisible();
+    await expect(page.getByText("hi, my name is riya")).toBeVisible();
 
     await page.goto("/admin/assisted");
     await page.getByRole("radio", { name: /Built-in \(no AI\)/ }).check();
-    await page.getByRole("radio", { name: /Text only/ }).check();
+    await page.getByRole("radio", { name: /Own words only/ }).check();
     await expect(page.getByRole("radio", { name: /Full AI/ })).toBeDisabled();
     await page.getByRole("button", { name: "Save settings" }).click();
     await expect(page.getByText("Saved.")).toBeVisible();
 
-    // A new chat now has no suggestion chips and doesn't call the AI.
-    const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
-    const user = await ctx.newPage();
-    const calls = async () => ((await (await user.request.get(`http://127.0.0.1:${E2E.storePort}/__ai`)).json()) as { calls: number }).calls;
-    const before = await calls();
-    await user.goto("/chat");
-    await user.getByLabel("Your email").fill("chat.builtin@example.com");
-    await user.getByRole("checkbox").check();
-    await user.getByRole("button", { name: "Start my assessment" }).click();
-    await expect(user.getByText("What should we call you?")).toBeVisible();
-    await user.getByLabel("Your reply").fill("Dev");
-    await user.getByLabel("Your reply").press("Enter");
-    await expect(user.getByText("Nice to meet you, Dev.")).toBeVisible({ timeout: 15_000 });
-    await expect(user.getByRole("group", { name: "Suggested answers" })).toHaveCount(0);
-    expect(await calls()).toBe(before);
-    await ctx.close();
+    const start = async (email: string) => {
+      const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+      const user = await ctx.newPage();
+      await user.goto("/chat");
+      await user.getByLabel("Your email").fill(email);
+      await user.getByRole("checkbox").check();
+      await user.getByRole("button", { name: "Start my assessment" }).click();
+      await user.waitForURL("**/q**");
+      return { ctx, user };
+    };
+    const calls = async () => ((await (await page.request.get(`http://127.0.0.1:${E2E.storePort}/__ai`)).json()) as { calls: number }).calls;
 
-    // Full AI: the advisor leads; even a tapped chip gets an AI-written next question.
+    // Own words only, no AI: choice questions show just the typing box, and no AI requests are made.
+    const before = await calls();
+    const a = await start("assisted.builtin@example.com");
+    await a.user.locator("main form input").first().fill("Dev");
+    await a.user.getByRole("button", { name: "Continue" }).click();
+    await expect(a.user.getByRole("heading", { name: "Nice to meet you, Dev. Which best describes you?" })).toBeVisible();
+    await expect(a.user.getByRole("radio", { name: "Male", exact: true })).toHaveCount(0);
+    await a.user.getByLabel("Answer in your own words").fill("male");
+    await a.user.getByRole("button", { name: "Send answer" }).click();
+    await expect(a.user.getByRole("heading", { name: "How old are you?" })).toBeVisible();
+    expect(await calls()).toBe(before);
+    await a.ctx.close();
+
+    // Full AI: one typed reply can answer several questions, which are then skipped.
     await page.getByRole("radio", { name: /Groq/ }).check();
-    await page.getByRole("radio", { name: /Text \+ suggestion chips/ }).check();
+    await page.getByRole("radio", { name: /Answer options \+ own words/ }).check();
     await page.getByRole("radio", { name: /Full AI/ }).check();
     await page.getByRole("button", { name: "Save settings" }).click();
     await expect(page.getByText("Saved.")).toBeVisible();
-    const ctx2 = await browser.newContext({ storageState: { cookies: [], origins: [] } });
-    const u2 = await ctx2.newPage();
-    await u2.goto("/chat");
-    await u2.getByLabel("Your email").fill("chat.full@example.com");
-    await u2.getByRole("checkbox").check();
-    await u2.getByRole("button", { name: "Start my assessment" }).click();
-    // Replying straight away, while the greeting is still being "typed", must work too.
-    await expect(u2.getByLabel("Your reply")).toBeVisible();
-    await u2.getByLabel("Your reply").fill("I'm Dev");
-    await u2.getByLabel("Your reply").press("Enter");
-    await expect(u2.getByText(/Thanks! .*Which best describes you\?/)).toBeVisible({ timeout: 15_000 });
-    await u2.getByRole("group", { name: "Suggested answers" }).getByRole("button", { name: "Male", exact: true }).click();
-    await expect(u2.getByText("Thanks! How old are you?")).toBeVisible({ timeout: 15_000 });
-    await ctx2.close();
+    const b = await start("assisted.full@example.com");
+    await b.user.locator("main form input").first().fill("Dev");
+    await b.user.getByRole("button", { name: "Continue" }).click();
+    await b.user.getByRole("radio", { name: "Male", exact: true }).click();
+    await expect(b.user.getByRole("heading", { name: "How old are you?" })).toBeVisible();
+    await b.user.getByRole("button", { name: "Continue" }).waitFor();
+    await b.user.locator("main form input").first().fill("34");
+    await b.user.getByRole("button", { name: "Continue" }).click();
+    await expect(b.user.getByText(/top priorities right now/)).toBeVisible();
+    await b.user.getByLabel("Answer in your own words").fill("energy; vegetarian");
+    await b.user.getByRole("button", { name: "Send answer" }).click();
+    await expect(b.user.getByText(/Diet: Vegetarian/)).toBeVisible();
+    await expect(b.user.getByRole("heading", { name: "How do you usually eat?" })).toHaveCount(0);
+    await b.ctx.close();
 
     // Restore the defaults.
     await page.getByRole("radio", { name: /Hybrid/ }).check();

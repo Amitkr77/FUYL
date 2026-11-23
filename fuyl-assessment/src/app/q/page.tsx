@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Player } from "@/components/flow/Player";
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { frontierView, questionView, type FlowState } from "@/flow/state";
+import { assistedOptions } from "@/lib/chat";
 import { getKnowledgeBase } from "@/lib/kb";
 import { loadSession, sessionAnswers } from "@/lib/session";
 
@@ -33,7 +34,7 @@ export default async function QuestionPage({ searchParams }: { searchParams: Pro
       <SiteHeader />
       <main className="flex flex-1 flex-col px-4 py-8 sm:py-14">
         <Suspense>
-          <Player initialState={initialState} />
+          <Player initialState={initialState} assisted={assistedOptions(session)} />
         </Suspense>
       </main>
     </>

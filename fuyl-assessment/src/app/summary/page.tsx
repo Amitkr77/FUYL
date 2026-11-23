@@ -7,6 +7,7 @@ import { EmailGate } from "@/components/flow/EmailGate";
 import { Reveal } from "@/components/motion/Reveal";
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
+import { maskEmail } from "@/lib/email";
 import { getKnowledgeBase } from "@/lib/kb";
 import { loadSession, sessionAnswers } from "@/lib/session";
 import { LOADER_STEPS } from "@/kb/copy";
@@ -73,6 +74,7 @@ export default async function SummaryPage() {
           <EmailGate
             teaser={{ count: result.areas.length, names: result.areas.map((a) => a.name) }}
             loaderSteps={LOADER_STEPS}
+            knownEmail={session.mode === "assisted" && session.email ? maskEmail(session.email) : undefined}
           />
         </Reveal>
       </main>

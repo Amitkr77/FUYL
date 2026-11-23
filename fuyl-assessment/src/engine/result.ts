@@ -1,4 +1,5 @@
 import { prune } from "./flow";
+import { buildFindings, buildNutrients } from "./findings";
 import { evaluateSafety } from "./safety";
 import { bandFor, buildContext, maxScores } from "./scoring";
 import { buildSummary } from "./summary";
@@ -85,7 +86,8 @@ export function buildResult(kb: KnowledgeBase, rawAnswers: Answers): AssessmentR
         y.score - x.score ||
         x.area.order - y.area.order,
     )
-    .slice(0, kb.settings.topAreas);
+    // Every area the user picked as a priority is shown, even beyond topAreas.
+    .slice(0, Math.max(kb.settings.topAreas, new Set(priorities).size));
 
   // Each ingredient is listed once, under the highest-ranked area that links
   // it — but no area is left looking thin: if it has fewer than
@@ -122,13 +124,18 @@ export function buildResult(kb: KnowledgeBase, rawAnswers: Answers): AssessmentR
   );
 
 
+  const name = firstName(kb, answers);
+  const showProduct = safety.level !== "stop";
+  const nutrients = buildNutrients(kb, answers);
   return {
     kbVersion: kb.version,
-    name: firstName(kb, answers),
+    name,
+    findings: buildFindings({ name, areas, safety, showProduct, ingredientCount: supporting.size, nutrients }),
+    nutrients,
     summary: buildSummary(kb, answers),
     areas,
     safety,
-    showProduct: safety.level !== "stop",
+    showProduct,
     coverage: { areaCount: areas.length, ingredientCount: supporting.size },
   };
 }

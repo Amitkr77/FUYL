@@ -78,8 +78,14 @@ export interface Question {
   helper?: string;
   placeholder?: string;
   options?: Option[];
-  /** multi only: maximum selections. */
+  /** multi only: maximum selections (leave empty to allow any number). */
   maxSelect?: number;
+  /**
+   * multi only: how many of the strongest picks count toward an area's maximum
+   * score. Lets people pick as many options as they like without shrinking
+   * everyone's match %. Defaults to maxSelect, else all options.
+   */
+  scoreTop?: number;
   /** number only */
   min?: number;
   max?: number;
@@ -133,6 +139,24 @@ export interface Ingredient {
   category?: string;
   image?: string;
   description?: string;
+  /** Vitamins & minerals: amount per serve and daily reference values (India + global) for the comparison. */
+  nutrient?: NutrientRef;
+}
+
+/** Daily reference intake for adults, by sex. */
+export interface SexValues {
+  male: number;
+  female: number;
+}
+
+export interface NutrientRef {
+  /** Amount per serve, in `unit` (matches the label dose). */
+  amount: number;
+  unit: string;
+  /** India: ICMR-NIN 2020 RDA/AI for adults (sedentary). */
+  india: SexValues;
+  /** Global: US National Institutes of Health RDA/AI for adults (19–50). */
+  global: SexValues;
 }
 
 export type SafetyLevel = "info" | "caution" | "consult" | "stop";
@@ -238,9 +262,30 @@ export interface SafetyNote {
   ingredients: string[];
 }
 
+/** One vitamin/mineral row of the India-vs-global comparison, for this user's sex. */
+export interface NutrientRow {
+  key: string;
+  name: string;
+  amount: number;
+  unit: string;
+  india: number;
+  indiaPct: number;
+  global: number;
+  globalPct: number;
+}
+
+export interface Finding {
+  kind: "focus" | "safety" | "nutrition" | "ingredients";
+  text: string;
+}
+
 export interface AssessmentResult {
   kbVersion: number;
   name?: string;
+  /** Summary of findings shown first on the report (absent on reports created before it existed). */
+  findings?: { headline: string; points: Finding[] };
+  /** Vitamin & mineral comparison: per serve vs daily needs in India and globally. */
+  nutrients?: { basis: "male" | "female" | "adult"; rows: NutrientRow[] };
   summary: SummaryLine[];
   areas: ResultArea[];
   safety: { level: SafetyLevel | "none"; notes: SafetyNote[] };

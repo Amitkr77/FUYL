@@ -61,7 +61,7 @@ export function maxScores(kb: KnowledgeBase): Record<string, number> {
 
     for (const [area, weights] of Object.entries(perArea)) {
       if (q.type === "multi") {
-        const k = q.maxSelect ?? weights.length;
+        const k = q.scoreTop ?? q.maxSelect ?? weights.length;
         const top = [...weights].sort((x, y) => y - x).slice(0, k);
         add(area, top.reduce((s, w) => s + w, 0));
       } else {

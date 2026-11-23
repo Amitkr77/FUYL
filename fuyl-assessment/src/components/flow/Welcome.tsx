@@ -82,7 +82,7 @@ export function Welcome({
             // Pure-CSS word reveal: starts with the first paint instead of waiting
             // for JavaScript, so the headline counts as visible immediately.
             style={{ animationDelay: `${0.1 + i * 0.08}s` }}
-            className={`word-in inline-block ${w === "FUYL" ? "italic text-teal" : ""}`}
+            className={`word-in inline-block ${w === "FUYL" ? "text-teal" : ""}`}
           >
             {w}&nbsp;
           </span>
@@ -143,13 +143,13 @@ export function Welcome({
             </Button>
             {assisted && (
               <Button size="lg" variant="glass" onClick={() => router.push("/chat")} className="w-full">
-                <Sparkles className="h-4 w-4 text-teal-deep" aria-hidden /> Chat with an advisor
+                <Sparkles className="h-4 w-4 text-teal-deep" aria-hidden /> Assisted assessment
               </Button>
             )}
           </div>
           {assisted && (
             <p className="text-center text-xs text-muted">
-              Standard: tap through one question at a time. Assisted: answer in your own words, like a chat.
+              Both ask one question at a time. Assisted also lets you answer in your own words — our AI assistant understands you.
             </p>
           )}
           {resume && (
@@ -157,7 +157,7 @@ export function Welcome({
               onClick={() => router.push(resume === "assisted" ? "/chat" : "/q")}
               className="text-sm text-teal-deep underline-offset-4 hover:underline"
             >
-              {resume === "assisted" ? "Continue your chat" : "Continue where you left off"}
+              Continue where you left off
             </button>
           )}
           <p role="alert" aria-live="polite" className="min-h-5 text-sm text-ember-deep">

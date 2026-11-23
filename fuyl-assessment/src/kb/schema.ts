@@ -86,6 +86,7 @@ export const QuestionSchema = z
     placeholder: Text(60).optional(),
     options: z.array(OptionSchema).max(30).optional(),
     maxSelect: z.number().int().min(1).max(30).optional(),
+    scoreTop: z.number().int().min(1).max(30).optional(),
     min: z.number().int().optional(),
     max: z.number().int().optional(),
     unit: Text(20).optional(),
@@ -138,6 +139,15 @@ export const IngredientSchema = z
     category: Text(60).optional(),
     image: z.string().url().optional(),
     description: Text(400).optional(),
+    nutrient: z
+      .object({
+        amount: z.number().positive().max(100_000),
+        unit: Req(20),
+        india: z.object({ male: z.number().positive(), female: z.number().positive() }).strict(),
+        global: z.object({ male: z.number().positive(), female: z.number().positive() }).strict(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 

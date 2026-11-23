@@ -17,9 +17,12 @@ import { suggestEmail } from "@/lib/emailTypo";
 export function EmailGate({
   teaser,
   loaderSteps,
+  knownEmail,
 }: {
   teaser: { count: number; names: string[] };
   loaderSteps: { title: string; body: string }[];
+  /** Assisted assessment: the email was given up front (masked here) — no form, just "See my report". */
+  knownEmail?: string;
 }) {
   const router = useRouter();
   const emailId = useId();
@@ -35,6 +38,7 @@ export function EmailGate({
 
   async function submit(e?: React.FormEvent, override?: string, accept = false) {
     e?.preventDefault();
+    if (knownEmail) return finish();
     const address = (override ?? email).trim();
     if (!/^\S+@\S+\.\S+$/.test(address)) {
       setError("Please enter a valid email address.");
@@ -56,6 +60,23 @@ export function EmailGate({
         api<{ token: string }>("/api/unlock", { method: "POST", body: JSON.stringify({ email: address, newsletter }) }),
         minimum,
       ]);
+      router.push(`/result/${token}`);
+    } catch (err) {
+      setLoading(false);
+      setBusy(false);
+      if (err instanceof ApiError && err.code === "NO_SESSION") router.replace("/");
+      else setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    }
+  }
+
+  /** Assisted: create the report and email it to the address given at the start. */
+  async function finish() {
+    setBusy(true);
+    setError(null);
+    setLoading(true);
+    const minimum = new Promise((r) => setTimeout(r, 4200));
+    try {
+      const [{ token }] = await Promise.all([api<{ token: string }>("/api/chat/finish", { method: "POST" }), minimum]);
       router.push(`/result/${token}`);
     } catch (err) {
       setLoading(false);
@@ -90,9 +111,21 @@ export function EmailGate({
           ))}
         </ul>
         <p className="mx-auto mt-5 max-w-sm text-[15px] text-muted">
-          Enter your email to see your full report — which COMPLETE+ ingredients support each area and why. We&rsquo;ll send you a copy too.
+          {knownEmail
+            ? `Your full report shows which COMPLETE+ ingredients support each area and why. We’ll also send a copy to ${knownEmail}.`
+            : "Enter your email to see your full report — which COMPLETE+ ingredients support each area and why. We’ll send you a copy too."}
         </p>
 
+        {knownEmail ? (
+          <div className="mx-auto mt-7 max-w-sm">
+            <Button size="lg" loading={busy} className="w-full" onClick={() => void finish()}>
+              See my report
+            </Button>
+            <p role="alert" aria-live="polite" className="mt-3 min-h-5 text-center text-sm text-ember-deep">
+              {error}
+            </p>
+          </div>
+        ) : (
         <form onSubmit={submit} className="mx-auto mt-7 max-w-sm text-left" noValidate>
           <label htmlFor={emailId} className="sr-only">
             Email address
@@ -169,6 +202,7 @@ export function EmailGate({
             <Lock className="h-3 w-3" aria-hidden /> Your answers are private and never sold.
           </p>
         </form>
+        )}
       </div>
 
       {/* Portalled to <body>: an animated (transformed) ancestor would otherwise
