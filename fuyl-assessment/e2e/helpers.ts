@@ -25,12 +25,12 @@ export function trackView(page: Page) {
 
 export async function startAssessment(page: Page, query = "") {
   await page.goto(`/${query}`);
-  await page.getByRole("checkbox").first().check();
+  // No consent checkbox: starting is agreeing to the text shown under the buttons.
   await page.getByRole("button", { name: "Start the assessment" }).click();
   await page.waitForURL("**/q");
 }
 
-const NEUTRAL = ["None of these", "All good", "No", "I feel energised", "I sleep well most nights", "Low — I feel balanced", "Comfortable and regular", "Rarely", "No, I feel sharp", "Never", "Non-vegetarian", "Lightly active", "15–30 minutes a day", "2–3", "4–5", "Under 4 hours", "0–1", "Every day", "Twice a week or more", "A few days", "None of these / doesn't apply"];
+const NEUTRAL = ["None of these — I feel good", "None of these", "All good", "No", "I feel energised", "I sleep well most nights", "Low — I feel balanced", "Comfortable and regular", "Rarely", "No, I feel sharp", "Never", "Non-vegetarian", "Lightly active", "15–30 minutes a day", "2–3", "4–5", "Under 4 hours", "0–1", "Every day", "Twice a week or more", "A few days", "None of these / doesn't apply"];
 
 function neutralAnswer(q: ClientQuestion): string | string[] {
   if (q.type === "text") return "Sam";
@@ -110,6 +110,12 @@ export async function browserFetch(page: Page, path: string, init: { method?: st
     },
     { path, init },
   );
+}
+
+/** Open the optional "Review or change your answers" section on the summary page. */
+export async function openReview(page: Page) {
+  const toggle = page.getByText("Review or change your answers");
+  if (!(await page.locator("details[open]").count())) await toggle.click();
 }
 
 export async function unlock(page: Page, email: string) {

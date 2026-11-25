@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { m } from "motion/react";
-import { BadgeCheck, Check, Clock, MessageCircle, FileText, Sparkles } from "lucide-react";
+import { ArrowRight, BadgeCheck, Clock, Mail, Sparkles, Target } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Honeypot, useHumanCheck } from "@/components/security/HumanCheck";
 import { api, ApiError, type StateResponse } from "@/lib/client";
 
-const ICONS = [Clock, MessageCircle, FileText];
+const ICONS = [Clock, Target, Mail];
 
 export function Welcome({
   copy,
@@ -25,28 +26,32 @@ export function Welcome({
 }) {
   const router = useRouter();
   const params = useSearchParams();
-  const consentId = useId();
-  const [consent, setConsent] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<null | "standard">(null);
   const [error, setError] = useState<string | null>(null);
-  const [resume, setResume] = useState<null | "standard" | "assisted">(null);
+  const human = useHumanCheck("start");
+  const [hp, setHp] = useState("");
+  // An unfinished assessment in this browser: how far along it is, so "Welcome back" can say so.
+  const [resume, setResume] = useState<null | { percent: number; done: boolean }>(null);
+  const expiredLink = params.get("resume") === "expired";
 
-  // Offer to resume an unfinished assessment in this browser.
   useEffect(() => {
     api<StateResponse>("/api/session")
       .then((r) => {
-        if (r.mode === "assisted" && r.state) setResume("assisted");
-        else if (r.state && r.state.path.length > 0) setResume("standard");
+        if (!r.state || (r.state.path.length === 0 && r.mode !== "assisted")) return;
+        const v = r.state.view;
+        setResume({ percent: v.kind === "question" ? Math.round(v.progress * 100) : 100, done: v.kind === "complete" });
       })
       .catch(() => {});
   }, []);
 
-  async function start() {
-    if (!consent) {
-      setError("Please tick the box to continue.");
+  /** Starting = agreeing to the consent text shown under the buttons. (Assisted starts on its own email screen.) */
+  async function start(mode: "standard") {
+    if (loading) return;
+    if (!human.ready) {
+      setError("Just a moment — we're checking you're human…");
       return;
     }
-    setLoading(true);
+    setLoading(mode);
     setError(null);
     const utm = Object.fromEntries(
       ["source", "medium", "campaign", "content", "term"]
@@ -54,11 +59,12 @@ export function Welcome({
         .filter(([, v]) => v),
     );
     try {
-      await api("/api/session", { method: "POST", body: JSON.stringify({ consent: true, utm }) });
+      await api("/api/session", { method: "POST", body: JSON.stringify({ consent: true, utm, hp, human: human.token ?? undefined }) });
       router.push("/q");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Something went wrong.");
-      setLoading(false);
+      setLoading(null);
+      human.reset();
     }
   }
 
@@ -66,6 +72,28 @@ export function Welcome({
 
   return (
     <div className="glass-strong mx-auto w-full max-w-xl rounded-[var(--radius-glass)] px-6 py-10 sm:px-12 sm:py-14">
+      {resume && (
+        <m.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 flex flex-col items-center gap-3 rounded-2xl bg-sage/60 p-5 text-center sm:flex-row sm:justify-between sm:text-left"
+        >
+          <div>
+            <p className="font-medium text-forest">Welcome back! Your answers are saved.</p>
+            <p className="mt-0.5 text-sm text-muted">
+              {resume.done ? "You've answered everything — your report is one step away." : `You're ${resume.percent}% through. Pick up where you left off.`}
+            </p>
+          </div>
+          <Button onClick={() => router.push(resume.done ? "/summary" : "/q")} className="shrink-0">
+            Continue <ArrowRight className="h-4 w-4" aria-hidden />
+          </Button>
+        </m.div>
+      )}
+      {expiredLink && !resume && (
+        <p role="status" className="mb-6 rounded-2xl bg-[#fdf0e3] px-4 py-3 text-center text-sm text-[#7a4a12]">
+          That continue link has expired or was already used up. Start again below — it only takes a few minutes.
+        </p>
+      )}
       <m.p
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -119,30 +147,13 @@ export function Welcome({
       </m.ul>
 
       <m.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 0.6 }} className="mt-10">
-        <label htmlFor={consentId} className="flex cursor-pointer items-start gap-3 rounded-2xl bg-white/50 p-4 text-left">
-          <span className="relative mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">
-            <input
-              id={consentId}
-              type="checkbox"
-              checked={consent}
-              onChange={(e) => {
-                setConsent(e.target.checked);
-                if (e.target.checked) setError(null);
-              }}
-              className="peer h-5 w-5 appearance-none rounded-md border border-line bg-white checked:border-forest checked:bg-forest"
-            />
-            <Check className="pointer-events-none absolute h-3.5 w-3.5 text-white opacity-0 peer-checked:opacity-100" aria-hidden />
-          </span>
-          <span className="text-[13px] leading-relaxed text-muted">{consentText}</span>
-        </label>
-
         <div className="mt-6 flex flex-col items-center gap-3">
           <div className={assisted ? "grid w-full gap-3 sm:grid-cols-2" : "contents"}>
-            <Button size="lg" onClick={start} loading={loading} className={assisted ? "w-full" : "w-full sm:w-auto"}>
+            <Button size="lg" onClick={() => start("standard")} loading={loading === "standard"} disabled={loading !== null} className={assisted ? "w-full" : "w-full sm:w-auto"}>
               Start the assessment
             </Button>
             {assisted && (
-              <Button size="lg" variant="glass" onClick={() => router.push("/chat")} className="w-full">
+              <Button size="lg" variant="glass" onClick={() => router.push("/chat")} disabled={loading !== null} className="w-full">
                 <Sparkles className="h-4 w-4 text-teal-deep" aria-hidden /> Assisted assessment
               </Button>
             )}
@@ -152,17 +163,12 @@ export function Welcome({
               Both ask one question at a time. Assisted also lets you answer in your own words — our AI assistant understands you.
             </p>
           )}
-          {resume && (
-            <button
-              onClick={() => router.push(resume === "assisted" ? "/chat" : "/q")}
-              className="text-sm text-teal-deep underline-offset-4 hover:underline"
-            >
-              Continue where you left off
-            </button>
-          )}
+          {human.widget}
+          <Honeypot value={hp} onChange={setHp} />
           <p role="alert" aria-live="polite" className="min-h-5 text-sm text-ember-deep">
             {error}
           </p>
+          <p className="max-w-md text-center text-xs leading-relaxed text-muted">{consentText}</p>
         </div>
       </m.div>
 

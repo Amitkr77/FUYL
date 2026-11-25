@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, m } from "motion/react";
 import { Check, Lock, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Honeypot, useHumanCheck } from "@/components/security/HumanCheck";
 import { api, ApiError } from "@/lib/client";
 import { suggestEmail } from "@/lib/emailTypo";
 
@@ -29,6 +30,8 @@ export function EmailGate({
   const optId = useId();
   const [email, setEmail] = useState("");
   const [newsletter, setNewsletter] = useState(false);
+  const human = useHumanCheck("unlock");
+  const [hp, setHp] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,17 +54,22 @@ export function EmailGate({
       return;
     }
     setSuggestion(null);
+    if (!human.ready) {
+      setError("Just a moment — we're checking you're human…");
+      return;
+    }
     setBusy(true);
     setError(null);
     setLoading(true);
-    const minimum = new Promise((r) => setTimeout(r, 4200));
+    const minimum = new Promise((r) => setTimeout(r, 1500));
     try {
       const [{ token }] = await Promise.all([
-        api<{ token: string }>("/api/unlock", { method: "POST", body: JSON.stringify({ email: address, newsletter }) }),
+        api<{ token: string }>("/api/unlock", { method: "POST", body: JSON.stringify({ email: address, newsletter, hp, human: human.token ?? undefined }) }),
         minimum,
       ]);
       router.push(`/result/${token}`);
     } catch (err) {
+      human.reset();
       setLoading(false);
       setBusy(false);
       if (err instanceof ApiError && err.code === "NO_SESSION") router.replace("/");
@@ -74,7 +82,7 @@ export function EmailGate({
     setBusy(true);
     setError(null);
     setLoading(true);
-    const minimum = new Promise((r) => setTimeout(r, 4200));
+    const minimum = new Promise((r) => setTimeout(r, 1500));
     try {
       const [{ token }] = await Promise.all([api<{ token: string }>("/api/chat/finish", { method: "POST" }), minimum]);
       router.push(`/result/${token}`);
@@ -99,12 +107,11 @@ export function EmailGate({
           {teaser.names.map((n, i) => (
             <m.li
               key={n}
-              initial={{ opacity: 0, y: 6, filter: "blur(6px)" }}
-              whileInView={{ opacity: 1, y: 0, filter: "blur(3px)" }}
+              initial={{ opacity: 0, y: 6 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="select-none rounded-full bg-white/70 px-4 py-1.5 text-sm text-forest"
-              aria-hidden
+              className="rounded-full bg-white/70 px-4 py-1.5 text-sm font-medium text-forest"
             >
               {n}
             </m.li>
@@ -113,7 +120,7 @@ export function EmailGate({
         <p className="mx-auto mt-5 max-w-sm text-[15px] text-muted">
           {knownEmail
             ? `Your full report shows which COMPLETE+ ingredients support each area and why. We’ll also send a copy to ${knownEmail}.`
-            : "Enter your email to see your full report — which COMPLETE+ ingredients support each area and why. We’ll send you a copy too."}
+            : "Enter your email to open your full report — which COMPLETE+ ingredients support each area, your safety check, and how one serve compares with your daily needs. We’ll email you a copy too."}
         </p>
 
         {knownEmail ? (
@@ -192,6 +199,8 @@ export function EmailGate({
             Send me occasional tips and offers from FUYL. (Optional — unsubscribe anytime.)
           </label>
 
+          <Honeypot value={hp} onChange={setHp} />
+          <div className="mt-4">{human.widget}</div>
           <Button type="submit" size="lg" loading={busy} className="mt-6 w-full">
             See my report
           </Button>
@@ -216,7 +225,7 @@ export function EmailGate({
 function Loader({ steps }: { steps: { title: string; body: string }[] }) {
   const [i, setI] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setI((x) => Math.min(x + 1, steps.length - 1)), 1100);
+    const t = setInterval(() => setI((x) => Math.min(x + 1, steps.length - 1)), 420);
     return () => clearInterval(t);
   }, [steps.length]);
 

@@ -1,4 +1,6 @@
 import {
+  buildContext,
+  maxScores,
   nextStep,
   prune,
   renderQuestionByKey,
@@ -48,6 +50,8 @@ export type View =
       /** Frontier only: questions answered so far and (estimated) still to come. */
       answered?: number;
       remaining?: number;
+      /** Frontier only, after a few answers: the focus areas emerging so far ("Energy", "Sleep"). */
+      preview?: string[];
       /** 0–1 overall progress estimate. */
       progress: number;
       /** Key to show when the user presses Back (undefined on the first question). */
@@ -90,6 +94,28 @@ const isQuestion = (kb: KnowledgeBase, key: string) => kb.questions.some((q) => 
 /** Keep only answered keys, in answered order. */
 const cleanPath = (path: string[], answers: Answers) => path.filter((k, i) => answers[k] && path.indexOf(k) === i);
 
+/** Answers before the "so far…" preview appears (enough for it to mean something). */
+const PREVIEW_AFTER = 6;
+
+/** The top focus areas emerging from the answers so far, by share of each area's maximum. */
+export function emergingAreas(kb: KnowledgeBase, answers: Answers, limit = 2): string[] {
+  const ctx = buildContext(kb, answers);
+  const max = maxScores(kb);
+  return kb.areas
+    .map((a) => ({ name: a.name, score: ctx.scores[a.key] ?? 0, fraction: max[a.key] ? (ctx.scores[a.key] ?? 0) / max[a.key] : 0 }))
+    .filter((a) => a.score > 0)
+    .sort((x, y) => y.fraction - x.fraction || y.score - x.score)
+    .slice(0, limit)
+    .map((a) => a.name);
+}
+
+/** The "Did you know?" line for an answer, if the chosen option has one. */
+export function insightFor(kb: KnowledgeBase, key: string, answer: Answer | undefined): string | undefined {
+  const q = kb.questions.find((x) => x.key === key);
+  if (!q || !answer?.values) return undefined;
+  return q.options?.find((o) => answer.values!.includes(o.value) && o.insight)?.insight;
+}
+
 /** The view at the frontier — the next unanswered question, a stop, or completion. */
 export function frontierView(kb: KnowledgeBase, answers: Answers, path: string[]): View {
   const step = nextStep(kb, answers);
@@ -103,6 +129,7 @@ export function frontierView(kb: KnowledgeBase, answers: Answers, path: string[]
     backKey,
     answered: step.answeredCount,
     remaining: step.remaining,
+    preview: step.answeredCount >= PREVIEW_AFTER ? emergingAreas(kb, prune(kb, answers)) : undefined,
   };
 }
 

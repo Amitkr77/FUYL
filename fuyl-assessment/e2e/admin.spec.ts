@@ -159,12 +159,11 @@ test.describe("admin", () => {
     await page.getByRole("button", { name: "Save settings" }).click();
     await expect(page.getByText("Saved.")).toBeVisible();
 
-    const start = async (email: string) => {
+    const start = async () => {
       const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
       const user = await ctx.newPage();
       await user.goto("/chat");
-      await user.getByLabel("Your email").fill(email);
-      await user.getByRole("checkbox").check();
+      await user.getByLabel("Your email").fill(`assisted.${Date.now()}@example.com`);
       await user.getByRole("button", { name: "Start my assessment" }).click();
       await user.waitForURL("**/q**");
       return { ctx, user };
@@ -173,7 +172,7 @@ test.describe("admin", () => {
 
     // Own words only, no AI: choice questions show just the typing box, and no AI requests are made.
     const before = await calls();
-    const a = await start("assisted.builtin@example.com");
+    const a = await start();
     await a.user.locator("main form input").first().fill("Dev");
     await a.user.getByRole("button", { name: "Continue" }).click();
     await expect(a.user.getByRole("heading", { name: "Nice to meet you, Dev. Which best describes you?" })).toBeVisible();
@@ -190,7 +189,7 @@ test.describe("admin", () => {
     await page.getByRole("radio", { name: /Full AI/ }).check();
     await page.getByRole("button", { name: "Save settings" }).click();
     await expect(page.getByText("Saved.")).toBeVisible();
-    const b = await start("assisted.full@example.com");
+    const b = await start();
     await b.user.locator("main form input").first().fill("Dev");
     await b.user.getByRole("button", { name: "Continue" }).click();
     await b.user.getByRole("radio", { name: "Male", exact: true }).click();
@@ -211,5 +210,16 @@ test.describe("admin", () => {
     await expect(page.getByText("Saved.")).toBeVisible();
     await page.goto("/admin/activity");
     await expect(page.getByText("assisted.settings", { exact: true }).first()).toBeVisible();
+  });
+
+  test("drop-off: shows where people leave, question by question", async ({ page }) => {
+    await page.goto("/admin/funnel");
+    await expect(page.getByRole("heading", { name: "Drop-off", exact: true })).toBeVisible();
+    await expect(page.getByText("Started", { exact: true })).toBeVisible();
+    await expect(page.getByText("Got their report", { exact: true })).toBeVisible();
+    // Sessions from the user project appear in the per-question table.
+    await expect(page.getByRole("cell", { name: /What should we call you\?/ })).toBeVisible();
+    await page.getByRole("link", { name: "assisted", exact: true }).click();
+    await expect(page).toHaveURL(/mode=assisted/);
   });
 });

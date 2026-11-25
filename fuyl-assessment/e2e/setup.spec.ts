@@ -11,7 +11,8 @@ import { adminLogin } from "./helpers";
 test.describe.configure({ mode: "serial" });
 
 test("the public assessment is closed until something is published", async ({ request }) => {
-  const res = await request.post("/api/session", { data: { consent: true } });
+  // A request from our own pages (the API refuses cross-site or origin-less writes).
+  const res = await request.post("/api/session", { data: { consent: true }, headers: { origin: E2E.baseURL } });
   expect(res.status()).toBe(503);
   expect((await res.json()).code).toBe("NOT_LIVE");
 });
@@ -48,6 +49,6 @@ test("admin signs in with an emailed code, publishes v1, and the assessment open
   await page.getByRole("button", { name: "Publish v1" }).click();
   await expect(page.getByText("Published v1.")).toBeVisible();
 
-  const res = await request.post("/api/session", { data: { consent: true } });
+  const res = await request.post("/api/session", { data: { consent: true }, headers: { origin: E2E.baseURL } });
   expect(res.status()).toBe(201);
 });

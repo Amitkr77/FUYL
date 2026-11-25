@@ -10,12 +10,12 @@ import { browserFetch, readMail, runAssessment, trackView } from "./helpers";
 
 const aiCalls = async (page: Page) => ((await (await page.request.get(`http://127.0.0.1:${E2E.storePort}/__ai`)).json()) as { calls: number }).calls;
 
+/** Assisted: email first (no checkbox — consent text sits under the button), then the question cards. */
 async function startAssisted(page: Page, email: string) {
   await page.goto("/");
   await page.getByRole("button", { name: "Assisted assessment" }).click();
   await page.waitForURL("**/chat");
   await page.getByLabel("Your email").fill(email);
-  await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Start my assessment" }).click();
   await page.waitForURL("**/q**");
   await expect(page.getByRole("heading", { name: "Let's get started. What should we call you?" })).toBeVisible();
@@ -44,13 +44,12 @@ test("the welcome screen offers both assessments; assisted asks for the email fi
   await page.getByRole("button", { name: "Assisted assessment" }).click();
   await page.waitForURL("**/chat");
   await expect(page.getByRole("heading", { name: "Assisted assessment" })).toBeVisible();
+  await expect(page.getByText(/^By starting, you agree to FUYL/)).toBeVisible();
+  await expect(page.getByRole("checkbox")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Start my assessment" }).click();
   await expect(page.getByText("Please enter a valid email address.")).toBeVisible();
   await page.getByLabel("Your email").fill("riya@gmial.com");
-  await page.getByRole("button", { name: "Start my assessment" }).click();
-  await expect(page.getByText("Please tick the box to continue.")).toBeVisible();
-  await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Start my assessment" }).click();
   await expect(page.getByText("Did you mean")).toBeVisible();
   await page.getByRole("button", { name: "riya@gmail.com" }).click();
@@ -150,9 +149,63 @@ test("the assist API rejects junk, other questions, and standard sessions", asyn
 
   // A standard session can't use typed answers.
   await page.goto("/");
-  await page.getByRole("checkbox").first().check();
   await page.getByRole("button", { name: "Start the assessment" }).click();
   await page.waitForURL("**/q");
   const std = await browserFetch(page, "/api/assist", { method: "POST", body: { key: "name", text: "Riya" } });
   expect(std.status).toBe(403);
+});
+
+/** Quoted-printable soft line breaks would split the link; join them back. */
+const decodeQp = (raw: string) => raw.replace(/=\r?\n/g, "").replace(/=3D/g, "=");
+
+test("leaving midway: answers are saved, one email links back to the exact question on any device", async ({ page, browser }) => {
+  const email = "assisted.resume@example.com";
+  await startAssisted(page, email);
+  await typeAnswer(page, "Leela", NAME_Q);
+  await page.getByRole("radio", { name: "Female", exact: true }).click();
+  await expect(page.getByRole("heading", { name: AGE_Q })).toBeVisible();
+
+  // The user leaves. The scheduled job finds the quiet assessment and emails a continue link.
+  const cron = () => page.request.get(`${E2E.baseURL}/api/cron/reminders`, { headers: { authorization: `Bearer ${E2E.cronSecret}` } });
+  const first = await cron();
+  expect(first.status()).toBe(200);
+  expect(await first.json()).toMatchObject({ ok: true });
+  let raw = "";
+  await expect
+    .poll(async () => {
+      raw = (await readMail(page, email)).find((m) => /answers are saved/.test(decodeQp(m.raw)))?.raw ?? "";
+      return raw;
+    })
+    .not.toBe("");
+  const body = decodeQp(raw);
+  expect(body).toMatch(/Hi Leela, your answers are saved/);
+  // No health answers in the email — just progress and the link.
+  expect(body).not.toMatch(/Female/);
+  const token = body.match(/\/resume\/([A-Za-z0-9_-]{16,64})/)?.[1];
+  expect(token).toBeTruthy();
+
+  // Only one reminder, however often the job runs.
+  await cron();
+  expect((await readMail(page, email)).filter((m) => /answers are saved/.test(decodeQp(m.raw)))).toHaveLength(1);
+
+  // A different device: the link opens the saved assessment at the exact question.
+  const other = await browser.newContext();
+  const p2 = await other.newPage();
+  await p2.goto(`/resume/${token}`);
+  await expect(p2).toHaveURL(/\/q/);
+  await expect(p2.getByRole("heading", { name: AGE_Q })).toBeVisible();
+  // The welcome screen there now says "Welcome back".
+  await p2.goto("/");
+  await expect(p2.getByText("Welcome back! Your answers are saved.")).toBeVisible();
+  await p2.getByRole("button", { name: /^Continue/ }).click();
+  await expect(p2.getByRole("heading", { name: AGE_Q })).toBeVisible();
+  await other.close();
+
+  // A broken or unknown link explains itself instead of failing.
+  await page.goto("/resume/not-a-real-token-1234567890");
+  await expect(page).toHaveURL(/resume=expired/);
+});
+
+test("the cron endpoint needs the secret", async ({ request }) => {
+  expect((await request.get("/api/cron/reminders")).status()).toBe(401);
 });

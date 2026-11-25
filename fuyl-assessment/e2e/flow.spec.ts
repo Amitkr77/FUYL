@@ -1,13 +1,17 @@
 import { expect, test } from "@playwright/test";
-import { browserFetch, runAssessment, startAssessment, trackView, unlock } from "./helpers";
+import { browserFetch, openReview, runAssessment, startAssessment, trackView, unlock } from "./helpers";
 
 /** Flow behaviour: consent, resume, edit-from-summary, email gate, links. */
 
-test("consent is required before starting", async ({ page }) => {
+test("no consent checkbox: the consent wording sits under the Start button, and starting records consent", async ({ page }) => {
   await page.goto("/");
+  await expect(page.getByText(/^By starting, you agree to FUYL using your answers/)).toBeVisible();
+  await expect(page.getByRole("checkbox")).toHaveCount(0);
   await page.getByRole("button", { name: "Start the assessment" }).click();
-  await expect(page.getByText("Please tick the box to continue.")).toBeVisible();
-  await expect(page).toHaveURL(/\/$/);
+  await page.waitForURL("**/q");
+  // Progress is shown by section and time left, not a question count.
+  await expect(page.getByText(/1 of 4/)).toBeVisible();
+  await expect(page.getByText(/min left|under a minute left/i)).toBeVisible();
 });
 
 test("a refresh mid-way resumes at the same question", async ({ page }) => {
@@ -37,6 +41,9 @@ test("editing an answer from the summary opens the new branch and updates the su
   const tracker = trackView(page);
   await startAssessment(page);
   await runAssessment(page, tracker, { sex: "Male", diet: "Vegetarian", dairy: "Every day" });
+  // The email step comes first; reviewing answers is optional and folded away.
+  await expect(page.getByRole("heading", { name: /Your report is ready/ })).toBeVisible();
+  await openReview(page);
   await expect(page.getByText("You follow a vegetarian diet.")).toBeVisible();
 
   tracker.reset();
@@ -47,6 +54,7 @@ test("editing an answer from the summary opens the new branch and updates the su
   await expect(page.getByRole("heading", { name: "How often do you eat fish?" })).toBeVisible();
   await page.getByRole("radio", { name: "Rarely or never", exact: true }).click();
   await page.waitForURL("**/summary");
+  await openReview(page);
   await expect(page.getByText("You follow a non-vegetarian diet.")).toBeVisible();
   await expect(page.getByText("You eat fish rarely.")).toBeVisible();
   await expect(page.getByText(/You have dairy/)).toHaveCount(0);

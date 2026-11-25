@@ -3,14 +3,26 @@ import type { Option, Question } from "@/engine";
 /**
  * The adaptive question graph (draft — for nutritionist review).
  *
- *   A · about     — always asked; answers shape everything after
- *   B · lifestyle — quick, always asked; a couple of follow-ups
- *   C · feel      — gate questions that unlock short deep-dive follow-ups
+ *   A · about     — basics, priorities, diet, and ONE "what have you noticed
+ *                   lately?" check-in that decides which areas get a deep dive
+ *   B · lifestyle — only the habits that matter for this person's areas
+ *   C · feel      — deep dives, shown only for areas the person ticked in the
+ *                   check-in or picked as a priority
  *   D · safety    — one gate; detail only if the user has a condition/medication
  *
- * `core` questions are always asked. `followup` questions are skipped once the
- * question cap is reached. Prompts may use {name}.
+ * So a person with no concerns answers ~12 questions, and someone with several
+ * gets deeper, relevant questions — nobody gets asked about areas that don't
+ * apply. `core` questions are never dropped by the question cap (but still obey
+ * showIf). Prompts may use {name}. `insight` lines appear after an answer.
  */
+
+/** True when the person ticked any of `noticed` in the check-in or picked any of `priorities`. */
+const relevant = (noticed: string[], priorities: string[]): Question["showIf"] => ({
+  any: [
+    ...(noticed.length ? [{ answer: "checkin", in: noticed }] : []),
+    ...(priorities.length ? [{ answer: "priorities", in: priorities }] : []),
+  ],
+});
 
 const none = (label = "None of these"): Option => ({ value: "none", label, exclusive: true, summary: null });
 
@@ -119,10 +131,10 @@ const about: Question[] = [
     why: "Some nutrients — like B12, iron and vitamin D — are harder to get from certain diets.",
     summaryTemplate: "You follow {answer}.",
     options: [
-      { value: "veg", label: "Vegetarian", summary: "a vegetarian diet", reason: "Your vegetarian diet can make B12 and iron harder to get", effects: [{ area: "nutrients", weight: 3 }, { area: "energy", weight: 1 }] },
+      { value: "veg", label: "Vegetarian", summary: "a vegetarian diet", reason: "Your vegetarian diet can make B12 and iron harder to get", effects: [{ area: "nutrients", weight: 3 }, { area: "energy", weight: 1 }], insight: "Did you know? Vitamin B12 comes almost only from animal foods, so vegetarians often run low. One serve of COMPLETE+ has 2.2 mcg — 100% of India's daily requirement." },
       { value: "eggetarian", label: "Eggetarian", info: "Vegetarian plus eggs.", summary: "an eggetarian diet", reason: "Your mostly vegetarian diet can leave gaps in B12 and iron", effects: [{ area: "nutrients", weight: 2 }] },
-      { value: "vegan", label: "Vegan", info: "No animal products, including dairy.", summary: "a vegan diet", reason: "Your vegan diet makes B12, iron and vitamin D harder to get", effects: [{ area: "nutrients", weight: 5 }, { area: "energy", weight: 1 }] },
-      { value: "jain", label: "Jain", info: "Vegetarian without root vegetables.", summary: "a Jain diet", reason: "Your Jain diet can make B12 and iron harder to get", effects: [{ area: "nutrients", weight: 3 }, { area: "energy", weight: 1 }] },
+      { value: "vegan", label: "Vegan", info: "No animal products, including dairy.", summary: "a vegan diet", reason: "Your vegan diet makes B12, iron and vitamin D harder to get", effects: [{ area: "nutrients", weight: 5 }, { area: "energy", weight: 1 }], insight: "Did you know? On a vegan diet, B12 and vitamin D are the two nutrients most worth watching. One serve covers 100% of India's daily need for both." },
+      { value: "jain", label: "Jain", info: "Vegetarian without root vegetables.", summary: "a Jain diet", reason: "Your Jain diet can make B12 and iron harder to get", effects: [{ area: "nutrients", weight: 3 }, { area: "energy", weight: 1 }], insight: "Did you know? Vitamin B12 comes almost only from animal foods. One serve of COMPLETE+ has 100% of India's daily B12 requirement." },
       { value: "nonveg", label: "Non-vegetarian", summary: "a non-vegetarian diet" },
     ],
   },
@@ -156,6 +168,28 @@ const about: Question[] = [
       { value: "often", label: "Twice a week or more", summary: "twice a week or more" },
       { value: "weekly", label: "About once a week", summary: "about once a week", effects: [{ area: "ageing", weight: 1 }] },
       { value: "rarely", label: "Rarely or never", summary: "rarely", reason: "You rarely eat fish, so omega-3s may be low", effects: [{ area: "ageing", weight: 2 }, { area: "nutrients", weight: 1 }] },
+    ],
+  },
+  {
+    key: "checkin",
+    block: "about",
+    order: 9,
+    type: "multi",
+    tier: "core",
+    prompt: "{name}, which of these have you noticed lately?",
+    helper: "Pick all that apply — we'll only ask about what matters to you.",
+    why: "Instead of asking everyone about everything, we ask a few focused questions about what you tick here.",
+    summaryTemplate: "Lately you've noticed {answer}.",
+    options: [
+      { value: "tired", label: "Low energy or tiredness", summary: "low energy", reason: "You've been feeling low on energy", effects: [{ area: "energy", weight: 3 }] },
+      { value: "sleep", label: "Trouble sleeping", summary: "trouble sleeping", reason: "You've been having trouble sleeping", effects: [{ area: "sleep", weight: 3 }] },
+      { value: "stress", label: "Feeling stressed or anxious", summary: "stress", reason: "You've been feeling stressed", effects: [{ area: "stress", weight: 3 }] },
+      { value: "gut", label: "Bloating or digestive discomfort", summary: "digestive discomfort", reason: "You've had digestive discomfort", effects: [{ area: "gut", weight: 3 }] },
+      { value: "colds", label: "Falling ill often", summary: "falling ill often", reason: "You've been falling ill often", effects: [{ area: "immunity", weight: 3 }] },
+      { value: "focus", label: "Brain fog or poor focus", summary: "brain fog", reason: "You've had trouble focusing", effects: [{ area: "focus", weight: 3 }] },
+      { value: "skin", label: "Skin, hair or nail concerns", summary: "skin, hair or nail concerns", reason: "You'd like healthier skin, hair or nails", effects: [{ area: "skin", weight: 2 }] },
+      { value: "joints", label: "Stiff joints or aches", summary: "stiff joints", reason: "You've noticed stiff joints or aches", effects: [{ area: "ageing", weight: 2 }] },
+      { value: "none", label: "None of these — I feel good", exclusive: true, summary: null, insight: "Great to hear! We'll focus on everyday nutrition and the priorities you picked." },
     ],
   },
 ];
@@ -221,11 +255,20 @@ const lifestyle: Question[] = [
     order: 4,
     type: "single",
     tier: "core",
+    // Vitamin D: bones, immunity, energy, plant-based diets and over-50s.
+    showIf: {
+      any: [
+        { answer: "checkin", in: ["tired", "colds", "joints"] },
+        { answer: "priorities", in: ["energy", "immunity", "ageing", "nutrients"] },
+        { answer: "diet", in: ["vegan"] },
+        { number: "age", gte: 50 },
+      ],
+    },
     prompt: "How much time do you spend in direct sunlight?",
     why: "Sunlight is the main way your body makes vitamin D — and many people in India don't get enough.",
     summaryTemplate: "You get {answer}.",
     options: [
-      { value: "rarely", label: "Hardly any", info: "Mostly indoors, commute by car or metro.", summary: "very little sunlight", reason: "You rarely get sunlight — a common cause of low vitamin D", effects: [{ area: "nutrients", weight: 3 }, { area: "immunity", weight: 1 }, { area: "ageing", weight: 1 }] },
+      { value: "rarely", label: "Hardly any", info: "Mostly indoors, commute by car or metro.", summary: "very little sunlight", reason: "You rarely get sunlight — a common cause of low vitamin D", effects: [{ area: "nutrients", weight: 3 }, { area: "immunity", weight: 1 }, { area: "ageing", weight: 1 }], insight: "Did you know? Despite the sunshine, low vitamin D is very common in India. One serve has 600 IU — 100% of the daily requirement." },
       { value: "some", label: "15–30 minutes a day", summary: "some sunlight most days", effects: [{ area: "nutrients", weight: 1 }] },
       { value: "lots", label: "More than 30 minutes a day", summary: "plenty of sunlight" },
     ],
@@ -236,6 +279,7 @@ const lifestyle: Question[] = [
     order: 5,
     type: "single",
     tier: "core",
+    showIf: relevant(["sleep", "focus", "tired", "skin"], ["sleep", "focus", "skin", "energy"]),
     prompt: "How many hours a day do you spend looking at screens?",
     why: "Long screen days affect focus, sleep and even skin.",
     summaryTemplate: "You spend {answer} on screens.",
@@ -251,13 +295,14 @@ const lifestyle: Question[] = [
     order: 6,
     type: "single",
     tier: "core",
+    showIf: relevant(["sleep", "stress", "tired"], ["sleep", "stress", "energy"]),
     prompt: "How many cups of tea or coffee do you have a day?",
     why: "Caffeine affects sleep and energy swings.",
     summaryTemplate: "You drink {answer}.",
     options: [
       { value: "0-1", label: "0–1", summary: "0–1 cups of tea or coffee a day" },
       { value: "2-3", label: "2–3", summary: "2–3 cups of tea or coffee a day" },
-      { value: "4+", label: "4 or more", summary: "4 or more cups of tea or coffee a day", reason: "You have 4+ cups of tea or coffee a day", effects: [{ area: "sleep", weight: 2 }, { area: "energy", weight: 1 }, { area: "stress", weight: 1 }] },
+      { value: "4+", label: "4 or more", summary: "4 or more cups of tea or coffee a day", reason: "You have 4+ cups of tea or coffee a day", effects: [{ area: "sleep", weight: 2 }, { area: "energy", weight: 1 }, { area: "stress", weight: 1 }], insight: "Tip: tea and coffee with meals can reduce iron absorption — try keeping them an hour apart from food." },
     ],
   },
   {
@@ -266,6 +311,7 @@ const lifestyle: Question[] = [
     order: 7,
     type: "single",
     tier: "core",
+    showIf: relevant(["tired", "sleep", "gut"], ["liver", "ageing", "sleep", "energy"]),
     prompt: "How often do you drink alcohol?",
     why: "Your liver processes alcohol, so it helps us understand your liver-support needs.",
     summaryTemplate: "You drink alcohol {answer}.",
@@ -282,6 +328,13 @@ const lifestyle: Question[] = [
     order: 8,
     type: "single",
     tier: "core",
+    showIf: {
+      any: [
+        { answer: "checkin", in: ["colds", "skin"] },
+        { answer: "priorities", in: ["ageing", "immunity", "skin"] },
+        { number: "age", gte: 40 },
+      ],
+    },
     prompt: "Do you smoke or use tobacco?",
     why: "Smoking increases oxidative stress and your need for antioxidants like vitamin C.",
     summaryTemplate: "{answer}.",
@@ -302,6 +355,7 @@ const feel: Question[] = [
     order: 1,
     type: "single",
     tier: "core",
+    showIf: relevant(["tired"], ["energy"]),
     prompt: "How are your energy levels on a typical day?",
     why: "Energy dips are one of the most common signs that your body needs better nutritional support.",
     summaryTemplate: "Your energy is {answer}.",
@@ -355,6 +409,7 @@ const feel: Question[] = [
     order: 4,
     type: "single",
     tier: "core",
+    showIf: relevant(["sleep"], ["sleep"]),
     prompt: "How well are you sleeping, {name}?",
     why: "Sleep affects energy, mood, focus and immunity.",
     summaryTemplate: "You {answer}.",
@@ -376,7 +431,7 @@ const feel: Question[] = [
     showIf: { answer: "sleep", in: ["falling", "waking", "unrested"] },
     summaryTemplate: "You sleep {answer} a night.",
     options: [
-      { value: "<5", label: "Less than 5", summary: "less than 5 hours", reason: "You sleep less than 5 hours a night", effects: [{ area: "sleep", weight: 3 }, { area: "energy", weight: 1 }] },
+      { value: "<5", label: "Less than 5", summary: "less than 5 hours", reason: "You sleep less than 5 hours a night", effects: [{ area: "sleep", weight: 3 }, { area: "energy", weight: 1 }], insight: "Did you know? Regularly sleeping under 5 hours affects energy, focus and immunity. Your report includes simple habits that help." },
       { value: "5-6", label: "5–6 hours", summary: "5–6 hours", reason: "You sleep only 5–6 hours a night", effects: [{ area: "sleep", weight: 2 }] },
       { value: "7-8", label: "7–8 hours", summary: "7–8 hours" },
       { value: "8+", label: "More than 8", summary: "more than 8 hours" },
@@ -409,6 +464,7 @@ const feel: Question[] = [
     order: 7,
     type: "single",
     tier: "core",
+    showIf: relevant(["stress"], ["stress"]),
     prompt: "How would you rate your stress lately?",
     why: "Ongoing stress affects sleep, digestion, focus and energy.",
     summaryTemplate: "Your stress has been {answer}.",
@@ -445,6 +501,7 @@ const feel: Question[] = [
     order: 9,
     type: "single",
     tier: "core",
+    showIf: { all: [{ answer: "priorities", in: ["gut"] }, { not: { answer: "checkin", in: ["gut"] } }] },
     prompt: "How's your digestion?",
     why: "Your gut affects energy, immunity and even mood.",
     summaryTemplate: "Your digestion is {answer}.",
@@ -462,7 +519,7 @@ const feel: Question[] = [
     prompt: "What do you notice?",
     helper: "Pick all that apply.",
     why: "Different symptoms point to different kinds of gut support.",
-    showIf: { answer: "gut", in: ["issues"] },
+    showIf: { any: [{ answer: "gut", in: ["issues"] }, { answer: "checkin", in: ["gut"] }] },
     summaryTemplate: "You notice {answer}.",
     options: [
       { value: "bloating", label: "Bloating", summary: "bloating", reason: "You get bloated", effects: [{ area: "gut", weight: 3 }] },
@@ -479,7 +536,7 @@ const feel: Question[] = [
     type: "single",
     tier: "followup",
     prompt: "How often does this happen?",
-    showIf: { answer: "gut", in: ["issues"] },
+    showIf: { any: [{ answer: "gut", in: ["issues"] }, { answer: "checkin", in: ["gut"] }] },
     summaryTemplate: "It happens {answer}.",
     options: [
       { value: "daily", label: "Most days", summary: "most days", reason: "Your gut is uncomfortable most days", effects: [{ area: "gut", weight: 3 }] },
@@ -495,7 +552,7 @@ const feel: Question[] = [
     tier: "followup",
     prompt: "Have you taken antibiotics in the last 3 months?",
     why: "Antibiotics can disturb the balance of good bacteria in your gut for weeks afterwards.",
-    showIf: { answer: "gut", in: ["issues"] },
+    showIf: { any: [{ answer: "gut", in: ["issues"] }, { answer: "checkin", in: ["gut"] }] },
     summaryTemplate: "{answer}.",
     options: [
       { value: "yes", label: "Yes", summary: "You've taken antibiotics recently", reason: "You've taken antibiotics recently", effects: [{ area: "gut", weight: 2 }] },
@@ -510,6 +567,7 @@ const feel: Question[] = [
     order: 13,
     type: "single",
     tier: "core",
+    showIf: relevant(["colds"], ["immunity"]),
     prompt: "How often do you catch a cold or fall ill?",
     why: "How often you fall ill is a simple signal of how your immune system is coping.",
     summaryTemplate: "You fall ill {answer}.",
@@ -541,6 +599,7 @@ const feel: Question[] = [
     order: 15,
     type: "single",
     tier: "core",
+    showIf: relevant(["focus"], ["focus"]),
     prompt: "Have you been dealing with brain fog lately?",
     why: "Focus and memory depend on nutrients like B vitamins and iodine.",
     summaryTemplate: "Your focus is {answer}.",
@@ -575,6 +634,7 @@ const feel: Question[] = [
     order: 17,
     type: "multi",
     tier: "core",
+    showIf: relevant(["skin"], ["skin"]),
     prompt: "Anything you'd like to improve about your skin, hair or nails?",
     helper: "Pick all that apply.",
     why: "Skin, hair and nails reflect your nutrition — biotin, zinc and vitamin C matter here.",
@@ -598,7 +658,7 @@ const feel: Question[] = [
     prompt: "Do any of these apply to you?",
     helper: "Pick all that apply.",
     why: "Bones, joints and heart health become more important with every decade.",
-    showIf: { any: [{ number: "age", gte: 40 }, { answer: "priorities", in: ["ageing"] }] },
+    showIf: { any: [{ number: "age", gte: 40 }, { answer: "priorities", in: ["ageing"] }, { answer: "checkin", in: ["joints"] }] },
     summaryTemplate: "You mentioned {answer}.",
     options: [
       { value: "joints", label: "Stiff joints", summary: "stiff joints", reason: "You have stiff joints", effects: [{ area: "ageing", weight: 3 }, { area: "fitness", weight: 1 }] },
@@ -656,7 +716,7 @@ const safety: Question[] = [
     order: 1,
     type: "single",
     tier: "core",
-    prompt: "Almost done, {name}. Do you have any ongoing health conditions, or take medicine regularly?",
+    prompt: "Last step, {name} — your health (about 30 seconds). Do you have any ongoing health conditions, or take medicine regularly?",
     why: "Some ingredients can interact with certain conditions or medicines. We'll flag anything you should check with your doctor.",
     summaryTemplate: "{answer}.",
     options: [

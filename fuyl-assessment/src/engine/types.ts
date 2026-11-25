@@ -51,6 +51,8 @@ export interface Option {
   flags?: string[];
   /** Selecting this clears every other selection (e.g. "None of these"). */
   exclusive?: boolean;
+  /** Short "Did you know?" line shown right after this answer (reviewed, claim-safe). */
+  insight?: string;
 }
 
 /** For `number` questions: effects/flags keyed by value range (inclusive bounds). */

@@ -3,18 +3,15 @@
  * Phase 6. Usage and timeline lines mirror FUYL's own FAQ on fuyl.in.
  */
 
-export const CONSENT_VERSION = "2026-11-21";
+export const CONSENT_VERSION = "2026-11-25";
 
 export const CONSENT_TEXT =
-  "I agree to FUYL using my answers, including health information, to personalise my recommendation. My answers are stored securely and deleted after 12 months.";
-
-export const CHAT_CONSENT_TEXT =
-  "I agree to FUYL using my answers, including health information, to personalise my recommendation. Answers I type in my own words may be processed by FUYL's AI provider to understand them; my email is never shared with it. Answers are stored securely and deleted after 12 months.";
+  "By starting, you agree to FUYL using your answers, including health information, to personalise your recommendation. Answers are stored securely and deleted after 12 months. In the assisted assessment, answers you type may be processed by FUYL's AI provider — never with your email — and if you stop midway we'll email you one link to continue."
 
 export const ASSISTED = {
   title: "Assisted assessment",
   body: "Enter your email to get a plan tailored just for you. Then answer each question by tapping an option or in your own words — our AI assistant understands everyday language. We'll send your report to this address.",
-  facts: ["Answer in your own words", "About 4 minutes", "Report to your inbox"],
+  facts: ["Answer in your own words", "About 3 minutes", "Report sent to your email"],
 };
 
 export const DISCLAIMER =
@@ -24,7 +21,7 @@ export const WELCOME = {
   eyebrow: "Personalised wellness assessment",
   title: "Find your FUYL match",
   body: "Answer a few questions about your body, lifestyle and goals. We'll show you how COMPLETE+ supports you — ingredient by ingredient.",
-  facts: ["About 3 minutes", "One question at a time", "Free personalised report"],
+  facts: ["About 3 minutes", "Only questions that matter to you", "Report sent to your email"],
 };
 
 export const LOADER_STEPS = [

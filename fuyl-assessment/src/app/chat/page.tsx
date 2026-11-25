@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ChatStart } from "@/components/chat/ChatStart";
 import { SiteHeader } from "@/components/ui/SiteHeader";
-import { ASSISTED, CHAT_CONSENT_TEXT } from "@/kb/copy";
+import { ASSISTED, CONSENT_TEXT } from "@/kb/copy";
 import { getAssistedSettings } from "@/lib/assisted";
 import { loadSession } from "@/lib/session";
 
@@ -24,7 +24,7 @@ export default async function AssistedStartPage() {
       <SiteHeader />
       <main className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:py-16">
         <Suspense>
-          <ChatStart copy={ASSISTED} consentText={CHAT_CONSENT_TEXT} />
+          <ChatStart copy={ASSISTED} consentText={CONSENT_TEXT} />
         </Suspense>
       </main>
     </>

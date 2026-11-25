@@ -188,7 +188,9 @@ export function QuestionEditor({
                     <Field label="Personal reason" hint="Shown under a focus area, e.g. “You often feel exhausted”.">
                       <input value={o.reason ?? ""} onChange={(e) => setOption(i, { reason: opt(e.target.value) })} className={inputCls} />
                     </Field>
-                    <div />
+                    <Field label="“Did you know?” insight (optional)" hint="Shown right after this answer. Keep it claim-safe.">
+                      <input value={o.insight ?? ""} onChange={(e) => setOption(i, { insight: opt(e.target.value) })} className={inputCls} />
+                    </Field>
                     <Field label="ⓘ Info (optional)">
                       <input value={o.info ?? ""} onChange={(e) => setOption(i, { info: opt(e.target.value) })} className={inputCls} />
                     </Field>

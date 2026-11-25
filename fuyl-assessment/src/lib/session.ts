@@ -20,7 +20,33 @@ export async function loadSession() {
   const sid = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!sid) return null;
   await connectDB();
-  return AssessmentSession.findById(sha256(sid));
+  const hash = sha256(sid);
+  // A browser that joined via a "continue" link has one of the session's extra ids.
+  return (await AssessmentSession.findById(hash)) ?? (await AssessmentSession.findOne({ altSids: hash }));
+}
+
+const setSessionCookie = async (sid: string) =>
+  (await cookies()).set(SESSION_COOKIE, sid, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: SESSION_TTL_DAYS * 86_400,
+  });
+
+/**
+ * Let this browser continue an existing session (opened from a "continue
+ * where you left off" email). Adds a fresh browser id to the session — the
+ * original browser keeps working too. Keeps the last few ids only.
+ */
+export async function joinSession(sessionId: string) {
+  await connectDB();
+  const sid = randomToken(32);
+  await AssessmentSession.updateOne(
+    { _id: sessionId },
+    { $push: { altSids: { $each: [sha256(sid)], $slice: -5 } }, $set: { expiresAt: daysFromNow(SESSION_TTL_DAYS) } },
+  );
+  await setSessionCookie(sid);
 }
 
 /** Start a fresh session (replacing any previous one in this browser). */
@@ -47,13 +73,7 @@ export async function createSession(input: {
     ...(input.chat ? { chat: input.chat } : {}),
     expiresAt: daysFromNow(SESSION_TTL_DAYS),
   });
-  (await cookies()).set(SESSION_COOKIE, sid, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: SESSION_TTL_DAYS * 86_400,
-  });
+  await setSessionCookie(sid);
   return doc;
 }
 

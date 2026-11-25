@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { fail, json, readJson, serverError } from "@/lib/api";
-import { clientIp, rateLimit } from "@/lib/rateLimit";
+import { clientIp, rateLimitShared } from "@/lib/rateLimit";
+import { verifyHuman } from "@/lib/humanCheck";
 import { loadSession } from "@/lib/session";
 import { submitSession } from "@/lib/submit";
 
@@ -9,6 +10,8 @@ export const dynamic = "force-dynamic";
 const UnlockBody = z.object({
   email: z.string().trim().toLowerCase().email("Please enter a valid email address.").max(200),
   newsletter: z.boolean().optional().default(false),
+  hp: z.string().max(200).optional(),
+  human: z.string().max(2048).optional(),
 });
 
 /**
@@ -17,9 +20,11 @@ const UnlockBody = z.object({
  */
 export async function POST(req: Request) {
   const ip = clientIp(req);
-  if (!rateLimit(`unlock:${ip}`, 8, 10 * 60_000).ok) return fail("Too many attempts. Please wait a few minutes.", 429);
+  if (!(await rateLimitShared(`unlock:${ip}`, 8, 10 * 60_000)).ok) return fail("Too many attempts. Please wait a few minutes.", 429);
   const body = UnlockBody.safeParse(await readJson(req));
   if (!body.success) return fail(body.error.issues[0]?.message ?? "Invalid request.", 422);
+  const human = await verifyHuman({ hp: body.data.hp, human: body.data.human, ip, action: "unlock" });
+  if (!human.ok) return fail(human.error, 403, { code: "HUMAN_CHECK" });
 
   try {
     const session = await loadSession();

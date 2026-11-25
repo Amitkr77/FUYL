@@ -2,7 +2,8 @@ import "server-only";
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
 
 const model = <T>(name: string, schema: Schema): Model<T> =>
-  (mongoose.models[name] as Model<T>) ?? mongoose.model<T>(name, schema);
+  // Untyped call + cast: the generic form sends newer mongoose typings into runaway recursion.
+  (mongoose.models[name] ?? mongoose.model(name, schema)) as unknown as Model<T>;
 
 // ─── Admin users ────────────────────────────────────────────────────────────
 
@@ -140,3 +141,18 @@ AiUsageSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export const AppSetting = model<InferSchemaType<typeof AppSettingSchema>>("AppSetting", AppSettingSchema);
 export const AiUsage = model<InferSchemaType<typeof AiUsageSchema>>("AiUsage", AiUsageSchema);
+
+// ─── Shared rate-limit counters ────────────────────────────────────────────
+
+/** One counter per key per fixed window, shared by every server instance; MongoDB deletes them when the window ends. */
+const RateBucketSchema = new Schema(
+  {
+    _id: { type: String, required: true }, // `${key}|${windowStart}`
+    count: { type: Number, default: 0 },
+    expiresAt: { type: Date, required: true },
+  },
+  { collection: "rate_buckets", versionKey: false },
+);
+RateBucketSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+export const RateBucket = model<InferSchemaType<typeof RateBucketSchema>>("RateBucket", RateBucketSchema);

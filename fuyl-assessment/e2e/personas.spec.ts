@@ -16,6 +16,7 @@ test("stressed desk worker on anxiety medicine → stress & sleep lead, consult 
     pregnancy: "None of these",
     priorities: ["Stress", "Sleep"],
     diet: "Vegetarian",
+    checkin: ["Feeling stressed or anxious", "Trouble sleeping"],
     dairy: "A few times a week",
     activity: "Mostly sitting",
     screen: "More than 8 hours",
@@ -33,7 +34,9 @@ test("stressed desk worker on anxiety medicine → stress & sleep lead, consult 
   expect(asked).toEqual(expect.arrayContaining(["pregnancy", "dairy", "stress_impact", "periods", "medications"]));
   expect(asked).not.toContain("fish");
 
-  await expect(page.getByRole("heading", { name: /Here’s what you told us, Riya/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Your report is ready, Riya/ })).toBeVisible();
+  // The focus areas are shown plainly before the email step.
+  await expect(page.getByRole("list", { name: "Your focus areas" })).toContainText("Stress");
   await unlock(page, "riya.e2e@example.com");
 
   await expect(page.getByRole("heading", { name: "Made for Riya" })).toBeVisible();
@@ -65,6 +68,7 @@ test("vegan runner → fitness first, B12 surfaced; no female-only or dairy ques
     age: "27",
     priorities: ["Fitness & recovery"],
     diet: "Vegan",
+    checkin: ["Low energy or tiredness"],
     activity: "Intense training",
     training: ["Running / cycling / cardio"],
     sun: "Hardly any",
@@ -86,7 +90,9 @@ test("person with no issues → short path, clean result", async ({ page }) => {
   await startAssessment(page);
   const { asked, end } = await runAssessment(page, tracker, { sex: "Male", priorities: ["Energy"] });
   expect(end).toBe("summary");
-  expect(asked.length).toBeLessThanOrEqual(22);
+  // Only what matters: no sleep, stress, gut or focus deep dives for someone who feels fine.
+  expect(asked.length).toBeLessThanOrEqual(16);
+  for (const k of ["sleep", "stress", "gut", "focus", "colds"]) expect(asked).not.toContain(k);
   await unlock(page, "sam.e2e@example.com");
   await expect(page.locator("article h3").first()).toHaveText("Energy");
   await expect(page.getByText("Before you start")).toHaveCount(0);
