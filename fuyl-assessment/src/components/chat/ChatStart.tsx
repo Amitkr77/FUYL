@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useId, useState } from "react";
 import { m } from "motion/react";
-import { Check, Clock, Mail, MessageCircle, Sparkles } from "lucide-react";
+import { Clock, Mail, MessageCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Honeypot, useHumanCheck } from "@/components/security/HumanCheck";
 import { api, ApiError } from "@/lib/client";
 import { suggestEmail } from "@/lib/emailTypo";
 
@@ -16,9 +17,9 @@ export function ChatStart({ copy, consentText }: { copy: { title: string; body: 
   const router = useRouter();
   const params = useSearchParams();
   const emailId = useId();
-  const consentId = useId();
   const [email, setEmail] = useState("");
-  const [consent, setConsent] = useState(false);
+  const human = useHumanCheck("start");
+  const [hp, setHp] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestion, setSuggestion] = useState<string | null>(null);
@@ -28,7 +29,6 @@ export function ChatStart({ copy, consentText }: { copy: { title: string; body: 
     e?.preventDefault();
     const address = (override ?? email).trim();
     if (!/^\S+@\S+\.\S+$/.test(address)) return setError("Please enter a valid email address.");
-    if (!consent) return setError("Please tick the box to continue.");
     const fix = suggestEmail(address);
     if (fix && !accept && confirmed !== address.toLowerCase()) {
       setSuggestion(fix);
@@ -36,16 +36,18 @@ export function ChatStart({ copy, consentText }: { copy: { title: string; body: 
       return;
     }
     setSuggestion(null);
+    if (!human.ready) return setError("Just a moment — we're checking you're human…");
     setBusy(true);
     setError(null);
     const utm = Object.fromEntries(
       ["source", "medium", "campaign", "content", "term"].map((k) => [k, params.get(`utm_${k}`) ?? undefined]).filter(([, v]) => v),
     );
     try {
-      await api("/api/chat/start", { method: "POST", body: JSON.stringify({ consent: true, email: address, utm }) });
+      await api("/api/chat/start", { method: "POST", body: JSON.stringify({ consent: true, email: address, utm, hp, human: human.token ?? undefined }) });
       router.push("/q");
     } catch (err) {
       setBusy(false);
+      human.reset();
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     }
   }
@@ -123,30 +125,16 @@ export function ChatStart({ copy, consentText }: { copy: { title: string; body: 
           </p>
         )}
 
-        <label htmlFor={consentId} className="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl bg-white/50 p-4 text-left">
-          <span className="relative mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">
-            <input
-              id={consentId}
-              type="checkbox"
-              checked={consent}
-              onChange={(e) => {
-                setConsent(e.target.checked);
-                if (e.target.checked) setError(null);
-              }}
-              className="peer h-5 w-5 appearance-none rounded-md border border-line bg-white checked:border-forest checked:bg-forest"
-            />
-            <Check className="pointer-events-none absolute h-3.5 w-3.5 text-white opacity-0 peer-checked:opacity-100" aria-hidden />
-          </span>
-          <span className="text-[13px] leading-relaxed text-muted">{consentText}</span>
-        </label>
-
+        <Honeypot value={hp} onChange={setHp} />
         <div className="mt-6 flex flex-col items-center gap-3">
+          {human.widget}
           <Button type="submit" size="lg" loading={busy} className="w-full sm:w-auto">
             Start my assessment
           </Button>
           <p role="alert" aria-live="polite" className="min-h-5 text-center text-sm text-ember-deep">
             {error}
           </p>
+          <p className="max-w-md text-center text-xs leading-relaxed text-muted">{consentText}</p>
           <Link href="/" className="text-sm text-teal-deep underline-offset-4 hover:underline">
             Prefer the standard assessment?
           </Link>

@@ -1,14 +1,16 @@
 /**
- * Bring an existing knowledge-base DRAFT up to date with seed changes that
- * shipped after it was created:
- *   - the priorities / training / stress_impact / focus_type questions allow
- *     any number of picks (maxSelect removed, scoreTop keeps match % calibrated)
- *   - vitamins & minerals get India (ICMR-NIN 2020) vs global (US NIH)
- *     daily reference values for the report comparison
+ * Bring an existing knowledge-base DRAFT up to date with question and data
+ * changes that shipped in the seed after the draft was created:
+ *   - personalised question flow: the "what have you noticed lately?" check-in,
+ *     deep dives and lifestyle questions shown only when relevant, honest
+ *     "last step" wording, "Did you know?" insights, no pick limits
+ *   - vitamins & minerals: India (ICMR-NIN 2020) vs global (US NIH) reference values
  *
- * Only those fields are touched; any other edits your team made are kept.
- * Every changed entry is marked "draft" so it goes through review again, and
- * nothing reaches users until an admin publishes.
+ * Questions are synced to the seed (new ones added, changed ones replaced) —
+ * the dry run lists every question that would change, so you can see if it
+ * would overwrite edits your team made. Ingredients only GAIN reference
+ * values; nothing else on them is touched. Every changed entry is marked
+ * "draft" for review, and nothing reaches users until an admin publishes.
  *
  *   npm run kb:upgrade            # dry run — shows what would change
  *   npm run kb:upgrade -- --apply # writes the draft
@@ -17,10 +19,18 @@ import mongoose from "mongoose";
 import { getDraft, saveDraft } from "../src/lib/admin/kbStore";
 import { markDraft, upsertEntity, type Reviews } from "../src/kb/draft";
 import { seedKnowledgeBase } from "../src/kb";
-import type { KnowledgeBase } from "../src/engine";
+import type { KnowledgeBase, Question } from "../src/engine";
 
 const apply = process.argv.includes("--apply");
-const QUESTION_KEYS = ["priorities", "training", "stress_impact", "focus_type"];
+
+/** Stable comparison (key order doesn't matter). */
+const canon = (v: unknown): string =>
+  JSON.stringify(v, (_k, val) => (val && typeof val === "object" && !Array.isArray(val) ? Object.fromEntries(Object.entries(val).sort(([a], [b]) => a.localeCompare(b))) : val));
+
+function changedFields(a: Question, b: Question): string[] {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  return [...keys].filter((k) => canon((a as unknown as Record<string, unknown>)[k]) !== canon((b as unknown as Record<string, unknown>)[k]));
+}
 
 async function main() {
   const seed = seedKnowledgeBase();
@@ -29,29 +39,29 @@ async function main() {
   let rev: Reviews = reviews;
   const changes: string[] = [];
 
-  for (const key of QUESTION_KEYS) {
-    const cur = kb.questions.find((q) => q.key === key);
-    const fresh = seed.questions.find((q) => q.key === key);
-    if (!cur || !fresh) continue;
-    if (cur.maxSelect === undefined && cur.scoreTop === fresh.scoreTop) continue;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { maxSelect: _drop, ...rest } = cur;
-    const next = { ...rest, scoreTop: fresh.scoreTop, helper: /up to \d/i.test(cur.helper ?? "") ? fresh.helper : cur.helper };
-    const r = upsertEntity(kb, "question", next, key);
-    if (!r.ok) throw new Error(`question ${key}: ${r.error}`);
+  const step = (type: "question" | "ingredient", value: unknown, originalKey: string | undefined, key: string, note: string) => {
+    const r = upsertEntity(kb, type, value, originalKey);
+    if (!r.ok) throw new Error(`${type} ${key}: ${r.error}${r.issues ? " — " + r.issues.map((i) => `${i.path}: ${i.message}`).join("; ") : ""}`);
     kb = r.kb;
-    rev = markDraft(rev, "question", key);
-    changes.push(`question "${key}": maxSelect ${cur.maxSelect ?? "—"} → none, scoreTop ${fresh.scoreTop}`);
-  }
+    rev = markDraft(rev, type, key);
+    changes.push(note);
+  };
 
+  // 1. New questions first (others' conditions may refer to them).
+  for (const q of seed.questions) {
+    if (!kb.questions.some((x) => x.key === q.key)) step("question", q, undefined, q.key, `+ question "${q.key}" (new)`);
+  }
+  // 2. Changed questions → the seed version.
+  for (const q of seed.questions) {
+    const cur = kb.questions.find((x) => x.key === q.key)!;
+    const diff = changedFields(cur, q);
+    if (diff.length) step("question", q, q.key, q.key, `~ question "${q.key}": ${diff.join(", ")}`);
+  }
+  // 3. Reference values for vitamins & minerals (added only where missing).
   for (const fresh of seed.ingredients.filter((i) => i.nutrient)) {
     const cur = kb.ingredients.find((i) => i.key === fresh.key);
     if (!cur || cur.nutrient) continue;
-    const r = upsertEntity(kb, "ingredient", { ...cur, nutrient: fresh.nutrient }, cur.key);
-    if (!r.ok) throw new Error(`ingredient ${cur.key}: ${r.error}`);
-    kb = r.kb;
-    rev = markDraft(rev, "ingredient", cur.key);
-    changes.push(`ingredient "${cur.key}": + India/global reference values`);
+    step("ingredient", { ...cur, nutrient: fresh.nutrient }, cur.key, cur.key, `+ ingredient "${cur.key}": India/global reference values`);
   }
 
   if (!changes.length) console.log("The draft is already up to date. Nothing to do.");

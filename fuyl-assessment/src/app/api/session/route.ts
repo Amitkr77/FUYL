@@ -2,7 +2,8 @@ import { z } from "zod";
 import { frontierView, type FlowState } from "@/flow/state";
 import { fail, json, readJson, serverError } from "@/lib/api";
 import { getKnowledgeBase, isAssessmentLive } from "@/lib/kb";
-import { clientIp, rateLimit } from "@/lib/rateLimit";
+import { clientIp, rateLimitShared } from "@/lib/rateLimit";
+import { verifyHuman } from "@/lib/humanCheck";
 import { createSession, loadSession, sessionAnswers } from "@/lib/session";
 import { CONSENT_VERSION } from "@/kb/copy";
 
@@ -12,6 +13,9 @@ const utmField = z.string().trim().max(120).optional();
 const StartBody = z.object({
   consent: z.literal(true, { errorMap: () => ({ message: "Please agree to continue." }) }),
   utm: z.object({ source: utmField, medium: utmField, campaign: utmField, content: utmField, term: utmField }).partial().optional(),
+  /** Honeypot (must stay empty) and Turnstile token. */
+  hp: z.string().max(200).optional(),
+  human: z.string().max(2048).optional(),
 });
 
 /** Resume: current state of this browser's session (or `null` if none). */
@@ -30,9 +34,11 @@ export async function GET() {
 
 /** Start a new assessment after consent. */
 export async function POST(req: Request) {
-  if (!rateLimit(`start:${clientIp(req)}`, 20, 10 * 60_000).ok) return fail("Too many attempts. Please wait a few minutes.", 429);
+  if (!(await rateLimitShared(`start:${clientIp(req)}`, 20, 10 * 60_000)).ok) return fail("Too many attempts. Please wait a few minutes.", 429);
   const body = StartBody.safeParse(await readJson(req));
   if (!body.success) return fail(body.error.issues[0]?.message ?? "Invalid request.", 400);
+  const human = await verifyHuman({ hp: body.data.hp, human: body.data.human, ip: clientIp(req), action: "start" });
+  if (!human.ok) return fail(human.error, 403, { code: "HUMAN_CHECK" });
   try {
     if (!(await isAssessmentLive())) return fail("The assessment isn't open yet. Please check back soon.", 503, { code: "NOT_LIVE" });
     const kb = await getKnowledgeBase();

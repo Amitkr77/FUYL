@@ -82,3 +82,33 @@ describe("summary of findings", () => {
     expect(r.findings!.points.find((p) => p.kind === "safety")!.text).toMatch(/^Check with your doctor before starting:/);
   });
 });
+
+describe("report visuals data", () => {
+  const r = buildResult(kb, { ...base, priorities: { values: ["energy", "sleep"] }, checkin: { values: ["tired", "sleep"] } });
+
+  it("profile covers every focus area with a 0–100 match, flagging the ones in the report", () => {
+    expect(r.profile).toHaveLength(kb.areas.length);
+    for (const p of r.profile!) expect(p.match).toBeGreaterThanOrEqual(0), expect(p.match).toBeLessThanOrEqual(100);
+    const shown = r.profile!.filter((p) => p.shown).map((p) => p.key).sort();
+    expect(shown).toEqual(r.areas.map((a) => a.key).sort());
+    // The profile's % for a shown area equals the area card's %.
+    for (const a of r.areas) expect(r.profile!.find((p) => p.key === a.key)!.match).toBe(a.match);
+  });
+
+  it("blends are ranked by mg, skip 'Other Ingredients', and count the ingredients matched to the person", () => {
+    const mg = r.blends!.filter((b) => b.mg).map((b) => b.mg!);
+    expect(mg).toEqual([...mg].sort((a, b) => b - a));
+    expect(r.blends!.some((b) => b.name === "Other Ingredients")).toBe(false);
+    const totalForYou = r.blends!.reduce((s, b) => s + b.forYou, 0);
+    expect(totalForYou).toBe(r.coverage.ingredientCount);
+    expect(r.blends!.find((b) => b.name === "Probiotics")!.mg).toBeUndefined();
+  });
+
+  it("each nutrient row carries both sexes' India and global needs, and its kind", () => {
+    const iron = r.nutrients!.rows.find((x) => x.key === "iron")!;
+    expect(iron.ref).toEqual({ india: { male: 19, female: 29 }, global: { male: 8, female: 18 } });
+    expect(iron.kind).toBe("mineral");
+    expect(r.nutrients!.rows.find((x) => x.key === "vitamin-c")!.kind).toBe("vitamin");
+    expect(r.nutrients!.rows.filter((x) => x.kind === "mineral")).toHaveLength(6);
+  });
+});

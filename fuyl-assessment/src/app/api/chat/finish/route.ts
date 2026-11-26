@@ -1,5 +1,5 @@
 import { fail, json, serverError } from "@/lib/api";
-import { clientIp, rateLimit } from "@/lib/rateLimit";
+import { clientIp, rateLimitShared } from "@/lib/rateLimit";
 import { loadSession } from "@/lib/session";
 import { submitSession } from "@/lib/submit";
 
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 /** The user confirmed the recap: create the report and email it to the address given at the start. */
 export async function POST(req: Request) {
-  if (!rateLimit(`chat-finish:${clientIp(req)}`, 10, 10 * 60_000).ok) return fail("Too many attempts. Please wait a few minutes.", 429);
+  if (!(await rateLimitShared(`chat-finish:${clientIp(req)}`, 10, 10 * 60_000)).ok) return fail("Too many attempts. Please wait a few minutes.", 429);
   try {
     const session = await loadSession();
     if (!session || session.mode !== "assisted" || !session.email) {

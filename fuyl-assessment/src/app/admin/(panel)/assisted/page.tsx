@@ -5,7 +5,7 @@ import { requireAdminPage } from "@/lib/admin/auth";
 import { aiUsageDays, getAssistedSettings } from "@/lib/assisted";
 import { connectDB } from "@/lib/db";
 import { env } from "@/lib/env";
-import { AssessmentSession } from "@/models/assessment";
+import { AssessmentSession, Submission } from "@/models/assessment";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +31,9 @@ export default async function AssistedPage() {
     AssessmentSession.countDocuments({ mode: "assisted", createdAt: { $gte: weekAgo } }),
     AssessmentSession.countDocuments({ mode: "assisted", status: "submitted", createdAt: { $gte: weekAgo } }),
   ]);
+  // Email is asked at the end, so it lives on the submission (older assisted sessions kept it on the session).
+  const subs = await Submission.find({ sessionId: { $in: chats.map((c) => c._id) } }, { sessionId: 1, email: 1 }).lean();
+  const emailBySession = new Map(subs.map((x) => [x.sessionId, x.email]));
   const today = usage.find((u) => u._id === utcToday());
   const hasKey = Boolean(env().GROQ_API_KEY);
 
@@ -76,7 +79,7 @@ export default async function AssistedPage() {
                           {fmtDate(c.createdAt)}
                         </Link>
                       </td>
-                      <td className="py-2.5 pr-3">{c.email ?? "—"}</td>
+                      <td className="py-2.5 pr-3">{emailBySession.get(c._id) ?? c.email ?? "—"}</td>
                       <td className="py-2.5 pr-3">
                         <Badge tone={STATUS_TONE[c.status as keyof typeof STATUS_TONE] ?? "neutral"}>{c.status}</Badge>
                       </td>

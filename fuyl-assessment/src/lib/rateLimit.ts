@@ -43,3 +43,27 @@ export function clientIp(req: Request): string {
   const fwd = req.headers.get("x-forwarded-for");
   return (fwd?.split(",")[0] ?? req.headers.get("x-real-ip") ?? "unknown").trim();
 }
+
+/**
+ * Rate limit shared by all server instances (MongoDB), for the public API.
+ * The in-memory limiter runs first as a cheap filter; if the database is
+ * unreachable we fall back to it rather than failing the request.
+ */
+export async function rateLimitShared(key: string, baseLimit: number, windowMs: number): Promise<{ ok: boolean }> {
+  if (!rateLimit(key, baseLimit, windowMs).ok) return { ok: false };
+  const limit = baseLimit * MULTIPLIER;
+  const windowStart = Math.floor(Date.now() / windowMs) * windowMs;
+  try {
+    const [{ connectDB }, { RateBucket }] = await Promise.all([import("@/lib/db"), import("@/models/admin")]);
+    await connectDB();
+    const doc = await RateBucket.findOneAndUpdate(
+      { _id: `${key}|${windowStart}` },
+      { $inc: { count: 1 }, $setOnInsert: { expiresAt: new Date(windowStart + windowMs) } },
+      { upsert: true, new: true },
+    ).lean();
+    return { ok: (doc?.count ?? 0) <= limit };
+  } catch (err) {
+    console.warn("[rateLimit] shared store unavailable, using in-memory only", err instanceof Error ? err.message : err);
+    return { ok: true };
+  }
+}

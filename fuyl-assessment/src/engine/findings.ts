@@ -1,4 +1,6 @@
-import type { Answers, AssessmentResult, Finding, KnowledgeBase, NutrientRow, ResultArea } from "./types";
+import type { Answers, AssessmentResult, BlendSummary, Finding, KnowledgeBase, NutrientRow, ResultArea } from "./types";
+
+const MINERALS = new Set(["magnesium", "zinc", "iron", "selenium", "iodine", "manganese", "calcium", "copper", "chromium", "potassium"]);
 
 /**
  * Report extras: the India-vs-global vitamin & mineral comparison and the
@@ -25,7 +27,18 @@ export function buildNutrients(kb: KnowledgeBase, answers: Answers): AssessmentR
       const n = i.nutrient!;
       const india = pick(n.india);
       const global = pick(n.global);
-      return { key: i.key, name: i.name, amount: n.amount, unit: n.unit, india, indiaPct: pct(n.amount, india), global, globalPct: pct(n.amount, global) };
+      return {
+        key: i.key,
+        name: i.name,
+        amount: n.amount,
+        unit: n.unit,
+        india,
+        indiaPct: pct(n.amount, india),
+        global,
+        globalPct: pct(n.amount, global),
+        ref: { india: n.india, global: n.global },
+        kind: MINERALS.has(i.key) ? ("mineral" as const) : ("vitamin" as const),
+      };
     });
   return rows.length ? { basis, rows } : undefined;
 }
@@ -89,4 +102,26 @@ export function buildFindings(input: {
   }
 
   return { headline, points };
+}
+
+/** "2,600 mg" → 2600; anything not in mg (e.g. CFU) → undefined. */
+export function doseMg(dose: string | undefined): number | undefined {
+  const m = dose?.match(/^([\d,.]+)\s*mg$/i);
+  return m ? Number(m[1].replace(/,/g, "")) : undefined;
+}
+
+/** The formula grouped by blend (largest first), with the ingredients that support this person's focus areas. */
+export function buildBlends(kb: KnowledgeBase, supporting: Set<string>): BlendSummary[] {
+  const byBlend = new Map<string, { dose: string; names: string[]; forYou: string[] }>();
+  for (const i of kb.ingredients) {
+    if (!i.blend || i.blend === "Other Ingredients") continue;
+    const dose = i.blendDose ?? (i.nutrient ? `${kb.ingredients.filter((x) => x.blend === i.blend).length} nutrients` : "");
+    const b = byBlend.get(i.blend) ?? { dose, names: [], forYou: [] };
+    b.names.push(i.name);
+    if (supporting.has(i.key)) b.forYou.push(i.name);
+    byBlend.set(i.blend, b);
+  }
+  return [...byBlend.entries()]
+    .map(([name, b]) => ({ name, dose: b.dose, mg: doseMg(b.dose), total: b.names.length, forYou: b.forYou.length, forYouNames: b.forYou }))
+    .sort((a, b) => (b.mg ?? -1) - (a.mg ?? -1) || b.total - a.total);
 }

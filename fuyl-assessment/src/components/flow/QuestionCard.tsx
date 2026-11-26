@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/Button";
  */
 export interface AssistProps {
   showOptions: boolean;
+  /** After a typed answer wasn't understood: draw attention to the tiles. */
+  highlightOptions?: boolean;
   /** Follow-up from the assistant when a typed answer wasn't clear. */
   clarify: string | null;
   onText: (text: string) => void;
@@ -63,12 +65,14 @@ export function QuestionCard({
       {question.why && <WhyWeAsk text={question.why} />}
 
       <div className="mt-8">
-        {question.type === "single" && (!assist || assist.showOptions) && (
-          <SingleChoice question={question} answer={answer} busy={busy} labelledBy={headingId} onSubmit={onSubmit} />
-        )}
-        {question.type === "multi" && (!assist || assist.showOptions) && (
-          <MultiChoice question={question} answer={answer} busy={busy} labelledBy={headingId} onSubmit={onSubmit} />
-        )}
+        <div className={clsx("rounded-3xl transition-shadow duration-500", assist?.highlightOptions && "shadow-[0_0_0_3px_rgba(85,132,118,0.35)] p-2")}>
+          {question.type === "single" && (!assist || assist.showOptions) && (
+            <SingleChoice question={question} answer={answer} busy={busy} labelledBy={headingId} onSubmit={onSubmit} />
+          )}
+          {question.type === "multi" && (!assist || assist.showOptions) && (
+            <MultiChoice question={question} answer={answer} busy={busy} labelledBy={headingId} onSubmit={onSubmit} />
+          )}
+        </div>
         {(question.type === "number" || question.type === "text") && (
           <FreeInput question={question} answer={answer} busy={busy} labelledBy={headingId} onSubmit={onSubmit} onText={assist?.onText} />
         )}
@@ -77,7 +81,13 @@ export function QuestionCard({
         )}
         {assist?.clarify && (
           <p role="status" className="mx-auto mt-4 flex max-w-md items-start justify-center gap-2 text-center text-sm text-teal-deep">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {assist.clarify}
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <span>
+              {assist.clarify}
+              {assist.highlightOptions && assist.showOptions && (question.type === "single" || question.type === "multi") && (
+                <strong className="block font-medium text-forest">Or just tap one of the answers above.</strong>
+              )}
+            </span>
           </p>
         )}
       </div>

@@ -26,6 +26,10 @@ const schema = z.object({
   SMTP_ALLOW_INSECURE: optional(z.enum(["true", "false"])),
   EMAIL_FROM: z.string().default("FUYL <hello@fuyl.in>"),
   CRON_SECRET: z.string().optional(),
+  /** Cloudflare Turnstile secret. When set, starting an assessment and unlocking a report require the human check. */
+  TURNSTILE_SECRET_KEY: optional(z.string()),
+  /** Minutes of inactivity before an unfinished assisted assessment gets its one "continue" reminder. */
+  REMINDER_IDLE_MINUTES: z.preprocess((v) => (v === "" || v === undefined ? 60 : Number(v)), z.number().int().min(0).max(7 * 24 * 60)),
   // Assisted assessment AI (Groq, OpenAI-compatible). Without a key the chat uses its built-in understanding.
   GROQ_API_KEY: optional(z.string()),
   GROQ_BASE_URL: z.preprocess((v) => (v === "" || v === undefined ? "https://api.groq.com/openai/v1" : v), z.string().url()),

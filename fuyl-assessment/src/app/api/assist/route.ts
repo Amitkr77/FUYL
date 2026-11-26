@@ -5,8 +5,10 @@ import { MAX_MESSAGE_CHARS, MAX_USER_TURNS, chatMessage, type ChatMessage } from
 import { fail, json, readJson, serverError } from "@/lib/api";
 import { recordAiUsage } from "@/lib/assisted";
 import { aiFor, type ChatSettings } from "@/lib/chat";
+import { insightFor } from "@/flow/state";
 import { getKnowledgeBase } from "@/lib/kb";
-import { clientIp, rateLimit } from "@/lib/rateLimit";
+import { clientIp, rateLimitShared } from "@/lib/rateLimit";
+import { checkPace } from "@/lib/humanCheck";
 import { loadSession, sessionAnswers } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +29,7 @@ const Body = z.object({
  * answer wasn't clear, leaving the question in place.
  */
 export async function POST(req: Request) {
-  if (!rateLimit(`assist:${clientIp(req)}`, 120, 10 * 60_000).ok) return fail("You're going very quickly. Please wait a moment.", 429);
+  if (!(await rateLimitShared(`assist:${clientIp(req)}`, 120, 10 * 60_000)).ok) return fail("You're going very quickly. Please wait a moment.", 429);
   const body = Body.safeParse(await readJson(req));
   if (!body.success) return fail(body.error.issues[0]?.message ?? "Invalid answer.", 400);
 
@@ -38,6 +40,14 @@ export async function POST(req: Request) {
     if (session.status === "submitted") return fail("This assessment is finished. Start a new one to change answers.", 409, { code: "SUBMITTED" });
     if ((session.chat.userTurns ?? 0) >= MAX_USER_TURNS) {
       return fail("You've typed a lot of answers — please tap one of the options to continue.", 429, { code: "TURN_LIMIT" });
+    }
+
+    const pace = checkPace(session);
+    session.lastAnswerAt = new Date();
+    session.fastStreak = pace.fastStreak;
+    if (!pace.ok) {
+      await session.save();
+      return fail("Answers are coming in faster than a person can tap. Please slow down a little.", 429, { code: "TOO_FAST" });
     }
 
     const kb = await getKnowledgeBase();
@@ -77,7 +87,7 @@ export async function POST(req: Request) {
     session.stoppedRule = step.kind === "stopped" ? step.rule.key : undefined;
     if (step.kind === "complete") session.completedAt ??= new Date();
     await session.save();
-    return json({ state: r.state, ack: r.ack, understood: r.understood });
+    return json({ state: r.state, ack: r.ack, understood: r.understood, insight: insightFor(kb, body.data.key, r.answers[body.data.key]) });
   } catch (err) {
     if (err instanceof Error && err.name === "VersionError") {
       return fail("Your answers were just updated in another tab or window. Loading the latest…", 409, { code: "STALE" });

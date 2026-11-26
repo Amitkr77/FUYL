@@ -2,19 +2,21 @@ import type { NextConfig } from "next";
 
 /**
  * Content-Security-Policy. Scripts, styles, fonts and API calls are same-origin
- * only; images may also come from the FUYL store CDN; no framing, plugins or
- * cross-site form posts. 'unsafe-inline' scripts are required by Next.js's
+ * only (plus Cloudflare Turnstile for the human check); images may also come
+ * from the FUYL store CDN; nobody may frame us; no plugins or cross-site form posts. 'unsafe-inline' scripts are required by Next.js's
  * inline bootstrap (a per-request nonce would remove it); 'unsafe-eval' is
  * added only in development for hot reload.
  */
 const isDev = process.env.NODE_ENV !== "production";
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://fuyl.in https://cdn.shopify.com",
   "font-src 'self'",
-  `connect-src 'self'${isDev ? " ws: wss:" : ""}`,
+  `connect-src 'self' https://challenges.cloudflare.com${isDev ? " ws: wss:" : ""}`,
+  // Cloudflare Turnstile (the human check) renders in a frame.
+  "frame-src https://challenges.cloudflare.com",
   "media-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",

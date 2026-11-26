@@ -58,6 +58,7 @@ export const OptionSchema = z
     effects: z.array(EffectSchema).max(20).optional(),
     flags: z.array(Key).max(10).optional(),
     exclusive: z.boolean().optional(),
+    insight: Text(240).optional(),
   })
   .strict();
 

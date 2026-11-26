@@ -93,7 +93,8 @@ export type SyncStateDoc = InferSchemaType<typeof SyncStateSchema>;
 
 // Re-use compiled models across dev hot reloads.
 const model = <T>(name: string, schema: Schema): Model<T> =>
-  (mongoose.models[name] as Model<T>) ?? mongoose.model<T>(name, schema);
+  // Untyped call + cast: the generic form sends newer mongoose typings into runaway recursion.
+  (mongoose.models[name] ?? mongoose.model(name, schema)) as unknown as Model<T>;
 
 export const StoreProduct = model<StoreProductDoc>("StoreProduct", StoreProductSchema);
 export const StoreIngredient = model<StoreIngredientDoc>("StoreIngredient", StoreIngredientSchema);

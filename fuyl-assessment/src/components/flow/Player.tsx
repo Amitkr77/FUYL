@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
-import { ArrowLeft, CheckCircle2, HeartPulse, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle2, HeartPulse, Lightbulb, Printer, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import type { AnswerInput } from "@/engine";
 import type { FlowState, View } from "@/flow/state";
 import { api, ApiError, type StateResponse } from "@/lib/client";
@@ -28,9 +28,11 @@ export function Player({ initialState, assisted }: { initialState?: FlowState; a
   const [error, setError] = useState<string | null>(null);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [fatal, setFatal] = useState<string | null>(null);
-  // Assisted mode: what the assistant understood from the last typed answer, or a follow-up question.
-  const [ack, setAck] = useState<{ text: string; understood: string[] } | null>(null);
+  // What to show above the next card: the assistant's reading of a typed answer and/or a "Did you know?" insight.
+  const [ack, setAck] = useState<{ text: string; understood: string[]; insight?: string } | null>(null);
   const [clarify, setClarify] = useState<string | null>(null);
+  // Typed answers the assistant couldn't place on the current question (after one, the tiles are highlighted).
+  const [misses, setMisses] = useState(0);
 
   // Browser history: each question gets its own entry (/q?q=<key>), so the
   // browser / Android Back button steps to the previous question instead of
@@ -151,6 +153,8 @@ export function Player({ initialState, assisted }: { initialState?: FlowState; a
         body: JSON.stringify({ key: state.view.question.key, input }),
       });
       setDirection(1);
+      setMisses(0);
+      if (r.insight) setAck({ text: "", understood: [], insight: r.insight });
       // Editing from the summary returns there once the branch is settled.
       if (editKey && r.state?.view.kind !== "stopped" && isAnsweredQuestion(r.state)) router.replace("/summary");
       else {
@@ -171,16 +175,18 @@ export function Player({ initialState, assisted }: { initialState?: FlowState; a
     setError(null);
     setClarify(null);
     try {
-      const r = await api<{ state?: FlowState; ack?: string; understood?: string[]; clarify?: string }>("/api/assist", {
+      const r = await api<{ state?: FlowState; ack?: string; understood?: string[]; clarify?: string; insight?: string }>("/api/assist", {
         method: "POST",
         body: JSON.stringify({ key: state.view.question.key, text }),
       });
       if (r.clarify || !r.state) {
         setClarify(r.clarify ?? "Could you say that a little differently?");
+        setMisses((n) => n + 1);
         return;
       }
       setDirection(1);
-      setAck({ text: r.ack ?? "", understood: r.understood ?? [] });
+      setMisses(0);
+      setAck({ text: r.ack ?? "", understood: r.understood ?? [], insight: r.insight });
       if (editKey && r.state.view.kind !== "stopped" && isAnsweredQuestion(r.state)) router.replace("/summary");
       else {
         setState(r.state);
@@ -206,6 +212,7 @@ export function Player({ initialState, assisted }: { initialState?: FlowState; a
     setError(null);
     setAck(null);
     setClarify(null);
+    setMisses(0);
     try {
       const r = await api<StateResponse>(`/api/question?key=${encodeURIComponent(key)}`);
       setDirection(-1);
@@ -267,33 +274,49 @@ export function Player({ initialState, assisted }: { initialState?: FlowState; a
       </div>
 
       {view?.kind === "question" && (
-        <div className="-mt-4 mb-4 flex items-center justify-between gap-3 px-1 text-xs text-muted" aria-live="polite">
-          <span className="rounded-full bg-white/60 px-2.5 py-1 font-medium uppercase tracking-[0.14em] text-teal-deep">
-            {BLOCK_LABEL[view.question.block] ?? ""}
-          </span>
-          <span className="tabular-nums">
-            {typeof view.answered === "number" && typeof view.remaining === "number"
-              ? `Question ${view.answered + 1}${view.remaining > 0 ? ` · about ${view.remaining} to go` : " · last one"}`
-              : "Changing an earlier answer"}
-          </span>
+        <div className="-mt-4 mb-4 px-1 text-xs text-muted" aria-live="polite">
+          <div className="flex items-center justify-between gap-3">
+            <span className="rounded-full bg-white/60 px-2.5 py-1 font-medium uppercase tracking-[0.14em] text-teal-deep">
+              {BLOCK_LABEL[view.question.block] ?? ""}
+              <span className="ml-1.5 font-normal normal-case tracking-normal text-muted">· {sectionOf(view.question.block)} of 4</span>
+            </span>
+            <span className="tabular-nums">{timeLeft(view)}</span>
+          </div>
+          {view.preview && view.preview.length > 0 && (
+            <p className="mt-2 flex items-center gap-1.5 text-forest">
+              <TrendingUp className="h-3.5 w-3.5 text-teal-deep" aria-hidden />
+              So far, <strong className="font-medium">{view.preview.join(" and ")}</strong> look{view.preview.length === 1 ? "s" : ""} like your focus
+              {view.preview.length === 1 ? " area" : " areas"}.
+            </p>
+          )}
         </div>
       )}
 
       <AnimatePresence>
-        {assisted && ack && view?.kind === "question" && (ack.text || ack.understood.length > 0) && (
+        {ack && view?.kind === "question" && (ack.text || ack.understood.length > 0 || ack.insight) && (
           <m.div
-            key={ack.understood.join("|") + ack.text}
+            key={ack.understood.join("|") + ack.text + (ack.insight ?? "")}
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             role="status"
-            className="glass mb-3 flex items-start gap-2 rounded-2xl px-4 py-3 text-sm text-forest"
+            className="glass mb-3 space-y-1.5 rounded-2xl px-4 py-3 text-sm text-forest"
           >
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-deep" aria-hidden />
-            <span>
-              {ack.text && <span className="mr-1">{ack.text}</span>}
-              {ack.understood.length > 0 && <span className="text-muted">Noted: {ack.understood.join(" · ")}</span>}
-            </span>
+            {(ack.text || ack.understood.length > 0) && (
+              <p className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-deep" aria-hidden />
+                <span>
+                  {ack.text && <span className="mr-1">{ack.text}</span>}
+                  {ack.understood.length > 0 && <span className="text-muted">Noted: {ack.understood.join(" · ")}</span>}
+                </span>
+              </p>
+            )}
+            {ack.insight && (
+              <p className="flex items-start gap-2">
+                <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-ember-deep" aria-hidden />
+                <span>{ack.insight}</span>
+              </p>
+            )}
           </m.div>
         )}
       </AnimatePresence>
@@ -318,7 +341,17 @@ export function Player({ initialState, assisted }: { initialState?: FlowState; a
                   busy={busy}
                   error={error}
                   onSubmit={submit}
-                  assist={assisted ? { showOptions: assisted.input === "chips", clarify, onText: freeText } : undefined}
+                  assist={
+                    assisted
+                      ? {
+                          // "Own words only" still reveals the tiles after two misunderstandings, so nobody gets stuck.
+                          showOptions: assisted.input === "chips" || misses >= 2,
+                          highlightOptions: misses >= 1,
+                          clarify,
+                          onText: freeText,
+                        }
+                      : undefined
+                  }
                 />
               )}
               {view.kind === "stopped" && <StopScreen title={view.title} message={view.message} />}
@@ -345,6 +378,17 @@ export function Player({ initialState, assisted }: { initialState?: FlowState; a
 }
 
 const BLOCK_LABEL: Record<string, string> = { about: "About you", lifestyle: "Your lifestyle", feel: "How you feel", safety: "Your health" };
+const SECTIONS = ["about", "lifestyle", "feel", "safety"];
+const sectionOf = (block: string) => Math.max(1, SECTIONS.indexOf(block) + 1);
+
+/** "About 2 min left" from the estimated questions still to come (~7 s each), with a halfway cheer. */
+function timeLeft(view: Extract<View, { kind: "question" }>): string {
+  if (typeof view.remaining !== "number") return "Changing an earlier answer";
+  if (view.remaining === 0) return "Last question";
+  const secs = (view.remaining + 1) * 7;
+  const time = secs < 50 ? "under a minute left" : `about ${Math.round(secs / 60)} min left`;
+  return view.progress >= 0.45 && view.progress < 0.6 ? `Halfway there · ${time}` : time.charAt(0).toUpperCase() + time.slice(1);
+}
 
 const viewKey = (v: View) => (v.kind === "question" ? `q:${v.question.key}` : v.kind);
 
@@ -389,9 +433,18 @@ function StopScreen({ title, message }: { title: string; message: string }) {
       <p className="mx-auto mt-6 max-w-md text-[13px] text-muted">
         Made a mistake? Use the back arrow above to change your answer.
       </p>
-      <a href="https://fuyl.in" className="mt-8 inline-block text-sm font-medium text-teal-deep underline-offset-4 hover:underline">
-        Visit fuyl.in
-      </a>
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-3 print:hidden">
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="glass inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm text-forest hover:bg-white/80"
+        >
+          <Printer className="h-4 w-4 text-teal-deep" aria-hidden /> Save this note for your doctor
+        </button>
+        <a href="https://fuyl.in" className="text-sm font-medium text-teal-deep underline-offset-4 hover:underline">
+          Visit fuyl.in
+        </a>
+      </div>
     </div>
   );
 }

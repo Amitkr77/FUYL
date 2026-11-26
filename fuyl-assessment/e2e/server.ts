@@ -176,6 +176,8 @@ async function main() {
       FUYL_STORE_URL: `http://127.0.0.1:${E2E.storePort}`,
       FUYL_PRODUCT_HANDLE: E2E.productHandle,
       CRON_SECRET: E2E.cronSecret,
+      REMINDER_IDLE_MINUTES: "0",
+      ALLOW_AUTOMATION: "true", // the suite drives a real browser — never set in production
       RATE_LIMIT_MULTIPLIER: "50",
       SMTP_HOST: "127.0.0.1",
       SMTP_PORT: String(E2E.smtpPort),

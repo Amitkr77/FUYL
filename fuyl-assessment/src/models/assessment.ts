@@ -26,6 +26,18 @@ const SessionSchema = new Schema(
     mode: { type: String, enum: ["standard", "assisted"], default: "standard" },
     /** Assisted only: email asked up front (the report goes here at the end). */
     email: { type: String, lowercase: true, trim: true },
+    /**
+     * Extra browser ids for this session (sha256), added when someone opens a
+     * "continue where you left off" link on another device or browser.
+     */
+    altSids: { type: [String], default: undefined },
+    /** sha256 of the token in the "continue" link we emailed (null until one is sent). */
+    resumeTokenHash: String,
+    /** When the one "your answers are saved" reminder was sent. */
+    reminderSentAt: Date,
+    /** Bot speed check: last answer time and how many answers in a row came in faster than a person can tap. */
+    lastAnswerAt: Date,
+    fastStreak: { type: Number, default: 0 },
     /** Assisted only: settings snapshot, transcript and the question the chat is waiting on. */
     chat: {
       settings: Schema.Types.Mixed,
@@ -43,6 +55,10 @@ SessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 // Admin transcript list and per-email start limit.
 SessionSchema.index({ mode: 1, createdAt: -1 });
 SessionSchema.index({ email: 1, createdAt: -1 });
+SessionSchema.index({ altSids: 1 }, { sparse: true });
+SessionSchema.index({ resumeTokenHash: 1 }, { sparse: true });
+// Reminder sweep: unfinished assisted sessions that have gone quiet.
+SessionSchema.index({ status: 1, reminderSentAt: 1, updatedAt: 1 });
 
 /**
  * A finished assessment, unlocked with an email. The result link token is
@@ -80,7 +96,8 @@ export type SessionDoc = InferSchemaType<typeof SessionSchema>;
 export type SubmissionDoc = InferSchemaType<typeof SubmissionSchema>;
 
 const model = <T>(name: string, schema: Schema): Model<T> =>
-  (mongoose.models[name] as Model<T>) ?? mongoose.model<T>(name, schema);
+  // Untyped call + cast: the generic form sends newer mongoose typings into runaway recursion.
+  (mongoose.models[name] ?? mongoose.model(name, schema)) as unknown as Model<T>;
 
 export const AssessmentSession = model<SessionDoc>("AssessmentSession", SessionSchema);
 export const Submission = model<SubmissionDoc>("Submission", SubmissionSchema);

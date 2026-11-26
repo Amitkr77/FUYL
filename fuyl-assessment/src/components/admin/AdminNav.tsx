@@ -6,6 +6,7 @@ import clsx from "clsx";
 import {
   Activity,
   ClipboardCheck,
+  TrendingDown,
   FlaskConical,
   HelpCircle,
   Inbox,
@@ -43,6 +44,7 @@ const SECTIONS = [
     title: "Operations",
     items: [
       { href: "/admin/submissions", label: "Submissions", icon: Inbox },
+      { href: "/admin/funnel", label: "Drop-off", icon: TrendingDown },
       { href: "/admin/sync", label: "fuyl.in sync", icon: RefreshCw },
       { href: "/admin/activity", label: "Activity log", icon: Activity },
       { href: "/admin/users", label: "Users", icon: Users, adminOnly: true },

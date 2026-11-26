@@ -5,7 +5,7 @@ import type { ChatMessage } from "@/chat/types";
 import { Badge, Card, PageHeader, fmtDate } from "@/components/admin/ui";
 import { requireAdminPage } from "@/lib/admin/auth";
 import { connectDB } from "@/lib/db";
-import { AssessmentSession } from "@/models/assessment";
+import { AssessmentSession, Submission } from "@/models/assessment";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,8 @@ export default async function Transcript({ params }: { params: Promise<{ id: str
   await connectDB();
   const s = await AssessmentSession.findOne({ _id: id, mode: "assisted" }).lean();
   if (!s) notFound();
+  const submission = await Submission.findOne({ sessionId: id }, { email: 1 }).lean();
+  const email = submission?.email ?? s.email;
   const messages = (s.chat?.messages ?? []) as ChatMessage[];
   const settings = (s.chat?.settings ?? {}) as Record<string, unknown>;
   const answers = (s.answers ?? {}) as Record<string, { values?: string[]; number?: number; text?: string }>;
@@ -29,7 +31,7 @@ export default async function Transcript({ params }: { params: Promise<{ id: str
       </Link>
       <PageHeader
         title="Typed answers"
-        description={`${s.email ?? "No email"} · started ${fmtDate(s.createdAt)} · ${String(settings.mode ?? "?")} mode, ${String(settings.provider ?? "?")}${settings.provider === "groq" ? ` (${String(settings.model)})` : ""}`}
+        description={`${email ?? "No email yet"} · started ${fmtDate(s.createdAt)} · ${String(settings.mode ?? "?")} mode, ${String(settings.provider ?? "?")}${settings.provider === "groq" ? ` (${String(settings.model)})` : ""}`}
       />
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         <Card title={messages.length ? `${messages.length / 2} typed answers` : "No typed answers — every question was answered by tapping"}>

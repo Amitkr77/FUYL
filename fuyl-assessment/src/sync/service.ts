@@ -72,7 +72,8 @@ export async function runSync(trigger: SyncTrigger): Promise<SyncSummary> {
         },
       };
     });
-    await StoreIngredient.bulkWrite(ops);
+    // Plain arrays are what MongoDB stores; the typings expect mongoose DocumentArrays.
+    await StoreIngredient.bulkWrite(ops as unknown as Parameters<typeof StoreIngredient.bulkWrite>[0]);
     // Cards that vanished from the site are kept but marked inactive.
     const titles = cards.map((c) => c.title);
     const gone = await StoreIngredient.find({ title: { $nin: titles }, active: true }, { title: 1 }).lean();

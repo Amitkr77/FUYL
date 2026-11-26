@@ -6,7 +6,10 @@ import { AlertTriangle, ArrowUpRight, CheckCircle2, Info, Leaf, Mail, MessageCir
 import type { AssessmentResult, ResultArea, SafetyNote } from "@/engine";
 import { Reveal } from "@/components/motion/Reveal";
 import { MatchBar, ParallaxImage, Stagger, StaggerItem, WordReveal } from "@/components/result/Motion";
-import { FindingsCard, NutrientComparison, nutrientNote } from "@/components/result/ReportSections";
+import { FindingsCard, nutrientNote, type FindingStats } from "@/components/result/ReportSections";
+import { FormulaBars } from "@/components/result/charts/FormulaBars";
+import { NutrientExplorer } from "@/components/result/charts/NutrientExplorer";
+import { ProfileRadar } from "@/components/result/charts/ProfileRadar";
 import { ResultActions, StickyCta } from "@/components/result/ResultActions";
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
@@ -37,6 +40,12 @@ export default async function ResultPage({ params }: { params: Promise<{ token: 
   // Live price/image from the latest fuyl.in sync (getProduct falls back safely).
   const product = await getProduct();
   const name = result.name;
+  const stats: FindingStats = {
+    areas: result.areas.length,
+    ingredients: result.coverage.ingredientCount,
+    nutrientsHalf: result.nutrients ? { count: result.nutrients.rows.filter((r) => r.indiaPct >= 50).length, total: result.nutrients.rows.length } : undefined,
+    safety: { level: result.safety.level, checks: result.safety.notes.filter((n) => n.level === "consult" || n.level === "caution").length },
+  };
 
   return (
     <>
@@ -79,7 +88,14 @@ export default async function ResultPage({ params }: { params: Promise<{ token: 
         {/* ── Summary of findings (first thing after the title) ── */}
         {result.findings && (
           <Reveal className="mt-14">
-            <FindingsCard findings={result.findings} />
+            <FindingsCard findings={result.findings} stats={result.showProduct ? stats : undefined} />
+          </Reveal>
+        )}
+
+        {/* ── Wellness profile: every area at a glance ── */}
+        {result.showProduct && result.profile && (
+          <Reveal className="mt-6">
+            <ProfileRadar profile={result.profile} />
           </Reveal>
         )}
 
@@ -126,7 +142,14 @@ export default async function ResultPage({ params }: { params: Promise<{ token: 
         {/* ── Vitamins & minerals: India vs global ── */}
         {result.showProduct && result.nutrients && (
           <Reveal className="mt-20">
-            <NutrientComparison nutrients={result.nutrients} />
+            <NutrientExplorer nutrients={result.nutrients} />
+          </Reveal>
+        )}
+
+        {/* ── What's inside: the formula by blend, matched blends highlighted ── */}
+        {result.showProduct && result.blends && (
+          <Reveal className="mt-6">
+            <FormulaBars blends={result.blends} />
           </Reveal>
         )}
 
@@ -243,7 +266,7 @@ function AreaCard({ area, index, nutrients }: { area: ResultArea; index: number;
             )}
             {area.reasons.map((r) => (
               <li key={r} className="flex gap-2 text-sm text-forest">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal" aria-hidden /> {r}
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-deep" aria-hidden /> {r}
               </li>
             ))}
           </ul>

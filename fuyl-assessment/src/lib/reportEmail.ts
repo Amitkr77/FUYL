@@ -42,6 +42,13 @@ export function buildReportEmail(input: {
     ? `<tr><td style="padding:18px 20px;background:#eef4e4;border-radius:14px">
         <div style="font:500 11px/1 Inter,Helvetica,Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#3f6b5e">Summary of your findings</div>
         <div style="font:600 17px/1.4 Inter,Helvetica,Arial,sans-serif;color:#12291f;margin-top:10px">${esc(result.findings.headline)}</div>
+        ${result.showProduct ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:12px"><tr>${[
+          [String(result.areas.length), result.areas.length === 1 ? "focus area" : "focus areas"],
+          [String(result.coverage.ingredientCount), "ingredients for you"],
+          ...(result.nutrients ? [[`${result.nutrients.rows.filter((r) => r.indiaPct >= 50).length}/${result.nutrients.rows.length}`, "nutrients 50%+ of India's need"]] : []),
+        ]
+          .map(([n, l]) => `<td style="padding:8px 14px 8px 0;vertical-align:top"><div style="font:700 22px/1 Inter,Helvetica,Arial,sans-serif;color:#12291f">${esc(n)}</div><div style="font:12px/1.4 Inter,Helvetica,Arial,sans-serif;color:#4a5a3a;margin-top:4px">${esc(l)}</div></td>`)
+          .join("")}</tr></table>` : ""}
         <ul style="margin:10px 0 0;padding-left:18px;font:14px/1.6 Inter,Helvetica,Arial,sans-serif;color:#12291f">${result.findings.points.map((p) => `<li style="margin-top:4px">${esc(p.text)}</li>`).join("")}</ul>
       </td></tr><tr><td style="height:12px"></td></tr>`
     : "";
