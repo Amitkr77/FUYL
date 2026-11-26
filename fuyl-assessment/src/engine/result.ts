@@ -1,5 +1,5 @@
 import { prune } from "./flow";
-import { buildFindings, buildNutrients } from "./findings";
+import { buildBlends, buildFindings, buildNutrients } from "./findings";
 import { evaluateSafety } from "./safety";
 import { bandFor, buildContext, maxScores } from "./scoring";
 import { buildSummary } from "./summary";
@@ -72,6 +72,10 @@ export function buildResult(kb: KnowledgeBase, rawAnswers: Answers): AssessmentR
   // Rank: user-picked priorities first, then everything else — each group by
   // match (share of the area's maximum), which is the % the user sees, so the
   // order always agrees with the numbers on screen. Ties: raw score, then KB order.
+  const all = kb.areas.map((a) => {
+    const score = ctx.scores[a.key] ?? 0;
+    return { area: a, score, fraction: max[a.key] ? Math.min(1, score / max[a.key]) : 0, isPriority: priorities.includes(a.key) };
+  });
   const ranked = kb.areas
     .map((a) => {
       const score = ctx.scores[a.key] ?? 0;
@@ -127,9 +131,15 @@ export function buildResult(kb: KnowledgeBase, rawAnswers: Answers): AssessmentR
   const name = firstName(kb, answers);
   const showProduct = safety.level !== "stop";
   const nutrients = buildNutrients(kb, answers);
+  const shownKeys = new Set(areas.map((a) => a.key));
+  const profile = all
+    .sort((x, y) => x.area.order - y.area.order)
+    .map(({ area, fraction, isPriority }) => ({ key: area.key, name: area.name, match: Math.round(fraction * 100), shown: shownKeys.has(area.key), isPriority }));
   return {
     kbVersion: kb.version,
     name,
+    profile,
+    blends: buildBlends(kb, supporting),
     findings: buildFindings({ name, areas, safety, showProduct, ingredientCount: supporting.size, nutrients }),
     nutrients,
     summary: buildSummary(kb, answers),

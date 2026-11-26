@@ -147,6 +147,33 @@ html.lenis body {
   animation: word-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* ── Report charts: the radar grows from its centre, bars fill from the left ── */
+@keyframes radar-grow {
+  from {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.radar-grow {
+  animation: radar-grow 1s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+}
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: none;
+  }
+}
+.bar-grow {
+  transform-origin: left center;
+  animation: bar-grow 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* ── Print / "Save as PDF" ───────────────────────────────────── */
 @media print {
   @page {

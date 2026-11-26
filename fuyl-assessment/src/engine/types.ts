@@ -274,6 +274,31 @@ export interface NutrientRow {
   indiaPct: number;
   global: number;
   globalPct: number;
+  /** Both sexes' requirements, for the Women / Men / Both switch on the report. */
+  ref?: { india: SexValues; global: SexValues };
+  kind?: "vitamin" | "mineral";
+}
+
+/** Match for every focus area (for the profile chart), not just the ones shown. */
+export interface ProfileArea {
+  key: string;
+  name: string;
+  /** 0–100 */
+  match: number;
+  shown: boolean;
+  isPriority: boolean;
+}
+
+/** One blend of the formula, with how many of its ingredients support this person's focus areas. */
+export interface BlendSummary {
+  name: string;
+  /** As printed on the label, e.g. "2,600 mg" or "2 billion CFU". */
+  dose: string;
+  /** Milligrams when the dose is in mg (for the bar), else undefined. */
+  mg?: number;
+  total: number;
+  forYou: number;
+  forYouNames: string[];
 }
 
 export interface Finding {
@@ -288,6 +313,10 @@ export interface AssessmentResult {
   findings?: { headline: string; points: Finding[] };
   /** Vitamin & mineral comparison: per serve vs daily needs in India and globally. */
   nutrients?: { basis: "male" | "female" | "adult"; rows: NutrientRow[] };
+  /** Every focus area's match, for the profile chart. */
+  profile?: ProfileArea[];
+  /** The formula by blend, with the ingredients matched to this person. */
+  blends?: BlendSummary[];
   summary: SummaryLine[];
   areas: ResultArea[];
   safety: { level: SafetyLevel | "none"; notes: SafetyNote[] };

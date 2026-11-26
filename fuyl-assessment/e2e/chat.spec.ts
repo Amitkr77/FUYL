@@ -99,7 +99,15 @@ test("own words + taps, understood by AI, through to the report and email", asyn
     await expect(page.getByRole("heading", { name: area, exact: true }).first()).toBeVisible();
   }
   await expect(page.getByRole("heading", { name: "One serve vs what you need a day" })).toBeVisible();
-  await expect(page.getByText("Daily needs shown for adult women.")).toBeVisible();
+  // The comparison starts on the person's own sex, and can switch to men or both.
+  await expect(page.getByRole("radio", { name: "Women" })).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("radio", { name: "Both" }).click();
+  await expect(page.getByText("India vs global — where they differ")).toBeVisible();
+  await expect(page.getByText(/India recommends more: .*Iron \(19 vs 8 mg\)/)).toBeVisible();
+  // Visual summary: headline numbers, the profile radar and the formula breakdown.
+  await expect(page.getByText("COMPLETE+ ingredients matched to you")).toBeVisible();
+  await expect(page.getByRole("img", { name: /^Wellness profile radar/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your COMPLETE+, blend by blend" })).toBeVisible();
 
   await expect.poll(async () => (await readMail(page, email)).length, { timeout: 15_000 }).toBeGreaterThan(0);
   const mail = (await readMail(page, email))[0].raw;
