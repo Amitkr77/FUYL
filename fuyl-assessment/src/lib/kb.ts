@@ -1,6 +1,6 @@
 import "server-only";
 import type { KnowledgeBase } from "@/engine";
-import { seedKnowledgeBase } from "@/kb";
+import { seedKnowledgeBase, withReferenceDefaults } from "@/kb";
 import { connectDB } from "@/lib/db";
 import { env } from "@/lib/env";
 import { KbVersion } from "@/models/admin";
@@ -44,6 +44,8 @@ async function load(): Promise<{ kb: KnowledgeBase; published: boolean }> {
   } catch (err) {
     console.error("[kb] store images unavailable, using KB only", err);
   }
+  // Until a reviewed version with India/global reference values is published, use the built-in ones.
+  kb = withReferenceDefaults(kb);
   const fresh: Cache = { version, at: Date.now(), kb, published: Boolean(latest) };
   g.__fuylKbCache = fresh;
   return fresh;

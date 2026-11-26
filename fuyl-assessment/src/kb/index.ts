@@ -28,4 +28,17 @@ export function seedKnowledgeBase(): KnowledgeBase {
   };
 }
 
+/**
+ * TEMPORARY fallback (until a version with reference values is reviewed and
+ * published): fill in the built-in India/global daily reference values for any
+ * vitamin or mineral the knowledge base doesn't have them for. Values set in
+ * the admin always win — this only fills gaps.
+ */
+const BUILT_IN_REFS = new Map(INGREDIENTS.filter((i) => i.nutrient).map((i) => [i.key, i.nutrient!]));
+
+export function withReferenceDefaults(kb: KnowledgeBase): KnowledgeBase {
+  if (kb.ingredients.every((i) => i.nutrient || !BUILT_IN_REFS.has(i.key))) return kb;
+  return { ...kb, ingredients: kb.ingredients.map((i) => (i.nutrient || !BUILT_IN_REFS.has(i.key) ? i : { ...i, nutrient: BUILT_IN_REFS.get(i.key) })) };
+}
+
 export { AREAS, INGREDIENTS, QUESTIONS, SAFETY_RULES };

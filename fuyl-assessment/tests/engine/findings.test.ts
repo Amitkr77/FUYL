@@ -88,7 +88,10 @@ describe("report visuals data", () => {
 
   it("profile covers every focus area with a 0–100 match, flagging the ones in the report", () => {
     expect(r.profile).toHaveLength(kb.areas.length);
-    for (const p of r.profile!) expect(p.match).toBeGreaterThanOrEqual(0), expect(p.match).toBeLessThanOrEqual(100);
+    for (const p of r.profile!) {
+      expect(p.match).toBeGreaterThanOrEqual(0);
+      expect(p.match).toBeLessThanOrEqual(100);
+    }
     const shown = r.profile!.filter((p) => p.shown).map((p) => p.key).sort();
     expect(shown).toEqual(r.areas.map((a) => a.key).sort());
     // The profile's % for a shown area equals the area card's %.
@@ -110,5 +113,25 @@ describe("report visuals data", () => {
     expect(iron.kind).toBe("mineral");
     expect(r.nutrients!.rows.find((x) => x.key === "vitamin-c")!.kind).toBe("vitamin");
     expect(r.nutrients!.rows.filter((x) => x.kind === "mineral")).toHaveLength(6);
+  });
+});
+
+describe("built-in reference fallback (until a reviewed version is published)", () => {
+  it("fills missing India/global values, but never overrides values set in the admin", async () => {
+    const { withReferenceDefaults } = await import("@/kb");
+    const stripped = { ...kb, ingredients: kb.ingredients.map((i) => ({ ...i, nutrient: undefined })) };
+    expect(buildResult(stripped, base).nutrients).toBeUndefined();
+
+    const filled = withReferenceDefaults(stripped);
+    expect(buildResult(filled, base).nutrients?.rows).toHaveLength(19);
+
+    const edited = {
+      ...stripped,
+      ingredients: stripped.ingredients.map((i) =>
+        i.key === "iron" ? { ...i, nutrient: { amount: 3, unit: "mg", india: { male: 20, female: 30 }, global: { male: 8, female: 18 } } } : i,
+      ),
+    };
+    const iron = buildResult(withReferenceDefaults(edited), base).nutrients!.rows.find((r) => r.key === "iron")!;
+    expect(iron.india).toBe(30);
   });
 });
