@@ -1,3 +1,4 @@
+import { ageGroupOf, refForAge } from "./ages";
 import { buildContext, maxScores } from "./scoring";
 import type { Answers, AssessmentResult, BlendSummary, Finding, KnowledgeBase, NutrientRow, ResultArea } from "./types";
 
@@ -57,13 +58,15 @@ export function buildNutrients(kb: KnowledgeBase, answers: Answers): AssessmentR
   const basis = nutrientBasis(answers);
   const intake = estimateIntake(kb, answers);
   const estimable = new Set((kb.foods ?? []).flatMap((f) => Object.keys(f.nutrients)));
+  const ageGroup = ageGroupOf(answers.age?.number);
   const pick = (v: { male: number; female: number }) => (basis === "adult" ? Math.max(v.male, v.female) : v[basis]);
   const rows: NutrientRow[] = kb.ingredients
     .filter((i) => i.nutrient)
     .map((i) => {
       const n = i.nutrient!;
-      const india = pick(n.india);
-      const global = pick(n.global);
+      const forAge = refForAge(n, ageGroup);
+      const india = pick(forAge.india);
+      const global = pick(forAge.global);
       return {
         key: i.key,
         name: i.name,
@@ -73,12 +76,12 @@ export function buildNutrients(kb: KnowledgeBase, answers: Answers): AssessmentR
         indiaPct: pct(n.amount, india),
         global,
         globalPct: pct(n.amount, global),
-        ref: { india: n.india, global: n.global },
+        ref: { india: n.india, global: n.global, ...(n.byAge ? { byAge: n.byAge } : {}) },
         kind: MINERALS.has(i.key) ? ("mineral" as const) : ("vitamin" as const),
         ...(intake && estimable.has(i.key) ? { diet: Math.round((intake[i.key] ?? 0) * 10) / 10 } : {}),
       };
     });
-  return rows.length ? { basis, rows, primary: primaryGuideline(answers), dietEstimated: Boolean(intake) } : undefined;
+  return rows.length ? { basis, ageGroup, rows, primary: primaryGuideline(answers), dietEstimated: Boolean(intake) } : undefined;
 }
 
 const joinNames = (names: string[]) =>

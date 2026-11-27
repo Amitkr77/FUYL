@@ -8,3 +8,4 @@ export { buildSummary } from "./summary";
 export { buildResult, priorityAreas } from "./result";
 export { checkKnowledgeBase, simulateReachable, type CheckIssue } from "./check";
 export { firstName, render } from "./text";
+export { AGE_GROUPS, ageGroupOf, refForAge } from "./ages";

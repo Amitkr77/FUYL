@@ -162,6 +162,17 @@ export const IngredientSchema = z
         unit: Req(20),
         india: z.object({ male: z.number().positive(), female: z.number().positive() }).strict(),
         global: z.object({ male: z.number().positive(), female: z.number().positive() }).strict(),
+        byAge: z
+          .record(
+            z.enum(["19-30", "31-50", "51-70", "71+"]),
+            z
+              .object({
+                india: z.object({ male: z.number().positive(), female: z.number().positive() }).strict().optional(),
+                global: z.object({ male: z.number().positive(), female: z.number().positive() }).strict().optional(),
+              })
+              .strict(),
+          )
+          .optional(),
       })
       .strict()
       .optional(),

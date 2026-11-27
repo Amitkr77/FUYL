@@ -130,7 +130,10 @@ export const INGREDIENTS: Ingredient[] = [
 //          remaining women's values are DRAFT and must be confirmed by the
 //          nutritionist in /admin before publishing.
 // Global — US National Institutes of Health (Office of Dietary Supplements)
-//          RDA/AI for adults 19–50 (magnesium: 31–50).
+//          RDA/AI for adults 31–50 (the same as 19–50 except magnesium).
+// By age — ICMR-NIN 2020 gives one set of adult values (no age bands), so
+//          India's needs don't change with age. NIH values that differ by age
+//          group are in AGE_OVERRIDES below.
 const ref = (amount: number, unit: string, india: [number, number], global: [number, number]): NutrientRef => ({
   amount,
   unit,
@@ -159,5 +162,14 @@ const NUTRIENT_REFS: Record<string, NutrientRef> = {
   iodine: ref(50, "mcg", [140, 140], [150, 150]),
   manganese: ref(0.7, "mg", [4, 4], [2.3, 1.8]),
 };
+
+/** NIH RDA/AI where an adult age group differs from 31–50 (ods.od.nih.gov fact sheets). */
+const AGE_OVERRIDES: Record<string, NonNullable<NutrientRef["byAge"]>> = {
+  magnesium: { "19-30": { global: { male: 400, female: 310 } } },
+  "vitamin-b6": { "51-70": { global: { male: 1.7, female: 1.5 } }, "71+": { global: { male: 1.7, female: 1.5 } } },
+  iron: { "51-70": { global: { male: 8, female: 8 } }, "71+": { global: { male: 8, female: 8 } } },
+  "vitamin-d3": { "71+": { global: { male: 800, female: 800 } } },
+};
+for (const [key, byAge] of Object.entries(AGE_OVERRIDES)) NUTRIENT_REFS[key] = { ...NUTRIENT_REFS[key], byAge };
 
 for (const i of INGREDIENTS) if (NUTRIENT_REFS[i.key]) i.nutrient = NUTRIENT_REFS[i.key];

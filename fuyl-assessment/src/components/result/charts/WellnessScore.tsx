@@ -17,8 +17,8 @@ export function WellnessScore({ wellness }: { wellness: Wellness }) {
   const c = 2 * Math.PI * r;
   const color = ringColor(wellness.score);
   return (
-    <section aria-labelledby="wellness-heading" className="glass-strong rounded-[var(--radius-glass)] p-6 sm:p-8">
-      <div className="grid items-center gap-8 md:grid-cols-[auto_minmax(0,1fr)]">
+    <section aria-labelledby="wellness-heading" className="@container glass-strong rounded-[var(--radius-glass)] p-6 sm:p-8">
+      <div className="grid items-center gap-8 @xl:grid-cols-[auto_minmax(0,1fr)]">
         <div className="flex flex-col items-center text-center">
           <p id="wellness-heading" className="text-xs font-medium uppercase tracking-[0.2em] text-teal-deep">
             Overall wellness score
@@ -52,7 +52,7 @@ export function WellnessScore({ wellness }: { wellness: Wellness }) {
           <p className="mt-1 text-sm text-muted">Higher is better. Based on how you said you feel and your daily habits — not a medical test.</p>
           <ul className="mt-5 space-y-3">
             {wellness.pillars.map((p) => (
-              <li key={p.key} className="grid grid-cols-[7.5rem_minmax(0,1fr)_2.5rem] items-center gap-3 text-sm" title={`${p.name}: ${p.score}/100`}>
+              <li key={p.key} className="grid grid-cols-[6.5rem_minmax(0,1fr)_2.25rem] items-center gap-3 text-sm @sm:grid-cols-[7.5rem_minmax(0,1fr)_2.5rem]" title={`${p.name}: ${p.score}/100`}>
                 <span className="text-forest">{p.name}</span>
                 <span className="relative h-2.5 rounded-full" style={{ background: TRACK }} aria-hidden>
                   <span className="bar-grow absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.max(2, p.score)}%`, background: COVERAGE[2] }} />

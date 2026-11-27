@@ -172,14 +172,22 @@ export interface SexValues {
   female: number;
 }
 
+/** Adult age groups for daily reference values. */
+export type AgeGroup = "19-30" | "31-50" | "51-70" | "71+";
+
+/** Values for age groups that differ from the base (31–50) values. */
+export type AgeOverrides = Partial<Record<AgeGroup, { india?: SexValues; global?: SexValues }>>;
+
 export interface NutrientRef {
   /** Amount per serve, in `unit` (matches the label dose). */
   amount: number;
   unit: string;
   /** India: ICMR-NIN 2020 RDA/AI for adults (sedentary). */
   india: SexValues;
-  /** Global: US National Institutes of Health RDA/AI for adults (19–50). */
+  /** Global: US National Institutes of Health RDA/AI for adults (31–50). */
   global: SexValues;
+  /** Where another adult age group needs a different amount. */
+  byAge?: AgeOverrides;
 }
 
 export type SafetyLevel = "info" | "caution" | "consult" | "stop";
@@ -314,7 +322,7 @@ export interface NutrientRow {
   global: number;
   globalPct: number;
   /** Both sexes' requirements, for the Women / Men / Both switch on the report. */
-  ref?: { india: SexValues; global: SexValues };
+  ref?: { india: SexValues; global: SexValues; byAge?: AgeOverrides };
   kind?: "vitamin" | "mineral";
   /** Estimated daily intake from the person's diet (same unit), when it can be estimated. */
   diet?: number;
@@ -355,6 +363,8 @@ export interface AssessmentResult {
   /** Vitamin & mineral comparison: per serve vs daily needs in India and globally. */
   nutrients?: {
     basis: "male" | "female" | "adult";
+    /** The person's age group (rows' india/global values are for this group). */
+    ageGroup?: AgeGroup;
     rows: NutrientRow[];
     /** Which guideline leads (India for people in India, else global). */
     primary?: "india" | "global";

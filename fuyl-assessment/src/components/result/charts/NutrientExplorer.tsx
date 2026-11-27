@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { ArrowRightLeft, Table2, BarChart3 } from "lucide-react";
-import type { AssessmentResult, NutrientRow } from "@/engine";
+import { AGE_GROUPS, refForAge, type AgeGroup, type AssessmentResult, type NutrientRow } from "@/engine";
 import { AMOUNT, COVERAGE, DIET, GLOBAL, INDIA, SERVE, TRACK } from "./palette";
 
 /**
@@ -179,36 +179,40 @@ function Seg<T extends string>({ value, onChange, options, label }: { value: T; 
 }
 
 export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<AssessmentResult["nutrients"]> }) {
-  const hasRef = nutrients.rows.every((r) => r.ref);
+  // Age group: the person's own to start with; only global values change by age (ICMR-NIN has one set for adults).
+  const [age, setAge] = useState<AgeGroup>(nutrients.ageGroup ?? "31-50");
+  const hasAges = nutrients.rows.some((r) => r.ref?.byAge);
+  const rowsForAge = useMemo(() => nutrients.rows.map((r) => (r.ref ? { ...r, ref: refForAge(r.ref, age) } : r)), [nutrients.rows, age]);
+  const hasRef = rowsForAge.every((r) => r.ref);
   const [view, setView] = useState<View>(nutrients.basis === "adult" || !hasRef ? (hasRef ? "both" : "female") : nutrients.basis);
   const [kind, setKind] = useState<"all" | "vitamin" | "mineral">("all");
   const [asTable, setAsTable] = useState(false);
   // Simple first: India's daily need only. The global comparison (and the women/men switch) is opt-in.
   const [compare, setCompare] = useState(false);
   const primary: Guideline = nutrients.primary ?? "india";
-  const hasDiet = Boolean(nutrients.dietEstimated) && nutrients.rows.some((r) => r.diet !== undefined);
+  const hasDiet = Boolean(nutrients.dietEstimated) && rowsForAge.some((r) => r.diet !== undefined);
   const needFor = (r: NutrientRow, sex: Sex | "max") => (primary === "global" && !compare ? needs(r, sex).global : needs(r, sex).india);
   const guidelineName = primary === "global" && !compare ? "global" : "India's";
 
-  const rows = nutrients.rows.filter((r) => kind === "all" || r.kind === kind);
+  const rows = rowsForAge.filter((r) => kind === "all" || r.kind === kind);
   const sexFor = (v: View): Sex | "max" => (v === "both" ? "max" : v);
 
   // Coverage groups for the selected requirement (Both → the higher, stricter value).
   const bins = useMemo(() => {
     const counts = BINS.map(() => 0);
-    for (const r of nutrients.rows) {
+    for (const r of rowsForAge) {
       const p = pct(r.amount, needFor(r, sexFor(view)));
       counts[BINS.findIndex((b) => p >= b.min)]++;
     }
     return counts;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nutrients.rows, view, primary, compare]);
+  }, [rowsForAge, view, primary, compare]);
 
   // Where India and global guidelines differ the most (≥25%), for the selected sex.
   const diffs = useMemo(() => {
     const sexes: Sex[] = view === "both" ? ["female", "male"] : [view];
     return sexes.map((sex) => {
-      const scored = nutrients.rows
+      const scored = rowsForAge
         .filter((r) => r.ref)
         .map((r) => ({ r, india: r.ref!.india[sex], global: r.ref!.global[sex] }))
         .map((x) => ({ ...x, ratio: x.india / x.global }));
@@ -216,9 +220,9 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
       const less = scored.filter((x) => x.ratio <= 0.8).sort((a, b) => a.ratio - b.ratio).slice(0, 3);
       return { sex, more, less };
     });
-  }, [nutrients.rows, view]);
+  }, [rowsForAge, view]);
 
-  const total = nutrients.rows.length;
+  const total = rowsForAge.length;
   const describe = (xs: { r: NutrientRow; india: number; global: number }[]) =>
     xs.map((x) => `${short(x.r.name)} (${fmt(x.india)} vs ${fmt(x.global)} ${x.r.unit})`).join(", ");
 
@@ -270,6 +274,9 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
               { value: "both", label: "Both" },
             ]}
           />
+        )}
+        {hasRef && hasAges && (compare || primary === "global") && (
+          <Seg label="Age group" value={age} onChange={setAge} options={AGE_GROUPS.map((g) => ({ value: g.value, label: g.label }))} />
         )}
         <Seg
           label="Nutrients"
@@ -438,7 +445,9 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
       )}
 
       <p className="mt-5 text-xs leading-relaxed text-muted">
-        India: ICMR-NIN &ldquo;Nutrient Requirements for Indians&rdquo; (2020), adults. Global: US National Institutes of Health RDA/AI, adults 19–50.
+        India: ICMR-NIN &ldquo;Nutrient Requirements for Indians&rdquo; (2020), adults. Global: US National Institutes of Health RDA/AI
+        {hasAges ? `, ages ${AGE_GROUPS.find((g) => g.value === age)?.label}` : ", adults 19–50"}. India&rsquo;s guidelines use one set of values for all adults; globally, magnesium,
+        vitamin B6, iron (women) and vitamin D needs change with age.
         A supplement adds to what you get from food — it isn&rsquo;t meant to cover 100% on its own.
         {hasDiet && " Meal estimates are rough averages from typical Indian portions (IFCT 2017) and your answers — not a lab measurement."}
       </p>

@@ -23,7 +23,7 @@ export interface FindingStats {
 function Tile({ children, label }: { children: React.ReactNode; label: string }) {
   return (
     <div className="rounded-2xl bg-white/65 p-4 shadow-[inset_0_0_0_1px_rgba(18,41,31,0.06)]">
-      <p className="font-display text-3xl leading-none text-forest sm:text-4xl">{children}</p>
+      <p className="font-display text-3xl leading-none text-forest @md:text-4xl">{children}</p>
       <p className="mt-2 text-xs leading-snug text-muted">{label}</p>
     </div>
   );
@@ -33,7 +33,7 @@ function Tile({ children, label }: { children: React.ReactNode; label: string })
 function StatTiles({ stats }: { stats: FindingStats }) {
   const serious = stats.safety.level === "consult" || stats.safety.level === "caution" || stats.safety.level === "stop";
   return (
-    <div className="mt-6 grid grid-cols-2 gap-3 2xl:grid-cols-4">
+    <div className="mt-6 grid grid-cols-2 gap-3 @2xl:grid-cols-4">
       <Tile label={stats.areas === 1 ? "focus area for you" : "focus areas for you"}>
         <CountUp value={stats.areas} />
       </Tile>
@@ -53,7 +53,7 @@ function StatTiles({ stats }: { stats: FindingStats }) {
             <CountUp value={stats.safety.checks} />
           </span>
         ) : (
-          <span className="inline-flex items-center gap-2 text-2xl sm:text-3xl">
+          <span className="inline-flex items-center gap-2 text-2xl @md:text-3xl">
             <ShieldCheck className="h-6 w-6 text-teal-deep" aria-hidden /> Clear
           </span>
         )}
@@ -64,7 +64,7 @@ function StatTiles({ stats }: { stats: FindingStats }) {
 
 export function FindingsCard({ findings, stats }: { findings: NonNullable<AssessmentResult["findings"]>; stats?: FindingStats }) {
   return (
-    <section aria-labelledby="findings-heading" className="glass-strong rounded-[var(--radius-glass)] p-6 sm:p-9">
+    <section aria-labelledby="findings-heading" className="@container glass-strong rounded-[var(--radius-glass)] p-6 sm:p-9">
       <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-teal-deep">
         <Sparkles className="h-3.5 w-3.5" aria-hidden /> Summary of your findings
       </p>

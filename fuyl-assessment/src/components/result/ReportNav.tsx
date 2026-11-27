@@ -72,13 +72,16 @@ export function ReportSidebar({
         <p className="mt-2 font-display text-2xl leading-tight text-forest">{name ? `Made for ${name}` : "Your report"}</p>
         <p className="mt-1 text-xs text-muted">{date}</p>
         {wellness && (
-          <p className="mt-4 flex items-baseline justify-between gap-3 rounded-2xl bg-white/60 px-3 py-2.5">
-            <span className="text-xs text-muted">Wellness score</span>
-            <span className="text-forest">
-              <strong className="font-display text-2xl font-normal tabular-nums">{wellness.score}</strong>
-              <span className="text-xs text-muted">/100 · {wellness.label}</span>
-            </span>
-          </p>
+          <div className="mt-4 rounded-2xl bg-white/60 px-3 py-2.5">
+            <p className="text-xs text-muted">Wellness score</p>
+            <p className="mt-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-forest">
+              <span>
+                <strong className="font-display text-2xl font-normal tabular-nums">{wellness.score}</strong>
+                <span className="text-xs text-muted">/100</span>
+              </span>
+              <span className="rounded-full bg-sage px-2.5 py-0.5 text-xs font-medium">{wellness.label}</span>
+            </p>
+          </div>
         )}
         {topAreas.length > 0 && (
           <ul className="mt-4 space-y-2" aria-label="Your top focus areas">

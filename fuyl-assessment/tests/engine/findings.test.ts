@@ -109,7 +109,8 @@ describe("report visuals data", () => {
 
   it("each nutrient row carries both sexes' India and global needs, and its kind", () => {
     const iron = r.nutrients!.rows.find((x) => x.key === "iron")!;
-    expect(iron.ref).toEqual({ india: { male: 19, female: 29 }, global: { male: 8, female: 18 } });
+    expect(iron.ref).toMatchObject({ india: { male: 19, female: 29 }, global: { male: 8, female: 18 } });
+    expect(iron.ref?.byAge?.["51-70"]?.global).toEqual({ male: 8, female: 8 }); // women need less iron from 51
     expect(iron.kind).toBe("mineral");
     expect(r.nutrients!.rows.find((x) => x.key === "vitamin-c")!.kind).toBe("vitamin");
     expect(r.nutrients!.rows.filter((x) => x.kind === "mineral")).toHaveLength(6);

@@ -41,8 +41,16 @@ export function seedKnowledgeBase(): KnowledgeBase {
 const BUILT_IN_REFS = new Map(INGREDIENTS.filter((i) => i.nutrient).map((i) => [i.key, i.nutrient!]));
 
 export function withReferenceDefaults(kb: KnowledgeBase): KnowledgeBase {
-  if (kb.ingredients.every((i) => i.nutrient || !BUILT_IN_REFS.has(i.key))) return kb;
-  return { ...kb, ingredients: kb.ingredients.map((i) => (i.nutrient || !BUILT_IN_REFS.has(i.key) ? i : { ...i, nutrient: BUILT_IN_REFS.get(i.key) })) };
+  const fill = (i: KnowledgeBase["ingredients"][number]) => {
+    const built = BUILT_IN_REFS.get(i.key);
+    if (!built) return i;
+    if (!i.nutrient) return { ...i, nutrient: built };
+    // Age-group values: filled in when the knowledge base doesn't have them yet.
+    if (!i.nutrient.byAge && built.byAge) return { ...i, nutrient: { ...i.nutrient, byAge: built.byAge } };
+    return i;
+  };
+  if (kb.ingredients.every((i) => fill(i) === i)) return kb;
+  return { ...kb, ingredients: kb.ingredients.map(fill) };
 }
 
 export { AREAS, FOODS, INGREDIENTS, QUESTIONS, SAFETY_RULES };

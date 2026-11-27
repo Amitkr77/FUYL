@@ -143,7 +143,7 @@ export default async function ResultPage({ params }: { params: Promise<{ token: 
                     strongest possible answers. It isn&rsquo;t a health score or a diagnosis.
                   </span>
                 </p>
-                <div className="mt-8 space-y-6">
+                <div className="@container mt-8 space-y-6">
                   {result.areas.map((area, i) => (
                     <Reveal key={area.key} delay={0.05}>
                       <AreaCard area={area} index={i} nutrients={result.nutrients?.rows} />
@@ -203,8 +203,8 @@ export default async function ResultPage({ params }: { params: Promise<{ token: 
               {result.showProduct && result.blends && (
                 <Reveal className="mt-6">
                   <details className="group">
-                    <summary className="glass flex cursor-pointer list-none items-center justify-between gap-4 rounded-[var(--radius-glass)] px-6 py-4">
-                      <span className="font-medium text-forest">What&rsquo;s in one serve, blend by blend</span>
+                    <summary className="glass flex cursor-pointer list-none items-center justify-between gap-4 rounded-[var(--radius-glass)] p-6 sm:px-8">
+                      <span className="font-display text-xl text-forest">What&rsquo;s in one serve, blend by blend</span>
                       <span className="text-sm text-teal-deep group-open:hidden">Show</span>
                       <span className="hidden text-sm text-teal-deep group-open:inline">Hide</span>
                     </summary>
@@ -268,10 +268,10 @@ function ChapterHeading({ n, id, title }: { n: number; id: string; title: string
 
 function AreaCard({ area, index, nutrients }: { area: ResultArea; index: number; nutrients?: NonNullable<AssessmentResult["nutrients"]>["rows"] }) {
   return (
-    <article className="glass-strong grid gap-8 rounded-[var(--radius-glass)] p-6 sm:p-9 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+    <article className="glass-strong grid gap-8 rounded-[var(--radius-glass)] p-6 sm:p-9 @5xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
       {/* Left: what and why */}
       <div>
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-wrap-reverse items-start justify-between gap-x-4 gap-y-2">
           <div>
             <p className="text-xs tabular-nums text-muted">0{index + 1}</p>
             <h3 className="mt-1 font-display text-3xl text-forest">{area.name}</h3>
@@ -316,9 +316,9 @@ function AreaCard({ area, index, nutrients }: { area: ResultArea; index: number;
       </div>
 
       {/* Right: the nutrients that support it */}
-      <div>
+      <div className="@container">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-teal-deep">Nutrients that support this</p>
-        <Stagger className="mt-4 grid gap-3 sm:grid-cols-2">
+        <Stagger className="mt-4 grid gap-3 @lg:grid-cols-2">
           {area.ingredients.map((ing) => (
             <StaggerItem key={ing.key} className="flex gap-3 rounded-2xl bg-white/60 p-4">
               <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-sage/60">
