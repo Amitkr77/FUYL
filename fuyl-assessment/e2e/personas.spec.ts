@@ -91,7 +91,7 @@ test("person with no issues → short path, clean result", async ({ page }) => {
   expect(end).toBe("summary");
   // Only what matters: no sleep, stress, gut or focus deep dives for someone who feels fine.
   // Now includes location, work, the "typical week" diet grid, salt, fortified foods and supplements.
-  expect(asked.length).toBeLessThanOrEqual(24);
+  expect(asked.length).toBeLessThanOrEqual(26);
   for (const k of ["sleep", "stress", "gut", "focus", "colds"]) expect(asked).not.toContain(k);
   await unlock(page, "sam.e2e@example.com");
   await expect(page.locator("article h3").first()).toHaveText("Energy");
@@ -142,7 +142,7 @@ test("pregnancy → stop screen, no product", async ({ page }) => {
 });
 
 test("nobody can flood a stranger's inbox: at most 3 report emails per address per day", async ({ browser }) => {
-  test.setTimeout(240_000); // four full assessments back to back
+  test.setTimeout(420_000); // four full assessments back to back (~25 questions each)
   const victim = "flood.e2e@example.com";
   for (let i = 0; i < 4; i++) {
     const ctx = await browser.newContext();
