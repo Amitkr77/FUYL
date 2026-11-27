@@ -19,7 +19,7 @@ export function buildReportEmail(input: {
   productTitle: string;
   priceFrom: number;
 }): { subject: string; html: string; text: string } {
-  const { result, resultUrl, productUrl, productTitle, priceFrom } = input;
+  const { result, resultUrl, productUrl, productTitle } = input;
   const name = result.name ? esc(result.name) : "there";
   const subject = result.name ? `${result.name}, your FUYL wellness report is ready` : "Your FUYL wellness report is ready";
 
@@ -43,9 +43,17 @@ export function buildReportEmail(input: {
         <div style="font:500 11px/1 Inter,Helvetica,Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#3f6b5e">Summary of your findings</div>
         <div style="font:600 17px/1.4 Inter,Helvetica,Arial,sans-serif;color:#12291f;margin-top:10px">${esc(result.findings.headline)}</div>
         ${result.showProduct ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:12px"><tr>${[
+          ...(result.wellness ? [[`${result.wellness.score}/100`, `wellness score · ${result.wellness.label}`]] : []),
           [String(result.areas.length), result.areas.length === 1 ? "focus area" : "focus areas"],
           [String(result.coverage.ingredientCount), "ingredients for you"],
-          ...(result.nutrients ? [[`${result.nutrients.rows.filter((r) => r.indiaPct >= 50).length}/${result.nutrients.rows.length}`, "nutrients 50%+ of India's need"]] : []),
+          ...(result.nutrients
+            ? [
+                [
+                  `${result.nutrients.rows.filter((r) => (result.nutrients!.primary === "global" ? r.globalPct : r.indiaPct) >= 50).length}/${result.nutrients.rows.length}`,
+                  `nutrients 50%+ of ${result.nutrients.primary === "global" ? "the global" : "India's"} need`,
+                ],
+              ]
+            : []),
         ]
           .map(([n, l]) => `<td style="padding:8px 14px 8px 0;vertical-align:top"><div style="font:700 22px/1 Inter,Helvetica,Arial,sans-serif;color:#12291f">${esc(n)}</div><div style="font:12px/1.4 Inter,Helvetica,Arial,sans-serif;color:#4a5a3a;margin-top:4px">${esc(l)}</div></td>`)
           .join("")}</tr></table>` : ""}
@@ -59,10 +67,10 @@ export function buildReportEmail(input: {
       </td></tr><tr><td style="height:20px"></td></tr>`
     : "";
 
+  // The report is the point of the email; the product is one quiet line, not a sales button.
   const cta = result.showProduct
-    ? `<tr><td align="center" style="padding:28px 0 8px">
-        <a href="${esc(productUrl)}" style="display:inline-block;background:#12291f;color:#ffffff;text-decoration:none;font:600 15px/1 Inter,Helvetica,Arial,sans-serif;padding:16px 28px;border-radius:999px">View ${esc(productTitle)} on fuyl.in</a>
-        <div style="font:12px/1.6 Inter,Helvetica,Arial,sans-serif;color:#4a5a3a;margin-top:10px">From ₹${priceFrom.toLocaleString("en-IN")}</div>
+    ? `<tr><td align="center" style="font:13px/1.6 Inter,Helvetica,Arial,sans-serif;color:#4a5a3a;padding:14px 0 4px">
+        Curious about ${esc(productTitle)}? <a href="${esc(productUrl)}" style="color:#3f6b5e">Learn more on fuyl.in</a>
       </td></tr>`
     : "";
 
@@ -79,7 +87,7 @@ export function buildReportEmail(input: {
         ${areas}
         <tr><td style="height:16px"></td></tr>
         ${safety}
-        <tr><td align="center"><a href="${esc(resultUrl)}" style="font:600 14px/1 Inter,Helvetica,Arial,sans-serif;color:#3f6b5e">View your full report →</a></td></tr>
+        <tr><td align="center" style="padding:26px 0 6px"><a href="${esc(resultUrl)}" style="display:inline-block;background:#12291f;color:#ffffff;text-decoration:none;font:600 15px/1 Inter,Helvetica,Arial,sans-serif;padding:16px 28px;border-radius:999px">View your full report</a></td></tr>
         ${cta}
         <tr><td style="font:11px/1.6 Inter,Helvetica,Arial,sans-serif;color:#7a8a6a;padding-top:28px;border-top:1px solid #dde8c8">${esc(DISCLAIMER)}</td></tr>
       </table>
@@ -98,7 +106,7 @@ export function buildReportEmail(input: {
     ]),
     ...(result.safety.notes.length ? ["Before you start:", ...result.safety.notes.map((n) => `  • ${n.title} — ${n.message}`), ""] : []),
     `Full report: ${resultUrl}`,
-    ...(result.showProduct ? [`${productTitle} (from ₹${priceFrom}): ${productUrl}`] : []),
+    ...(result.showProduct ? [`Curious about ${productTitle}? ${productUrl}`] : []),
     "",
     DISCLAIMER,
   ].join("\n");

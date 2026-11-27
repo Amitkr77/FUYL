@@ -27,7 +27,7 @@ function labelLines(name: string): string[] {
   return [words.slice(0, mid).join(" "), words.slice(mid).join(" ")];
 }
 
-export function ProfileRadar({ profile }: { profile: ProfileArea[] }) {
+export function ProfileRadar({ profile, compact = false }: { profile: ProfileArea[]; compact?: boolean }) {
   const n = profile.length;
   if (n < 3) return null;
   const pts = profile.map((p, i) => point(i, n, p.match));
@@ -35,14 +35,16 @@ export function ProfileRadar({ profile }: { profile: ProfileArea[] }) {
   const ranked = [...profile].sort((a, b) => b.match - a.match || Number(b.shown) - Number(a.shown));
 
   return (
-    <section aria-labelledby="profile-chart-heading" className="glass-strong rounded-[var(--radius-glass)] p-6 sm:p-9">
+    <section aria-labelledby="profile-chart-heading" className={compact ? "glass-strong h-full rounded-[var(--radius-glass)] p-5 sm:p-7" : "glass-strong rounded-[var(--radius-glass)] p-6 sm:p-9"}>
       <p className="text-xs font-medium uppercase tracking-[0.2em] text-teal-deep">Your wellness profile</p>
-      <h2 id="profile-chart-heading" className="mt-3 font-display text-2xl text-forest sm:text-3xl">
+      <h2 id="profile-chart-heading" className={compact ? "mt-2 font-display text-xl text-forest" : "mt-3 font-display text-2xl text-forest sm:text-3xl"}>
         Where your answers point
       </h2>
-      <p className="mt-2 text-sm text-muted">How strongly each of the 11 focus areas matches your answers (outer ring = 100%). The bolder areas are in your report.</p>
+      <p className="mt-1.5 text-sm text-muted">
+        {compact ? "Match across all 11 areas. Bolder = in your report." : "How strongly each of the 11 focus areas matches your answers (outer ring = 100%). The bolder areas are in your report."}
+      </p>
 
-      <div className="mt-6 grid items-center gap-6 md:grid-cols-[1.35fr_1fr]">
+      <div className={compact ? "mt-3" : "mt-6 grid items-center gap-6 md:grid-cols-[1.35fr_1fr]"}>
         <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="mx-auto w-full max-w-[480px]" role="img" aria-labelledby="radar-title radar-desc">
           <title id="radar-title">Wellness profile radar</title>
           <desc id="radar-desc">{ranked.map((p) => `${p.name} ${p.match}%`).join(", ")}</desc>
@@ -105,7 +107,15 @@ export function ProfileRadar({ profile }: { profile: ProfileArea[] }) {
           })}
         </svg>
 
-        {/* Exact numbers — ranked meter list. */}
+        {/* Exact numbers — ranked meter list (folded away in the compact tile). */}
+        <ScoreList ranked={ranked} compact={compact} />
+      </div>
+    </section>
+  );
+}
+
+function ScoreList({ ranked, compact }: { ranked: ProfileArea[]; compact: boolean }) {
+  const list = (
         <ol className="space-y-2.5" aria-label="Match by focus area">
           {ranked.map((p) => (
             <li key={p.key} className="grid grid-cols-[minmax(0,1fr)_76px_38px] items-center gap-3 text-sm">
@@ -120,7 +130,15 @@ export function ProfileRadar({ profile }: { profile: ProfileArea[] }) {
             </li>
           ))}
         </ol>
-      </div>
-    </section>
+  );
+  if (!compact) return list;
+  return (
+    <details className="group mt-2 rounded-2xl bg-white/50 px-4 py-3">
+      <summary className="cursor-pointer list-none text-sm font-medium text-teal-deep">
+        <span className="group-open:hidden">See every area&rsquo;s score</span>
+        <span className="hidden group-open:inline">Hide scores</span>
+      </summary>
+      <div className="mt-3">{list}</div>
+    </details>
   );
 }

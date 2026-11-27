@@ -76,6 +76,15 @@ test("own words + taps, understood by AI, through to the report and email", asyn
   await expect(page.getByText("Noted: 31")).toBeVisible();
   await expect(page.getByText("Lovely, thanks for sharing.")).toBeVisible();
 
+  // Location: long lists are dropdowns; the state is asked only for India.
+  await expect(page.getByRole("heading", { name: "Where do you live?" })).toBeVisible();
+  await page.locator("main select").selectOption({ label: "India" });
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Which state or union territory?" })).toBeVisible();
+  await page.locator("main select").selectOption({ label: "Delhi" });
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: /pregnant/ })).toBeVisible();
+
   await ownWords(page, "none of these");
   await expect(page.getByText(/top priorities/)).toBeVisible();
   // No selection limit: pick five.
@@ -98,8 +107,10 @@ test("own words + taps, understood by AI, through to the report and email", asyn
   for (const area of ["Energy", "Sleep", "Gut Health", "Stress", "Immunity"]) {
     await expect(page.getByRole("heading", { name: area, exact: true }).first()).toBeVisible();
   }
-  await expect(page.getByRole("heading", { name: "One serve vs what you need a day" })).toBeVisible();
-  // The comparison starts on the person's own sex, and can switch to men or both.
+  await expect(page.getByRole("heading", { name: "How one serve compares with your daily needs" })).toBeVisible();
+  // Simple first (India only); the global comparison is opt-in, then starts on the person's own sex.
+  await expect(page.getByRole("radio", { name: "Women" })).toHaveCount(0);
+  await page.getByRole("switch", { name: "Compare with global guidelines" }).click();
   await expect(page.getByRole("radio", { name: "Women" })).toHaveAttribute("aria-checked", "true");
   await page.getByRole("radio", { name: "Both" }).click();
   await expect(page.getByText("India vs global — where they differ")).toBeVisible();
@@ -107,7 +118,24 @@ test("own words + taps, understood by AI, through to the report and email", asyn
   // Visual summary: headline numbers, the profile radar and the formula breakdown.
   await expect(page.getByText("COMPLETE+ ingredients matched to you")).toBeVisible();
   await expect(page.getByRole("img", { name: /^Wellness profile radar/ })).toBeVisible();
+  // Overall wellness score (0–100) and the diet gap: meals + one serve vs the daily need.
+  await expect(page.getByRole("img", { name: /^Wellness score \d+ out of 100/ })).toBeVisible();
+  await page.getByRole("switch", { name: "Compare with global guidelines" }).click(); // back to the simple view
+  await expect(page.getByText("Your meals (estimated)")).toBeVisible();
+  await expect(page.getByRole("img", { name: /^Iron: your meals give about \d+%/ })).toBeVisible();
+  // The blend breakdown is folded away under "Safety & next steps" (information first, no hard sell).
+  await page.getByText("What’s in one serve, blend by blend").click();
   await expect(page.getByRole("heading", { name: "Your COMPLETE+, blend by blend" })).toBeVisible();
+  // Chapters in the sidebar, a real PDF, and icon-only contact buttons.
+  await expect(page.getByRole("navigation", { name: "Chapters" }).first()).toBeVisible();
+  const pdf = await page.request.get(page.url() + "/pdf");
+  expect(pdf.status()).toBe(200);
+  expect(pdf.headers()["content-type"]).toBe("application/pdf");
+  expect(pdf.headers()["content-disposition"]).toMatch(/FUYL-report-Riya\.pdf/);
+  expect((await pdf.body()).subarray(0, 4).toString()).toBe("%PDF");
+  for (const label of [/Chat on WhatsApp/, /^Email /, /^Call /]) await expect(page.getByRole("link", { name: label })).toBeVisible();
+  // No sticky "buy" bar any more; the product appears once, at the end.
+  await expect(page.getByRole("link", { name: /View COMPLETE\+ on fuyl\.in/ })).toHaveCount(1);
 
   await expect.poll(async () => (await readMail(page, email)).length, { timeout: 15_000 }).toBeGreaterThan(0);
   const mail = (await readMail(page, email))[0].raw;
@@ -134,7 +162,7 @@ test("if the AI is down, typed answers are still understood (built-in fallback)"
   await typeAnswer(page, "Kabir", NAME_Q);
   await page.getByRole("radio", { name: "Male", exact: true }).click();
   await typeAnswer(page, "__ai_down 34", AGE_Q);
-  await expect(page.getByText(/top priorities right now/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Where do you live?" })).toBeVisible();
   await expect(page.getByText("Noted: 34")).toBeVisible();
 });
 

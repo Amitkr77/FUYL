@@ -46,7 +46,7 @@ export function QuestionCard({
   // keyboard and screen-reader users land on the new question instead of the
   // page body. Text/number questions focus their input instead.
   useEffect(() => {
-    if (question.type !== "single" && question.type !== "multi") return;
+    if (question.type === "number" || question.type === "text") return;
     const t = setTimeout(() => headingRef.current?.focus({ preventScroll: true }), 50);
     return () => clearTimeout(t);
   }, [question.key, question.type]);
@@ -66,7 +66,11 @@ export function QuestionCard({
 
       <div className="mt-8">
         <div className={clsx("rounded-3xl transition-shadow duration-500", assist?.highlightOptions && "shadow-[0_0_0_3px_rgba(85,132,118,0.35)] p-2")}>
-          {question.type === "single" && (!assist || assist.showOptions) && (
+          {question.type === "single" && question.display === "select" && (!assist || assist.showOptions) && (
+            <SelectChoice question={question} answer={answer} busy={busy} labelledBy={headingId} onSubmit={onSubmit} />
+          )}
+          {question.type === "grid" && <GridChoice question={question} answer={answer} busy={busy} labelledBy={headingId} onSubmit={onSubmit} />}
+          {question.type === "single" && question.display !== "select" && (!assist || assist.showOptions) && (
             <SingleChoice question={question} answer={answer} busy={busy} labelledBy={headingId} onSubmit={onSubmit} />
           )}
           {question.type === "multi" && (!assist || assist.showOptions) && (
@@ -501,6 +505,136 @@ function AssistBox({
             <ArrowUp className="h-4 w-4" aria-hidden />
           )}
         </button>
+      </div>
+    </form>
+  );
+}
+
+/** Long lists (country, state): a dropdown + Continue. */
+function SelectChoice({
+  question,
+  answer,
+  busy,
+  labelledBy,
+  onSubmit,
+}: {
+  question: ClientQuestion;
+  answer?: Answer;
+  busy: boolean;
+  labelledBy: string;
+  onSubmit: (input: AnswerInput) => void;
+}) {
+  const [value, setValue] = useState(answer?.values?.[0] ?? "");
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (value) onSubmit({ values: [value] });
+      }}
+      className="mx-auto flex max-w-md flex-col items-center"
+    >
+      <div className="glass relative w-full rounded-2xl focus-within:ring-2 focus-within:ring-teal/30">
+        <select
+          aria-labelledby={labelledBy}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          disabled={busy}
+          className="h-16 w-full appearance-none rounded-2xl bg-transparent px-5 pr-12 text-lg text-forest outline-none"
+        >
+          <option value="" disabled>
+            Choose…
+          </option>
+          {(question.options ?? []).map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" aria-hidden />
+      </div>
+      <Button type="submit" size="lg" className="mt-6" disabled={!value} loading={busy}>
+        Continue
+      </Button>
+    </form>
+  );
+}
+
+/** "Typical week": one row per food group, each with the same how-often scale. */
+function GridChoice({
+  question,
+  answer,
+  busy,
+  labelledBy,
+  onSubmit,
+}: {
+  question: ClientQuestion;
+  answer?: Answer;
+  busy: boolean;
+  labelledBy: string;
+  onSubmit: (input: AnswerInput) => void;
+}) {
+  const rows = question.rows ?? [];
+  const options = question.options ?? [];
+  const [picked, setPicked] = useState<Record<string, string>>(() =>
+    Object.fromEntries(Object.entries(answer?.grid ?? {}).filter(([k]) => rows.some((r) => r.key === k))),
+  );
+  const done = rows.filter((r) => picked[r.key]).length;
+  const complete = done === rows.length;
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (complete) onSubmit({ grid: picked });
+      }}
+      aria-labelledby={labelledBy}
+      className="mx-auto max-w-3xl"
+    >
+      <ul className="space-y-3">
+        {rows.map((r) => {
+          const groupId = `${question.key}-${r.key}`;
+          return (
+            <li key={r.key} className="glass rounded-2xl p-4">
+              <p id={groupId} className="flex items-center gap-2 text-[15px] font-medium text-forest">
+                {picked[r.key] && <Check className="h-4 w-4 shrink-0 text-teal-deep" aria-hidden />}
+                {r.label}
+              </p>
+              {r.helper && <p className="mt-0.5 text-xs text-muted">{r.helper}</p>}
+              <div role="radiogroup" aria-labelledby={groupId} className="mt-3 flex flex-wrap gap-2">
+                {options.map((o) => {
+                  const on = picked[r.key] === o.value;
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      disabled={busy}
+                      onClick={() => {
+                        tapFeedback();
+                        setPicked((p) => ({ ...p, [r.key]: o.value }));
+                      }}
+                      className={clsx(
+                        "rounded-full px-3.5 py-2 text-sm transition-colors",
+                        on ? "bg-forest text-white" : "border border-line bg-white/60 text-forest hover:bg-white",
+                      )}
+                    >
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="mt-6 flex flex-col items-center gap-2">
+        <Button type="submit" size="lg" disabled={!complete} loading={busy}>
+          Continue
+        </Button>
+        <p className="text-xs text-muted" aria-live="polite">
+          {complete ? "All set" : `${done} of ${rows.length} answered`}
+        </p>
       </div>
     </form>
   );

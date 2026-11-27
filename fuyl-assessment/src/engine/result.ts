@@ -1,5 +1,5 @@
 import { prune } from "./flow";
-import { buildBlends, buildFindings, buildNutrients } from "./findings";
+import { buildBlends, buildFindings, buildNutrients, buildWellness } from "./findings";
 import { evaluateSafety } from "./safety";
 import { bandFor, buildContext, maxScores } from "./scoring";
 import { buildSummary } from "./summary";
@@ -38,6 +38,9 @@ function reasonsFor(kb: KnowledgeBase, answers: Answers, area: string, limit = 3
     if (q.type === "number") {
       const band = bandFor(q, answers[q.key]?.number);
       pick(band?.reason, band?.effects);
+    } else if (q.type === "grid") {
+      const g = answers[q.key]?.grid ?? {};
+      for (const r of q.rows ?? []) if (g[r.key]) pick(r.reasons?.[g[r.key]], r.effects?.[g[r.key]]);
     } else {
       const vals = answers[q.key]?.values ?? [];
       for (const o of q.options ?? []) if (vals.includes(o.value)) pick(o.reason, o.effects);
@@ -131,6 +134,7 @@ export function buildResult(kb: KnowledgeBase, rawAnswers: Answers): AssessmentR
   const name = firstName(kb, answers);
   const showProduct = safety.level !== "stop";
   const nutrients = buildNutrients(kb, answers);
+  const wellness = showProduct ? buildWellness(kb, answers) : undefined;
   const shownKeys = new Set(areas.map((a) => a.key));
   const profile = all
     .sort((x, y) => x.area.order - y.area.order)
@@ -140,7 +144,8 @@ export function buildResult(kb: KnowledgeBase, rawAnswers: Answers): AssessmentR
     name,
     profile,
     blends: buildBlends(kb, supporting),
-    findings: buildFindings({ name, areas, safety, showProduct, ingredientCount: supporting.size, nutrients }),
+    findings: buildFindings({ name, areas, safety, showProduct, ingredientCount: supporting.size, nutrients, wellness }),
+    wellness,
     nutrients,
     summary: buildSummary(kb, answers),
     areas,

@@ -1,5 +1,6 @@
 import type { EngineSettings, KnowledgeBase } from "@/engine";
 import { AREAS } from "./areas";
+import { FOODS } from "./foods";
 import { INGREDIENTS } from "./ingredients";
 import { QUESTIONS } from "./questions";
 import { SAFETY_RULES } from "./safety";
@@ -7,10 +8,12 @@ import { SAFETY_RULES } from "./safety";
 export const DEFAULT_SETTINGS: EngineSettings = {
   // Follow-ups stop once this many questions are answered; core questions
   // (basics, gates, safety) are always asked.
-  questionCap: 30,
+  questionCap: 40,
   topAreas: 3,
   ingredientsPerArea: 5,
   bands: { high: 0.5, moderate: 0.25 },
+  // Overall wellness score: how much each pillar counts (they're normalised, so only the ratios matter).
+  wellness: { weights: { nutrition: 25, sleep: 20, mind: 20, activity: 15, digestion: 10, immunity: 10 } },
 };
 
 /**
@@ -25,6 +28,7 @@ export function seedKnowledgeBase(): KnowledgeBase {
     areas: AREAS,
     ingredients: INGREDIENTS,
     safetyRules: SAFETY_RULES,
+    foods: FOODS,
   };
 }
 
@@ -41,4 +45,4 @@ export function withReferenceDefaults(kb: KnowledgeBase): KnowledgeBase {
   return { ...kb, ingredients: kb.ingredients.map((i) => (i.nutrient || !BUILT_IN_REFS.has(i.key) ? i : { ...i, nutrient: BUILT_IN_REFS.get(i.key) })) };
 }
 
-export { AREAS, INGREDIENTS, QUESTIONS, SAFETY_RULES };
+export { AREAS, FOODS, INGREDIENTS, QUESTIONS, SAFETY_RULES };

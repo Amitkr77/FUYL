@@ -172,9 +172,60 @@ export function Simulator({ kb }: { kb: KnowledgeBase }) {
   );
 }
 
-function SimInput({ q, onAnswer }: { q: Question; onAnswer: (input: { values?: string[]; number?: string; text?: string }) => void }) {
+function SimInput({ q, onAnswer }: { q: Question; onAnswer: (input: { values?: string[]; number?: string; text?: string; grid?: Record<string, string> }) => void }) {
   const [multi, setMulti] = useState<string[]>([]);
   const [text, setText] = useState("");
+  const [grid, setGrid] = useState<Record<string, string>>({});
+  if (q.type === "grid") {
+    const rows = q.rows ?? [];
+    return (
+      <div className="mt-4 space-y-2">
+        {rows.map((r) => (
+          <div key={r.key} className="rounded-xl border border-line bg-white p-3">
+            <p className="text-sm text-forest">{r.label}</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {q.options?.map((o) => {
+                const on = grid[r.key] === o.value;
+                const fx = r.effects?.[o.value] ?? [];
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setGrid({ ...grid, [r.key]: o.value })}
+                    className={`rounded-full border px-3 py-1 text-xs ${on ? "border-forest bg-forest text-white" : "border-line text-forest hover:bg-cream/50"}`}
+                    title={fx.map((e) => `${e.area} ${e.weight > 0 ? "+" : ""}${e.weight}`).join(" · ")}
+                  >
+                    {o.label}
+                    {fx.length > 0 && " •"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        <button type="button" className={btn("primary")} disabled={rows.some((r) => !grid[r.key])} onClick={() => onAnswer({ grid })}>
+          Continue
+        </button>
+      </div>
+    );
+  }
+  if (q.type === "single" && q.display === "select")
+    return (
+      <div className="mt-4 flex gap-2">
+        <select value={text} onChange={(e) => setText(e.target.value)} className={`${inputCls} max-w-xs`} aria-label="Answer">
+          <option value="">Choose…</option>
+          {q.options?.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <button type="button" className={btn("primary")} disabled={!text} onClick={() => onAnswer({ values: [text] })}>
+          Continue
+        </button>
+      </div>
+    );
   if (q.type === "single")
     return (
       <div className="mt-4 grid gap-2 sm:grid-cols-2">

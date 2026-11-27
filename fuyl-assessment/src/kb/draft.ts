@@ -71,8 +71,9 @@ export function findReferences(kb: KnowledgeBase, type: EntityType, key: string)
   const json = (v: unknown) => JSON.stringify(v ?? null);
   if (type === "question") {
     const pat = new RegExp(`"(answer|answered|number)":"${escapeRe(key)}"`);
-    kb.questions.forEach((q) => q.key !== key && pat.test(json(q.showIf)) && out.push(`question “${q.key}”`));
+    kb.questions.forEach((q) => q.key !== key && pat.test(json([q.showIf, ...(q.rows ?? []).map((r) => r.showIf)])) && out.push(`question “${q.key}”`));
     kb.safetyRules.forEach((r) => pat.test(json(r.when)) && out.push(`safety rule “${r.key}”`));
+    (kb.foods ?? []).forEach((f) => f.from.question === key && out.push(`food group “${f.name}”`));
   }
   if (type === "ingredient") {
     kb.areas.forEach((a) => a.ingredients.some((i) => i.key === key) && out.push(`focus area “${a.name}”`));
@@ -80,7 +81,11 @@ export function findReferences(kb: KnowledgeBase, type: EntityType, key: string)
   }
   if (type === "area") {
     kb.questions.forEach((q) => {
-      const effects = [...(q.options ?? []).flatMap((o) => o.effects ?? []), ...(q.bands ?? []).flatMap((b) => b.effects ?? [])];
+      const effects = [
+        ...(q.options ?? []).flatMap((o) => o.effects ?? []),
+        ...(q.bands ?? []).flatMap((b) => b.effects ?? []),
+        ...(q.rows ?? []).flatMap((r) => Object.values(r.effects ?? {}).flat()),
+      ];
       if (effects.some((e) => e.area === key) || new RegExp(`"score":"${escapeRe(key)}"`).test(json(q.showIf))) out.push(`question “${q.key}”`);
     });
   }
@@ -97,8 +102,13 @@ function renameReferences(kb: KnowledgeBase, type: EntityType, from: string, to:
   if (type === "question") {
     return {
       ...kb,
-      questions: kb.questions.map((q) => ({ ...q, showIf: swapCond(q.showIf, ["answer", "answered", "number"]) })),
+      questions: kb.questions.map((q) => ({
+        ...q,
+        showIf: swapCond(q.showIf, ["answer", "answered", "number"]),
+        ...(q.rows ? { rows: q.rows.map((r) => ({ ...r, showIf: swapCond(r.showIf, ["answer", "answered", "number"]) })) } : {}),
+      })),
       safetyRules: kb.safetyRules.map((r) => ({ ...r, when: swapCond(r.when, ["answer", "answered", "number"]) })),
+      ...(kb.foods ? { foods: kb.foods.map((f) => (f.from.question === from ? { ...f, from: { ...f.from, question: to } } : f)) } : {}),
     };
   }
   if (type === "ingredient") {
@@ -117,6 +127,9 @@ function renameReferences(kb: KnowledgeBase, type: EntityType, from: string, to:
         ...q,
         options: q.options?.map(fixEffects),
         bands: q.bands?.map(fixEffects),
+        rows: q.rows?.map((r) =>
+          r.effects ? { ...r, effects: Object.fromEntries(Object.entries(r.effects).map(([v, es]) => [v, es.map((e) => (e.area === from ? { ...e, area: to } : e))])) } : r,
+        ),
         showIf: swapCond(q.showIf, ["score"]),
       })),
     };

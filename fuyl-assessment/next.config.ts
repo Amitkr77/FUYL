@@ -35,6 +35,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // The PDF report renders on the server with react-pdf (kept out of the bundle) using the Inter files in assets/fonts.
+  serverExternalPackages: ["@react-pdf/renderer"],
+  outputFileTracingIncludes: { "/result/[token]/pdf": ["./assets/fonts/**"] },
   images: {
     // Product + ingredient imagery is served from the FUYL Shopify store.
     remotePatterns: [

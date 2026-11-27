@@ -20,6 +20,7 @@ function walk(script: Record<string, string | number | string[]>): string[] {
     const v = script[q.key];
     if (q.type === "text") answers[q.key] = { text: String(v ?? "Sam") };
     else if (q.type === "number") answers[q.key] = { number: Number(v ?? 30) };
+    else if (q.type === "grid") answers[q.key] = { grid: Object.fromEntries((q.rows ?? []).map((r) => [r.key, "d1"])) };
     else {
       const opts = (q.options ?? []).map((o) => o.value);
       answers[q.key] = { values: v === undefined ? [opts.find((o) => NEUTRAL.includes(o)) ?? opts[0]] : Array.isArray(v) ? v : [String(v)] };
@@ -38,14 +39,15 @@ const people = {
 
 describe("question paths are personalised", () => {
   it("someone with no concerns finishes in about a dozen questions", () => {
-    expect(people.healthy.length).toBeLessThanOrEqual(14);
-    expect(people.runner.length).toBeLessThanOrEqual(14);
+    // Now includes location, work, the "typical week" diet grid and supplements.
+    expect(people.healthy.length).toBeLessThanOrEqual(22);
+    expect(people.runner.length).toBeLessThanOrEqual(22);
   });
 
   it("only a small core is asked to everyone", () => {
     const all = Object.values(people);
     const common = all[0].filter((k) => all.every((p) => p.includes(k)));
-    expect(common.length).toBeLessThanOrEqual(12);
+    expect(common.length).toBeLessThanOrEqual(20);
   });
 
   it("deep dives appear only for areas the person ticked or prioritised", () => {

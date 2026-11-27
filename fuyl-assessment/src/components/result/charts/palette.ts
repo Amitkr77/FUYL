@@ -12,4 +12,11 @@ export const GLOBAL = "#c45a1c";
 /** Neutral for "what one serve gives" bars, so the coloured markers carry the comparison. */
 export const AMOUNT = "#3f5148";
 export const TRACK = "rgba(18,41,31,0.08)";
+/**
+ * Diet-gap bars (stacked): what your meals give (amber) + what one serve adds
+ * (indigo), against the daily-need marker (INDIA teal). Validated as a set —
+ * all pairs pass CVD (ΔE ≥ 11) and normal-vision separation, contrast ≥ 3:1.
+ */
+export const DIET = "#b8741a";
+export const SERVE = "#4a5fc1";
 export const COVERAGE = ["#7ab8a1", "#459c82", "#1f7c66", "#0c5244"] as const;

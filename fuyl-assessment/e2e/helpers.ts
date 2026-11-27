@@ -2,8 +2,12 @@ import { expect, type Page } from "@playwright/test";
 import type { ClientQuestion, View } from "../src/flow/state";
 import { E2E } from "./constants";
 
-/** Scripted answers by question key, using the labels users see. */
-export type Script = Record<string, string | string[]>;
+/**
+ * Scripted answers by question key, using the labels users see. Grid
+ * questions take one label for every row, or `{ rowLabel: label }` with a
+ * `"*"` default.
+ */
+export type Script = Record<string, string | string[] | Record<string, string>>;
 
 /**
  * Watch the app's own API responses to know which question is on screen —
@@ -30,19 +34,29 @@ export async function startAssessment(page: Page, query = "") {
   await page.waitForURL("**/q");
 }
 
-const NEUTRAL = ["None of these — I feel good", "None of these", "All good", "No", "I feel energised", "I sleep well most nights", "Low — I feel balanced", "Comfortable and regular", "Rarely", "No, I feel sharp", "Never", "Non-vegetarian", "Lightly active", "15–30 minutes a day", "2–3", "4–5", "Under 4 hours", "0–1", "Every day", "Twice a week or more", "A few days", "None of these / doesn't apply"];
+const NEUTRAL = ["None of these — I feel good", "None of these", "All good", "No", "I feel energised", "I sleep well most nights", "Low — I feel balanced", "Comfortable and regular", "Rarely", "No, I feel sharp", "Never", "Non-vegetarian", "Lightly active", "15–30 minutes a day", "2–3", "4–5", "Under 4 hours", "0–1", "Every day", "Twice a week or more", "A few days", "None of these / doesn't apply", "None", "No / not sure", "Three regular meals", "Daily", "Yes"];
 
 function neutralAnswer(q: ClientQuestion): string | string[] {
   if (q.type === "text") return "Sam";
   if (q.type === "number") return "30";
+  if (q.type === "grid") return "Daily";
   const labels = (q.options ?? []).map((o) => o.label);
   const pick = NEUTRAL.find((n) => labels.includes(n)) ?? labels[0];
   return q.type === "multi" ? [pick] : pick;
 }
 
 /** Answer one question through the UI. */
-export async function answer(page: Page, q: ClientQuestion, value: string | string[]) {
-  if (q.type === "text" || q.type === "number") {
+export async function answer(page: Page, q: ClientQuestion, value: Script[string]) {
+  if (q.type === "grid") {
+    const pick = (row: string) => (typeof value === "string" ? value : Array.isArray(value) ? value[0] : (value[row] ?? value["*"] ?? "Daily"));
+    for (const r of q.rows ?? []) await page.getByRole("radiogroup", { name: r.label, exact: true }).getByRole("radio", { name: pick(r.label), exact: true }).click();
+    await page.getByRole("button", { name: "Continue" }).click();
+  } else if (q.type === "single" && q.display === "select") {
+    await page.locator("main select").selectOption({ label: String(value) });
+    await page.getByRole("button", { name: "Continue" }).click();
+  } else if (typeof value === "object" && !Array.isArray(value)) {
+    throw new Error(`Grid-style answer given for non-grid question ${q.key}`);
+  } else if (q.type === "text" || q.type === "number") {
     await page.locator("main form input").fill(String(value));
     await page.getByRole("button", { name: "Continue" }).click();
   } else if (q.type === "single") {

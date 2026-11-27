@@ -197,6 +197,10 @@ test.describe("admin", () => {
     await b.user.getByRole("button", { name: "Continue" }).waitFor();
     await b.user.locator("main form input").first().fill("34");
     await b.user.getByRole("button", { name: "Continue" }).click();
+    for (const place of ["India", "Delhi"]) {
+      await b.user.locator("main select").selectOption({ label: place });
+      await b.user.getByRole("button", { name: "Continue" }).click();
+    }
     await expect(b.user.getByText(/top priorities right now/)).toBeVisible();
     await b.user.getByLabel("Answer in your own words").fill("energy; vegetarian");
     await b.user.getByRole("button", { name: "Send answer" }).click();

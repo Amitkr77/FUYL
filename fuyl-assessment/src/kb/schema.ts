@@ -59,6 +59,19 @@ export const OptionSchema = z
     flags: z.array(Key).max(10).optional(),
     exclusive: z.boolean().optional(),
     insight: Text(240).optional(),
+    perDay: z.number().min(0).max(20).optional(),
+  })
+  .strict();
+
+export const GridRowSchema = z
+  .object({
+    key: Key,
+    label: Req(120),
+    helper: Text(160).optional(),
+    showIf: ConditionSchema.optional(),
+    effects: z.record(z.string(), z.array(EffectSchema).max(20)).optional(),
+    reasons: z.record(z.string(), Text(200)).optional(),
+    summary: Text(80).optional(),
   })
   .strict();
 
@@ -79,13 +92,15 @@ export const QuestionSchema = z
     key: Key,
     block: z.enum(["about", "lifestyle", "feel", "safety"]),
     order: z.number().int().min(0).max(999),
-    type: z.enum(["single", "multi", "number", "text"]),
+    type: z.enum(["single", "multi", "number", "text", "grid"]),
     tier: z.enum(["core", "followup"]),
     prompt: Req(240),
     why: Text(400).optional(),
     helper: Text(160).optional(),
     placeholder: Text(60).optional(),
-    options: z.array(OptionSchema).max(30).optional(),
+    options: z.array(OptionSchema).max(250).optional(),
+    display: z.enum(["tiles", "select"]).optional(),
+    rows: z.array(GridRowSchema).max(20).optional(),
     maxSelect: z.number().int().min(1).max(30).optional(),
     scoreTop: z.number().int().min(1).max(30).optional(),
     min: z.number().int().optional(),
@@ -100,7 +115,8 @@ export const QuestionSchema = z
   })
   .strict()
   .superRefine((q, ctx) => {
-    const choice = q.type === "single" || q.type === "multi";
+    const choice = q.type === "single" || q.type === "multi" || q.type === "grid";
+    if (q.type === "grid" && (!q.rows || q.rows.length < 1)) ctx.addIssue({ code: "custom", path: ["rows"], message: "Add at least one row" });
     if (choice && (!q.options || q.options.length < 2)) ctx.addIssue({ code: "custom", path: ["options"], message: "Add at least two options" });
     if (choice && q.options && new Set(q.options.map((o) => o.value)).size !== q.options.length) {
       ctx.addIssue({ code: "custom", path: ["options"], message: "Option values must be unique" });
@@ -172,6 +188,18 @@ export const SettingsSchema = z
       .object({ high: z.number().min(0).max(1), moderate: z.number().min(0).max(1) })
       .strict()
       .refine((b) => b.moderate < b.high, "Moderate must be below High"),
+    wellness: z.object({ weights: z.record(z.string(), z.number().min(0).max(100)) }).strict().optional(),
+  })
+  .strict();
+
+export const FoodSourceSchema = z
+  .object({
+    key: Key,
+    name: Req(80),
+    from: z
+      .object({ question: Key.optional(), row: Key.optional(), option: OptionValue.optional(), always: z.number().min(0).max(20).optional() })
+      .strict(),
+    nutrients: z.record(z.string(), z.number().min(0).max(100_000)),
   })
   .strict();
 
@@ -183,6 +211,7 @@ export const KnowledgeBaseSchema = z
     areas: z.array(FocusAreaSchema),
     ingredients: z.array(IngredientSchema),
     safetyRules: z.array(SafetyRuleSchema),
+    foods: z.array(FoodSourceSchema).max(60).optional(),
   })
   .strict();
 

@@ -88,8 +88,10 @@ jobs:
   # so no secrets, database or live store are needed.
   assessment-e2e:
     name: assessment e2e (Playwright)
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # Pinned image: "ubuntu-latest" moving to a new release changed the system
+    # packages Playwright installs and broke the browser install step.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: fuyl-assessment
@@ -106,8 +108,27 @@ jobs:
         with:
           path: ~/.cache/mongodb-binaries
           key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('fuyl-assessment/package-lock.json') }}
+      # Every past e2e failure on CI was this step (apt mirrors / package
+      # downloads), never a test. Cache the browser per Playwright version and
+      # retry the system-dependency install instead of failing the whole job.
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-chromium
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: |
+          for i in 1 2 3; do npx playwright install chromium && break; echo "retry $i"; sleep 15; done
+          npx playwright install chromium
+      - name: Install Chromium system dependencies
+        run: |
+          for i in 1 2 3; do sudo apt-get update -q && npx playwright install-deps chromium && exit 0; echo "retry $i"; sleep 20; done
+          exit 1
       - name: Build
         run: npm run build
       - name: Run e2e suite

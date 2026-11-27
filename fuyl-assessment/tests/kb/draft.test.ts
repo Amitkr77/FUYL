@@ -48,7 +48,8 @@ describe("upsertEntity", () => {
     const r = upsertEntity(kb, "question", { ...q, key: "eating" }, "diet");
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(JSON.stringify(r.kb.questions.find((x) => x.key === "dairy")!.showIf)).toContain('"answer":"eating"');
+    // Grid rows' conditions follow the rename too.
+    expect(JSON.stringify(r.kb.questions.find((x) => x.key === "diet_week")!.rows)).toContain('"answer":"eating"');
     expect(checkKnowledgeBase(r.kb).filter((i) => i.severity === "error")).toEqual([]);
 
     const ing = kb.ingredients.find((x) => x.key === "ashwagandha")!;
@@ -65,7 +66,8 @@ describe("deleteEntity / findReferences", () => {
   it("blocks deleting something still referenced", () => {
     expect(findReferences(kb, "ingredient", "ashwagandha").length).toBeGreaterThan(3);
     expect(deleteEntity(kb, "ingredient", "ashwagandha").ok).toBe(false);
-    expect(deleteEntity(kb, "question", "diet").ok).toBe(false); // dairy + fish depend on it
+    expect(deleteEntity(kb, "question", "diet").ok).toBe(false); // the diet grid's rows depend on it
+    expect(deleteEntity(kb, "question", "diet_week").ok).toBe(false); // food groups depend on it
   });
 
   it("deletes an unreferenced entity", () => {

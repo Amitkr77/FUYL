@@ -17,7 +17,7 @@ test("stressed desk worker on anxiety medicine → stress & sleep lead, consult 
     priorities: ["Stress", "Sleep"],
     diet: "Vegetarian",
     checkin: ["Feeling stressed or anxious", "Trouble sleeping"],
-    dairy: "A few times a week",
+    diet_week: { "Milk, curd, buttermilk or paneer": "3–6× a week", "*": "Daily" },
     activity: "Mostly sitting",
     screen: "More than 8 hours",
     caffeine: "4 or more",
@@ -31,8 +31,7 @@ test("stressed desk worker on anxiety medicine → stress & sleep lead, consult 
     medications: ["Sleep, anxiety or antidepressant medicine"],
   });
   expect(end).toBe("summary");
-  expect(asked).toEqual(expect.arrayContaining(["pregnancy", "dairy", "stress_impact", "periods", "medications"]));
-  expect(asked).not.toContain("fish");
+  expect(asked).toEqual(expect.arrayContaining(["country", "state", "pregnancy", "diet_week", "supplements", "stress_impact", "periods", "medications"]));
 
   await expect(page.getByRole("heading", { name: /Your report is ready, Riya/ })).toBeVisible();
   // The focus areas are shown plainly before the email step.
@@ -43,7 +42,7 @@ test("stressed desk worker on anxiety medicine → stress & sleep lead, consult 
 
   // The report email went out over SMTP (captured by the test mail server).
   await expect.poll(async () => (await readMail(page, "riya.e2e@example.com")).some((m) => /Subject: Riya, your FUYL wellness report is ready/.test(m.raw))).toBe(true);
-  await expect(page.getByText("Before you start")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Before you start" })).toBeVisible();
   await expect(page.getByText("Sleep, anxiety or antidepressant medicine", { exact: true })).toBeVisible();
   const areas = await page.locator("article h3").allInnerTexts();
   expect(areas.slice(0, 2).sort()).toEqual(["Sleep", "Stress"]);
@@ -59,7 +58,7 @@ test("stressed desk worker on anxiety medicine → stress & sleep lead, consult 
   expect(location.searchParams.get("utm_source")).toBe("fuyl-assessment");
 });
 
-test("vegan runner → fitness first, B12 surfaced; no female-only or dairy questions", async ({ page }) => {
+test("vegan runner → fitness first, B12 surfaced; no female-only questions or dairy row", async ({ page }) => {
   const tracker = trackView(page);
   await startAssessment(page);
   const { asked } = await runAssessment(page, tracker, {
@@ -75,14 +74,14 @@ test("vegan runner → fitness first, B12 surfaced; no female-only or dairy ques
     energy: "I hit a slump some days",
     energy_when: "Mid-afternoon",
   });
-  for (const k of ["pregnancy", "periods", "dairy", "fish"]) expect(asked).not.toContain(k);
+  for (const k of ["pregnancy", "periods"]) expect(asked).not.toContain(k);
   expect(asked).toContain("training");
 
   await unlock(page, "arjun.e2e@example.com");
   const areas = await page.locator("article h3").allInnerTexts();
   expect(areas[0]).toBe("Fitness & Recovery");
   await expect(page.getByText("Vitamin B12").first()).toBeVisible();
-  await expect(page.getByText("Before you start")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Before you start" })).toHaveCount(0);
 });
 
 test("person with no issues → short path, clean result", async ({ page }) => {
@@ -91,11 +90,12 @@ test("person with no issues → short path, clean result", async ({ page }) => {
   const { asked, end } = await runAssessment(page, tracker, { sex: "Male", priorities: ["Energy"] });
   expect(end).toBe("summary");
   // Only what matters: no sleep, stress, gut or focus deep dives for someone who feels fine.
-  expect(asked.length).toBeLessThanOrEqual(16);
+  // Now includes location, work, the "typical week" diet grid, salt, fortified foods and supplements.
+  expect(asked.length).toBeLessThanOrEqual(24);
   for (const k of ["sleep", "stress", "gut", "focus", "colds"]) expect(asked).not.toContain(k);
   await unlock(page, "sam.e2e@example.com");
   await expect(page.locator("article h3").first()).toHaveText("Energy");
-  await expect(page.getByText("Before you start")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Before you start" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: /View COMPLETE\+ on fuyl\.in/ })).toBeVisible();
 });
 

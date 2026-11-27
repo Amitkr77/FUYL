@@ -6,6 +6,15 @@ import type { EngineSettings } from "@/engine";
 import { saveSettingsAction } from "@/app/admin/actions";
 import { Card, Field, btn, inputCls } from "./ui";
 
+const WELLNESS_PILLARS: [string, string][] = [
+  ["nutrition", "Nutrition"],
+  ["sleep", "Sleep"],
+  ["mind", "Stress & mind"],
+  ["activity", "Activity"],
+  ["digestion", "Digestion"],
+  ["immunity", "Immunity"],
+];
+
 export function SettingsForm({ initial, canEdit }: { initial: EngineSettings; canEdit: boolean }) {
   const router = useRouter();
   const [s, setS] = useState(initial);
@@ -32,6 +41,28 @@ export function SettingsForm({ initial, canEdit }: { initial: EngineSettings; ca
         <Field label="“Moderate match” from (%)" hint="Anything above 0 and below this is “Mild”." error={issues["bands.moderate"]}>
           <input type="number" value={Math.round(s.bands.moderate * 100)} onChange={(e) => setS({ ...s, bands: { ...s.bands, moderate: Number(e.target.value) / 100 } })} className={inputCls} />
         </Field>
+      </fieldset>
+      <fieldset disabled={!canEdit} className="mt-6">
+        <legend className="mb-1 text-sm font-medium text-forest">Wellness score weights</legend>
+        <p className="mb-3 text-xs text-muted">How much each pillar counts in the overall 0–100 score. Only the ratios matter.</p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {WELLNESS_PILLARS.map(([key, label]) => (
+            <Field key={key} label={label} error={issues[`wellness.weights.${key}`]}>
+              <input
+                type="number"
+                min={0}
+                value={s.wellness?.weights?.[key] ?? ""}
+                onChange={(e) =>
+                  setS({
+                    ...s,
+                    wellness: { weights: { ...(s.wellness?.weights ?? {}), [key]: e.target.value === "" ? 0 : Number(e.target.value) } },
+                  })
+                }
+                className={inputCls}
+              />
+            </Field>
+          ))}
+        </div>
       </fieldset>
       {canEdit ? (
         <div className="mt-6 flex items-center gap-3">

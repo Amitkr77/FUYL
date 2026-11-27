@@ -40,7 +40,7 @@ test("Back re-shows the previous answer; option tiles are keyboard accessible", 
 test("editing an answer from the summary opens the new branch and updates the summary", async ({ page }) => {
   const tracker = trackView(page);
   await startAssessment(page);
-  await runAssessment(page, tracker, { sex: "Male", diet: "Vegetarian", dairy: "Every day" });
+  await runAssessment(page, tracker, { sex: "Male", diet: "Vegetarian" });
   // The email step comes first; reviewing answers is optional and folded away.
   await expect(page.getByRole("heading", { name: /Your report is ready/ })).toBeVisible();
   await openReview(page);
@@ -50,14 +50,21 @@ test("editing an answer from the summary opens the new branch and updates the su
   await page.getByRole("link", { name: /You follow a vegetarian diet\./ }).click();
   await page.waitForURL(/\/q\?edit=diet/);
   await page.getByRole("radio", { name: "Non-vegetarian", exact: true }).click();
-  // The fish question is new for this branch, so it's asked next.
-  await expect(page.getByRole("heading", { name: "How often do you eat fish?" })).toBeVisible();
-  await page.getByRole("radio", { name: "Rarely or never", exact: true }).click();
+  // The "typical week" grid gains egg and meat rows for this branch, so it's asked again.
+  await expect(page.getByRole("heading", { name: "In a typical week, how often do you eat these?" })).toBeVisible();
+  await expect(page.getByRole("radiogroup", { name: "Chicken, mutton or fish", exact: true })).toBeVisible();
+  const continueBtn = page.getByRole("button", { name: "Continue" });
+  await expect(continueBtn).toBeDisabled();
+  for (const g of await page.getByRole("radiogroup").all()) {
+    const meat = (await g.getAttribute("aria-labelledby"))?.endsWith("-meat");
+    await g.getByRole("radio", { name: meat ? "Rarely" : "Daily", exact: true }).click();
+  }
+  await continueBtn.click();
   await page.waitForURL("**/summary");
   await openReview(page);
   await expect(page.getByText("You follow a non-vegetarian diet.")).toBeVisible();
-  await expect(page.getByText("You eat fish rarely.")).toBeVisible();
-  await expect(page.getByText(/You have dairy/)).toHaveCount(0);
+  await expect(page.getByText(/In a typical week you eat .*eggs daily/)).toBeVisible();
+  await expect(page.getByText(/chicken, mutton or fish/)).toHaveCount(0);
 });
 
 test("email gate validates, and unlocking is idempotent", async ({ page }) => {

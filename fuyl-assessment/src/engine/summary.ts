@@ -25,6 +25,16 @@ export function buildSummary(kb: KnowledgeBase, answers: Answers): SummaryLine[]
       answerText = answerText.replace(/\{value\}/g, String(a.number));
     } else if (q.type === "text") {
       answerText = q.isNameQuestion ? name : a.text;
+    } else if (q.type === "grid") {
+      const parts = (q.rows ?? [])
+        .filter((r) => a.grid?.[r.key])
+        .map((r) => {
+          const o = q.options?.find((x) => x.value === a.grid![r.key]);
+          return o && o.summary !== null ? `${r.summary ?? r.label.toLowerCase()} ${o.summary ?? o.label.toLowerCase()}` : null;
+        })
+        .filter((x): x is string => Boolean(x));
+      if (parts.length === 0) continue;
+      answerText = joinList(parts);
     } else {
       const phrases = selectedOptions(q, answers)
         .filter((o) => o.summary !== null)

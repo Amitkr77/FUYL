@@ -24,6 +24,7 @@ function persona(script: Answers) {
 function neutral(q: Question): Answer {
   if (q.type === "text") return { text: "Sam" };
   if (q.type === "number") return { number: 30 };
+  if (q.type === "grid") return { grid: Object.fromEntries((q.rows ?? []).map((r) => [r.key, "d1"])) };
   const opts = q.options ?? [];
   const pick =
     opts.find((o) => o.exclusive) ??
@@ -82,7 +83,7 @@ describe("seed knowledge base — personas", () => {
   it("person with no issues takes a short path and still gets a result", () => {
     const { asked, step, result } = persona({ priorities: { values: ["energy"] } });
     expect(step.kind).toBe("complete");
-    expect(asked.length).toBeLessThanOrEqual(24);
+    expect(asked.length).toBeLessThanOrEqual(28) // incl. location, work, diet grid, iodised salt, fortified foods, supplements;
     expect(result.areas[0].key).toBe("energy");
     expect(result.showProduct).toBe(true);
     expect(result.safety.level).toBe("none");
@@ -128,7 +129,8 @@ describe("seed knowledge base — personas", () => {
     });
     expect(asked).not.toContain("pregnancy");
     expect(asked).not.toContain("periods");
-    expect(asked).not.toContain("dairy"); // vegans aren't asked about dairy
+    // Vegans aren't asked about dairy (that row of the "typical week" grid is hidden for them).
+    expect(kb.questions.find((q) => q.key === "diet_week")!.rows!.find((r) => r.key === "dairy")!.showIf).toBeDefined();
     const keys = result.areas.map((a) => a.key);
     expect(keys[0]).toBe("fitness");
     expect(keys).toContain("nutrients");
@@ -198,7 +200,7 @@ describe("seed knowledge base — personas", () => {
       pregnancy: { values: ["no"] },
       priorities: { values: ["energy", "gut", "ageing"] },
       diet: { values: ["veg"] },
-      dairy: { values: ["rarely"] },
+      diet_week: { grid: { dairy: "never", pulses: "w1", greens: "never", veg: "w3", fruits: "w1", nuts: "never", millets: "never" } },
       activity: { values: ["regular"] },
       training: { values: ["strength", "yoga"] },
       alcohol: { values: ["weekly"] },
@@ -229,7 +231,7 @@ describe("seed knowledge base — personas", () => {
     });
     expect(step.kind).toBe("complete");
     // Cap (30) drops late follow-ups; core safety questions still asked.
-    expect(asked.length).toBeLessThanOrEqual(36);
+    expect(asked.length).toBeLessThanOrEqual(44);
     expect(asked).toContain("medications");
     expect(asked).toContain("allergies");
   });

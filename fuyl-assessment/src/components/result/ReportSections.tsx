@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, FlaskConical, Leaf, ShieldCheck, Sparkles, Target } from "lucide-react";
+import { AlertTriangle, Apple, CheckCircle2, FlaskConical, Gauge, Leaf, ShieldCheck, Sparkles, Target } from "lucide-react";
 import { CountUp } from "./charts/CountUp";
 import type { AssessmentResult, Finding, NutrientRow } from "@/engine";
 
@@ -9,12 +9,14 @@ const FINDING_ICON: Record<Finding["kind"], typeof Target> = {
   safety: ShieldCheck,
   nutrition: FlaskConical,
   ingredients: Leaf,
+  wellness: Gauge,
+  diet: Apple,
 };
 
 export interface FindingStats {
   areas: number;
   ingredients: number;
-  nutrientsHalf?: { count: number; total: number };
+  nutrientsHalf?: { count: number; total: number; global?: boolean };
   safety: { level: AssessmentResult["safety"]["level"]; checks: number };
 }
 
@@ -31,7 +33,7 @@ function Tile({ children, label }: { children: React.ReactNode; label: string })
 function StatTiles({ stats }: { stats: FindingStats }) {
   const serious = stats.safety.level === "consult" || stats.safety.level === "caution" || stats.safety.level === "stop";
   return (
-    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="mt-6 grid grid-cols-2 gap-3 2xl:grid-cols-4">
       <Tile label={stats.areas === 1 ? "focus area for you" : "focus areas for you"}>
         <CountUp value={stats.areas} />
       </Tile>
@@ -39,7 +41,7 @@ function StatTiles({ stats }: { stats: FindingStats }) {
         <CountUp value={stats.ingredients} />
       </Tile>
       {stats.nutrientsHalf && (
-        <Tile label="vitamins & minerals at 50%+ of India's daily need">
+        <Tile label={`vitamins & minerals at 50%+ of ${stats.nutrientsHalf.global ? "the global" : "India's"} daily need`}>
           <CountUp value={stats.nutrientsHalf.count} />
           <span className="text-lg text-muted">/{stats.nutrientsHalf.total}</span>
         </Tile>

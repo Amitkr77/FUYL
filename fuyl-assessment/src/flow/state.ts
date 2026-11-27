@@ -29,7 +29,10 @@ export interface ClientOption {
 export interface ClientQuestion {
   key: string;
   block: string;
-  type: "single" | "multi" | "number" | "text";
+  type: "single" | "multi" | "number" | "text" | "grid";
+  /** grid: the rows shown for this person. */
+  rows?: { key: string; label: string; helper?: string }[];
+  display?: "tiles" | "select";
   prompt: string;
   why?: string;
   helper?: string;
@@ -75,6 +78,8 @@ export function toClientQuestion(q: RenderedQuestion): ClientQuestion {
     helper: q.helper,
     placeholder: q.placeholder,
     options: q.options?.map((o) => ({ value: o.value, label: o.label, info: o.info, exclusive: o.exclusive || undefined })),
+    rows: q.rows?.map((r) => ({ key: r.key, label: r.label, helper: r.helper })),
+    display: q.display,
     maxSelect: q.maxSelect,
     min: q.min,
     max: q.max,
@@ -179,7 +184,9 @@ export function applyAnswer(
   const isEdit = has(kept, key);
   if (!isFrontier && !isEdit) return { ok: false, error: "This question isn't available right now.", status: 409 };
 
-  const v = validateAnswer(question, input);
+  // Grid questions must answer exactly the rows shown to this person.
+  const requiredRows = question.type === "grid" ? (renderQuestionByKey(kb, kept, key)?.rows ?? []).map((r) => r.key) : undefined;
+  const v = validateAnswer(question, input, { requiredRows });
   if (!v.ok) return { ok: false, error: v.error, status: 422 };
 
   const nextAnswers = prune(kb, { ...kept, [key]: v.answer });

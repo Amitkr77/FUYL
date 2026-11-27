@@ -4,6 +4,7 @@ import { firstName, render } from "./text";
 import {
   BLOCK_ORDER,
   type Answers,
+  type EvalContext,
   type KnowledgeBase,
   type NextStep,
   type Question,
@@ -28,21 +29,38 @@ export function prune(kb: KnowledgeBase, answers: Answers): Answers {
   for (const q of orderedQuestions(kb)) {
     if (!answers[q.key]) continue;
     const ctx = buildContext(kb, kept);
-    if (evaluate(q.showIf, ctx)) kept[q.key] = answers[q.key];
+    if (!evaluate(q.showIf, ctx)) continue;
+    if (q.type === "grid") {
+      // Keep only rows that are still shown; if a newly shown row is unanswered, ask the grid again.
+      const rows = visibleRows(q, ctx);
+      const g = answers[q.key].grid ?? {};
+      if (rows.some((k) => !(k in g))) continue;
+      kept[q.key] = { grid: Object.fromEntries(rows.map((k) => [k, g[k]])) };
+      continue;
+    }
+    kept[q.key] = answers[q.key];
   }
   return kept;
 }
 
-function renderQuestion(q: Question, name: string | undefined): RenderedQuestion {
+/** Keys of a grid question's rows that are shown for these answers. */
+export function visibleRows(q: Question, ctx: EvalContext): string[] {
+  return (q.rows ?? []).filter((r) => evaluate(r.showIf, ctx)).map((r) => r.key);
+}
+
+function renderQuestion(q: Question, name: string | undefined, ctx?: EvalContext): RenderedQuestion {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { bands: _bands, ...rest } = q;
-  return { ...rest, prompt: render(q.prompt, name), why: q.why ? render(q.why, name) : undefined };
+  const rows = q.rows && ctx ? q.rows.filter((r) => evaluate(r.showIf, ctx)) : q.rows;
+  return { ...rest, ...(rows ? { rows } : {}), prompt: render(q.prompt, name), why: q.why ? render(q.why, name) : undefined };
 }
 
 /** Render one question by key with the user's name filled in (for Back / Edit). */
 export function renderQuestionByKey(kb: KnowledgeBase, answers: Answers, key: string): RenderedQuestion | undefined {
   const q = kb.questions.find((x) => x.key === key);
-  return q ? renderQuestion(q, firstName(kb, prune(kb, answers))) : undefined;
+  if (!q) return undefined;
+  const kept = prune(kb, answers);
+  return renderQuestion(q, firstName(kb, kept), buildContext(kb, kept));
 }
 
 /** The first `stop`-level safety rule currently triggered, if any. */
@@ -65,7 +83,7 @@ export function remainingQuestions(kb: KnowledgeBase, answers: Answers): Questio
 
 /** Render a question for display (fills in {name}). */
 export function renderForUser(kb: KnowledgeBase, answers: Answers, q: Question): RenderedQuestion {
-  return renderQuestion(q, firstName(kb, answers));
+  return renderQuestion(q, firstName(kb, answers), buildContext(kb, answers));
 }
 
 /**
@@ -96,7 +114,7 @@ export function nextStep(kb: KnowledgeBase, rawAnswers: Answers, opts: { already
   const progress = answeredCount / (answeredCount + remaining.length);
   return {
     kind: "question",
-    question: renderQuestion(next, firstName(kb, answers)),
+    question: renderQuestion(next, firstName(kb, answers), buildContext(kb, answers)),
     progress: Math.round(progress * 100) / 100,
     answeredCount,
     remaining: remaining.length - 1,

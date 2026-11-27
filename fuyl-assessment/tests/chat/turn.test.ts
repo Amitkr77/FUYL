@@ -11,8 +11,8 @@ const fakeAi = (fn: (req: AiRequest) => unknown): AiPort => ({ json: vi.fn(async
 const failingAi = (): AiPort => ({ json: vi.fn(async () => Promise.reject(new Error("429"))) });
 const ai = (o: Record<string, unknown>) => fakeAi(() => ({ action: "answer", values: [], number: null, text: null, ack: "", message: "", others: [], ...o }));
 
-const basics: Answers = { name: { text: "Riya" }, sex: { values: ["female"] }, age: { number: 30 } };
-const basicsPath = ["name", "sex", "age"];
+const basics: Answers = { name: { text: "Riya" }, sex: { values: ["female"] }, age: { number: 30 }, country: { values: ["in"] }, state: { values: ["delhi"] } };
+const basicsPath = ["name", "sex", "age", "country", "state"];
 
 describe("assisted answers — built-in understanding (no AI)", () => {
   it("turns a typed name into the answer and moves to the next question card", async () => {

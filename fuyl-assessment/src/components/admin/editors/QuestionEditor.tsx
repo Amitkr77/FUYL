@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
-import type { NumberBand, Option, Question } from "@/engine";
+import type { GridRow, NumberBand, Option, Question } from "@/engine";
 import { Card, Field, btn, inputCls } from "../ui";
 import { ConditionBuilder } from "./ConditionBuilder";
 import { EditorShell, type Issues } from "./EditorShell";
@@ -30,7 +30,9 @@ export function QuestionEditor({
   const [q, setQ] = useState<Question>(initial);
   const [issues, setIssues] = useState<Issues>({});
   const set = <K extends keyof Question>(k: K, v: Question[K]) => setQ((cur) => ({ ...cur, [k]: v }));
-  const isChoice = q.type === "single" || q.type === "multi";
+  const isChoice = q.type === "single" || q.type === "multi" || q.type === "grid";
+  const rows = q.rows ?? [];
+  const setRow = (i: number, patch: Partial<GridRow>) => set("rows", rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
 
   const setOption = (i: number, patch: Partial<Option>) => set("options", (q.options ?? []).map((o, j) => (j === i ? { ...o, ...patch } : o)));
   const moveOption = (i: number, d: -1 | 1) => {
@@ -84,8 +86,17 @@ export function QuestionEditor({
                 <option value="multi">Multiple choice</option>
                 <option value="number">Number</option>
                 <option value="text">Text</option>
+                <option value="grid">Grid (rows × one shared scale, e.g. food × how often)</option>
               </select>
             </Field>
+            {q.type === "single" && (
+              <Field label="Display" hint="Use a dropdown for long lists such as countries.">
+                <select value={q.display ?? "tiles"} onChange={(e) => set("display", e.target.value === "select" ? "select" : undefined)} className={inputCls}>
+                  <option value="tiles">Tiles</option>
+                  <option value="select">Dropdown</option>
+                </select>
+              </Field>
+            )}
             <Field label="Tier" hint="Follow-ups are dropped once the question cap is reached.">
               <select value={q.tier} onChange={(e) => set("tier", e.target.value as Question["tier"])} className={inputCls}>
                 <option value="core">Core — always asked when shown</option>
@@ -197,6 +208,9 @@ export function QuestionEditor({
                     <Field label="Safety flags">
                       <FlagsInput value={o.flags} onChange={(v) => setOption(i, { flags: v })} meta={meta} />
                     </Field>
+                    <Field label="Servings a day (diet estimate)" hint="Only for frequency scales and food answers, e.g. Daily = 1.">
+                      <input type="number" step="0.05" value={o.perDay ?? ""} onChange={(e) => setOption(i, { perDay: num(e.target.value) })} className={inputCls} />
+                    </Field>
                     <div className="flex items-end">
                       {q.type === "multi" && (
                         <label className="flex items-center gap-1.5 pb-2 text-xs text-forest">
@@ -209,6 +223,65 @@ export function QuestionEditor({
                     <p className="mb-1 text-xs font-medium text-forest">Scores</p>
                     <EffectsEditor value={o.effects} onChange={(v) => setOption(i, { effects: v })} meta={meta} />
                   </div>
+                </li>
+              ))}
+            </ol>
+          </Card>
+        )}
+
+        {q.type === "grid" && (
+          <Card
+            title={`Rows (${rows.length})`}
+            actions={
+              <button type="button" className={btn("secondary", "sm")} onClick={() => set("rows", [...rows, { key: "", label: "" }])}>
+                <Plus className="h-3.5 w-3.5" aria-hidden /> Add row
+              </button>
+            }
+          >
+            <p className="mb-3 text-xs text-muted">Every row is answered with the options above. Scores and reasons can differ per answer.</p>
+            <ol className="space-y-3">
+              {rows.map((r, i) => (
+                <li key={i} className="rounded-xl border border-line/60 p-4">
+                  <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto]">
+                    <Field label="Label">
+                      <input value={r.label} onChange={(e) => setRow(i, { label: e.target.value })} className={inputCls} />
+                    </Field>
+                    <Field label="Key">
+                      <input value={r.key} onChange={(e) => setRow(i, { key: e.target.value.toLowerCase() })} className={`${inputCls} font-mono`} />
+                    </Field>
+                    <Field label="Summary phrase">
+                      <input value={r.summary ?? ""} onChange={(e) => setRow(i, { summary: opt(e.target.value) })} className={inputCls} placeholder={r.label.toLowerCase()} />
+                    </Field>
+                    <div className="flex items-end">
+                      <button type="button" onClick={() => set("rows", rows.filter((_, j) => j !== i))} className={btn("ghost", "sm")} aria-label="Remove row">
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <ConditionBuilder label="Show this row only when" value={r.showIf} onChange={(c) => setRow(i, { showIf: c })} meta={meta} excludeQuestion={q.key} />
+                  </div>
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-xs font-medium text-forest">Scores &amp; reasons per answer</summary>
+                    <div className="mt-2 space-y-3">
+                      {(q.options ?? []).map((o) => (
+                        <div key={o.value} className="rounded-lg bg-cream/40 p-3">
+                          <p className="mb-1 text-xs font-medium text-forest">{o.label || o.value}</p>
+                          <EffectsEditor
+                            value={r.effects?.[o.value]}
+                            onChange={(v) => setRow(i, { effects: { ...(r.effects ?? {}), [o.value]: v ?? [] } })}
+                            meta={meta}
+                          />
+                          <input
+                            value={r.reasons?.[o.value] ?? ""}
+                            onChange={(e) => setRow(i, { reasons: { ...(r.reasons ?? {}), [o.value]: e.target.value } })}
+                            placeholder="Personal reason (optional)"
+                            className={`${inputCls} mt-2`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </details>
                 </li>
               ))}
             </ol>

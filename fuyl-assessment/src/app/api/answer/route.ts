@@ -15,6 +15,10 @@ const AnswerBody = z.object({
     values: z.array(z.string().max(60)).max(20).optional(),
     number: z.union([z.number(), z.string().max(10)]).optional(),
     text: z.string().max(200).optional(),
+    grid: z
+      .record(z.string().max(60), z.string().max(60))
+      .refine((g) => Object.keys(g).length <= 30)
+      .optional(),
   }),
 });
 

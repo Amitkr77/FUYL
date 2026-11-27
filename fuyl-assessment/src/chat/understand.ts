@@ -334,5 +334,7 @@ export function understand(q: Question, text: string): Understood {
       return understandNumber(q, text);
     case "text":
       return understandText(q, text);
+    case "grid":
+      return { ok: false, reason: "unclear" };
   }
 }

@@ -34,7 +34,10 @@ describe("buildReportEmail", () => {
     expect(email.html).toContain("Energy");
     expect(email.html).toContain("Vitamin B12 (2.2 mcg)");
     expect(email.html).toContain("https://assess.example/result/abc");
-    expect(email.html).toContain("₹1,499");
+    // Informational first: the report is the main button; the product is one quiet line, no price.
+    expect(email.html).toMatch(/View your full report<\/a>/);
+    expect(email.html).toContain("Learn more on fuyl.in");
+    expect(email.html).not.toContain("₹1,499");
     expect(email.text).toContain("Full report: https://assess.example/result/abc");
   });
 

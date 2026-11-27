@@ -23,6 +23,8 @@ export function clarifyText(q: Question | RenderedQuestion, reason?: "unclear" |
       return `Sorry, I didn't quite get that. Is it ${list((q.options ?? []).map((o) => o.label), "or")}?`;
     case "multi":
       return `Sorry, I didn't quite get that. Any of these: ${list((q.options ?? []).map((o) => o.label), "or")}?`;
+    case "grid":
+      return "For this one, please tap how often for each row.";
   }
 }
 

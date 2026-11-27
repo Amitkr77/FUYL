@@ -12,7 +12,8 @@ const schema = z.object({
   MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
   MONGODB_DB: z.string().min(1).default("fuyl_assessment"),
   SESSION_SECRET: z.string().min(32, "SESSION_SECRET must be at least 32 characters"),
-  APP_URL: z.string().url().default("http://localhost:3002"),
+  /** Public URL used in emailed links. On Vercel, falls back to the deployment's own URL (see resolveAppUrl). */
+  APP_URL: z.preprocess((v) => resolveAppUrl(v as string | undefined, process.env), z.string().url()),
   FUYL_STORE_URL: z.string().url().default("https://fuyl.in"),
   FUYL_PRODUCT_HANDLE: z.string().min(1).default("fuyl-complete"),
   // SMTP for the report email. Without SMTP_HOST, emails are skipped (logged).
@@ -40,6 +41,21 @@ const schema = z.object({
   DEMO_REVIEWER_EMAIL: optional(z.string().email()),
   DEMO_REVIEWER_PASSWORD: optional(z.string()),
 });
+
+/**
+ * The app's public URL for links in emails. An explicit APP_URL wins — except a
+ * localhost one on a Vercel deployment (a copied local .env), which would send
+ * people links that don't open. Then Vercel's own URLs are used: the production
+ * domain on production, the deployment URL on previews.
+ */
+export function resolveAppUrl(raw: string | undefined, e: Record<string, string | undefined>): string {
+  const set = raw?.trim();
+  const local = !set || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(set);
+  if (set && (!local || !e.VERCEL)) return set;
+  const host = e.VERCEL_ENV === "production" ? e.VERCEL_PROJECT_PRODUCTION_URL || e.VERCEL_URL : e.VERCEL_URL || e.VERCEL_PROJECT_PRODUCTION_URL;
+  if (e.VERCEL && host) return `https://${host}`;
+  return set || "http://localhost:3002";
+}
 
 export type Env = z.infer<typeof schema>;
 

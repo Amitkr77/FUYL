@@ -133,5 +133,7 @@ export function aiInputFor(q: Pick<Question, "type">, out: { values?: string[]; 
       return { number: out.number ?? undefined };
     case "text":
       return { text: out.text ?? undefined };
+    case "grid":
+      return {};
   }
 }

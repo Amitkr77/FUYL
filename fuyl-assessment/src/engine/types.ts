@@ -53,6 +53,23 @@ export interface Option {
   exclusive?: boolean;
   /** Short "Did you know?" line shown right after this answer (reviewed, claim-safe). */
   insight?: string;
+  /** Frequency options (grid questions): typical servings per day this answer stands for. */
+  perDay?: number;
+}
+
+/** One row of a grid question ("Dal, beans…" × how often). */
+export interface GridRow {
+  key: string;
+  label: string;
+  helper?: string;
+  /** Row shown only when this holds (e.g. eggs only for non-vegetarians). */
+  showIf?: Condition;
+  /** Effects per chosen option value. */
+  effects?: Record<string, Effect[]>;
+  /** Personal reason per chosen option value. */
+  reasons?: Record<string, string>;
+  /** Noun phrase for the summary, e.g. "dal or beans". */
+  summary?: string;
 }
 
 /** For `number` questions: effects/flags keyed by value range (inclusive bounds). */
@@ -65,7 +82,7 @@ export interface NumberBand {
   flags?: string[];
 }
 
-export type QuestionType = "single" | "multi" | "number" | "text";
+export type QuestionType = "single" | "multi" | "number" | "text" | "grid";
 
 export interface Question {
   key: string;
@@ -80,6 +97,10 @@ export interface Question {
   helper?: string;
   placeholder?: string;
   options?: Option[];
+  /** grid only: the rows; `options` is the shared answer scale (e.g. how often). */
+  rows?: GridRow[];
+  /** single only: "select" shows a searchable dropdown instead of tiles (long lists like country/state). */
+  display?: "tiles" | "select";
   /** multi only: maximum selections (leave empty to allow any number). */
   maxSelect?: number;
   /**
@@ -189,6 +210,21 @@ export interface EngineSettings {
   ingredientsPerArea: number;
   /** Fraction-of-max thresholds for High / Moderate (anything > 0 below that is Mild). */
   bands: { high: number; moderate: number };
+  /** Wellness score: weight of each pillar in the overall 0–100 score. */
+  wellness?: { weights: Record<string, number> };
+}
+
+/**
+ * Where a nutrient in the diet estimate comes from: a grid row (servings/day
+ * from the chosen frequency), a single/multi option (taken daily if chosen),
+ * or always (a baseline everyone eats, e.g. everyday cereals).
+ */
+export interface FoodSource {
+  key: string;
+  name: string;
+  from: { question?: string; row?: string; option?: string; always?: number };
+  /** Nutrient amounts per serving, in the same units as the nutrient reference (mg / mcg / IU). */
+  nutrients: Record<string, number>;
 }
 
 export interface KnowledgeBase {
@@ -198,6 +234,8 @@ export interface KnowledgeBase {
   areas: FocusArea[];
   ingredients: Ingredient[];
   safetyRules: SafetyRule[];
+  /** Food groups for the "estimated from your diet" nutrient intake (draft — nutritionist review). */
+  foods?: FoodSource[];
 }
 
 // ─── Answers & state ────────────────────────────────────────────────────────
@@ -206,6 +244,7 @@ export interface Answer {
   values?: string[]; // single / multi
   number?: number; // number
   text?: string; // text
+  grid?: Record<string, string>; // grid: row key → option value
 }
 
 export type Answers = Record<string, Answer>;
@@ -277,6 +316,8 @@ export interface NutrientRow {
   /** Both sexes' requirements, for the Women / Men / Both switch on the report. */
   ref?: { india: SexValues; global: SexValues };
   kind?: "vitamin" | "mineral";
+  /** Estimated daily intake from the person's diet (same unit), when it can be estimated. */
+  diet?: number;
 }
 
 /** Match for every focus area (for the profile chart), not just the ones shown. */
@@ -302,7 +343,7 @@ export interface BlendSummary {
 }
 
 export interface Finding {
-  kind: "focus" | "safety" | "nutrition" | "ingredients";
+  kind: "focus" | "safety" | "nutrition" | "ingredients" | "wellness" | "diet";
   text: string;
 }
 
@@ -312,7 +353,16 @@ export interface AssessmentResult {
   /** Summary of findings shown first on the report (absent on reports created before it existed). */
   findings?: { headline: string; points: Finding[] };
   /** Vitamin & mineral comparison: per serve vs daily needs in India and globally. */
-  nutrients?: { basis: "male" | "female" | "adult"; rows: NutrientRow[] };
+  nutrients?: {
+    basis: "male" | "female" | "adult";
+    rows: NutrientRow[];
+    /** Which guideline leads (India for people in India, else global). */
+    primary?: "india" | "global";
+    /** True when the diet questions were answered, so rows carry a diet estimate. */
+    dietEstimated?: boolean;
+  };
+  /** Overall wellness score (higher = doing better) and its pillars. */
+  wellness?: { score: number; label: string; pillars: { key: string; name: string; score: number }[] };
   /** Every focus area's match, for the profile chart. */
   profile?: ProfileArea[];
   /** The formula by blend, with the ingredients matched to this person. */

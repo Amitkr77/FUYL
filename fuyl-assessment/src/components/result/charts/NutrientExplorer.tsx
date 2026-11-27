@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { ArrowRightLeft, Table2, BarChart3 } from "lucide-react";
 import type { AssessmentResult, NutrientRow } from "@/engine";
-import { AMOUNT, COVERAGE, GLOBAL, INDIA, TRACK } from "./palette";
+import { AMOUNT, COVERAGE, DIET, GLOBAL, INDIA, SERVE, TRACK } from "./palette";
 
 /**
  * Vitamins & minerals: one serve vs what a person needs a day — in India
@@ -16,6 +16,7 @@ import { AMOUNT, COVERAGE, GLOBAL, INDIA, TRACK } from "./palette";
 
 type Sex = "female" | "male";
 type View = "female" | "male" | "both";
+type Guideline = "india" | "global";
 
 const fmt = (n: number) => (Number.isInteger(n) ? n.toLocaleString("en-IN") : n.toLocaleString("en-IN", { maximumFractionDigits: 1 }));
 const pct = (amount: number, need: number) => (need > 0 ? Math.round((amount / need) * 100) : 0);
@@ -34,32 +35,126 @@ const BINS = [
   { min: 0, label: "A small top-up", note: "under 25%" },
 ] as const;
 
-function Bullet({ r, sex, label }: { r: NutrientRow; sex: Sex | "max"; label?: string }) {
+function Bullet({
+  r,
+  sex,
+  label,
+  showGlobal = true,
+  primary = "india",
+}: {
+  r: NutrientRow;
+  sex: Sex | "max";
+  label?: string;
+  showGlobal?: boolean;
+  primary?: Guideline;
+}) {
+  if (!showGlobal && primary === "global") return <SingleBullet r={r} sex={sex} />;
   const { india, global } = needs(r, sex);
-  const scale = Math.max(r.amount, india, global) * 1.08;
+  const scale = Math.max(r.amount, india, showGlobal ? global : 0) * 1.08;
   const at = (v: number) => `${(v / scale) * 100}%`;
   const ip = pct(r.amount, india);
   const gp = pct(r.amount, global);
   return (
     <div>
       {label && <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.12em] text-muted">{label}</p>}
-      <div className="relative h-4" role="img" aria-label={`${r.name}: one serve ${fmt(r.amount)} ${r.unit}. India needs ${fmt(india)} ${r.unit} (${ip}%), global ${fmt(global)} ${r.unit} (${gp}%).`}>
+      <div className="relative h-4" role="img" aria-label={`${r.name}: one serve ${fmt(r.amount)} ${r.unit}. India needs ${fmt(india)} ${r.unit} (${ip}%)${showGlobal ? `, global ${fmt(global)} ${r.unit} (${gp}%)` : ""}.`}>
         <div className="absolute inset-y-1 left-0 right-0 rounded-full" style={{ background: TRACK }} />
         <div className="bar-grow absolute inset-y-1 left-0 rounded-full" style={{ width: at(r.amount), background: AMOUNT }} title={`One serve: ${fmt(r.amount)} ${r.unit}`} />
         {/* Markers: 2px surface ring so they read on top of the bar. */}
         <span className="absolute top-0 h-4 w-[5px] -translate-x-1/2 rounded-sm ring-2 ring-white" style={{ left: at(india), background: INDIA }} title={`India needs ${fmt(india)} ${r.unit}/day — one serve covers ${ip}%`} />
-        <span className="absolute top-0 h-4 w-[5px] -translate-x-1/2 rounded-sm ring-2 ring-white" style={{ left: at(global), background: GLOBAL }} title={`Global need ${fmt(global)} ${r.unit}/day — one serve covers ${gp}%`} />
+        {showGlobal && (
+          <span className="absolute top-0 h-4 w-[5px] -translate-x-1/2 rounded-sm ring-2 ring-white" style={{ left: at(global), background: GLOBAL }} title={`Global need ${fmt(global)} ${r.unit}/day — one serve covers ${gp}%`} />
+        )}
       </div>
       <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted">
         <span className="inline-flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full" style={{ background: INDIA }} aria-hidden />
-          India {fmt(india)} {r.unit} · <strong className="font-medium text-forest tabular-nums">{ip}%</strong>
+          {showGlobal ? "India" : "You need"} {fmt(india)} {r.unit} a day · <strong className="font-medium text-forest tabular-nums">{ip}% covered</strong>
         </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ background: GLOBAL }} aria-hidden />
-          Global {fmt(global)} {r.unit} · <strong className="font-medium text-forest tabular-nums">{gp}%</strong>
-        </span>
+        {showGlobal && (
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ background: GLOBAL }} aria-hidden />
+            Global {fmt(global)} {r.unit} · <strong className="font-medium text-forest tabular-nums">{gp}%</strong>
+          </span>
+        )}
       </div>
+    </div>
+  );
+}
+
+/** Not comparing, outside India: one serve vs the global daily need only. */
+function SingleBullet({ r, sex }: { r: NutrientRow; sex: Sex | "max" }) {
+  const need = needs(r, sex).global;
+  const scale = Math.max(r.amount, need) * 1.08;
+  const at = (v: number) => `${(v / scale) * 100}%`;
+  const p = pct(r.amount, need);
+  return (
+    <div>
+      <div className="relative h-4" role="img" aria-label={`${r.name}: one serve ${fmt(r.amount)} ${r.unit}; you need ${fmt(need)} ${r.unit} a day (${p}%).`}>
+        <div className="absolute inset-y-1 left-0 right-0 rounded-full" style={{ background: TRACK }} />
+        <div className="bar-grow absolute inset-y-1 left-0 rounded-full" style={{ width: at(r.amount), background: AMOUNT }} title={`One serve: ${fmt(r.amount)} ${r.unit}`} />
+        <span className="absolute top-0 h-4 w-[5px] -translate-x-1/2 rounded-sm ring-2 ring-white" style={{ left: at(need), background: GLOBAL }} title={`You need ${fmt(need)} ${r.unit}/day — one serve covers ${p}%`} />
+      </div>
+      <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-muted">
+        <span className="h-2 w-2 rounded-full" style={{ background: GLOBAL }} aria-hidden />
+        You need {fmt(need)} {r.unit} a day · <strong className="font-medium text-forest tabular-nums">{p}% covered</strong>
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Diet gap: your meals (estimated) + one serve, stacked, in % of the daily
+ * need; the marker sits at 100%. Whatever's left after both is the gap.
+ */
+function DietBar({ r, sex, primary }: { r: NutrientRow; sex: Sex | "max"; primary: Guideline }) {
+  const need = primary === "global" ? needs(r, sex).global : needs(r, sex).india;
+  const dietPct = pct(r.diet ?? 0, need);
+  const servePct = pct(r.amount, need);
+  const total = dietPct + servePct;
+  const gap = Math.max(0, 100 - total);
+  const scale = Math.min(200, Math.max(100, total)) * 1.05;
+  const w = (v: number) => `${(Math.min(v, scale) / scale) * 100}%`;
+  const dietW = Math.min(dietPct, scale);
+  const serveW = Math.max(0, Math.min(servePct, scale - dietW));
+  return (
+    <div>
+      <div
+        className="relative h-4"
+        role="img"
+        aria-label={`${r.name}: your meals give about ${dietPct}% of the ${fmt(need)} ${r.unit} you need a day; one serve adds ${servePct}%; ${gap ? `about ${gap}% still to get` : "together that covers your daily need"}.`}
+      >
+        <div className="absolute inset-y-1 left-0 right-0 rounded-full" style={{ background: TRACK }} />
+        <div className="absolute inset-y-1 left-0 flex gap-[2px]" style={{ width: w(dietW + serveW) }}>
+          {dietW > 0 && (
+            <span className="bar-grow h-full rounded-l-full" style={{ flexGrow: dietW, background: DIET, borderRadius: serveW ? undefined : 9999 }} title={`Your meals: about ${dietPct}%`} />
+          )}
+          {serveW > 0 && (
+            <span className="bar-grow h-full rounded-r-full" style={{ flexGrow: serveW, background: SERVE, borderRadius: dietW ? undefined : 9999 }} title={`One serve: +${servePct}%`} />
+          )}
+        </div>
+        <span className="absolute top-0 h-4 w-[5px] -translate-x-1/2 rounded-sm ring-2 ring-white" style={{ left: w(100), background: INDIA }} title={`Daily need: ${fmt(need)} ${r.unit}`} />
+      </div>
+      <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
+        <span>
+          Meals ≈ <strong className="font-medium text-forest tabular-nums">{dietPct}%</strong>
+        </span>
+        <span>
+          One serve <strong className="font-medium text-forest tabular-nums">+{servePct}%</strong>
+        </span>
+        <span>
+          {gap ? (
+            <>
+              Still to get <strong className="font-medium text-forest tabular-nums">{gap}%</strong>
+            </>
+          ) : (
+            <strong className="font-medium text-forest">Daily need covered</strong>
+          )}
+        </span>
+        <span className="text-muted/80">
+          of {fmt(need)} {r.unit} a day
+        </span>
+      </p>
     </div>
   );
 }
@@ -88,6 +183,12 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
   const [view, setView] = useState<View>(nutrients.basis === "adult" || !hasRef ? (hasRef ? "both" : "female") : nutrients.basis);
   const [kind, setKind] = useState<"all" | "vitamin" | "mineral">("all");
   const [asTable, setAsTable] = useState(false);
+  // Simple first: India's daily need only. The global comparison (and the women/men switch) is opt-in.
+  const [compare, setCompare] = useState(false);
+  const primary: Guideline = nutrients.primary ?? "india";
+  const hasDiet = Boolean(nutrients.dietEstimated) && nutrients.rows.some((r) => r.diet !== undefined);
+  const needFor = (r: NutrientRow, sex: Sex | "max") => (primary === "global" && !compare ? needs(r, sex).global : needs(r, sex).india);
+  const guidelineName = primary === "global" && !compare ? "global" : "India's";
 
   const rows = nutrients.rows.filter((r) => kind === "all" || r.kind === kind);
   const sexFor = (v: View): Sex | "max" => (v === "both" ? "max" : v);
@@ -96,11 +197,12 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
   const bins = useMemo(() => {
     const counts = BINS.map(() => 0);
     for (const r of nutrients.rows) {
-      const p = pct(r.amount, needs(r, sexFor(view)).india);
+      const p = pct(r.amount, needFor(r, sexFor(view)));
       counts[BINS.findIndex((b) => p >= b.min)]++;
     }
     return counts;
-  }, [nutrients.rows, view]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nutrients.rows, view, primary, compare]);
 
   // Where India and global guidelines differ the most (≥25%), for the selected sex.
   const diffs = useMemo(() => {
@@ -124,15 +226,40 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
     <section aria-labelledby="nutrients-heading" className="glass-strong rounded-[var(--radius-glass)] p-6 sm:p-9">
       <p className="text-xs font-medium uppercase tracking-[0.2em] text-teal-deep">Vitamins &amp; minerals</p>
       <h2 id="nutrients-heading" className="mt-3 font-display text-2xl text-forest sm:text-3xl">
-        One serve vs what you need a day
+        How one serve compares with your daily needs
       </h2>
       <p className="mt-2 text-sm leading-relaxed text-muted">
-        Daily requirements differ between India and global guidelines — and between women and men. Here&rsquo;s how one 10 g serve of COMPLETE+ measures up to both.
+        {primary === "global" ? (
+          <>For each vitamin and mineral: how much of the amount your body needs every day one 10 g serve provides, based on global guidelines (US NIH).</>
+        ) : (
+          <>
+            For each vitamin and mineral: how much of the amount your body needs every day one 10 g serve provides, based on Indian guidelines (ICMR-NIN —
+            India&rsquo;s official nutrition standards).
+          </>
+        )}{" "}
+        {hasDiet ? "We've also estimated what your meals already give you, from your answers about a typical week — so you can see the gap." : "Food gives you the rest."}
       </p>
 
       {/* Controls in one row above the chart. */}
       <div className="mt-5 flex flex-wrap items-center gap-2">
         {hasRef && (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={compare}
+            onClick={() => setCompare((c) => !c)}
+            className={clsx(
+              "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors",
+              compare ? "bg-forest text-white" : "bg-white/70 text-forest shadow-[inset_0_0_0_1px_rgba(18,41,31,0.08)] hover:bg-sage/60",
+            )}
+          >
+            <span className={clsx("relative h-4 w-7 rounded-full transition-colors", compare ? "bg-white/30" : "bg-forest/15")} aria-hidden>
+              <span className={clsx("absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-[left]", compare ? "left-3.5" : "left-0.5")} />
+            </span>
+            Compare with global guidelines
+          </button>
+        )}
+        {hasRef && compare && (
           <Seg
             label="Show requirements for"
             value={view}
@@ -168,7 +295,7 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
       {/* Coverage at a glance: one segmented bar (part-to-whole). */}
       <div className="mt-6 rounded-2xl bg-white/55 p-4 sm:p-5">
         <p className="text-sm font-medium text-forest">
-          How much of India&rsquo;s daily need one serve covers{view === "both" ? " (using the higher of men's and women's needs)" : ""}
+          How much of {guidelineName} daily need one serve covers{view === "both" ? " (using the higher of men's and women's needs)" : ""}
         </p>
         <div className="mt-3 flex h-3.5 w-full gap-[2px] overflow-hidden rounded-full" role="img" aria-label={BINS.map((b, i) => `${b.label}: ${bins[i]}`).join(", ")}>
           {BINS.map((b, i) =>
@@ -188,7 +315,7 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
       </div>
 
       {/* India vs global: where the guidelines differ most. */}
-      {hasRef && diffs.some((d) => d.more.length || d.less.length) && (
+      {hasRef && compare && diffs.some((d) => d.more.length || d.less.length) && (
         <div className="mt-4 rounded-2xl border border-line/70 bg-white/40 p-4 text-sm leading-relaxed text-forest sm:p-5">
           <p className="flex items-center gap-2 font-medium">
             <ArrowRightLeft className="h-4 w-4 text-teal-deep" aria-hidden /> India vs global — where they differ
@@ -215,15 +342,40 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
 
       {/* Legend (≥ 2 series) */}
       <div className="mt-6 flex flex-wrap gap-4 text-xs text-muted">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-4 rounded-full" style={{ background: AMOUNT }} aria-hidden /> One serve of COMPLETE+
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-3.5 w-[5px] rounded-sm" style={{ background: INDIA }} aria-hidden /> India daily need (ICMR-NIN 2020)
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-3.5 w-[5px] rounded-sm" style={{ background: GLOBAL }} aria-hidden /> Global daily need (US NIH)
-        </span>
+        {hasDiet && !compare ? (
+          <>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-4 rounded-full" style={{ background: DIET }} aria-hidden /> Your meals (estimated)
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-4 rounded-full" style={{ background: SERVE }} aria-hidden /> One serve of COMPLETE+
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-3.5 w-[5px] rounded-sm" style={{ background: INDIA }} aria-hidden /> Your daily need ({primary === "global" ? "US NIH" : "ICMR-NIN 2020"})
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-4 rounded-full" style={{ background: AMOUNT }} aria-hidden /> One serve of COMPLETE+
+            </span>
+            {(compare || primary === "india") && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-3.5 w-[5px] rounded-sm" style={{ background: INDIA }} aria-hidden /> India daily need (ICMR-NIN 2020)
+              </span>
+            )}
+            {!compare && primary === "global" && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-3.5 w-[5px] rounded-sm" style={{ background: GLOBAL }} aria-hidden /> Global daily need (US NIH)
+              </span>
+            )}
+          </>
+        )}
+        {compare && (
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-3.5 w-[5px] rounded-sm" style={{ background: GLOBAL }} aria-hidden /> Global daily need (US NIH)
+          </span>
+        )}
       </div>
 
       {asTable ? (
@@ -233,9 +385,10 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
               <tr className="border-b border-line/60">
                 <th scope="col" className="py-2 pr-3 font-medium">Nutrient</th>
                 <th scope="col" className="py-2 pr-3 font-medium">Per serve</th>
-                {(view === "both" ? (["female", "male"] as Sex[]) : [view as Sex]).flatMap((s) => [
-                  <th key={`${s}i`} scope="col" className="py-2 pr-3 font-medium">India{view === "both" ? ` (${s === "female" ? "W" : "M"})` : ""}</th>,
-                  <th key={`${s}g`} scope="col" className="py-2 pr-3 font-medium">Global{view === "both" ? ` (${s === "female" ? "W" : "M"})` : ""}</th>,
+                {hasDiet && <th scope="col" className="py-2 pr-3 font-medium">Your meals (est.)</th>}
+                {(compare && view === "both" ? (["female", "male"] as Sex[]) : [view === "both" ? ("female" as Sex) : (view as Sex)]).flatMap((s) => [
+                  <th key={`${s}i`} scope="col" className="py-2 pr-3 font-medium">India{compare && view === "both" ? ` (${s === "female" ? "W" : "M"})` : ""}</th>,
+                  ...(compare ? [<th key={`${s}g`} scope="col" className="py-2 pr-3 font-medium">Global{view === "both" ? ` (${s === "female" ? "W" : "M"})` : ""}</th>] : []),
                 ])}
               </tr>
             </thead>
@@ -244,11 +397,14 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
                 <tr key={r.key} className="border-b border-line/40 last:border-0">
                   <th scope="row" className="py-2 pr-3 font-medium text-forest">{r.name}</th>
                   <td className="whitespace-nowrap py-2 pr-3 tabular-nums">{fmt(r.amount)} {r.unit}</td>
-                  {(view === "both" ? (["female", "male"] as Sex[]) : [view as Sex]).flatMap((s) => {
-                    const n = needs(r, s);
+                  {hasDiet && <td className="whitespace-nowrap py-2 pr-3 tabular-nums text-muted">{r.diet !== undefined ? `≈ ${fmt(r.diet)} ${r.unit}` : "—"}</td>}
+                  {(compare && view === "both" ? (["female", "male"] as Sex[]) : [view === "both" ? ("female" as Sex) : (view as Sex)]).flatMap((s) => {
+                    const n = needs(r, compare || view !== "both" ? s : "max");
                     return [
                       <td key={`${s}i`} className="whitespace-nowrap py-2 pr-3 tabular-nums text-muted">{fmt(n.india)} {r.unit} <span className="text-forest">({pct(r.amount, n.india)}%)</span></td>,
-                      <td key={`${s}g`} className="whitespace-nowrap py-2 pr-3 tabular-nums text-muted">{fmt(n.global)} {r.unit} <span className="text-forest">({pct(r.amount, n.global)}%)</span></td>,
+                      ...(compare
+                        ? [<td key={`${s}g`} className="whitespace-nowrap py-2 pr-3 tabular-nums text-muted">{fmt(n.global)} {r.unit} <span className="text-forest">({pct(r.amount, n.global)}%)</span></td>]
+                        : []),
                     ];
                   })}
                 </tr>
@@ -266,13 +422,15 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
                   {fmt(r.amount)} {r.unit} per serve
                 </p>
               </div>
-              {view === "both" && hasRef ? (
+              {compare && view === "both" && hasRef ? (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Bullet r={r} sex="female" label="Women" />
                   <Bullet r={r} sex="male" label="Men" />
                 </div>
+              ) : hasDiet && !compare && r.diet !== undefined ? (
+                <DietBar r={r} sex={sexFor(view)} primary={primary} />
               ) : (
-                <Bullet r={r} sex={sexFor(view)} />
+                <Bullet r={r} sex={sexFor(view)} showGlobal={compare} primary={primary} />
               )}
             </li>
           ))}
@@ -282,6 +440,7 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
       <p className="mt-5 text-xs leading-relaxed text-muted">
         India: ICMR-NIN &ldquo;Nutrient Requirements for Indians&rdquo; (2020), adults. Global: US National Institutes of Health RDA/AI, adults 19–50.
         A supplement adds to what you get from food — it isn&rsquo;t meant to cover 100% on its own.
+        {hasDiet && " Meal estimates are rough averages from typical Indian portions (IFCT 2017) and your answers — not a lab measurement."}
       </p>
     </section>
   );

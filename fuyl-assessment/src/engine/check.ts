@@ -1,6 +1,7 @@
 import { referencedQuestions, referencedSignals } from "./conditions";
 import { nextStep, orderedQuestions, triggeredStop } from "./flow";
-import type { Answer, Answers, KnowledgeBase, Question } from "./types";
+import type {
+  Condition, Answer, Answers, KnowledgeBase, Question } from "./types";
 
 export interface CheckIssue {
   severity: "error" | "warning";
@@ -59,7 +60,7 @@ export function checkKnowledgeBase(kb: KnowledgeBase): CheckIssue[] {
 
   // ── Conditions must reference earlier questions that exist ──
   for (const q of kb.questions) {
-    for (const ref of referencedQuestions(q.showIf)) {
+    for (const ref of [...referencedQuestions(q.showIf), ...(q.rows ?? []).flatMap((r) => [...referencedQuestions(r.showIf)])]) {
       if (!qKeys.has(ref)) err("unknown_reference", `"${q.key}" depends on unknown question "${ref}".`, q.key);
       else if ((position.get(ref) ?? 0) >= (position.get(q.key) ?? 0)) {
         err("forward_reference", `"${q.key}" depends on "${ref}", which is asked later — move it earlier.`, q.key);
@@ -113,7 +114,8 @@ export function checkKnowledgeBase(kb: KnowledgeBase): CheckIssue[] {
 export function simulateReachable(kb: KnowledgeBase): { seen: Set<string>; maxLength: number } {
   const seen = new Set<string>();
   let maxLength = 0;
-  const samples = new Map(kb.questions.map((q) => [q.key, sampleAnswers(q)]));
+  const referenced = referencedValues(kb);
+  const samples = new Map(kb.questions.map((q) => [q.key, sampleAnswers(q, referenced.get(q.key))]));
 
   const walk = (base: "first" | "last", forced?: { key: string; answer: Answer }) => {
     const answers: Answers = {};
@@ -142,7 +144,32 @@ export function simulateReachable(kb: KnowledgeBase): { seen: Set<string>; maxLe
   return { seen, maxLength };
 }
 
-function sampleAnswers(q: Question) {
+/** Option values each question's answers are tested against in any condition (they're the ones that change the path). */
+function referencedValues(kb: KnowledgeBase): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>();
+  const visit = (c: Condition | undefined) => {
+    if (!c) return;
+    if ("all" in c) c.all.forEach(visit);
+    else if ("any" in c) c.any.forEach(visit);
+    else if ("not" in c) visit(c.not);
+    else if ("answer" in c) {
+      const set = out.get(c.answer) ?? new Set<string>();
+      ("in" in c ? c.in : c.notIn).forEach((v) => set.add(v));
+      out.set(c.answer, set);
+    }
+  };
+  for (const q of kb.questions) {
+    visit(q.showIf);
+    q.rows?.forEach((r) => visit(r.showIf));
+  }
+  kb.safetyRules.forEach((r) => visit(r.when));
+  return out;
+}
+
+/** Long lists (country, state): only the first, the last and any option a condition looks at — the rest behave identically. */
+const LONG_LIST = 12;
+
+function sampleAnswers(q: Question, referenced?: Set<string>) {
   switch (q.type) {
     case "text":
       return [{ text: "Sam" }];
@@ -155,8 +182,13 @@ function sampleAnswers(q: Question) {
       if (points.size === 0) points.add(q.min ?? 30);
       return [...points].map((n) => ({ number: n }));
     }
-    case "single":
-      return (q.options ?? []).map((o) => ({ values: [o.value] }));
+    case "single": {
+      const opts = q.options ?? [];
+      const picked = opts.length > LONG_LIST ? opts.filter((o, i) => i === 0 || i === opts.length - 1 || referenced?.has(o.value)) : opts;
+      return picked.map((o) => ({ values: [o.value] }));
+    }
+    case "grid":
+      return (q.options ?? []).map((o) => ({ grid: Object.fromEntries((q.rows ?? []).map((r) => [r.key, o.value])) }));
     case "multi": {
       const opts = q.options ?? [];
       const singles = opts.map((o) => ({ values: [o.value] }));

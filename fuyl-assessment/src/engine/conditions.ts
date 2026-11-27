@@ -5,6 +5,7 @@ function hasAnswer(a: Answer | undefined): boolean {
   if (a.values && a.values.length > 0) return true;
   if (typeof a.number === "number" && Number.isFinite(a.number)) return true;
   if (typeof a.text === "string" && a.text.trim().length > 0) return true;
+  if (a.grid && Object.keys(a.grid).length > 0) return true;
   return false;
 }
 

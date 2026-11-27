@@ -17,6 +17,10 @@ export function contributions(q: Question, answers: Answers): { effects: Effect[
     const band = bandFor(q, answers[q.key]?.number);
     return { effects: band?.effects ?? [], flags: band?.flags ?? [] };
   }
+  if (q.type === "grid") {
+    const g = answers[q.key]?.grid ?? {};
+    return { effects: (q.rows ?? []).flatMap((r) => (g[r.key] ? (r.effects?.[g[r.key]] ?? []) : [])), flags: [] };
+  }
   const opts = selectedOptions(q, answers);
   return {
     effects: opts.flatMap((o) => o.effects ?? []),
@@ -56,6 +60,19 @@ export function maxScores(kb: KnowledgeBase): Record<string, number> {
       for (const e of effects ?? []) if (e.weight > 0) local[e.area] = (local[e.area] ?? 0) + e.weight;
       for (const [a, w] of Object.entries(local)) (perArea[a] ??= []).push(w);
     };
+    if (q.type === "grid") {
+      // Each row counts once, at its strongest answer.
+      for (const r of q.rows ?? []) {
+        const best: Record<string, number> = {};
+        for (const effects of Object.values(r.effects ?? {})) {
+          const local: Record<string, number> = {};
+          for (const e of effects) if (e.weight > 0) local[e.area] = (local[e.area] ?? 0) + e.weight;
+          for (const [a, w] of Object.entries(local)) best[a] = Math.max(best[a] ?? 0, w);
+        }
+        for (const [a, w] of Object.entries(best)) add(a, w);
+      }
+      continue;
+    }
     if (q.type === "number") q.bands?.forEach((b) => push(b.effects));
     else q.options?.forEach((o) => push(o.effects));
 

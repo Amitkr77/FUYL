@@ -23,7 +23,7 @@ export async function GET(req: Request) {
     .lean();
 
   const csv = toCsv(
-    ["created_at", "first_name", "email", "newsletter_opt_in", "focus_areas", "safety_level", "email_status", "clicked_to_store", "utm_source", "utm_campaign", "kb_version"],
+    ["created_at", "first_name", "email", "newsletter_opt_in", "focus_areas", "wellness_score", "safety_level", "email_status", "clicked_to_store", "utm_source", "utm_campaign", "kb_version"],
     rows.map((r) => {
       const result = r.result as AssessmentResult;
       return [
@@ -32,6 +32,7 @@ export async function GET(req: Request) {
         r.email,
         r.newsletterOptIn ? "yes" : "no",
         result?.areas?.map((a) => a.name).join("; "),
+        result?.wellness?.score,
         result?.safety?.level,
         r.email_status,
         r.ctaClickedAt ? "yes" : "no",

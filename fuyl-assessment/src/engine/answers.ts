@@ -1,6 +1,6 @@
 import type { Answer, Question } from "./types";
 
-export type AnswerInput = { values?: unknown; number?: unknown; text?: unknown };
+export type AnswerInput = { values?: unknown; number?: unknown; text?: unknown; grid?: unknown };
 
 export type Validated = { ok: true; answer: Answer } | { ok: false; error: string };
 
@@ -15,8 +15,23 @@ const NAME_RE = /^\p{L}[\p{L}\p{M}\s.'-]*$/u;
  * the client: values must be real option values, counts must respect
  * maxSelect, exclusive options can't be combined, numbers must be in range.
  */
-export function validateAnswer(q: Question, input: AnswerInput): Validated {
+export function validateAnswer(q: Question, input: AnswerInput, opts: { requiredRows?: string[] } = {}): Validated {
   switch (q.type) {
+    case "grid": {
+      const raw = input.grid && typeof input.grid === "object" && !Array.isArray(input.grid) ? (input.grid as Record<string, unknown>) : {};
+      const rows = q.rows ?? [];
+      const required = opts.requiredRows ?? rows.map((r) => r.key);
+      const values = new Set((q.options ?? []).map((o) => o.value));
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(raw)) {
+        if (!rows.some((r) => r.key === k)) return { ok: false, error: "That row isn't available." };
+        if (typeof v !== "string" || !values.has(v)) return { ok: false, error: "Please choose an option for each row." };
+        out[k] = v;
+      }
+      const missing = required.filter((k) => !(k in out));
+      if (missing.length) return { ok: false, error: "Please answer every row." };
+      return { ok: true, answer: { grid: out } };
+    }
     case "single": {
       const vals = Array.isArray(input.values) ? input.values : [];
       if (vals.length !== 1 || typeof vals[0] !== "string") return { ok: false, error: "Please choose one option." };

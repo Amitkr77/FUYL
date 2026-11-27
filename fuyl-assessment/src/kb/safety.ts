@@ -185,6 +185,26 @@ export const SAFETY_RULES: SafetyRule[] = [
     ingredientKeys: [],
   },
 
+  // ── Already taking supplements ──
+  {
+    key: "supp_overlap",
+    level: "caution",
+    when: { any: [{ flag: "supp_multi" }, { flag: "supp_iron" }, { flag: "supp_vitd" }] },
+    title: "You already take a multivitamin, iron or vitamin D",
+    message:
+      "COMPLETE+ already contains a full vitamin and mineral premix, including iron and vitamin D. Taking it alongside a multivitamin or extra iron or vitamin D can add up to more than you need — check your total daily amounts with your doctor or pharmacist.",
+    ingredientKeys: ["iron", "vitamin-d3", "zinc", "vitamin-a"],
+  },
+  {
+    key: "supp_herbal",
+    level: "caution",
+    when: { flag: "supp_herbal" },
+    title: "You take herbal or Ayurvedic supplements",
+    message:
+      "COMPLETE+ includes botanicals such as ashwagandha, tulsi and brahmi. If you already take herbal or Ayurvedic products, check for overlapping herbs with your doctor or practitioner.",
+    ingredientKeys: ["ashwagandha", "tulsi", "brahmi"],
+  },
+
   // ── Info ──
   {
     key: "allergy",

@@ -25,7 +25,7 @@ describe("frontierView", () => {
   });
 
   it("never leaks scoring internals to the browser", () => {
-    const { answers, path } = answerAll({ name: { text: "Riya" }, sex: { values: ["female"] }, age: { number: 30 }, pregnancy: { values: ["no"] } });
+    const { answers, path } = answerAll({ name: { text: "Riya" }, sex: { values: ["female"] }, age: { number: 30 }, country: { values: ["in"] }, state: { values: ["delhi"] }, pregnancy: { values: ["no"] } });
     const v = frontierView(kb, answers, path);
     expect(v.kind).toBe("question");
     const json = JSON.stringify(v);
@@ -60,6 +60,8 @@ describe("applyAnswer", () => {
       name: { text: "Riya" },
       sex: { values: ["male"] },
       age: { number: 30 },
+      country: { values: ["in"] },
+      state: { values: ["delhi"] },
       priorities: { values: ["energy"] },
       diet: { values: ["nonveg"] },
     });
@@ -72,17 +74,25 @@ describe("applyAnswer", () => {
       name: { text: "Riya" },
       sex: { values: ["male"] },
       age: { number: 30 },
+      country: { values: ["in"] },
+      state: { values: ["delhi"] },
       priorities: { values: ["energy"] },
-      diet: { values: ["nonveg"] },
-      fish: { values: ["rarely"] },
+      diet: { values: ["veg"] },
+      checkin: { values: ["none"] },
+      activity: { values: ["light"] },
+      sun: { values: ["some"] },
+      screen: { values: ["<4"] },
+      caffeine: { values: ["0-1"] },
+      alcohol: { values: ["never"] },
+      work: { values: ["desk"] },
+      diet_week: { grid: { dairy: "d1", pulses: "d1", greens: "w3", veg: "d1", fruits: "d1", nuts: "w1", millets: "w1" } },
     });
-    // Switch to vegetarian: the fish answer must go, the dairy question appears.
-    const r = applyAnswer(kb, answers, path, "diet", { values: ["veg"] });
+    // Switch to non-veg: the grid gains eggs and meat rows, so its old (incomplete) answer is dropped and it's asked again.
+    const r = applyAnswer(kb, answers, path, "diet", { values: ["nonveg"] });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.answers.fish).toBeUndefined();
-    expect(r.path).not.toContain("fish");
-    expect(r.state.view).toMatchObject({ kind: "question", question: { key: "dairy" } });
+    expect(r.answers.diet_week).toBeUndefined();
+    expect(r.path).not.toContain("diet_week");
   });
 });
 
