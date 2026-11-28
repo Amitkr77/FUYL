@@ -246,7 +246,7 @@ export function Player({ initialState, assisted }: { initialState?: FlowState; a
 
   return (
     <Shell>
-      <div className="mb-8 flex items-center gap-4">
+      <div className="mb-5 flex items-center gap-4">
         <button
           type="button"
           onClick={back}
@@ -274,9 +274,9 @@ export function Player({ initialState, assisted }: { initialState?: FlowState; a
       </div>
 
       {view?.kind === "question" && (
-        <div className="-mt-4 mb-4 px-1 text-xs text-muted" aria-live="polite">
-          <div className="flex items-center justify-between gap-3">
-            <span className="rounded-full bg-white/60 px-2.5 py-1 font-medium uppercase tracking-[0.14em] text-teal-deep">
+        <div className="-mt-2 mb-4 px-1 text-xs text-muted" aria-live="polite">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <span className="whitespace-nowrap rounded-full bg-white/60 px-2.5 py-1 font-medium uppercase tracking-[0.14em] text-teal-deep">
               {BLOCK_LABEL[view.question.block] ?? ""}
               <span className="ml-1.5 font-normal normal-case tracking-normal text-muted">· {sectionOf(view.question.block)} of 4</span>
             </span>
@@ -300,7 +300,7 @@ export function Player({ initialState, assisted }: { initialState?: FlowState; a
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             role="status"
-            className="glass mb-3 space-y-1.5 rounded-2xl px-4 py-3 text-sm text-forest"
+            className="glass mb-3 space-y-1 rounded-2xl px-4 py-2.5 text-[13px] leading-snug text-forest"
           >
             {(ack.text || ack.understood.length > 0) && (
               <p className="flex items-start gap-2">
@@ -321,7 +321,7 @@ export function Player({ initialState, assisted }: { initialState?: FlowState; a
         )}
       </AnimatePresence>
 
-      <div className="glass-strong relative overflow-hidden rounded-[var(--radius-glass)] px-5 py-10 sm:px-12 sm:py-12">
+      <div className="glass-strong relative overflow-clip rounded-[var(--radius-glass)] px-5 py-7 sm:px-10 sm:py-9">
         {!view ? (
           <Skeleton />
         ) : (
@@ -400,7 +400,7 @@ function isAnsweredQuestion(state: FlowState | null): boolean {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto w-full max-w-2xl">{children}</div>;
+  return <div className="mx-auto w-full max-w-4xl">{children}</div>;
 }
 
 function Skeleton() {

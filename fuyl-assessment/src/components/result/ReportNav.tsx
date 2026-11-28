@@ -66,7 +66,7 @@ export function ReportSidebar({
   const active = useActiveChapter(chapters.map((c) => c.id));
   const { copied, copy } = useCopyLink();
   return (
-    <aside className="sticky top-6 hidden max-h-[calc(100dvh-3rem)] flex-col gap-5 overflow-y-auto lg:flex print:hidden" aria-label="Report navigation">
+    <aside className="sticky top-6 hidden max-h-[calc(100dvh-3rem)] flex-col gap-5 no-scrollbar overflow-y-auto overscroll-contain lg:flex print:hidden" aria-label="Report navigation">
       <div className="glass-strong rounded-[var(--radius-glass)] p-5">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-teal-deep">Wellness report</p>
         <p className="mt-2 font-display text-2xl leading-tight text-forest">{name ? `Made for ${name}` : "Your report"}</p>
@@ -143,7 +143,7 @@ export function ReportChapterBar({ chapters, pdfHref }: { chapters: Chapter[]; p
   return (
     <div className="sticky top-0 z-30 -mx-4 mb-6 border-b border-white/60 bg-mist/85 px-4 py-2 backdrop-blur-md lg:hidden print:hidden">
       <div className="flex items-center gap-2">
-        <nav aria-label="Chapters" className="-mx-1 flex flex-1 gap-1 overflow-x-auto px-1">
+        <nav aria-label="Chapters" className="-mx-1 flex flex-1 gap-1 no-scrollbar overflow-x-auto px-1">
           {chapters.map((c, i) => (
             <a
               key={c.id}

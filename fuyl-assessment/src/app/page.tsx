@@ -22,7 +22,7 @@ export default async function Home() {
   return (
     <>
       <SiteHeader />
-      <main className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:py-16">
+      <main className="flex flex-1 flex-col items-center justify-center px-4 py-6 sm:py-8">
         <Suspense>
           <Welcome copy={WELCOME} consentText={CONSENT_TEXT} disclaimer={DISCLAIMER} trust={TRUST} assisted={assisted} />
         </Suspense>

@@ -32,7 +32,7 @@ export default async function QuestionPage({ searchParams }: { searchParams: Pro
   return (
     <>
       <SiteHeader />
-      <main className="flex flex-1 flex-col px-4 py-8 sm:py-14">
+      <main className="flex flex-1 flex-col px-4 py-5 sm:py-8">
         <Suspense>
           <Player initialState={initialState} assisted={assistedOptions(session)} />
         </Suspense>

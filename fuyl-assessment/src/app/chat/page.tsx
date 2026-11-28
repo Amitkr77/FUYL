@@ -22,7 +22,7 @@ export default async function AssistedStartPage() {
   return (
     <>
       <SiteHeader />
-      <main className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:py-16">
+      <main className="flex flex-1 flex-col items-center justify-center px-4 py-6 sm:py-8">
         <Suspense>
           <ChatStart copy={ASSISTED} consentText={CONSENT_TEXT} />
         </Suspense>

@@ -57,14 +57,14 @@ export function QuestionCard({
         id={headingId}
         ref={headingRef}
         tabIndex={-1}
-        className="text-balance text-center font-display text-[2rem] leading-[1.12] text-forest outline-none sm:text-[2.6rem]"
+        className="text-balance text-center font-display text-[1.65rem] leading-[1.15] text-forest outline-none sm:text-[2.2rem]"
       >
         {question.prompt}
       </h1>
       {question.helper && <p className="mt-3 text-center text-sm text-muted">{question.helper}</p>}
       {question.why && <WhyWeAsk text={question.why} />}
 
-      <div className="mt-8">
+      <div className="mt-6">
         <div className={clsx("rounded-3xl transition-shadow duration-500", assist?.highlightOptions && "shadow-[0_0_0_3px_rgba(85,132,118,0.35)] p-2")}>
           {question.type === "single" && question.display === "select" && (!assist || assist.showOptions) && (
             <SelectChoice question={question} answer={answer} busy={busy} labelledBy={headingId} onSubmit={onSubmit} />
@@ -137,7 +137,10 @@ function WhyWeAsk({ text }: { text: string }) {
 }
 
 const grid = (n: number) =>
-  clsx("grid gap-3", n <= 3 ? "grid-cols-1" : n === 4 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-2");
+  clsx(
+    "grid gap-3",
+    n === 3 ? "grid-cols-1 sm:grid-cols-3" : n === 2 || n === 4 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+  );
 
 function OptionTile({
   option,
@@ -160,7 +163,7 @@ function OptionTile({
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: 0.05 + index * 0.04, ease: [0.22, 1, 0.36, 1] }}
-      className={clsx("relative", option.exclusive && "sm:col-span-2")}
+      className={clsx("relative h-full", option.exclusive && "col-span-full")}
     >
       <m.button
         type="button"
@@ -172,7 +175,7 @@ function OptionTile({
         whileTap={disabled ? undefined : { scale: 0.98 }}
         transition={{ type: "spring", stiffness: 500, damping: 32 }}
         className={clsx(
-          "group relative flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-left text-[15px] transition-[background-color,color,box-shadow] duration-200",
+          "group relative flex h-full w-full items-center gap-3 rounded-2xl px-5 py-3.5 text-left text-[15px] transition-[background-color,color,box-shadow] duration-200",
           selected
             ? "bg-forest text-white shadow-[0_16px_36px_-16px_rgba(18,41,31,0.7)]"
             : "glass text-forest hover:bg-white/75 hover:shadow-[0_18px_40px_-22px_rgba(18,41,31,0.45)]",
@@ -366,11 +369,11 @@ function MultiChoice({
       <p aria-live="polite" className="mt-3 min-h-5 text-center text-[13px] text-teal-deep">
         {hint ?? (question.maxSelect ? `${picked.length} of ${question.maxSelect} selected` : "")}
       </p>
-      <div className="mt-3 flex justify-center">
+      <StickyAction>
         <Button size="lg" disabled={picked.length === 0} loading={busy} onClick={() => onSubmit({ values: picked })}>
           Continue
         </Button>
-      </div>
+      </StickyAction>
       <KeyHint count={options.length} enter />
     </>
   );
@@ -588,19 +591,21 @@ function GridChoice({
         if (complete) onSubmit({ grid: picked });
       }}
       aria-labelledby={labelledBy}
-      className="mx-auto max-w-3xl"
     >
-      <ul className="space-y-3">
+      {/* One food per row: name on the left, the how-often choices on the right (stacked on phones). */}
+      <ul className="space-y-2">
         {rows.map((r) => {
           const groupId = `${question.key}-${r.key}`;
           return (
-            <li key={r.key} className="glass rounded-2xl p-4">
-              <p id={groupId} className="flex items-center gap-2 text-[15px] font-medium text-forest">
-                {picked[r.key] && <Check className="h-4 w-4 shrink-0 text-teal-deep" aria-hidden />}
-                {r.label}
-              </p>
-              {r.helper && <p className="mt-0.5 text-xs text-muted">{r.helper}</p>}
-              <div role="radiogroup" aria-labelledby={groupId} className="mt-3 flex flex-wrap gap-2">
+            <li key={r.key} className="glass flex flex-col gap-2.5 rounded-2xl px-4 py-3 md:flex-row md:items-center md:justify-between md:gap-4">
+              <div className="min-w-0">
+                <p id={groupId} className="flex items-center gap-2 text-[15px] font-medium text-forest">
+                  {picked[r.key] && <Check className="h-4 w-4 shrink-0 text-teal-deep" aria-hidden />}
+                  {r.label}
+                </p>
+                {r.helper && <p className="mt-0.5 text-xs text-muted">{r.helper}</p>}
+              </div>
+              <div role="radiogroup" aria-labelledby={groupId} className="flex shrink-0 flex-wrap gap-1.5 md:flex-nowrap">
                 {options.map((o) => {
                   const on = picked[r.key] === o.value;
                   return (
@@ -615,7 +620,7 @@ function GridChoice({
                         setPicked((p) => ({ ...p, [r.key]: o.value }));
                       }}
                       className={clsx(
-                        "rounded-full px-3.5 py-2 text-sm transition-colors",
+                        "rounded-full px-3 py-1.5 text-[13px] transition-colors",
                         on ? "bg-forest text-white" : "border border-line bg-white/60 text-forest hover:bg-white",
                       )}
                     >
@@ -628,14 +633,28 @@ function GridChoice({
           );
         })}
       </ul>
-      <div className="mt-6 flex flex-col items-center gap-2">
-        <Button type="submit" size="lg" disabled={!complete} loading={busy}>
-          Continue
-        </Button>
-        <p className="text-xs text-muted" aria-live="polite">
-          {complete ? "All set" : `${done} of ${rows.length} answered`}
-        </p>
-      </div>
+      <StickyAction>
+        <div className="flex flex-col items-center gap-1.5">
+          <Button type="submit" size="lg" disabled={!complete} loading={busy}>
+            Continue
+          </Button>
+          <p className="text-xs text-muted" aria-live="polite">
+            {complete ? "All set" : `${done} of ${rows.length} answered`}
+          </p>
+        </div>
+      </StickyAction>
     </form>
+  );
+}
+
+/**
+ * The main action for long questions: stays pinned to the bottom of the screen
+ * while the options scroll, then settles in place under them.
+ */
+function StickyAction({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="sticky bottom-0 z-10 -mx-5 mt-3 flex justify-center bg-gradient-to-t from-white/95 via-white/80 to-transparent px-5 pb-4 pt-6 sm:-mx-10 sm:px-10">
+      {children}
+    </div>
   );
 }

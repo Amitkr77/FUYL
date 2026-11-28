@@ -71,7 +71,14 @@ export async function answer(page: Page, q: ClientQuestion, value: Script[string
  * Answer questions until the summary page or a stop screen. Returns the keys
  * asked, in order.
  */
-export async function runAssessment(page: Page, tracker: ReturnType<typeof trackView>, script: Script = {}, max = 60) {
+export async function runAssessment(
+  page: Page,
+  tracker: ReturnType<typeof trackView>,
+  script: Script = {},
+  max = 60,
+  /** Called with each question before it's answered (e.g. to take a screenshot). */
+  onQuestion?: (q: ClientQuestion) => Promise<void>,
+) {
   const asked: string[] = [];
   // Let the page's own initial "where am I?" request settle first.
   await page.waitForLoadState("networkidle");
@@ -88,6 +95,7 @@ export async function runAssessment(page: Page, tracker: ReturnType<typeof track
     }
     const q = view.question;
     asked.push(q.key);
+    if (onQuestion) await onQuestion(q);
     tracker.reset();
     await answer(page, q, script[q.key] ?? neutralAnswer(q));
     // Moved on = the summary, or a view that isn't this same question (a late
