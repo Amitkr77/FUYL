@@ -45,9 +45,19 @@ export function withReferenceDefaults(kb: KnowledgeBase): KnowledgeBase {
     const built = BUILT_IN_REFS.get(i.key);
     if (!built) return i;
     if (!i.nutrient) return { ...i, nutrient: built };
-    // Age-group values: filled in when the knowledge base doesn't have them yet.
-    if (!i.nutrient.byAge && built.byAge) return { ...i, nutrient: { ...i.nutrient, byAge: built.byAge } };
-    return i;
+    // Age-group values, upper limits and food sources: filled in when the knowledge base doesn't have them yet.
+    const n = i.nutrient;
+    const missing = (!n.byAge && built.byAge) || (n.upper === undefined && built.upper !== undefined) || (!n.sources && built.sources);
+    if (!missing) return i;
+    return {
+      ...i,
+      nutrient: {
+        ...n,
+        ...(!n.byAge && built.byAge ? { byAge: built.byAge } : {}),
+        ...(n.upper === undefined && built.upper !== undefined ? { upper: built.upper } : {}),
+        ...(!n.sources && built.sources ? { sources: built.sources } : {}),
+      },
+    };
   };
   if (kb.ingredients.every((i) => fill(i) === i)) return kb;
   return { ...kb, ingredients: kb.ingredients.map(fill) };

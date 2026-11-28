@@ -188,6 +188,21 @@ export interface NutrientRef {
   global: SexValues;
   /** Where another adult age group needs a different amount. */
   byAge?: AgeOverrides;
+  /**
+   * Tolerable upper intake level for adults (US NIH): the most per day that is
+   * unlikely to cause harm. `from: "supplements"` = the limit applies to
+   * supplements/fortified forms only. `null` = no limit set, because no harm
+   * has been seen at high intakes.
+   */
+  upper?: { amount: number; from: "total" | "supplements" } | null;
+  /** Everyday foods that provide it (filtered by the person's diet on the report). */
+  sources?: NutrientFood[];
+}
+
+/** A food that provides a nutrient, tagged so the report can match the person's diet. */
+export interface NutrientFood {
+  food: string;
+  type: "plant" | "dairy" | "egg" | "meat";
 }
 
 export type SafetyLevel = "info" | "caution" | "consult" | "stop";
@@ -326,6 +341,10 @@ export interface NutrientRow {
   kind?: "vitamin" | "mineral";
   /** Estimated daily intake from the person's diet (same unit), when it can be estimated. */
   diet?: number;
+  /** Safe upper limit (see NutrientRef.upper). */
+  upper?: { amount: number; from: "total" | "supplements" } | null;
+  /** Foods that provide it, matching the person's diet. */
+  sources?: string[];
 }
 
 /** Match for every focus area (for the profile chart), not just the ones shown. */

@@ -173,6 +173,15 @@ export const IngredientSchema = z
               .strict(),
           )
           .optional(),
+        upper: z
+          .object({ amount: z.number().positive(), from: z.enum(["total", "supplements"]) })
+          .strict()
+          .nullable()
+          .optional(),
+        sources: z
+          .array(z.object({ food: Req(60), type: z.enum(["plant", "dairy", "egg", "meat"]) }).strict())
+          .max(12)
+          .optional(),
       })
       .strict()
       .optional(),

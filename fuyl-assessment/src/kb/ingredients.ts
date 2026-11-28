@@ -172,4 +172,61 @@ const AGE_OVERRIDES: Record<string, NonNullable<NutrientRef["byAge"]>> = {
 };
 for (const [key, byAge] of Object.entries(AGE_OVERRIDES)) NUTRIENT_REFS[key] = { ...NUTRIENT_REFS[key], byAge };
 
+/**
+ * Tolerable upper intake levels, adults 19+ (US NIH Office of Dietary
+ * Supplements). null = no upper limit set (no harm seen at high intakes).
+ * "supplements" = the limit is for supplemental/fortified forms only.
+ */
+const UPPER_LIMITS: Record<string, NutrientRef["upper"]> = {
+  "vitamin-c": { amount: 2000, from: "total" },
+  "vitamin-b1": null,
+  "vitamin-b2": null,
+  "vitamin-b3": { amount: 35, from: "supplements" },
+  "vitamin-b5": null,
+  "vitamin-b6": { amount: 100, from: "total" },
+  folate: { amount: 1000, from: "supplements" },
+  "vitamin-b12": null,
+  "vitamin-a": { amount: 3000, from: "supplements" },
+  "vitamin-d3": { amount: 4000, from: "total" },
+  "vitamin-e": { amount: 1000, from: "supplements" },
+  "vitamin-k2": null,
+  biotin: null,
+  magnesium: { amount: 350, from: "supplements" },
+  zinc: { amount: 40, from: "total" },
+  iron: { amount: 45, from: "total" },
+  selenium: { amount: 400, from: "total" },
+  iodine: { amount: 1100, from: "total" },
+  manganese: { amount: 11, from: "total" },
+};
+
+const p = (food: string) => ({ food, type: "plant" as const });
+const d = (food: string) => ({ food, type: "dairy" as const });
+const e = (food: string) => ({ food, type: "egg" as const });
+const m = (food: string) => ({ food, type: "meat" as const });
+/** Everyday (mostly Indian) foods for each nutrient. DRAFT — for nutritionist review. */
+const FOOD_SOURCES: Record<string, NonNullable<NutrientRef["sources"]>> = {
+  "vitamin-c": [p("amla"), p("guava"), p("oranges and lemon"), p("capsicum"), p("tomatoes")],
+  "vitamin-b1": [p("whole grains and millets"), p("dal and legumes"), p("peanuts"), p("sesame (til)"), m("pork and fish")],
+  "vitamin-b2": [d("milk and curd"), e("eggs"), p("almonds"), p("mushrooms"), p("leafy greens")],
+  "vitamin-b3": [p("peanuts"), m("chicken and fish"), p("whole grains"), p("dal"), p("mushrooms")],
+  "vitamin-b5": [p("mushrooms"), d("curd"), e("eggs"), m("chicken"), p("whole grains"), p("sweet potato")],
+  "vitamin-b6": [p("chickpeas (chana)"), m("fish and chicken"), p("bananas"), p("potatoes"), p("peanuts")],
+  folate: [p("leafy greens (palak, methi)"), p("dal, rajma and chana"), p("oranges"), p("beetroot"), e("eggs")],
+  "vitamin-b12": [d("milk, curd and paneer"), e("eggs"), m("fish, chicken and mutton"), p("fortified foods")],
+  "vitamin-a": [p("carrots"), p("sweet potato and pumpkin"), p("papaya and mango"), p("leafy greens"), d("milk and ghee"), e("egg yolk")],
+  "vitamin-d3": [p("sunlight on your skin"), d("fortified milk"), e("egg yolk"), m("oily fish"), p("sun-dried mushrooms")],
+  "vitamin-e": [p("almonds"), p("sunflower seeds"), p("peanuts"), p("vegetable oils"), p("spinach")],
+  "vitamin-k2": [d("cheese and curd"), e("egg yolk"), m("chicken"), p("fermented soy"), p("leafy greens (vitamin K1)")],
+  biotin: [e("eggs"), p("peanuts"), p("almonds"), p("sweet potato"), p("sunflower seeds")],
+  magnesium: [p("pumpkin seeds"), p("almonds and cashews"), p("ragi and bajra"), p("leafy greens"), p("bananas")],
+  zinc: [p("pumpkin and sesame seeds"), p("chickpeas and dal"), m("chicken and mutton"), d("milk and paneer"), p("cashews"), p("whole grains")],
+  iron: [p("leafy greens"), p("dal, rajma and chana"), p("ragi and bajra"), p("sesame (til) and jaggery"), m("mutton, chicken and fish")],
+  selenium: [p("brazil nuts"), p("sunflower seeds"), e("eggs"), m("fish and chicken"), p("whole grains"), p("mushrooms")],
+  iodine: [p("iodised salt"), d("milk and curd"), e("eggs"), m("seafood")],
+  manganese: [p("whole grains and millets"), p("nuts"), p("dal"), p("leafy greens"), p("tea")],
+};
+for (const key of Object.keys(NUTRIENT_REFS)) {
+  NUTRIENT_REFS[key] = { ...NUTRIENT_REFS[key], upper: UPPER_LIMITS[key] ?? null, sources: FOOD_SOURCES[key] };
+}
+
 for (const i of INGREDIENTS) if (NUTRIENT_REFS[i.key]) i.nutrient = NUTRIENT_REFS[i.key];

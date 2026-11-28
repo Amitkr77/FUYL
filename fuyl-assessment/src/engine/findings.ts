@@ -59,6 +59,9 @@ export function buildNutrients(kb: KnowledgeBase, answers: Answers): AssessmentR
   const intake = estimateIntake(kb, answers);
   const estimable = new Set((kb.foods ?? []).flatMap((f) => Object.keys(f.nutrients)));
   const ageGroup = ageGroupOf(answers.age?.number);
+  // Food sources that match how the person eats.
+  const diet = answers.diet?.values?.[0];
+  const excluded = new Set<string>(diet === "vegan" ? ["dairy", "egg", "meat"] : diet === "veg" ? ["egg", "meat"] : diet === "eggetarian" ? ["meat"] : []);
   const pick = (v: { male: number; female: number }) => (basis === "adult" ? Math.max(v.male, v.female) : v[basis]);
   const rows: NutrientRow[] = kb.ingredients
     .filter((i) => i.nutrient)
@@ -79,6 +82,8 @@ export function buildNutrients(kb: KnowledgeBase, answers: Answers): AssessmentR
         ref: { india: n.india, global: n.global, ...(n.byAge ? { byAge: n.byAge } : {}) },
         kind: MINERALS.has(i.key) ? ("mineral" as const) : ("vitamin" as const),
         ...(intake && estimable.has(i.key) ? { diet: Math.round((intake[i.key] ?? 0) * 10) / 10 } : {}),
+        ...(n.upper !== undefined ? { upper: n.upper } : {}),
+        ...(n.sources ? { sources: n.sources.filter((s) => !excluded.has(s.type)).map((s) => s.food).slice(0, 5) } : {}),
       };
     });
   return rows.length ? { basis, ageGroup, rows, primary: primaryGuideline(answers), dietEstimated: Boolean(intake) } : undefined;

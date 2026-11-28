@@ -32,3 +32,23 @@ describe("daily needs by age group", () => {
     expect(withReferenceDefaults(old).ingredients.find((i) => i.key === "iron")!.nutrient!.byAge?.["51-70"]).toBeDefined();
   });
 });
+
+describe("safe upper limits and food sources", () => {
+  const base: Answers = { name: { text: "Asha" }, sex: { values: ["female"] }, age: { number: 30 }, pregnancy: { values: ["no"] }, priorities: { values: ["energy"] } };
+  const rows = (diet: string) => buildResult(kb, { ...base, diet: { values: [diet] } }).nutrients!.rows;
+
+  it("one serve stays below every safe upper limit", () => {
+    for (const r of rows("nonveg")) {
+      expect(r.upper).not.toBeUndefined();
+      if (r.upper) expect(r.amount).toBeLessThan(r.upper.amount);
+    }
+    expect(rows("nonveg").find((r) => r.key === "vitamin-b2")!.upper).toBeNull(); // no limit set
+  });
+
+  it("food sources follow the person's diet", () => {
+    const b12 = (diet: string) => rows(diet).find((r) => r.key === "vitamin-b12")!.sources!;
+    expect(b12("nonveg")).toEqual(expect.arrayContaining(["eggs", "fish, chicken and mutton"]));
+    expect(b12("veg")).toEqual(["milk, curd and paneer", "fortified foods"]);
+    expect(b12("vegan")).toEqual(["fortified foods"]);
+  });
+});

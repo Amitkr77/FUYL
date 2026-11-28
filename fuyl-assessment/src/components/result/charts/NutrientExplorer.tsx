@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import { ArrowRightLeft, Table2, BarChart3 } from "lucide-react";
+import { ArrowRightLeft, Table2, BarChart3, ShieldCheck, Utensils } from "lucide-react";
 import { AGE_GROUPS, refForAge, type AgeGroup, type AssessmentResult, type NutrientRow } from "@/engine";
 import { AMOUNT, COVERAGE, DIET, GLOBAL, INDIA, SERVE, TRACK } from "./palette";
 
@@ -26,6 +26,12 @@ function needs(r: NutrientRow, sex: Sex | "max") {
   if (!r.ref) return { india: r.india, global: r.global };
   const pick = (v: { male: number; female: number }) => (sex === "max" ? Math.max(v.male, v.female) : v[sex]);
   return { india: pick(r.ref.india), global: pick(r.ref.global) };
+}
+
+/** What counts toward a nutrient's upper limit: one serve, plus meals when the limit covers all sources. */
+function towardLimit(r: NutrientRow, withDiet: boolean) {
+  if (!r.upper) return 0;
+  return r.amount + (r.upper.from === "total" && withDiet ? (r.diet ?? 0) : 0);
 }
 
 const BINS = [
@@ -223,6 +229,13 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
   }, [rowsForAge, view]);
 
   const total = rowsForAge.length;
+  // Safe upper limits: is everything (one serve + estimated meals) under them, and which is closest?
+  const limits = rowsForAge
+    .filter((r) => r.upper !== undefined)
+    .map((r) => ({ r, share: r.upper ? towardLimit(r, hasDiet) / r.upper.amount : 0 }));
+  const hasLimits = limits.length > 0;
+  const allSafe = limits.every((x) => x.share < 1);
+  const closest = [...limits].sort((a, b) => b.share - a.share)[0];
   const describe = (xs: { r: NutrientRow; india: number; global: number }[]) =>
     xs.map((x) => `${short(x.r.name)} (${fmt(x.india)} vs ${fmt(x.global)} ${x.r.unit})`).join(", ");
 
@@ -320,6 +333,32 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
           ))}
         </ul>
       </div>
+
+      {/* Is more than 100% too much? Honest, per-nutrient: compared with safe upper limits. */}
+      {hasLimits && (
+        <div className="mt-4 flex gap-3 rounded-2xl border border-teal/25 bg-[#eef7f2]/80 p-4 text-sm leading-relaxed text-forest sm:p-5">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-teal-deep" aria-hidden />
+          <div>
+            <p className="font-medium">Going over 100% is safe at one serve a day</p>
+            {allSafe ? (
+              <p className="mt-1 text-muted">
+                Your body uses what it needs, and every vitamin and mineral in one serve stays well below its safe upper limit (US NIH)
+                {hasDiet ? ", even with what your meals already give you" : ""}.
+                {closest && closest.share > 0 && (
+                  <>
+                    {" "}The closest is {short(closest.r.name)}, at about {Math.max(1, Math.round(closest.share * 100))}% of its limit.
+                  </>
+                )}{" "}
+                Stick to one serve a day, and check with your doctor if you also take other supplements.
+              </p>
+            ) : (
+              <p className="mt-1 text-muted">
+                With your estimated meals, some nutrients come close to their safe upper limit. Stick to one serve a day and talk to your doctor before adding other supplements.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* India vs global: where the guidelines differ most. */}
       {hasRef && compare && diffs.some((d) => d.more.length || d.less.length) && (
@@ -428,6 +467,26 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
                 <p className="text-xs tabular-nums text-muted">
                   {fmt(r.amount)} {r.unit} per serve
                 </p>
+                {r.sources && r.sources.length > 0 && (
+                  <p className="mt-1.5 flex gap-1.5 text-xs leading-snug text-muted">
+                    <Utensils className="mt-px h-3.5 w-3.5 shrink-0 text-teal-deep" aria-hidden />
+                    <span>
+                      <span className="sr-only">Found in: </span>
+                      {r.sources.join(", ")}
+                    </span>
+                  </p>
+                )}
+                {r.upper !== undefined && pct(r.amount + (hasDiet && !compare ? (r.diet ?? 0) : 0), needFor(r, sexFor(view))) > 100 && (
+                  <p className="mt-1.5 flex gap-1.5 text-xs leading-snug text-teal-deep">
+                    <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+                    <span>
+                      Over 100% is safe —{" "}
+                      {r.upper
+                        ? `limit ${fmt(r.upper.amount)} ${r.unit} a day${r.upper.from === "supplements" ? " from supplements" : ""}`
+                        : "no upper limit has been set"}
+                    </span>
+                  </p>
+                )}
               </div>
               {compare && view === "both" && hasRef ? (
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -445,6 +504,7 @@ export function NutrientExplorer({ nutrients }: { nutrients: NonNullable<Assessm
       )}
 
       <p className="mt-5 text-xs leading-relaxed text-muted">
+        Food lists are everyday sources, matched to how you eat. Safe upper limits: US NIH tolerable upper intake levels for adults.{" "}
         India: ICMR-NIN &ldquo;Nutrient Requirements for Indians&rdquo; (2020), adults. Global: US National Institutes of Health RDA/AI
         {hasAges ? `, ages ${AGE_GROUPS.find((g) => g.value === age)?.label}` : ", adults 19–50"}. India&rsquo;s guidelines use one set of values for all adults; globally, magnesium,
         vitamin B6, iron (women) and vitamin D needs change with age.

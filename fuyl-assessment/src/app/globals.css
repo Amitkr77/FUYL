@@ -173,6 +173,25 @@ html.lenis body {
   transform-origin: left center;
   animation: bar-grow 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+/* Wellness silhouette: fills from the feet up. */
+@keyframes body-fill {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: none;
+  }
+}
+.body-fill {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: body-fill 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .body-fill {
+    animation: none;
+  }
+}
 
 /* ── Print / "Save as PDF" ───────────────────────────────────── */
 @media print {
@@ -222,4 +241,12 @@ html.lenis body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Scrolls, but without a visible scrollbar (report sidebar, chapter bar). */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

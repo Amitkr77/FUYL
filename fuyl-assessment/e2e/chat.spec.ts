@@ -123,6 +123,10 @@ test("own words + taps, understood by AI, through to the report and email", asyn
   await page.getByRole("switch", { name: "Compare with global guidelines" }).click(); // back to the simple view
   await expect(page.getByText("Your meals (estimated)")).toBeVisible();
   await expect(page.getByRole("img", { name: /^Iron: your meals give about \d+%/ })).toBeVisible();
+  // Over 100% is explained against safe upper limits, and each nutrient lists foods that match the diet (vegetarian: no meat or eggs).
+  await expect(page.getByText("Going over 100% is safe at one serve a day")).toBeVisible();
+  await expect(page.getByText(/Found in: amla, guava/)).toBeVisible();
+  await expect(page.getByText(/mutton, chicken and fish/)).toHaveCount(0);
   // The blend breakdown is folded away under "Safety & next steps" (information first, no hard sell).
   await page.getByText("What’s in one serve, blend by blend").click();
   await expect(page.getByRole("heading", { name: "Your COMPLETE+, blend by blend" })).toBeVisible();
